@@ -11,3 +11,8 @@ The normative architecture boundary document is
 use that charter to decide whether a feature belongs in artifacts, runtime,
 architecture plugins, training, schedules, Hugging Face export, reports, CLI, or
 validation.
+
+The practical product boundary is documented in
+[STUDENT_SPLIT_CONTRACT.md](STUDENT_SPLIT_CONTRACT.md). That contract states
+what RADJAX-Student owns, what it does not own, and what the project may and may
+not claim during foundation work.

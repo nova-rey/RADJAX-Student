@@ -9,3 +9,5 @@ This short checklist tracks the current scaffold.
 4. Keep teacher inference out of this repo.
 5. Complete Phase 0 foundation docs before promoting smoke/debug code to core
    APIs.
+6. Use [STUDENT_SPLIT_CONTRACT.md](STUDENT_SPLIT_CONTRACT.md) as the product
+   boundary for Phase 1 contract-layer work.
