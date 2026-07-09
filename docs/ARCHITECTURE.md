@@ -6,3 +6,8 @@ export package.
 It consumes artifacts defined by RADJAX-Contract and produced by RADJAX-Tome. It
 must not import Tome directly.
 
+The normative architecture boundary document is
+[ARCHITECTURE_CHARTER.md](ARCHITECTURE_CHARTER.md). Future implementation should
+use that charter to decide whether a feature belongs in artifacts, runtime,
+architecture plugins, training, schedules, Hugging Face export, reports, CLI, or
+validation.
