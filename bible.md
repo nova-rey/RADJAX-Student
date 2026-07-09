@@ -48,3 +48,15 @@
   defaults such as tokenizer identity, payload format, compression family, and
   expected adapter family without training, allocating models, or loading target
   tensors beyond Contract structural validation.
+
+## 2026-07-09 - P1.2 inferred run defaults
+
+- Added a run-defaults seed layer so future CLI and config resolution can start
+  from what the Tome already knows instead of requiring users to repeat cover
+  page metadata as flags.
+- Treated cover pages as run-default seed crystals: user config should provide
+  only choices the Tome cannot know, such as student architecture, student size,
+  training budget, and output location.
+- Kept unresolved runtime, optimizer, schedule, evaluation, and HF export
+  choices explicit by phase so inferred defaults are not mistaken for a final
+  training config.
