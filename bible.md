@@ -26,3 +26,14 @@
   claims not made, upstream/downstream relationships, current-code
   classification, and Phase 1 entry criteria.
 - Cleaned up Phase 0 Markdown formatting without changing normative content.
+
+## 2026-07-09 - P0.5 repository skeleton lock
+
+- Locked the repository skeleton to the Phase 0 charter shape with placeholder
+  packages for runtime, architecture, schedules, Hugging Face integration,
+  reports, and Student-side validation.
+- Documented that `bible.md` is institutional memory, not API documentation or
+  user-facing command reference, so future contributors know where decisions
+  belong.
+- Closed Foundation with the next Phase 1 question: how to correctly consume a
+  validated Tome artifact.

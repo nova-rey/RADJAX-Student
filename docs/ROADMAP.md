@@ -11,3 +11,5 @@ This short checklist tracks the current scaffold.
    APIs.
 6. Use [STUDENT_SPLIT_CONTRACT.md](STUDENT_SPLIT_CONTRACT.md) as the product
    boundary for Phase 1 contract-layer work.
+7. Treat the package skeleton as a placement map; do not interpret placeholder
+   packages as implemented capability.

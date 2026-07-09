@@ -80,7 +80,9 @@ src/radjax_student/
 ```
 
 Current directories that do not match this target are transitional. They should
-move only when a focused change can preserve behavior and tests.
+move only when a focused change can preserve behavior and tests. Empty
+long-term packages are placement boundaries, not proof of implemented
+capability.
 
 ## Architecture Plugins
 
@@ -166,9 +168,10 @@ No current code is marked `Remove`.
   The charter target is `architecture/`. Do not expand `students/` as a
   permanent public API; migrate in thin slices when adding the architecture
   contract.
-- Runtime, schedules, HF export, reports, and Student validation packages do not
-  exist yet. New work in those areas should create the target modules rather
-  than hiding responsibilities in `training/` or `students/`.
+- Runtime, schedules, HF export, reports, and Student validation packages now
+  exist only as skeleton placement boundaries. New work in those areas should
+  fill the target modules rather than hiding responsibilities in `training/` or
+  `students/`.
 - Dense Tome target loading is intentionally smoke/debug. It should not become
   the default training substrate once compressed production payloads are ready.
 - Current CLI shape does not match the long-term product path. Future commands

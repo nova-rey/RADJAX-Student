@@ -12,7 +12,8 @@ not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
 compatibility, or model quality.
 
-Start with the Phase 0 docs before extending the codebase:
+Start with the [documentation index](docs/INDEX.md) before extending the
+codebase. The normative Phase 0 docs are:
 
 - [Design philosophy](docs/DESIGN_PHILOSOPHY.md)
 - [Development roadmap](docs/RADJAX_DEVELOPMENT_ROADMAP.md)
