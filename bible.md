@@ -37,3 +37,14 @@
   belong.
 - Closed Foundation with the next Phase 1 question: how to correctly consume a
   validated Tome artifact.
+
+## 2026-07-09 - P1.1 artifact view
+
+- Added the first Phase 1 conveyor-belt station: a stable Tome artifact view
+  that opens a Contract-valid Tome, exposes cover page and manifest metadata,
+  and surfaces structural blockers instead of letting downstream code inspect
+  raw on-disk layout.
+- Kept the reader architecture-independent and runtime-independent. It infers
+  defaults such as tokenizer identity, payload format, compression family, and
+  expected adapter family without training, allocating models, or loading target
+  tensors beyond Contract structural validation.
