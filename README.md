@@ -34,6 +34,18 @@ canonical fixture digest, and metadata-only reporting pipeline while listing
 unavailable execution capabilities honestly. See the [CLI guide](docs/CLI.md)
 for formats, file output, profiles, and exit codes.
 
+The Contract Layer is closed by the maintained
+[P1.10 production acceptance gate](docs/P1_10_PHASE1_ACCEPTANCE_GATE.md):
+
+```bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q tests/acceptance
+```
+
+That gate proves Student can normalize or explicitly reject the accepted
+production Tome before model allocation. It does not claim payload consumption,
+runtime execution, training, export, or model quality. Phase 2 Student Runtime
+work is unblocked under that constraint.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
@@ -50,3 +62,4 @@ codebase. The normative Phase 0 docs are:
 - [Production run defaults](docs/P1_7_STUDENT_RUN_DEFAULTS.md)
 - [Student compatibility report](docs/P1_8_STUDENT_COMPATIBILITY_REPORT.md)
 - [Inspect and doctor CLI](docs/CLI.md)
+- [Phase 1 production acceptance gate](docs/P1_10_PHASE1_ACCEPTANCE_GATE.md)

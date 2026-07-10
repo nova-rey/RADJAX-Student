@@ -172,3 +172,25 @@
 - Left Phase 1 formally open. P1.10 must consolidate the golden fixture,
   malformed variants, CLI behavior, compatibility reports, and non-claims into
   one maintained acceptance gate.
+
+## 2026-07-10 - P1.10 Phase 1 production acceptance gate
+
+- Ended Phase 1 with proof instead of another feature. One maintained,
+  offline, CPU-only gate now exercises the accepted Contract fixture through
+  artifact opening, defaults, compatibility, inspect, and doctor.
+- Made rejection first-class evidence. Student must preserve precise Contract
+  blockers for malformed artifacts because accepting uncertain input is more
+  dangerous than refusing valid-looking input with an explainable error.
+- Froze normalized golden reports and a machine-readable receipt so fixture,
+  dependency, blocker, warning, exit-code, and non-claim drift becomes visible
+  in ordinary CI rather than relying on contributor memory.
+- Established the honest Phase 1 guarantee: Student can understand or reject an
+  accepted production Tome before model allocation. Contract may inspect
+  indexed data structurally, but Student does not consume or expose production
+  training payloads.
+- Continued to refuse training claims. No model, architecture plugin, runtime,
+  checkpoint, schedule, evaluation, export, quality, performance, scale, or
+  parity behavior was proven by this gate.
+- Unblocked Phase 2 because the artifact-understanding boundary is now
+  reproducible and protected. Runtime work may begin only while preserving this
+  acceptance gate and its explicit non-claims.

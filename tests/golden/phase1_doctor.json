@@ -1,0 +1,50 @@
+{
+  "actual_fixture_digest": "468a259d518a28a6f60af8c339b124b65fd52da0640544d186eb9609933608d1",
+  "available_profiles": [
+    "metadata_inspection_only"
+  ],
+  "blockers": [],
+  "canonical_fixture_available": true,
+  "canonical_fixture_helper_available": true,
+  "capability_state": {
+    "compatibility_reporting": "available",
+    "hf_export": "unavailable",
+    "metadata_inspection": "available",
+    "payload_loading": "unavailable",
+    "run_default_inference": "available",
+    "runtime_execution": "unavailable",
+    "training": "unavailable"
+  },
+  "claims_not_made": [
+    "payload_loading_not_tested",
+    "training_not_available",
+    "runtime_execution_not_available",
+    "architecture_not_instantiated",
+    "checkpoint_execution_not_tested",
+    "hf_export_not_available",
+    "model_quality_not_claimed"
+  ],
+  "compatibility_report_succeeds": true,
+  "contract_apis_importable": true,
+  "contract_package": {
+    "commit": "<DISCOVERED_OR_NONE>",
+    "package": "radjax-contract",
+    "version": "<DISCOVERED_OR_NONE>"
+  },
+  "defaults_inference_succeeds": true,
+  "expected_fixture_digest": "468a259d518a28a6f60af8c339b124b65fd52da0640544d186eb9609933608d1",
+  "expected_metadata_failure_recognized": true,
+  "fixture_digest_matches": true,
+  "fixture_opens": true,
+  "python_version": "<PYTHON_VERSION>",
+  "report_serialization_succeeds": true,
+  "status": "pass",
+  "student_package": {
+    "commit": "<DISCOVERED_OR_NONE>",
+    "package": "radjax-student",
+    "version": "<DISCOVERED_OR_NONE>"
+  },
+  "warnings": [
+    "metadata_inspection_only compatibility failure is expected and honest"
+  ]
+}

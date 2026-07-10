@@ -1,0 +1,83 @@
+{
+  "blockers": [],
+  "claims_not_made": [
+    "corridor_payload_loading_not_tested",
+    "exemplar_payload_loading_not_tested",
+    "loss_computation_not_tested",
+    "model_allocation_not_tested",
+    "architecture_plugin_support_not_available",
+    "runtime_selection_not_available",
+    "jax_xla_portability_not_tested",
+    "checkpoint_execution_not_tested",
+    "schedule_execution_not_tested",
+    "training_not_run",
+    "evaluation_not_run",
+    "hf_export_not_available",
+    "functional_stage_distillation_not_available",
+    "model_quality_not_claimed",
+    "performance_not_claimed",
+    "scale_not_claimed",
+    "radlads_parity_not_measured"
+  ],
+  "contract": {
+    "acceptance_receipt_commit": "ff8f6e9af976fc599ee31173d4f177fb1250b4d7",
+    "implementation_commit": "cbce741f7c4c14f6716207e5838bf152cce73e49",
+    "package_version": "0.1.0",
+    "repo": "nova-rey/RADJAX-Contract"
+  },
+  "fixture": {
+    "fixture_id": "production_multi_surface_v1",
+    "fixture_schema_version": "production_tome_fixture_v1",
+    "tree_digest": "468a259d518a28a6f60af8c339b124b65fd52da0640544d186eb9609933608d1"
+  },
+  "gate": "P1.10",
+  "gate_version": 1,
+  "generated_date": "2026-07-10",
+  "golden_reports": [
+    {
+      "path": "tests/golden/phase1_inspect_metadata_only.json",
+      "sha256": "57c462423be270501533acf0518d394b3be0fa129409518ae605d9803d1706e5"
+    },
+    {
+      "path": "tests/golden/phase1_doctor.json",
+      "sha256": "4fd2a93a683b49c40749f5a790010d6bbf9794a647ec38bd63534f41d9d81469"
+    }
+  ],
+  "phase_status": {
+    "phase_1_contract_layer": "complete",
+    "phase_2_student_runtime": "unblocked"
+  },
+  "status": "pass",
+  "student": {
+    "accepted_input_commit": "eff271d7d09fbf30b8c45fcbf47dbcbe083091aa",
+    "package_version": "0.1.0",
+    "repo": "nova-rey/RADJAX-Student"
+  },
+  "test_results": [
+    {
+      "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q tests/acceptance",
+      "result": "49 passed"
+    },
+    {
+      "command": "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q",
+      "result": "118 passed"
+    },
+    {
+      "command": "python3 -m ruff check .",
+      "result": "pass"
+    },
+    {
+      "command": "python3 -m ruff format --check .",
+      "result": "pass"
+    }
+  ],
+  "tome": {
+    "producer_commit": "fe5d51e769627cd89124fbb51dbdad2f80ad2fab",
+    "repo": "nova-rey/RADJAX-Tome"
+  },
+  "warnings": [
+    "metadata_inspection_only compatibility failure is expected and honest",
+    "declaration_test_only pass proves comparison logic, not implementation or execution",
+    "Contract structural validation may inspect indexed artifact data; Student does not consume or expose production training payloads"
+  ]
+}

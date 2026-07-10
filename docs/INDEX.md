@@ -29,6 +29,9 @@ Start here for Phase 0 foundation context.
   explicit profile-based readiness verdicts with structured blockers.
 - [Inspect and Doctor CLI](CLI.md): Phase 1 human/JSON product surface,
   profiles, output handling, exit codes, and current non-capabilities.
+- [P1.10 Phase 1 Acceptance Gate](P1_10_PHASE1_ACCEPTANCE_GATE.md): canonical
+  fixture, malformed matrix, golden reports, receipt, guarantees, and
+  non-claims that formally close the Contract Layer.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -71,6 +74,5 @@ Use it for:
 Do not use it for installation instructions, CLI documentation, API reference,
 or ordinary module descriptions.
 
-P1.10 is the next gate: promote the production fixture, malformed variants, CLI
-behavior, compatibility reports, and non-claims into the maintained Phase 1
-acceptance matrix.
+Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
+Runtime work is unblocked and must preserve that gate.

@@ -1,0 +1,713 @@
+{
+  "artifact_path": "<CONTRACT_FIXTURE:production_multi_surface_v1>",
+  "artifact_summary": {
+    "artifact_id": null,
+    "artifact_kind": "radjax_tome",
+    "content_count": 21,
+    "contract_family": "production_v2",
+    "contract_validation_status": "pass",
+    "cover_page_version": 2,
+    "example_count": 8,
+    "layout": "unpacked_directory",
+    "producer_identity": "radjax-tome.radjax_tome.tome.cover_page",
+    "producer_validation_status": "pass",
+    "sequence_length": 4,
+    "source_artifact_type": "teacher_textbook",
+    "surface_count": 2,
+    "teacher_backend": "fake",
+    "teacher_family": "fake",
+    "teacher_model_identity": "fake-production-teacher",
+    "teacher_model_revision": "fixture-v1",
+    "tokenizer_hash": "sha256:fixture-tokenizer-v1",
+    "tokenizer_id": "fake-production-tokenizer",
+    "tome_version": 1,
+    "vocab_size": 32
+  },
+  "compatibility": {
+    "artifact_claims_not_made": [
+      "no_model_quality_claim",
+      "no_network_verification_claim",
+      "no_student_training_claim"
+    ],
+    "artifact_identity": {
+      "artifact_kind": "radjax_tome",
+      "contract_family": "production_v2",
+      "contract_validation_status": "pass",
+      "cover_page_version": 2,
+      "producer_validation_status": "pass",
+      "source_artifact_type": "teacher_textbook",
+      "tome_version": 1
+    },
+    "blockers": [
+      {
+        "code": "missing_required_capability",
+        "details": {
+          "capability": "radjax.corridor.packed_assignments.v1"
+        },
+        "message": "required capability is not declared by profile: radjax.corridor.packed_assignments.v1"
+      },
+      {
+        "code": "missing_required_capability",
+        "details": {
+          "capability": "radjax.corridor.stat_bands.v1"
+        },
+        "message": "required capability is not declared by profile: radjax.corridor.stat_bands.v1"
+      },
+      {
+        "code": "missing_required_capability",
+        "details": {
+          "capability": "radjax.exemplar.selected_dynamic_topk.v1"
+        },
+        "message": "required capability is not declared by profile: radjax.exemplar.selected_dynamic_topk.v1"
+      },
+      {
+        "code": "sequence_compatibility_unevaluated",
+        "details": {
+          "artifact_value": 4,
+          "profile_limit": null
+        },
+        "message": "sequence_length compatibility is not declared by the profile"
+      },
+      {
+        "code": "vocab_compatibility_unevaluated",
+        "details": {
+          "artifact_value": 32,
+          "profile_limit": null
+        },
+        "message": "vocab_size compatibility is not declared by the profile"
+      }
+    ],
+    "missing_capabilities": [
+      "radjax.corridor.packed_assignments.v1",
+      "radjax.corridor.stat_bands.v1",
+      "radjax.exemplar.selected_dynamic_topk.v1"
+    ],
+    "plan_compatibility": {
+      "checkpoint_boundaries_supported": true,
+      "ordered_passes_supported": true,
+      "pass_count": 2,
+      "prerequisites_supported": true,
+      "status": "pass"
+    },
+    "profile_id": "metadata_inspection_only",
+    "required_capabilities": [
+      "radjax.corridor.packed_assignments.v1",
+      "radjax.corridor.stat_bands.v1",
+      "radjax.exemplar.selected_dynamic_topk.v1"
+    ],
+    "sequence_compatibility": {
+      "artifact_value": 4,
+      "profile_limit": null,
+      "status": "unevaluated"
+    },
+    "status": "fail",
+    "student_claims_not_made": [
+      "payload_loading_not_tested",
+      "loss_computation_not_tested",
+      "training_not_run",
+      "checkpoint_execution_not_tested",
+      "runtime_not_selected",
+      "architecture_not_instantiated",
+      "capability_declaration_not_implementation_proof",
+      "model_quality_not_claimed",
+      "hf_export_not_ready",
+      "radlads_parity_not_measured"
+    ],
+    "supported_capabilities": [],
+    "supported_surfaces": [
+      "corridor",
+      "exemplar"
+    ],
+    "target_scope_compatibility": [
+      {
+        "required": true,
+        "scope_kind": "whole_model",
+        "status": "pass",
+        "surface_id": "corridor"
+      },
+      {
+        "required": true,
+        "scope_kind": "whole_model",
+        "status": "pass",
+        "surface_id": "exemplar"
+      }
+    ],
+    "unevaluated_capabilities": [],
+    "unsupported_surfaces": [],
+    "vocab_compatibility": {
+      "artifact_value": 32,
+      "profile_limit": null,
+      "status": "unevaluated"
+    },
+    "warnings": [
+      {
+        "code": "tokenizer_architecture_binding_deferred",
+        "details": {
+          "tokenizer_id": "fake-production-tokenizer"
+        },
+        "message": "tokenizer identity is present but architecture binding is deferred"
+      },
+      {
+        "code": "defaults_warning",
+        "details": {
+          "source": "StudentRunDefaults"
+        },
+        "message": "unsupported_required_capability: radjax.corridor.packed_assignments.v1"
+      },
+      {
+        "code": "defaults_warning",
+        "details": {
+          "source": "StudentRunDefaults"
+        },
+        "message": "unsupported_required_capability: radjax.corridor.stat_bands.v1"
+      },
+      {
+        "code": "defaults_warning",
+        "details": {
+          "source": "StudentRunDefaults"
+        },
+        "message": "unsupported_required_capability: radjax.exemplar.selected_dynamic_topk.v1"
+      },
+      {
+        "code": "architecture_specific_compatibility_not_evaluated",
+        "details": {},
+        "message": "no architecture plugin or model configuration was instantiated"
+      },
+      {
+        "code": "special_token_compatibility_not_evaluated",
+        "details": {},
+        "message": "special-token binding requires a future architecture configuration"
+      }
+    ]
+  },
+  "contents": [
+    {
+      "classification": "diagnostic",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/corridor_fingerprints.json",
+      "required": false,
+      "role": "corridor_fingerprints",
+      "sha256": "77764f624435e22cbbd3b01fb3f0746680f1bbf4e19756652a1d25aef8a82323",
+      "size_bytes": 29606
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/corridor_modes.json",
+      "required": true,
+      "role": "corridor_mode_table",
+      "sha256": "e459bd3ac9e2d47154743d458213cbd5b6f7354dd40638fcb18a29446401d94f",
+      "size_bytes": 3240
+    },
+    {
+      "classification": "integrity_or_provenance",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/corridor_summary.json",
+      "required": true,
+      "role": "corridor_summary",
+      "sha256": "723400ebd8575650f2cedafd1c61330672f31d036acf95695314f4a67d8d33f4",
+      "size_bytes": 1136
+    },
+    {
+      "classification": "human_readable",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/corridor_summary.txt",
+      "required": false,
+      "role": "corridor_human_summary",
+      "sha256": "e27f4514e08d7ef1d8858f6699b8aaa55df2e5cc171e1591f7e96b4c5626a802",
+      "size_bytes": 503
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/mode_assignments.json",
+      "required": true,
+      "role": "corridor_assignment_manifest",
+      "sha256": "be76c844fd29f087d549f0f7310d07da9cd166821def0948bc70a6317ebcb5dc",
+      "size_bytes": 1186
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/mode_assignments/examples_metadata.jsonl",
+      "required": true,
+      "role": "corridor_assignment_examples_metadata",
+      "sha256": "9fb715828d77a5e4de3567a3fb0812004f60e8d02f32f6058aadbc07985b4fcd",
+      "size_bytes": 392
+    },
+    {
+      "classification": "diagnostic",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/mode_assignments/fingerprint_index.npy",
+      "required": false,
+      "role": "corridor_assignment_fingerprint_index",
+      "sha256": "a6c24e8495f673ba0a0fde058d50937ec9c55c38c8420e0adb48862b8a9d4593",
+      "size_bytes": 256
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/mode_assignments/mode_id.npy",
+      "required": true,
+      "role": "corridor_assignment_mode_id",
+      "sha256": "f48d26cb0fc5e427a67b3daf2c311de3bf63ee64e496ab23ea7518571d5ea0ab",
+      "size_bytes": 256
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/mode_assignments/position.npy",
+      "required": true,
+      "role": "corridor_assignment_position",
+      "sha256": "22a2f1a21629134dafb478451209490b8fb47b50871ead40cc30d4c82555e21d",
+      "size_bytes": 256
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/mode_assignments/position_example_index.npy",
+      "required": true,
+      "role": "corridor_assignment_position_example_index",
+      "sha256": "f0d4748192225ff13f03b72725f534cafbd959925ea7908f624eef2e240c1833",
+      "size_bytes": 256
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "corridors/mode_assignments/weight.npy",
+      "required": true,
+      "role": "corridor_assignment_weight",
+      "sha256": "8878e1a4803f03da31924259bbdd1a2a3530b81eb580e14fdc3a55a7fd36f093",
+      "size_bytes": 256
+    },
+    {
+      "classification": "diagnostic",
+      "known_role": true,
+      "metadata": {},
+      "path": "delivery_report.json",
+      "required": false,
+      "role": "exemplar_delivery_report",
+      "sha256": "2b1b5b80c2cd0f9ee17764987babc3b4d643da78463ef032a4ba1dde01611bda",
+      "size_bytes": 1556
+    },
+    {
+      "classification": "integrity_or_provenance",
+      "known_role": true,
+      "metadata": {},
+      "path": "emission_config.json",
+      "required": true,
+      "role": "emission_config",
+      "sha256": "db473778fbec3519e37348b9cd3ffc9ca6cd0d15d440356976ac1decf4b79070",
+      "size_bytes": 388
+    },
+    {
+      "classification": "diagnostic",
+      "known_role": true,
+      "metadata": {},
+      "path": "leaderboards/leaderboard_report.json",
+      "required": false,
+      "role": "exemplar_leaderboard_report",
+      "sha256": "8c2ed259f465d171f5fc4bae7a6c6e286cbc842dced91d7fe23c9ff85ebd88bb",
+      "size_bytes": 108
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "leaderboards/selected_exemplars.json",
+      "required": true,
+      "role": "selected_exemplar_index",
+      "sha256": "69ebb01604ea718c424ca9e9ead6ef6bbab12854c29d4ced4f26be3d8f470f71",
+      "size_bytes": 1618
+    },
+    {
+      "classification": "integrity_or_provenance",
+      "known_role": true,
+      "metadata": {},
+      "path": "metadata.json",
+      "required": true,
+      "role": "target_store_metadata",
+      "sha256": "f344c0ac18fdd3b6ffce7a296306b393e1526cd2e340f4201d330626cbaac004",
+      "size_bytes": 845
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "selected_exemplars/selected-exemplars-00000.json",
+      "required": true,
+      "role": "selected_exemplar_payload_shard",
+      "sha256": "5e534b616e18d05d37b9f86345ae6b94b41d17ceb63b2e7710ff3eb3576096db",
+      "size_bytes": 5814
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "shards/shard-00000.npz",
+      "required": true,
+      "role": "target_shard",
+      "sha256": "6046fd968a446cf293f8e3c36ecef0fe3f29aca4ab907ee08c64635f1f6d716f",
+      "size_bytes": 7046
+    },
+    {
+      "classification": "integrity_or_provenance",
+      "known_role": true,
+      "metadata": {},
+      "path": "teacher_manifest.json",
+      "required": true,
+      "role": "teacher_manifest",
+      "sha256": "a3d8ffe989a8d7413a81ccbd0e79a5862a5a1c93f061e422d14e97fd994225b8",
+      "size_bytes": 1277
+    },
+    {
+      "classification": "integrity_or_provenance",
+      "known_role": true,
+      "metadata": {},
+      "path": "validation_report.json",
+      "required": true,
+      "role": "validation_report",
+      "sha256": "6ff9bc095e6ace5efef04912368a81ad66a82430c28c66a39a337b3a9a259540",
+      "size_bytes": 1691
+    },
+    {
+      "classification": "training_critical",
+      "known_role": true,
+      "metadata": {},
+      "path": "vocab_contract.json",
+      "required": true,
+      "role": "vocab_contract",
+      "sha256": "90829499e51f2ab090494d762f4836b5319f2b7a9af5783751267093878e9109",
+      "size_bytes": 260
+    }
+  ],
+  "provenance": {
+    "corpus": {
+      "corpus_hash": "sha256:fixture-corpus-v1",
+      "source": "deterministic_synthetic_fixture",
+      "split": "training"
+    },
+    "producer_lineage": {
+      "created_at": "2000-01-01T00:00:00Z",
+      "created_by": "radjax-tome.radjax_tome.tome.cover_page",
+      "source_artifact_type": "teacher_textbook",
+      "validated_by": "radjax_tome.builder.validate_teacher_textbook",
+      "validation_report_path": "validation_report.json"
+    },
+    "targets": {
+      "dtype": "float32",
+      "num_examples": 8,
+      "sequence_length": 4,
+      "shard_count": 1,
+      "target_params": {
+        "corridor_stat_top_k": "32",
+        "dynamic_mass_threshold": "0.95",
+        "dynamic_top_k_max": "5",
+        "dynamic_top_k_min": "2",
+        "min_corridor_stat_top_k": "32"
+      },
+      "target_type": "corridor_exemplar_score_pass_v1"
+    },
+    "teacher": {
+      "allow_downloads": false,
+      "backend_type": "fake",
+      "local_files_only": true,
+      "model_family": "fake",
+      "model_id": "fake-production-teacher"
+    },
+    "teacher_model": {
+      "allow_downloads": false,
+      "config_hash": "sha256:fixture-config-v1",
+      "local_files_only": true,
+      "model_directory_hash": null,
+      "model_identity_confidence": "fixture",
+      "model_name": "fake-production-teacher",
+      "model_name_source": null,
+      "model_provenance_mode": null,
+      "model_revision": "fixture-v1",
+      "model_revision_source": null,
+      "model_source_kind": "deterministic_fixture",
+      "network_used": false,
+      "schema_version": "teacher_model_provenance_v1",
+      "teacher_model_provenance_path": null,
+      "tokenizer_hash": "sha256:fixture-tokenizer-v1",
+      "weights_hash": "sha256:fixture-weights-v1"
+    },
+    "tokenizer": {
+      "tokenizer_hash": "sha256:fixture-tokenizer-v1",
+      "tokenizer_id": "fake-production-tokenizer",
+      "vocab_contract_path": "vocab_contract.json",
+      "vocab_size": 32
+    }
+  },
+  "run_defaults": {
+    "artifact_claims_not_made": [
+      "no_model_quality_claim",
+      "no_network_verification_claim",
+      "no_student_training_claim"
+    ],
+    "artifact_facts": {
+      "artifact_id": null,
+      "artifact_kind": "radjax_tome",
+      "content_count": 21,
+      "contract_family": "production_v2",
+      "contract_validation_status": "pass",
+      "cover_page_version": 2,
+      "example_count": 8,
+      "layout": "unpacked_directory",
+      "producer_identity": "radjax-tome.radjax_tome.tome.cover_page",
+      "producer_validation_status": "pass",
+      "sequence_length": 4,
+      "source_artifact_type": "teacher_textbook",
+      "surface_count": 2,
+      "teacher_backend": "fake",
+      "teacher_family": "fake",
+      "teacher_model_identity": "fake-production-teacher",
+      "teacher_model_revision": "fixture-v1",
+      "tokenizer_hash": "sha256:fixture-tokenizer-v1",
+      "tokenizer_id": "fake-production-tokenizer",
+      "tome_version": 1,
+      "vocab_size": 32
+    },
+    "available_surfaces": [
+      {
+        "corridor": {
+          "assignment_count": 32,
+          "assignment_storage_kind": "packed_numpy_v1",
+          "corridor_stat_top_k": 32,
+          "degraded": false,
+          "mode_count": 2,
+          "mode_policy": "stat_bands_v0",
+          "tracked_statistics": [
+            "entropy",
+            "top1_margin",
+            "top8_mass",
+            "top32_mass",
+            "tail_mass"
+          ]
+        },
+        "exemplar": null,
+        "known_surface": true,
+        "optional_content_roles": [
+          "corridor_assignment_fingerprint_index",
+          "corridor_fingerprints",
+          "corridor_human_summary"
+        ],
+        "prerequisites": [],
+        "required_capabilities": [
+          "radjax.corridor.packed_assignments.v1",
+          "radjax.corridor.stat_bands.v1"
+        ],
+        "required_content_roles": [
+          "target_shard",
+          "corridor_summary",
+          "corridor_mode_table",
+          "corridor_assignment_manifest",
+          "corridor_assignment_position_example_index",
+          "corridor_assignment_position",
+          "corridor_assignment_mode_id",
+          "corridor_assignment_weight",
+          "corridor_assignment_examples_metadata"
+        ],
+        "schema_version": "behavioral_surface_v1",
+        "semantics": {
+          "mode_policy": "stat_bands_v0",
+          "position_semantics": "zero_based_token_position_v1",
+          "storage_kind": "packed_numpy_v1"
+        },
+        "surface_id": "corridor",
+        "surface_kind": "fingerprint_corridor",
+        "target_scope": {
+          "kind": "whole_model"
+        }
+      },
+      {
+        "corridor": null,
+        "exemplar": {
+          "corridor_linkage_required": true,
+          "dynamic_top_k_metadata": {
+            "dynamic_mass_threshold": "0.95",
+            "dynamic_top_k_max": "5",
+            "dynamic_top_k_min": "2"
+          },
+          "payload_shard_count": 1,
+          "selected_exemplar_count": 4
+        },
+        "known_surface": true,
+        "optional_content_roles": [
+          "exemplar_delivery_report",
+          "exemplar_leaderboard_report"
+        ],
+        "prerequisites": [
+          "corridor"
+        ],
+        "required_capabilities": [
+          "radjax.exemplar.selected_dynamic_topk.v1"
+        ],
+        "required_content_roles": [
+          "target_shard",
+          "selected_exemplar_index",
+          "selected_exemplar_payload_shard"
+        ],
+        "schema_version": "behavioral_surface_v1",
+        "semantics": {
+          "delivery_path_is_provenance": true,
+          "position_semantics": "zero_based_token_position_v1"
+        },
+        "surface_id": "exemplar",
+        "surface_kind": "selected_exemplar",
+        "target_scope": {
+          "kind": "whole_model"
+        }
+      }
+    ],
+    "capabilities_not_yet_evaluated": [
+      "radjax.corridor.packed_assignments.v1",
+      "radjax.corridor.stat_bands.v1",
+      "radjax.exemplar.selected_dynamic_topk.v1"
+    ],
+    "legacy_smoke_defaults": null,
+    "recommended_training_plan": [
+      {
+        "checkpoint_after": true,
+        "pass_id": "corridor_pass",
+        "pass_index": 0,
+        "prerequisites": [],
+        "required_capabilities": [
+          "radjax.corridor.packed_assignments.v1",
+          "radjax.corridor.stat_bands.v1"
+        ],
+        "surface_id": "corridor",
+        "target_scope": {
+          "kind": "whole_model"
+        }
+      },
+      {
+        "checkpoint_after": true,
+        "pass_id": "exemplar_pass",
+        "pass_index": 1,
+        "prerequisites": [
+          "corridor"
+        ],
+        "required_capabilities": [
+          "radjax.exemplar.selected_dynamic_topk.v1"
+        ],
+        "surface_id": "exemplar",
+        "target_scope": {
+          "kind": "whole_model"
+        }
+      }
+    ],
+    "required_capabilities": [
+      "radjax.corridor.packed_assignments.v1",
+      "radjax.corridor.stat_bands.v1",
+      "radjax.exemplar.selected_dynamic_topk.v1"
+    ],
+    "required_from_user": {
+      "output_dir": null,
+      "student_architecture": null,
+      "student_size_or_config": null,
+      "training_budget": null
+    },
+    "student_claims_not_made": [
+      "training_not_run",
+      "compatibility_not_evaluated",
+      "required_capabilities_not_proven",
+      "student_architecture_not_selected",
+      "runtime_not_selected",
+      "optimizer_not_selected",
+      "schedule_not_executable",
+      "payload_tensors_not_loaded",
+      "model_not_allocated",
+      "model_quality_not_claimed",
+      "hf_export_not_ready",
+      "radlads_parity_not_measured"
+    ],
+    "unresolved_by_phase": {
+      "architecture_plugin": "phase_4",
+      "evaluation_policy": "phase_5_or_later",
+      "hf_export_details": "phase_5_or_later",
+      "loss_weighting": "phase_3_or_later",
+      "optimizer": "phase_3_or_later",
+      "precision_policy": "phase_2_or_later",
+      "runtime_backend": "phase_2_or_later",
+      "schedule_implementation": "phase_3_or_later"
+    },
+    "unsupported_required_capabilities": [
+      "radjax.corridor.packed_assignments.v1",
+      "radjax.corridor.stat_bands.v1",
+      "radjax.exemplar.selected_dynamic_topk.v1"
+    ],
+    "warnings": [
+      "unsupported_required_capability: radjax.corridor.packed_assignments.v1",
+      "unsupported_required_capability: radjax.corridor.stat_bands.v1",
+      "unsupported_required_capability: radjax.exemplar.selected_dynamic_topk.v1"
+    ]
+  },
+  "selected_profile": {
+    "accepted_producer_statuses": [
+      "pass"
+    ],
+    "max_sequence_length": null,
+    "max_vocab_size": null,
+    "notes": [
+      "metadata inspection only",
+      "does not declare corridor or exemplar payload consumption"
+    ],
+    "profile_id": "metadata_inspection_only",
+    "supported_capabilities": [],
+    "supported_contract_families": [
+      "production_v2"
+    ],
+    "supported_cover_page_versions": [
+      2
+    ],
+    "supported_surface_kinds": [
+      "fingerprint_corridor",
+      "selected_exemplar"
+    ],
+    "supported_surface_schemas": [
+      {
+        "schema_version": "behavioral_surface_v1",
+        "surface_kind": "fingerprint_corridor"
+      },
+      {
+        "schema_version": "behavioral_surface_v1",
+        "surface_kind": "selected_exemplar"
+      }
+    ],
+    "supported_target_scopes": [
+      "whole_model",
+      "unspecified",
+      "default"
+    ],
+    "supported_tokenizer_ids": null,
+    "supported_tome_versions": [
+      1
+    ],
+    "supports_checkpoint_boundaries": true,
+    "supports_ordered_passes": true,
+    "supports_pass_prerequisites": true
+  },
+  "status": "fail",
+  "validation": {
+    "blockers": [],
+    "contract_status": "pass",
+    "producer_report_path": "validation_report.json",
+    "producer_status": "pass",
+    "producer_validated_by": "radjax_tome.builder.validate_teacher_textbook",
+    "student_interpretation": "metadata_only_requires_capabilities",
+    "warnings": []
+  }
+}

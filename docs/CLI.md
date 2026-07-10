@@ -86,6 +86,7 @@ portability, Hugging Face export, or model quality. The legacy
 `cli/train_student.py` module remains a deprecated tiny smoke shim and is not the
 product `train` command.
 
-P1.10 remains required to promote the production fixture, malformed variants,
-CLI behavior, compatibility reports, and non-claims into the maintained golden
-acceptance gate and formally close Phase 1.
+P1.10 promotes the fixture, malformed variants, CLI behavior, reports, and
+non-claims into the maintained [Phase 1 acceptance gate](P1_10_PHASE1_ACCEPTANCE_GATE.md).
+Phase 1 is complete; these commands remain understanding surfaces, not evidence
+of execution readiness.

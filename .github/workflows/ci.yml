@@ -29,6 +29,9 @@ jobs:
       - name: Compile Python files
         run: python -m compileall src scripts tests
 
+      - name: Run Phase 1 acceptance gate
+        run: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -q tests/acceptance
+
       - name: Run tests
         run: python -m pytest
 
@@ -37,4 +40,3 @@ jobs:
 
       - name: Check Ruff formatting
         run: python -m ruff format --check .
-
