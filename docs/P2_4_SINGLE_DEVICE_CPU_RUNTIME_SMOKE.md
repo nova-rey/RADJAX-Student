@@ -115,6 +115,6 @@ installed and otherwise skips cleanly.
 P2.4 proves a selected JAX CPU runtime can explicitly place a tiny value,
 execute and synchronize one pure eager function, validate it, and close cleanly.
 It does not prove JIT, GPU/TPU, distributed execution, sharding, replicated
-placement, precision behavior, finalized RNG streams, runtime persistence,
+placement, precision behavior, RNG stream consumption, runtime persistence,
 model initialization, training, checkpoints, evaluation, export, or meaningful
 performance.

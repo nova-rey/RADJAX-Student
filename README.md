@@ -67,6 +67,11 @@ eager pure execution, synchronization, result validation, timing, and teardown.
 It is opt-in through `radjax-student doctor --runtime-smoke`; normal `doctor`
 remains inspection and selection only.
 
+[P2.5](docs/P2_5_RNG_AND_REPRODUCIBILITY.md) establishes one deterministic,
+runtime-owned root-seed hierarchy with named immutable streams for future model,
+data, dropout, augmentation, evaluation, and runtime-test behavior. It creates
+no backend RNG object and does not implement stochastic model behavior.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
@@ -89,3 +94,4 @@ codebase. The normative Phase 0 docs are:
 - [P2.2 device and environment inspection](docs/P2_2_DEVICE_ENVIRONMENT_INSPECTION.md)
 - [P2.3 runtime backend registry and selection](docs/P2_3_RUNTIME_BACKEND_REGISTRY.md)
 - [P2.4 single-device CPU runtime smoke](docs/P2_4_SINGLE_DEVICE_CPU_RUNTIME_SMOKE.md)
+- [P2.5 RNG and reproducibility contract](docs/P2_5_RNG_AND_REPRODUCIBILITY.md)

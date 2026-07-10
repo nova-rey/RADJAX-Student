@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Literal, TypeAlias
 
+from radjax_student.runtime.keys import RuntimeKeys
+
 PrecisionPolicy: TypeAlias = Literal[
     "float32",
     "bfloat16",
@@ -463,6 +465,7 @@ class ExecutionContext:
     root_seed: int
     runtime_id: str
     metadata: Mapping[str, Any] = MappingProxyType({})
+    runtime_keys: RuntimeKeys | None = None
 
     def __post_init__(self) -> None:
         _require_string("backend_id", self.backend_id)
@@ -480,7 +483,17 @@ class ExecutionContext:
         _require_integer("root_seed", self.root_seed)
         if self.root_seed < 0:
             raise ValueError("root_seed must be nonnegative")
+        runtime_keys = (
+            RuntimeKeys.from_seed(self.root_seed)
+            if self.runtime_keys is None
+            else self.runtime_keys
+        )
+        if not isinstance(runtime_keys, RuntimeKeys):
+            raise TypeError("runtime_keys must be RuntimeKeys when specified")
+        if runtime_keys.root_seed != self.root_seed:
+            raise ValueError("runtime key root seed must match context root_seed")
         object.__setattr__(self, "metadata", freeze_json_mapping(self.metadata))
+        object.__setattr__(self, "runtime_keys", runtime_keys)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -491,6 +504,7 @@ class ExecutionContext:
             "root_seed": self.root_seed,
             "runtime_id": self.runtime_id,
             "metadata": json_value(self.metadata),
+            "runtime_keys": self.runtime_keys.to_dict(),
         }
 
     @classmethod
@@ -509,6 +523,13 @@ class ExecutionContext:
             root_seed=_required_int(payload["root_seed"], "root_seed"),
             runtime_id=str(payload["runtime_id"]),
             metadata=_mapping(payload.get("metadata", {}), "metadata"),
+            runtime_keys=(
+                None
+                if payload.get("runtime_keys") is None
+                else RuntimeKeys.from_dict(
+                    _mapping(payload["runtime_keys"], "runtime_keys")
+                )
+            ),
         )
 
 

@@ -35,3 +35,8 @@ teardown. It does not add JIT, sharding, replication, GPU/TPU, distributed
 execution, model state, or training. See
 [P2.4 Single-Device CPU Runtime Smoke](P2_4_SINGLE_DEVICE_CPU_RUNTIME_SMOKE.md).
 Fast paths remain later optional layers and never become correctness paths.
+
+P2.5 adds backend-neutral `RuntimeKeys` as the deterministic root-seed hierarchy
+owned by `ExecutionContext`. It serializes semantic stream lineage rather than
+JAX key objects and establishes no random model/training behavior. See
+[P2.5 RNG and Reproducibility Contract](P2_5_RNG_AND_REPRODUCIBILITY.md).

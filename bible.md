@@ -271,3 +271,22 @@
 - Kept the claim narrow: P2.4 proves runtime heartbeat on selected JAX CPU only.
   It does not prove model initialization, Tome payload use, training, checkpoints,
   JIT, GPU/TPU, distributed execution, sharding, precision behavior, or speed.
+
+## 2026-07-10 - P2.5 RNG and reproducibility contract
+
+- Froze one root-seed contract before introducing model or training stochasticity.
+  Runtime owns deterministic RNG identity so future subsystems cannot quietly
+  create unrelated state and make a run unreproducible by construction.
+- Made semantic stream names public and fixed: model initialization, data order,
+  dropout, augmentation, evaluation, and runtime tests. Names and lineage are
+  stable API, not implementation details that architecture or schedule code may
+  redefine independently.
+- Kept the tree backend-neutral and immutable. Serialized data contains only root
+  seed, named lineage, deterministic derived seed, and metadata, never JAX/NumPy
+  key objects or mutable generator state.
+- Attached the tree to `ExecutionContext`, binding every initialized runtime to
+  the exact seed hierarchy that it owns. Equal roots reproduce the tree; stream
+  access cannot advance or alter another subsystem's randomness.
+- Kept the claim honest: this is an RNG identity contract, not proof that model
+  initialization, dropout, augmentation, training, evaluation, distributed RNG,
+  or persistence behavior has run correctly.

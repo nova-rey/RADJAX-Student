@@ -46,6 +46,9 @@ Start here for Phase 0 foundation context.
 - [P2.4 Single-Device CPU Runtime Smoke](P2_4_SINGLE_DEVICE_CPU_RUNTIME_SMOKE.md):
   opt-in JAX CPU initialization, explicit placement/execution/synchronization,
   receipt timing, cleanup, and constrained execution claims.
+- [P2.5 RNG and Reproducibility Contract](P2_5_RNG_AND_REPRODUCIBILITY.md):
+  one runtime-owned root seed, fixed named immutable stream lineage, and
+  backend-neutral serialization.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -89,5 +92,5 @@ Do not use it for installation instructions, CLI documentation, API reference,
 or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
-Runtime work has begun under the locked roadmap; P2.4 CPU execution is complete,
-and P2.5 RNG and reproducibility is the next checkpoint.
+Runtime work has begun under the locked roadmap; P2.5 RNG identity is complete,
+and P2.6 placement and sharding intent is the next checkpoint.

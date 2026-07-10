@@ -94,3 +94,9 @@ places one small host value on the selected CPU explicitly, executes one eager
 pure function, synchronizes, validates its host result, and closes in `finally`.
 The module has no architecture, artifact, loss, optimizer, schedule, or training
 dependency; broader execution policies remain later checkpoints.
+
+P2.5 keeps deterministic randomness in the runtime boundary through a versioned
+`RuntimeKeys` tree attached to every `ExecutionContext`. Its fixed named streams
+are portable lineage metadata, not backend RNG objects. Architecture and training
+code must later consume supplied streams rather than creating independent RNG
+state.

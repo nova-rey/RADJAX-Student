@@ -49,7 +49,7 @@ CPU_RUNTIME_SMOKE_CLAIMS_NOT_MADE: tuple[str, ...] = (
     "sharding_not_tested",
     "replicated_placement_not_tested",
     "precision_behavior_not_proven",
-    "rng_streams_not_finalized",
+    "rng_streams_not_consumed_by_smoke",
     "runtime_state_persistence_not_tested",
     "model_parameters_not_initialized",
     "training_not_run",
