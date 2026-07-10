@@ -9,6 +9,9 @@ be produced externally by RADJAX-Tome.
 
 Production Tome semantics are owned by RADJAX-Contract and versioned in the
 [canonical Tome/Student consumer handoff](https://github.com/nova-rey/RADJAX-Contract/blob/main/docs/reference/RADJAX_TOME_STUDENT_CONSUMER_HANDOFF.md).
+Student opens that contract through `open_tome_artifact()` and exposes validated
+identity, provenance, content references, behavioral surfaces, capability
+requirements, and the declarative pass plan without loading training payloads.
 
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
@@ -22,3 +25,4 @@ codebase. The normative Phase 0 docs are:
 - [Development roadmap](docs/RADJAX_DEVELOPMENT_ROADMAP.md)
 - [Architecture charter](docs/ARCHITECTURE_CHARTER.md)
 - [Student split contract](docs/STUDENT_SPLIT_CONTRACT.md)
+- [Production artifact view](docs/P1_6_STUDENT_ARTIFACT_VIEW.md)

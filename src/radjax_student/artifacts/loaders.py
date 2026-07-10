@@ -8,6 +8,12 @@ from radjax_contract.validation import validate_teacher_tome
 
 
 def inspect_teacher_tome(path: str | Path) -> dict[str, Any]:
+    """Inspect the legacy dense-v0 smoke artifact shape.
+
+    Production artifacts must use ``open_tome_artifact`` and the Contract
+    production cover-page API. This helper remains only for existing debug code.
+    """
+
     artifact_dir = Path(path)
     validation = validate_teacher_tome(artifact_dir)
     if not validation.ok:

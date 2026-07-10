@@ -21,6 +21,8 @@ Start here for Phase 0 foundation context.
   production contract comparison, gap ownership, and corrective recommendation.
 - [P1.4 Production Tome Alignment Plan](P1_4_PRODUCTION_TOME_ALIGNMENT_PLAN.md):
   ordered cross-repository ownership, schema, fixture, and acceptance gates.
+- [P1.6 Student Artifact View](P1_6_STUDENT_ARTIFACT_VIEW.md): production
+  Contract-backed metadata view, legacy isolation, and current non-claims.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)

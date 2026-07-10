@@ -52,6 +52,8 @@ class StudentRunDefaults:
 
 def infer_run_defaults(view: TomeArtifactView) -> StudentRunDefaults:
     defaults = view.inferred_defaults
+    if defaults is None:
+        raise ValueError("Tome artifact view does not expose inferred defaults")
     inferred = {
         "teacher_id": defaults.teacher_id,
         "teacher_family": defaults.teacher_family,
@@ -60,7 +62,9 @@ def infer_run_defaults(view: TomeArtifactView) -> StudentRunDefaults:
         "vocab_size": defaults.vocab_size,
         "sequence_length": view.sequence_length,
         "record_count": view.record_count,
-        "payload_format": view.payload_format.value,
+        "payload_format": (
+            None if view.payload_format is None else view.payload_format.value
+        ),
         "compression_family": defaults.compression_family,
         "requires_reconstruction": defaults.requires_reconstruction,
         "expected_adapter_family": defaults.adapter_family,

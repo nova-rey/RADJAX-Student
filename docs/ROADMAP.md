@@ -3,6 +3,21 @@
 The long-range roadmap is [RADJAX_DEVELOPMENT_ROADMAP.md](RADJAX_DEVELOPMENT_ROADMAP.md).
 This short checklist tracks the current scaffold.
 
+## Phase 1 Status
+
+```text
+P1.1  TomeArtifactView seam                         CORRECTED BY P1.6
+P1.2  Inferred run-defaults seam                    COMPLETE, PROVISIONAL
+P1.3  Production Tome gap review                    COMPLETE
+P1.4  Cross-repository contract alignment plan     COMPLETE
+P1.5  Tome/Contract production alignment           COMPLETE
+P1.6  Student artifact-view correction              COMPLETE
+P1.7  Student run-defaults correction               UNBLOCKED; NEXT
+P1.8  Student compatibility report                  BLOCKED ON P1.7
+P1.9  Inspect/doctor CLI                            BLOCKED ON P1.8
+P1.10 Production golden acceptance gate             BLOCKED ON P1.9
+```
+
 1. Keep tiny debug student and artifact inspection green.
 2. Migrate student backend registry and current QRWKV backend in thin slices.
 3. Add target loaders, sparse losses, checkpointing, and held-out evaluation.

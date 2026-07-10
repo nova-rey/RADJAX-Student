@@ -101,3 +101,20 @@
   no artifact loader, run-default, training, or runtime behavior changed.
 - P1.6 may begin only after the cross-repository P1.5 receipt records a passing
   shared production fixture gate.
+
+## 2026-07-10 - P1.6 production artifact-view correction
+
+- Preserved the public `open_tome_artifact()` and `TomeArtifactView` seam while
+  replacing its production dependence on one manifest, one payload, and one
+  adapter with the accepted Contract cover-page, content-index, surface,
+  capability, and pass-plan model.
+- Student now normalizes one pinned production contract through published
+  Contract APIs only. Contract blockers survive in the stable Student artifact
+  error instead of being replaced by filename guesses or vague failures.
+- Kept dense v0 behavior as an explicit legacy smoke/debug branch. Its manifest
+  and payload fields are never production sources of truth.
+- Corridor and exemplar convenience views expose metadata only. Student does not
+  access assignment arrays or selected payload records, allocate a model, or
+  execute training, runtimes, schedules, or checkpoints.
+- Arbitrary unknown optional roles and surfaces remain inspectable, while
+  required capabilities remain explicit for the later compatibility gate.
