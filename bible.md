@@ -214,3 +214,21 @@
   and report concepts now give later checkpoints one coherent socket without
   claiming device inspection, backend selection, placement, JIT, persistence,
   architecture support, payload loading, or training.
+
+## 2026-07-10 - P2.2 device and environment inspection
+
+- Put observation before selection so P2.3 can compare requested policy with
+  normalized machine facts instead of letting JAX defaults silently choose the
+  meaning of a run.
+- Treated JAX absence as a coherent fact rather than a crash. The base package
+  remains useful and doctor remains healthy without the optional execution
+  stack, while an installed-but-broken import stays distinguishable.
+- Preserved unknown device memory, precision, distributed state, and topology
+  as unknown. Guessing from device names or incomplete APIs would turn missing
+  evidence into false capability claims.
+- Used guarded public JAX APIs and normalized every device into immutable JSON
+  facts. No raw device object, private backend internal, vendor shell command,
+  object identity, or memory-address representation enters the public report.
+- Kept inspection separate from execution proof. Seeing a CPU, GPU, or TPU does
+  not prove placement, JIT, synchronization, precision behavior, distributed
+  execution, runtime initialization, architecture support, or training.

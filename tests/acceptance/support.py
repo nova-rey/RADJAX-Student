@@ -76,6 +76,9 @@ def normalize_inspection(report: StudentInspectionReport) -> dict[str, Any]:
 
 def normalized_doctor_payload(report: StudentDoctorReport | None = None) -> dict:
     payload = (build_doctor_report() if report is None else report).to_dict()
+    payload.pop("runtime_inspection")
+    payload["capability_state"].pop("runtime_inspection")
+    payload["capability_state"].pop("jax_execution")
     payload["python_version"] = "<PYTHON_VERSION>"
     for package in ("student_package", "contract_package"):
         payload[package]["version"] = "<DISCOVERED_OR_NONE>"

@@ -76,3 +76,9 @@ teardown. P2.1 provides no concrete backend or registry and performs none of
 those actions. Generic runtime modules use only the Python standard library and
 do not depend on artifacts, architecture, training, schedules, JAX, or optional
 ML packages.
+
+P2.2 implements only the protocol's observation side as the standalone
+`inspect_runtime_environment()` API. JAX/JAXLIB imports are lazy, visible
+devices normalize into serializable descriptors, and unknown facts stay
+unknown. The inspection result never selects a backend or creates an
+`ExecutionContext`; those remain P2.3/P2.4 responsibilities.

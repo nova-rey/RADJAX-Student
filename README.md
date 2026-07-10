@@ -50,7 +50,13 @@ Phase 2 follows the [locked runtime roadmap](docs/RADJAX_PHASE2_RUNTIME_ROADMAP.
 [P2.1](docs/P2_1_RUNTIME_CONTRACT.md) defines the architecture-independent
 runtime configuration, observation, capability, context, error, protocol,
 state-envelope, and reporting contracts. It does not inspect devices, select a
-backend, initialize JAX, or execute computation; P2.2 is the next checkpoint.
+backend, initialize JAX, or execute computation.
+
+[P2.2](docs/P2_2_DEVICE_ENVIRONMENT_INSPECTION.md) adds lazy local JAX
+environment and device inspection. Missing JAX is reported coherently without
+breaking the base install; observed devices normalize into stable JSON models.
+Inspection does not select a backend or execute computation. P2.3 backend
+registry is the next checkpoint.
 
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
@@ -71,3 +77,4 @@ codebase. The normative Phase 0 docs are:
 - [Phase 1 production acceptance gate](docs/P1_10_PHASE1_ACCEPTANCE_GATE.md)
 - [Phase 2 runtime roadmap](docs/RADJAX_PHASE2_RUNTIME_ROADMAP.md)
 - [P2.1 runtime contract](docs/P2_1_RUNTIME_CONTRACT.md)
+- [P2.2 device and environment inspection](docs/P2_2_DEVICE_ENVIRONMENT_INSPECTION.md)

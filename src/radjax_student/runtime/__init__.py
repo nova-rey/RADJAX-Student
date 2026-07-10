@@ -11,6 +11,13 @@ from radjax_student.runtime.errors import (
     RuntimeErrorCode,
     RuntimeIssue,
 )
+from radjax_student.runtime.inspection import (
+    RUNTIME_INSPECTION_CLAIMS_NOT_MADE,
+    RUNTIME_INSPECTION_FINDING_CODES,
+    InspectionStatus,
+    RuntimeInspection,
+    inspect_runtime_environment,
+)
 from radjax_student.runtime.models import (
     COMPILATION_POLICIES,
     DISTRIBUTED_POLICIES,
@@ -44,6 +51,8 @@ __all__ = [
     "PRECISION_POLICIES",
     "RUNTIME_CAPABILITY_VOCABULARY",
     "RUNTIME_ERROR_CODES",
+    "RUNTIME_INSPECTION_CLAIMS_NOT_MADE",
+    "RUNTIME_INSPECTION_FINDING_CODES",
     "CompilationOptions",
     "CompilationPolicy",
     "DeviceDescriptor",
@@ -51,6 +60,7 @@ __all__ = [
     "DistributedPolicy",
     "ExecutionContext",
     "FallbackPolicy",
+    "InspectionStatus",
     "PlacementPolicy",
     "PrecisionPolicy",
     "RuntimeBackend",
@@ -60,7 +70,9 @@ __all__ = [
     "RuntimeEnvironment",
     "RuntimeErrorCode",
     "RuntimeIssue",
+    "RuntimeInspection",
     "RuntimeReport",
     "RuntimeState",
     "RuntimeStatus",
+    "inspect_runtime_environment",
 ]

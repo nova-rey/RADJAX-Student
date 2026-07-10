@@ -122,8 +122,10 @@ def test_doctor_proves_pipeline_and_honest_expected_failure() -> None:
         "metadata_inspection": "available",
         "run_default_inference": "available",
         "compatibility_reporting": "available",
+        "runtime_inspection": "available",
         "payload_loading": "unavailable",
         "training": "unavailable",
+        "jax_execution": "unavailable",
         "runtime_execution": "unavailable",
         "hf_export": "unavailable",
     }

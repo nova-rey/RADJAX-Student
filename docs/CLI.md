@@ -61,9 +61,15 @@ Contract APIs, verifies the accepted canonical fixture digest, opens the fixture
 through `open_tome_artifact()`, infers defaults, produces the expected honest
 metadata-only compatibility failure, and verifies JSON serialization.
 
+Doctor also runs P2.2 runtime inspection. Human and JSON output report optional
+JAX/JAXLIB versions, observed platform/process/device facts, normalized device
+kinds, and structured inspection warnings. Missing JAX is healthy and appears as
+`jax_not_installed`; doctor still states that JAX execution is unavailable.
+
 An expected compatibility failure does not make doctor unhealthy. Missing or
 changed fixtures, failed Contract imports, pipeline failures, or serialization
-failures do.
+failures do. Runtime inspection fails doctor only when observation itself is
+incoherent, not when optional JAX is absent.
 
 ## Exit Codes
 

@@ -12,6 +12,7 @@ from types import MappingProxyType
 from typing import Any
 
 from radjax_student.artifacts import open_tome_artifact
+from radjax_student.runtime import RuntimeInspection, inspect_runtime_environment
 from radjax_student.validation import (
     evaluate_student_compatibility,
     infer_run_defaults,
@@ -65,6 +66,7 @@ class StudentDoctorReport:
     compatibility_report_succeeds: bool
     expected_metadata_failure_recognized: bool
     report_serialization_succeeds: bool
+    runtime_inspection: RuntimeInspection
     capability_state: Mapping[str, str]
     blockers: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -96,6 +98,7 @@ class StudentDoctorReport:
                 self.expected_metadata_failure_recognized
             ),
             "report_serialization_succeeds": self.report_serialization_succeeds,
+            "runtime_inspection": self.runtime_inspection.to_dict(),
             "capability_state": dict(self.capability_state),
             "blockers": list(self.blockers),
             "warnings": list(self.warnings),
@@ -157,6 +160,9 @@ def build_doctor_report() -> StudentDoctorReport:
         warnings.append(
             "metadata_inspection_only compatibility failure is expected and honest"
         )
+    runtime_inspection = inspect_runtime_environment()
+    if not runtime_inspection.ok:
+        blockers.append("runtime_inspection_failed")
     return StudentDoctorReport(
         status="pass" if not blockers else "fail",
         python_version=platform.python_version(),
@@ -174,13 +180,16 @@ def build_doctor_report() -> StudentDoctorReport:
         compatibility_report_succeeds=compatibility_succeeds,
         expected_metadata_failure_recognized=expected_failure,
         report_serialization_succeeds=serialization_succeeds,
+        runtime_inspection=runtime_inspection,
         capability_state=MappingProxyType(
             {
                 "metadata_inspection": "available",
                 "run_default_inference": "available",
                 "compatibility_reporting": "available",
+                "runtime_inspection": "available",
                 "payload_loading": "unavailable",
                 "training": "unavailable",
+                "jax_execution": "unavailable",
                 "runtime_execution": "unavailable",
                 "hf_export": "unavailable",
             }

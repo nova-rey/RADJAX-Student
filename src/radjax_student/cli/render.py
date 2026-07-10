@@ -5,6 +5,7 @@ from pathlib import Path
 
 from radjax_student.reports.doctor import PackageStatus, StudentDoctorReport
 from radjax_student.reports.inspection import StudentInspectionReport
+from radjax_student.runtime import DeviceInventory, RuntimeEnvironment
 
 
 class OutputExistsError(ValueError):
@@ -147,6 +148,24 @@ def render_doctor_human(report: StudentDoctorReport) -> str:
         + _yes_no(report.expected_metadata_failure_recognized),
         f"  report serialization: {_yes_no(report.report_serialization_succeeds)}",
         "",
+        "Runtime Inspection",
+        f"  status: {report.runtime_inspection.status.upper()}",
+        "  JAX available: "
+        + _yes_no(report.runtime_inspection.environment.jax_available),
+        "  JAX version: " + _display(report.runtime_inspection.environment.jax_version),
+        "  JAXLIB version: "
+        + _display(report.runtime_inspection.environment.jaxlib_version),
+        "  observed platform: "
+        + _display(report.runtime_inspection.environment.platform),
+        "  process: " + _process_summary(report.runtime_inspection.environment),
+        "  devices: " + _device_summary(report.runtime_inspection.device_inventory),
+        "  warnings: "
+        + _joined(
+            tuple(item.code for item in report.runtime_inspection.warnings),
+            empty="none",
+        ),
+        "  JAX execution: unavailable",
+        "",
         "Available Profiles",
     ]
     lines.extend(f"  - {item}" for item in report.available_profiles)
@@ -200,6 +219,29 @@ def _package_summary(package: PackageStatus) -> str:
     version = _display(package.version)
     commit = package.commit
     return version if commit is None else f"{version} ({commit})"
+
+
+def _process_summary(environment: RuntimeEnvironment) -> str:
+    return (
+        f"{_display(environment.process_index)} of "
+        f"{_display(environment.process_count)}"
+    )
+
+
+def _device_summary(inventory: DeviceInventory) -> str:
+    kinds = tuple(
+        sorted(
+            {
+                item.device_kind
+                for item in inventory.devices
+                if item.device_kind is not None
+            }
+        )
+    )
+    return (
+        f"{_display(inventory.global_device_count)} global; "
+        f"kinds={_joined(kinds, empty='unknown')}"
+    )
 
 
 def _mapping_summary(value: object) -> str:

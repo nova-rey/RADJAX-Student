@@ -12,6 +12,10 @@ ordering, schedules, evaluation, or export. Generic runtime contracts import
 only the Python standard library and remain safe to import without JAX device
 initialization.
 
-P2.2 adds environment inspection, P2.3 adds the registry and initial JAX backend
-boundary, and P2.4 proves the first single-device CPU smoke. Fast paths remain
-later optional layers and never become correctness paths.
+P2.2 provides lazy environment/device inspection through public JAX APIs when
+JAX is installed. Inspection returns normalized P2.1 models and treats optional
+JAX absence as a healthy fact; it does not select a backend or execute work.
+
+P2.3 adds the registry and initial JAX backend boundary, and P2.4 proves the
+first single-device CPU smoke. Fast paths remain later optional layers and never
+become correctness paths.

@@ -37,6 +37,9 @@ Start here for Phase 0 foundation context.
 - [P2.1 Runtime Contract](P2_1_RUNTIME_CONTRACT.md): runtime ownership,
   terminology, typed models, capability/error vocabulary, backend protocol, and
   non-claims.
+- [P2.2 Device and Environment Inspection](P2_2_DEVICE_ENVIRONMENT_INSPECTION.md):
+  lazy JAX observation, normalized devices/topology, structured findings,
+  doctor integration, and non-execution guarantees.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -81,4 +84,4 @@ or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
 Runtime work has begun under the locked roadmap; P2.2 environment inspection is
-the next checkpoint.
+complete and P2.3 backend registry is the next checkpoint.
