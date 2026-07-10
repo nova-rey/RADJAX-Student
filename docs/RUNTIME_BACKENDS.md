@@ -1,11 +1,17 @@
 # Runtime Backends
 
-Runtime backends are deferred in this scaffold. Future work should add reference
-and Pallas runtimes while keeping Pallas opt-in and default CI CPU-safe.
+P2.1 defines the architecture-independent `RuntimeBackend` protocol and shared
+models. It intentionally provides no registry or concrete backend.
 
 Runtime answers where and how execution occurs. It owns device policy,
-precision policy, compilation policy, checkpoint execution mechanics, and
-optional accelerator optimizations.
+precision policy, placement and compilation translation, synchronization,
+runtime state, and execution reporting.
 
-Runtime must not know which architecture is executing beyond the stable
-architecture plugin interface. Fast paths must never become correctness paths.
+Runtime does not own architecture math, parameters, losses, optimizers, data
+ordering, schedules, evaluation, or export. Generic runtime contracts import
+only the Python standard library and remain safe to import without JAX device
+initialization.
+
+P2.2 adds environment inspection, P2.3 adds the registry and initial JAX backend
+boundary, and P2.4 proves the first single-device CPU smoke. Fast paths remain
+later optional layers and never become correctness paths.

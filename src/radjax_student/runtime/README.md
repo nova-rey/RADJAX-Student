@@ -1,10 +1,14 @@
-# Runtime
+# Runtime Contract
 
 Runtime answers where and how execution occurs.
 
-This package is the long-term home for device policy, precision policy,
-compilation policy, checkpoint execution mechanics, and optional accelerator
-optimization boundaries.
+P2.1 defines immutable, serialization-ready runtime intent, environment/device
+facts, capability declarations, compilation options, execution context,
+runtime-owned state envelope, structured errors, backend protocol, and reports.
 
-Runtime code should depend on architecture plugins only through stable
-architecture contracts.
+Generic modules use only the Python standard library and do not import JAX,
+architecture, artifacts, training, schedules, or optional ML stacks. No backend
+registry, environment inspection, device operation, compilation, state
+persistence, or execution is implemented yet.
+
+See [`docs/P2_1_RUNTIME_CONTRACT.md`](../../../docs/P2_1_RUNTIME_CONTRACT.md).

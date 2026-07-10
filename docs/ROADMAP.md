@@ -21,6 +21,24 @@ PHASE 1 - CONTRACT LAYER                            COMPLETE
 PHASE 2 - STUDENT RUNTIME                           UNBLOCKED
 ```
 
+## Phase 2 Status
+
+The sequence is locked in
+[RADJAX_PHASE2_RUNTIME_ROADMAP.md](RADJAX_PHASE2_RUNTIME_ROADMAP.md).
+
+```text
+P2.1  Runtime Contract and Terminology          COMPLETE
+P2.2  Device and Environment Inspection         UNBLOCKED; NEXT
+P2.3  Runtime Backend Registry                  BLOCKED ON P2.2
+P2.4  Single-Device CPU Runtime Smoke           BLOCKED ON P2.3
+P2.5  RNG and Reproducibility Contract          BLOCKED ON P2.4
+P2.6  Placement and Sharding Intent             BLOCKED ON P2.5
+P2.7  Compilation and Execution Boundary        BLOCKED ON P2.6
+P2.8  Runtime State Save/Restore Foundation     BLOCKED ON P2.7
+P2.9  GPU/TPU Portability Smoke                 BLOCKED ON P2.8
+P2.10 Runtime Golden Acceptance Gate            BLOCKED ON P2.9
+```
+
 1. Keep tiny debug student and artifact inspection green.
 2. Migrate student backend registry and current QRWKV backend in thin slices.
 3. Add target loaders, sparse losses, checkpointing, and held-out evaluation.

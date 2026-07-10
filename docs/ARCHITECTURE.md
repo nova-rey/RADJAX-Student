@@ -61,3 +61,18 @@ aggregates live in `reports/`; argument parsing, rendering, and exit-code mappin
 live in `cli/`. `radjax-student doctor` composes those same boundaries against
 the accepted fixture. Neither command owns producer schemas, loads Student
 training payloads, allocates a model, or executes a runtime or schedule.
+
+## Runtime Contract
+
+P2.1 defines runtime as an architecture-independent boundary under `runtime/`.
+Requested `RuntimeConfig` policy remains distinct from observed
+`RuntimeEnvironment` and `DeviceInventory` facts. Versioned capability profiles,
+structured errors, execution contexts, state envelopes, and reports serialize
+without raw backend objects.
+
+The `RuntimeBackend` protocol describes environment inspection, capability
+declaration, initialization, placement, compilation, synchronization, and
+teardown. P2.1 provides no concrete backend or registry and performs none of
+those actions. Generic runtime modules use only the Python standard library and
+do not depend on artifacts, architecture, training, schedules, JAX, or optional
+ML packages.

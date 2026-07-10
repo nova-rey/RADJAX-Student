@@ -194,3 +194,23 @@
 - Unblocked Phase 2 because the artifact-understanding boundary is now
   reproducible and protected. Runtime work may begin only while preserving this
   acceptance gate and its explicit non-claims.
+
+## 2026-07-10 - P2.1 runtime contract and terminology
+
+- Separated runtime from architecture and training before adding JAX execution.
+  Runtime owns where and how generic computation executes; architecture owns
+  model math, and training/schedules own optimization mechanism and policy.
+- Kept requested policy and observed environment as different immutable models.
+  A GPU request is intent, not evidence that a GPU exists, and distributed
+  policy is not observed distributed initialization.
+- Versioned backend capability declarations so selection can reject missing
+  semantics explicitly and future meaning changes cannot hide behind a reused
+  boolean. Declarations remain non-proof until an execution gate tests them.
+- Made fallback disallowed by default. Silently substituting CPU for a requested
+  accelerator would change run meaning while making reports look successful;
+  any compatible fallback must be requested and reported.
+- Intentionally defined more than P2.1 executes. Stable config, environment,
+  device, capability, context, compilation, state-envelope, error, protocol,
+  and report concepts now give later checkpoints one coherent socket without
+  claiming device inspection, backend selection, placement, JIT, persistence,
+  architecture support, payload loading, or training.

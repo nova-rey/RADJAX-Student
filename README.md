@@ -46,6 +46,12 @@ production Tome before model allocation. It does not claim payload consumption,
 runtime execution, training, export, or model quality. Phase 2 Student Runtime
 work is unblocked under that constraint.
 
+Phase 2 follows the [locked runtime roadmap](docs/RADJAX_PHASE2_RUNTIME_ROADMAP.md).
+[P2.1](docs/P2_1_RUNTIME_CONTRACT.md) defines the architecture-independent
+runtime configuration, observation, capability, context, error, protocol,
+state-envelope, and reporting contracts. It does not inspect devices, select a
+backend, initialize JAX, or execute computation; P2.2 is the next checkpoint.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
@@ -63,3 +69,5 @@ codebase. The normative Phase 0 docs are:
 - [Student compatibility report](docs/P1_8_STUDENT_COMPATIBILITY_REPORT.md)
 - [Inspect and doctor CLI](docs/CLI.md)
 - [Phase 1 production acceptance gate](docs/P1_10_PHASE1_ACCEPTANCE_GATE.md)
+- [Phase 2 runtime roadmap](docs/RADJAX_PHASE2_RUNTIME_ROADMAP.md)
+- [P2.1 runtime contract](docs/P2_1_RUNTIME_CONTRACT.md)

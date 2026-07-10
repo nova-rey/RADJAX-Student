@@ -32,6 +32,11 @@ Start here for Phase 0 foundation context.
 - [P1.10 Phase 1 Acceptance Gate](P1_10_PHASE1_ACCEPTANCE_GATE.md): canonical
   fixture, malformed matrix, golden reports, receipt, guarantees, and
   non-claims that formally close the Contract Layer.
+- [Locked Phase 2 Runtime Roadmap](RADJAX_PHASE2_RUNTIME_ROADMAP.md): ordered
+  architecture-independent runtime checkpoints through the golden gate.
+- [P2.1 Runtime Contract](P2_1_RUNTIME_CONTRACT.md): runtime ownership,
+  terminology, typed models, capability/error vocabulary, backend protocol, and
+  non-claims.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -75,4 +80,5 @@ Do not use it for installation instructions, CLI documentation, API reference,
 or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
-Runtime work is unblocked and must preserve that gate.
+Runtime work has begun under the locked roadmap; P2.2 environment inspection is
+the next checkpoint.
