@@ -15,6 +15,8 @@ Start here for Phase 0 foundation context.
 
 ## Supporting Documents
 
+- [Canonical Tome/Student Consumer Handoff](https://github.com/nova-rey/RADJAX-Contract/blob/main/docs/reference/RADJAX_TOME_STUDENT_CONSUMER_HANDOFF.md):
+  versioned production artifact semantics owned by RADJAX-Contract.
 - [P1.3 Production Tome Gap Report](P1_3_PRODUCTION_TOME_GAP_REPORT.md):
   production contract comparison, gap ownership, and corrective recommendation.
 - [P1.4 Production Tome Alignment Plan](P1_4_PRODUCTION_TOME_ALIGNMENT_PLAN.md):

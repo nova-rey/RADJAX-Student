@@ -91,3 +91,13 @@
 - Required a generic surface collection, capability sets, surface-referenced
   pass recommendations, and extensible target scopes so corridor/exemplar are
   current typed projections rather than permanent limits on future research.
+
+## 2026-07-10 - P1.5 upstream production alignment reference
+
+- Linked Student documentation to the one canonical Contract-owned production
+  Tome consumer handoff. Student does not copy producer schemas or fixtures.
+- Kept P1.1/P1.2 correction parked while Tome completes emission and Contract
+  completes shared validation. This repository change is documentation only;
+  no artifact loader, run-default, training, or runtime behavior changed.
+- P1.6 may begin only after the cross-repository P1.5 receipt records a passing
+  shared production fixture gate.
