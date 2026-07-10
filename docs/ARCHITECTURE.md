@@ -29,3 +29,10 @@ pass plan. Corridor and exemplar accessors are optional metadata projections;
 they do not load assignment arrays, selected payload records, models, runtimes,
 or schedules. The older dense-logits manifest path remains explicitly
 `legacy_dense_v0` smoke/debug support.
+
+`infer_run_defaults()` is the next metadata-only station. It transforms the
+validated view into artifact facts, arbitrary surface summaries, capability
+requirements, and declarative passes. It does not decide compatibility or turn
+pass metadata into a schedule. User input remains limited to architecture,
+architecture size/config, training budget, and output location; runtime and
+training policy remain owned by later phases.

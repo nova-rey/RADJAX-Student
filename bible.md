@@ -118,3 +118,20 @@
   execute training, runtimes, schedules, or checkpoints.
 - Arbitrary unknown optional roles and surfaces remain inspectable, while
   required capabilities remain explicit for the later compatibility gate.
+
+## 2026-07-10 - P1.7 production run-defaults correction
+
+- Treated cover pages and behavioral surface declarations as run-configuration
+  seed crystals: Student now derives identity, tokenizer, dimensions, surfaces,
+  capabilities, and pass intent without asking users to repeat artifact facts.
+- Kept user input limited to choices the Tome cannot know: student architecture,
+  student size/config, training budget, and output location. Runtime, precision,
+  optimizer, schedule, loss, evaluation, and export policy stay unresolved under
+  their owning phases.
+- Capability requirements are deterministic and visible before P1.8 evaluates
+  compatibility. P1.7 does not infer readiness from a known surface kind.
+- Preserved the artifact plan as immutable data with checkpoint boundaries and
+  target scopes; no executable schedule, checkpoint, optimizer, or training
+  behavior was introduced.
+- Kept future surface kinds and plugin-defined target scopes extensible, while
+  singular payload/adapter defaults remain isolated to legacy dense smoke use.

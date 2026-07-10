@@ -12,6 +12,9 @@ Production Tome semantics are owned by RADJAX-Contract and versioned in the
 Student opens that contract through `open_tome_artifact()` and exposes validated
 identity, provenance, content references, behavioral surfaces, capability
 requirements, and the declarative pass plan without loading training payloads.
+`infer_run_defaults()` converts those facts into an immutable configuration seed
+while leaving architecture, runtime, training budget, and later policy choices
+unresolved.
 
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
@@ -26,3 +29,4 @@ codebase. The normative Phase 0 docs are:
 - [Architecture charter](docs/ARCHITECTURE_CHARTER.md)
 - [Student split contract](docs/STUDENT_SPLIT_CONTRACT.md)
 - [Production artifact view](docs/P1_6_STUDENT_ARTIFACT_VIEW.md)
+- [Production run defaults](docs/P1_7_STUDENT_RUN_DEFAULTS.md)

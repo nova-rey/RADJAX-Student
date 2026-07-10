@@ -23,6 +23,8 @@ Start here for Phase 0 foundation context.
   ordered cross-repository ownership, schema, fixture, and acceptance gates.
 - [P1.6 Student Artifact View](P1_6_STUDENT_ARTIFACT_VIEW.md): production
   Contract-backed metadata view, legacy isolation, and current non-claims.
+- [P1.7 Student Run Defaults](P1_7_STUDENT_RUN_DEFAULTS.md): source-separated
+  artifact facts, capabilities, pass intent, user choices, and deferred policy.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
