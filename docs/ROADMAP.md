@@ -30,8 +30,8 @@ The sequence is locked in
 P2.1  Runtime Contract and Terminology          COMPLETE
 P2.2  Device and Environment Inspection         COMPLETE
 P2.3  Runtime Backend Registry                  COMPLETE
-P2.4  Single-Device CPU Runtime Smoke           UNBLOCKED; NEXT
-P2.5  RNG and Reproducibility Contract          BLOCKED ON P2.4
+P2.4  Single-Device CPU Runtime Smoke           COMPLETE
+P2.5  RNG and Reproducibility Contract          UNBLOCKED; NEXT
 P2.6  Placement and Sharding Intent             BLOCKED ON P2.5
 P2.7  Compilation and Execution Boundary        BLOCKED ON P2.6
 P2.8  Runtime State Save/Restore Foundation     BLOCKED ON P2.7

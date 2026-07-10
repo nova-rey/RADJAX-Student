@@ -209,9 +209,32 @@ def render_doctor_human(report: StudentDoctorReport) -> str:
             ),
             "  backend initialization: unavailable",
             "",
-            "Available Profiles",
+            "CPU Runtime Smoke",
         ]
     )
+    if report.runtime_smoke is None:
+        lines.append("  status: NOT RUN (pass --runtime-smoke to execute)")
+    else:
+        smoke = report.runtime_smoke
+        lines.extend(
+            [
+                "  status: " + smoke.status.upper(),
+                "  backend: " + _display(smoke.backend_id),
+                "  platform: " + _display(smoke.platform),
+                "  device: " + _display(smoke.device_id),
+                "  placement: " + smoke.config.placement_policy,
+                "  input: " + _metadata_summary(smoke.input_metadata),
+                "  output: " + _metadata_summary(smoke.output_metadata),
+                "  result validated: " + _yes_no(smoke.result_validated),
+                "  synchronized: " + _yes_no(smoke.synchronized),
+                "  execution seconds: " + f"{smoke.execution_seconds:.6f}",
+                "  smoke blockers: "
+                + _joined(tuple(item.code for item in smoke.blockers), empty="none"),
+                "  smoke warnings: "
+                + _joined(tuple(item.code for item in smoke.warnings), empty="none"),
+            ]
+        )
+    lines.extend(["", "Available Profiles"])
     lines.extend(f"  - {item}" for item in report.available_profiles)
     lines.extend(["", "Current Capability State"])
     lines.extend(
@@ -292,6 +315,14 @@ def _mapping_summary(value: object) -> str:
     if not hasattr(value, "items"):
         return _display(value)
     return ", ".join(f"{key}={item}" for key, item in value.items())
+
+
+def _metadata_summary(value: object) -> str:
+    if not hasattr(value, "get"):
+        return _display(value)
+    shape = value.get("shape", "unknown")
+    dtype = value.get("dtype", "unknown")
+    return f"shape={shape} dtype={dtype}"
 
 
 def _joined(items: tuple[str, ...], *, empty: str) -> str:

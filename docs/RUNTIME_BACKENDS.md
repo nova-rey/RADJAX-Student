@@ -29,5 +29,9 @@ always reported when explicitly allowed. Capability declarations remain
 non-proof until an execution gate verifies them.
 
 See [P2.3 Runtime Backend Registry and Selection](P2_3_RUNTIME_BACKEND_REGISTRY.md).
-P2.4 proves the first single-device CPU smoke. Fast paths remain later optional
-layers and never become correctness paths.
+P2.4 proves one selected JAX CPU context: explicit `device_put`, eager pure
+execution, explicit synchronization, host result validation, phase timing, and
+teardown. It does not add JIT, sharding, replication, GPU/TPU, distributed
+execution, model state, or training. See
+[P2.4 Single-Device CPU Runtime Smoke](P2_4_SINGLE_DEVICE_CPU_RUNTIME_SMOKE.md).
+Fast paths remain later optional layers and never become correctness paths.

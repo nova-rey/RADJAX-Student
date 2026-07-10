@@ -13,12 +13,14 @@ from typing import Any
 
 from radjax_student.artifacts import open_tome_artifact
 from radjax_student.runtime import (
+    CpuRuntimeSmokeReceipt,
     RuntimeBackendDescriptor,
     RuntimeConfig,
     RuntimeInspection,
     RuntimeSelectionResult,
     build_default_runtime_registry,
     inspect_runtime_environment,
+    run_single_device_cpu_smoke,
     select_runtime_backend,
 )
 from radjax_student.validation import (
@@ -77,6 +79,7 @@ class StudentDoctorReport:
     runtime_inspection: RuntimeInspection
     runtime_backend_descriptors: tuple[RuntimeBackendDescriptor, ...]
     runtime_selection: RuntimeSelectionResult
+    runtime_smoke: CpuRuntimeSmokeReceipt | None
     capability_state: Mapping[str, str]
     blockers: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -113,6 +116,9 @@ class StudentDoctorReport:
                 item.to_dict() for item in self.runtime_backend_descriptors
             ],
             "runtime_selection": self.runtime_selection.to_dict(),
+            "runtime_smoke": (
+                None if self.runtime_smoke is None else self.runtime_smoke.to_dict()
+            ),
             "capability_state": dict(self.capability_state),
             "blockers": list(self.blockers),
             "warnings": list(self.warnings),
@@ -120,7 +126,7 @@ class StudentDoctorReport:
         }
 
 
-def build_doctor_report() -> StudentDoctorReport:
+def build_doctor_report(*, run_runtime_smoke: bool = False) -> StudentDoctorReport:
     blockers: list[str] = []
     warnings: list[str] = []
     contract_importable = _contract_import_health()
@@ -184,6 +190,9 @@ def build_doctor_report() -> StudentDoctorReport:
         inspection=runtime_inspection,
         registry=runtime_registry,
     )
+    runtime_smoke = run_single_device_cpu_smoke() if run_runtime_smoke else None
+    if runtime_smoke is not None and not runtime_smoke.ok:
+        blockers.append("runtime_smoke_failed")
     return StudentDoctorReport(
         status="pass" if not blockers else "fail",
         python_version=platform.python_version(),
@@ -204,6 +213,7 @@ def build_doctor_report() -> StudentDoctorReport:
         runtime_inspection=runtime_inspection,
         runtime_backend_descriptors=runtime_backend_descriptors,
         runtime_selection=runtime_selection,
+        runtime_smoke=runtime_smoke,
         capability_state=MappingProxyType(
             {
                 "metadata_inspection": "available",
@@ -212,6 +222,7 @@ def build_doctor_report() -> StudentDoctorReport:
                 "runtime_inspection": "available",
                 "runtime_backend_registry": "available",
                 "runtime_backend_selection": "available",
+                "runtime_cpu_smoke": "available_on_explicit_request",
                 "payload_loading": "unavailable",
                 "training": "unavailable",
                 "jax_execution": "unavailable",

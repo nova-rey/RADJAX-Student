@@ -242,6 +242,10 @@ def test_doctor_reports_absent_jax_as_healthy_runtime_inspection(
     assert payload["capability_state"]["runtime_inspection"] == "available"
     assert payload["capability_state"]["runtime_backend_registry"] == "available"
     assert payload["capability_state"]["runtime_backend_selection"] == "available"
+    assert (
+        payload["capability_state"]["runtime_cpu_smoke"]
+        == "available_on_explicit_request"
+    )
     assert payload["capability_state"]["jax_execution"] == "unavailable"
     assert payload["runtime_backend_descriptors"][0]["backend_id"] == "jax"
     assert payload["runtime_selection"]["status"] == "fail"

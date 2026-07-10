@@ -251,3 +251,23 @@
 - Treated capability declarations as selection inputs rather than proof. P2.3
   makes reproducible choices; P2.4 must still prove initialization, arrays,
   placement, execution, synchronization, and teardown on CPU.
+
+## 2026-07-10 - P2.4 single-device CPU runtime smoke
+
+- Started execution with one explicit CPU heartbeat because portable correctness
+  needs a small, inspectable baseline before JIT, accelerator, sharding, or
+  architecture-specific paths can be trusted. The smoke consumes the prior
+  inspection and selection seams instead of letting a backend default decide.
+- Required explicit placement and explicit synchronization. A returned JAX value
+  is not sufficient evidence of target placement or completed work, so the
+  receipt records the selected device, placed/output metadata, and completed
+  synchronization before validating the deterministic result.
+- Recorded phase timings as diagnostics, not benchmarks. The path is intentionally
+  tiny and eager; its numbers explain where a smoke failed or waited, not runtime
+  performance, model throughput, or accelerator quality.
+- Tested teardown in `finally`, including failure paths. A cleanup error is
+  preserved alongside the original initialization, placement, execution,
+  synchronization, or validation blocker rather than rewriting execution history.
+- Kept the claim narrow: P2.4 proves runtime heartbeat on selected JAX CPU only.
+  It does not prove model initialization, Tome payload use, training, checkpoints,
+  JIT, GPU/TPU, distributed execution, sharding, precision behavior, or speed.

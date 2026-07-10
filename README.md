@@ -61,6 +61,12 @@ The default registry declares JAX without importing it, reports optional JAX
 absence coherently, and never initializes or executes a backend. See
 [P2.3 runtime backend registry and selection](docs/P2_3_RUNTIME_BACKEND_REGISTRY.md).
 
+[P2.4](docs/P2_4_SINGLE_DEVICE_CPU_RUNTIME_SMOKE.md) proves the first execution
+heartbeat: selected JAX CPU initialization, explicit placement of one tiny value,
+eager pure execution, synchronization, result validation, timing, and teardown.
+It is opt-in through `radjax-student doctor --runtime-smoke`; normal `doctor`
+remains inspection and selection only.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
@@ -82,3 +88,4 @@ codebase. The normative Phase 0 docs are:
 - [P2.1 runtime contract](docs/P2_1_RUNTIME_CONTRACT.md)
 - [P2.2 device and environment inspection](docs/P2_2_DEVICE_ENVIRONMENT_INSPECTION.md)
 - [P2.3 runtime backend registry and selection](docs/P2_3_RUNTIME_BACKEND_REGISTRY.md)
+- [P2.4 single-device CPU runtime smoke](docs/P2_4_SINGLE_DEVICE_CPU_RUNTIME_SMOKE.md)

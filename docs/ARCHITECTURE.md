@@ -86,4 +86,11 @@ P2.3 consumes those supplied facts through an instance-owned backend registry
 and a pure selection function. Backend declarations remain serializable and
 selection never initializes a context, imports JAX, allocates an array, places a
 value, compiles, synchronizes, or executes. `ExecutionContext` and the first
-execution proof remain P2.4 responsibilities.
+execution proof were deferred to P2.4.
+
+P2.4 adds only the selected JAX CPU heartbeat in `runtime/smoke.py`. It consumes
+the existing inspection and selection result, builds a runtime-owned context,
+places one small host value on the selected CPU explicitly, executes one eager
+pure function, synchronizes, validates its host result, and closes in `finally`.
+The module has no architecture, artifact, loss, optimizer, schedule, or training
+dependency; broader execution policies remain later checkpoints.

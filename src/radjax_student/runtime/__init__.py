@@ -60,6 +60,15 @@ from radjax_student.runtime.selection import (
     SelectionStatus,
     select_runtime_backend,
 )
+from radjax_student.runtime.smoke import (
+    CPU_RUNTIME_SMOKE_CLAIMS_NOT_MADE,
+    CPU_RUNTIME_SMOKE_WARNING_CODES,
+    CpuRuntimeSmokeReceipt,
+    CpuRuntimeSmokeStatus,
+    default_cpu_smoke_config,
+    run_selected_cpu_smoke,
+    run_single_device_cpu_smoke,
+)
 
 __all__ = [
     "COMPILATION_POLICIES",
@@ -73,11 +82,15 @@ __all__ = [
     "RUNTIME_INSPECTION_FINDING_CODES",
     "RUNTIME_SELECTION_CLAIMS_NOT_MADE",
     "RUNTIME_SELECTION_WARNING_CODES",
+    "CPU_RUNTIME_SMOKE_CLAIMS_NOT_MADE",
+    "CPU_RUNTIME_SMOKE_WARNING_CODES",
     "SUPPORTED_RUNTIME_PLATFORMS",
     "AUTOMATIC_PLATFORM_PREFERENCE",
     "BackendAvailabilityStatus",
     "CompilationOptions",
     "CompilationPolicy",
+    "CpuRuntimeSmokeReceipt",
+    "CpuRuntimeSmokeStatus",
     "DeviceDescriptor",
     "DeviceInventory",
     "DistributedPolicy",
@@ -105,6 +118,9 @@ __all__ = [
     "RuntimeStatus",
     "SelectionStatus",
     "build_default_runtime_registry",
+    "default_cpu_smoke_config",
     "inspect_runtime_environment",
     "select_runtime_backend",
+    "run_selected_cpu_smoke",
+    "run_single_device_cpu_smoke",
 ]

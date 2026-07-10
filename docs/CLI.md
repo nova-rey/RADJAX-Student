@@ -72,6 +72,17 @@ one is eligible, and structured selection blockers or warnings. This preview
 does not initialize a backend or execute JAX. An unavailable optional JAX
 declaration does not make doctor unhealthy.
 
+P2.4 CPU execution remains explicit:
+
+```bash
+radjax-student doctor --runtime-smoke
+```
+
+This runs the one eager JAX CPU heartbeat and includes its complete serialized
+receipt in JSON output. The normal doctor command never executes it. A failed
+requested smoke returns status `1` with structured receipt blockers; absent JAX
+is a coherent failed smoke rather than a traceback.
+
 An expected compatibility failure does not make doctor unhealthy. Missing or
 changed fixtures, failed Contract imports, pipeline failures, or serialization
 failures do. Runtime inspection fails doctor only when observation itself is

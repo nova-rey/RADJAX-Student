@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import Any, Literal, Protocol
@@ -205,19 +206,22 @@ class RuntimeBackendRegistry:
 
 
 class JaxRuntimeBackend:
-    """P2.3 JAX declaration. Its execution methods deliberately remain unavailable."""
+    """JAX declaration with the deliberately tiny P2.4 CPU smoke operations."""
 
     backend_id = "jax"
-    implementation_version = "p2.3"
+    implementation_version = "p2.4"
     supported_platforms = SUPPORTED_RUNTIME_PLATFORMS
     notes = (
-        "P2.3 declaration only; initialization and execution are deferred to P2.4.",
-        "Declared capabilities are not execution proof.",
+        "P2.4 proves one eager single-device CPU smoke only.",
+        "Declared capabilities beyond that smoke are not execution proof.",
     )
+
+    def __init__(self) -> None:
+        self._cpu_contexts: dict[str, tuple[Any, Any]] = {}
 
     def capability_profile(self) -> RuntimeCapabilityProfile:
         return RuntimeCapabilityProfile(
-            profile_id="jax.runtime.p2.3",
+            profile_id="jax.runtime.p2.4",
             backend_id=self.backend_id,
             version=1,
             capabilities=(
@@ -233,7 +237,9 @@ class JaxRuntimeBackend:
                 "runtime.multi_process_v1",
                 "state.runtime_envelope_v1",
             ),
-            notes=("Selection declaration only; no execution has been proven.",),
+            notes=(
+                "P2.4 proves eager CPU placement, execution, and synchronization only.",
+            ),
         )
 
     def availability(self, inspection: RuntimeInspection) -> RuntimeBackendAvailability:
@@ -256,11 +262,11 @@ class JaxRuntimeBackend:
 
     def initialize(self, config: RuntimeConfig) -> ExecutionContext:
         del config
-        raise _execution_deferred_error()
+        raise _execution_requires_selection_error()
 
     def place(self, value: Any, placement: str) -> Any:
         del value, placement
-        raise _execution_deferred_error()
+        raise _execution_requires_selection_error()
 
     def compile(
         self,
@@ -268,15 +274,68 @@ class JaxRuntimeBackend:
         options: CompilationOptions,
     ) -> Callable[..., Any]:
         del function, options
-        raise _execution_deferred_error()
+        raise _execution_requires_selection_error()
 
     def synchronize(self, value: Any) -> Any:
         del value
-        raise _execution_deferred_error()
+        raise _execution_requires_selection_error()
 
     def close(self, context: ExecutionContext) -> None:
         del context
-        raise _execution_deferred_error()
+        raise _execution_requires_selection_error()
+
+    def initialize_cpu_context(
+        self,
+        config: RuntimeConfig,
+        inspection: RuntimeInspection,
+        selection: Any,
+        device_descriptor: Any,
+    ) -> ExecutionContext:
+        """Initialize one selected CPU context after P2.3 has approved it."""
+
+        jax_module = _import_jax()
+        device = _selected_jax_cpu_device(jax_module, device_descriptor)
+        runtime_id = f"jax-cpu-smoke-seed-{config.seed}"
+        context = ExecutionContext(
+            backend_id=self.backend_id,
+            environment=inspection.environment,
+            device_inventory=inspection.device_inventory,
+            capabilities=selection.selected_backend.capability_profile,
+            root_seed=config.seed,
+            runtime_id=runtime_id,
+            metadata={
+                "selected_platform": "cpu",
+                "selected_device_id": device_descriptor.device_id,
+                "placement_policy": config.placement_policy,
+            },
+        )
+        self._cpu_contexts[runtime_id] = (jax_module, device)
+        return context
+
+    def place_cpu_value(self, context: ExecutionContext, value: Any) -> Any:
+        jax_module, device = self._cpu_context(context)
+        return jax_module.device_put(value, device)
+
+    def execute_cpu_smoke(self, context: ExecutionContext, value: Any) -> Any:
+        del context
+        return value * 2 + 1
+
+    def synchronize_cpu_value(self, context: ExecutionContext, value: Any) -> Any:
+        del context
+        return value.block_until_ready()
+
+    def close_cpu_context(self, context: ExecutionContext) -> None:
+        self._cpu_contexts.pop(context.runtime_id, None)
+
+    def _cpu_context(self, context: ExecutionContext) -> tuple[Any, Any]:
+        try:
+            return self._cpu_contexts[context.runtime_id]
+        except KeyError as exc:
+            raise RuntimeContractError(
+                "runtime_backend_initialization_failed",
+                "JAX CPU context is not active",
+                details={"runtime_id": context.runtime_id},
+            ) from exc
 
 
 @dataclass(frozen=True)
@@ -358,11 +417,54 @@ def _backend_id(backend: DeclarativeRuntimeBackend) -> str:
     return backend_id
 
 
-def _execution_deferred_error() -> RuntimeContractError:
+def _execution_requires_selection_error() -> RuntimeContractError:
     return RuntimeContractError(
         "runtime_initialization_failed",
-        "JAX runtime execution is deferred until P2.4",
+        "JAX execution requires the P2.4 selected CPU smoke path",
     )
+
+
+def _import_jax() -> Any:
+    try:
+        return importlib.import_module("jax")
+    except Exception as exc:
+        raise RuntimeContractError(
+            "runtime_backend_initialization_failed",
+            "JAX could not be imported for the selected CPU smoke",
+            details={
+                "exception_type": type(exc).__name__,
+                "exception_message": str(exc),
+            },
+        ) from exc
+
+
+def _selected_jax_cpu_device(jax_module: Any, descriptor: Any) -> Any:
+    try:
+        raw_devices = tuple(jax_module.devices("cpu"))
+    except Exception as exc:
+        raise RuntimeContractError(
+            "runtime_device_selection_failed",
+            "JAX could not list CPU devices for the selected smoke",
+            details={
+                "exception_type": type(exc).__name__,
+                "exception_message": str(exc),
+            },
+        ) from exc
+    reported_id = descriptor.metadata.get("jax_reported_device_id")
+    matches = [
+        device
+        for device in raw_devices
+        if getattr(device, "platform", None) == "cpu"
+        and getattr(device, "id", None) == reported_id
+        and getattr(device, "process_index", None) == descriptor.process_index
+    ]
+    if not matches:
+        raise RuntimeContractError(
+            "runtime_device_selection_failed",
+            "selected inspected CPU device is unavailable to JAX execution",
+            details={"device_id": descriptor.device_id},
+        )
+    return matches[0]
 
 
 def _mapping(value: Any, name: str) -> Mapping[str, Any]:

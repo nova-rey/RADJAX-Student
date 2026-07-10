@@ -98,8 +98,8 @@ blockers.
 `radjax-student doctor` now reports registered backend descriptors,
 availability, supported platforms, declared capabilities, and a default
 selection preview. This is informational and remains healthy when optional JAX
-is absent. Doctor does not initialize a selected backend; JAX execution remains
-unavailable until P2.4 proves the first CPU smoke path.
+is absent. Doctor does not initialize a selected backend unless the explicit
+P2.4 `--runtime-smoke` option is requested.
 
 ## Verification
 
