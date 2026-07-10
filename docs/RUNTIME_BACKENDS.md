@@ -45,3 +45,9 @@ P2.6 adds logical-axis and value-level placement declarations, with centralized
 capability mapping and value -> plan -> runtime-config precedence. It does not
 translate declarations into devices, meshes, or backend sharding objects. See
 [P2.6 Placement and Sharding Intent](P2_6_PLACEMENT_AND_SHARDING_INTENT.md).
+
+P2.7 centralizes pure eager/JIT preparation, dispatch, optional synchronization,
+and diagnostic timing. Raw JAX compilation stays inside `JaxRuntimeBackend`;
+generic callers handle only requests, opaque preparations, output metadata, and
+structured results. See
+[P2.7 Compilation and Execution Boundary](P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md).

@@ -77,6 +77,11 @@ value placement declarations, centralized capability mapping, and deterministic
 precedence. It defines placement intent only: the CPU smoke is still the sole
 concrete placement proof, with no mesh or multi-device sharding implementation.
 
+[P2.7](docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md) creates the one
+architecture-independent pure-function boundary for eager and explicit JIT
+execution, static/donation policy, synchronization, timing, and opaque reports.
+It does not introduce model functions, gradients, or training.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
@@ -101,3 +106,4 @@ codebase. The normative Phase 0 docs are:
 - [P2.4 single-device CPU runtime smoke](docs/P2_4_SINGLE_DEVICE_CPU_RUNTIME_SMOKE.md)
 - [P2.5 RNG and reproducibility contract](docs/P2_5_RNG_AND_REPRODUCIBILITY.md)
 - [P2.6 placement and sharding intent](docs/P2_6_PLACEMENT_AND_SHARDING_INTENT.md)
+- [P2.7 compilation and execution boundary](docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md)

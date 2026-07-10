@@ -7,9 +7,8 @@ facts, capability declarations, compilation options, execution context,
 runtime-owned state envelope, structured errors, backend protocol, and reports.
 
 Generic modules use only the Python standard library and do not import JAX,
-architecture, artifacts, training, schedules, or optional ML stacks. No backend
-registry, device operation, compilation, state persistence, or execution is
-implemented yet.
+architecture, artifacts, training, schedules, or optional ML stacks. JAX-specific
+work remains lazy and isolated in the JAX backend.
 
 P2.2 adds lazy environment/device inspection through
 `inspect_runtime_environment()`. JAX absence is a healthy reported fact;
@@ -20,3 +19,13 @@ devices.
 See [`docs/P2_1_RUNTIME_CONTRACT.md`](../../../docs/P2_1_RUNTIME_CONTRACT.md).
 See
 [`docs/P2_2_DEVICE_ENVIRONMENT_INSPECTION.md`](../../../docs/P2_2_DEVICE_ENVIRONMENT_INSPECTION.md).
+
+P2.3 adds registration and selection, P2.4 proves one explicit CPU lifecycle,
+P2.5 freezes runtime RNG identity, and P2.6 records portable placement intent.
+P2.7 adds the single pure-function eager/JIT execution boundary with opaque
+backend handles, explicit synchronization, static/donation policy, phase timing,
+and structured reports. It does not implement model functions, gradients,
+optimizers, training, distributed execution, or state persistence.
+
+See
+[`docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md`](../../../docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md).

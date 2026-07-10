@@ -226,6 +226,12 @@ def render_doctor_human(report: StudentDoctorReport) -> str:
                 empty="none",
             ),
             "",
+            "Execution Boundary",
+            "  eager: " + report.execution_boundary["eager"],
+            "  jit: " + report.execution_boundary["jit"],
+            "  automatic: " + report.execution_boundary["automatic"],
+            "  default execution: " + report.execution_boundary["default_execution"],
+            "",
             "CPU Runtime Smoke",
         ]
     )

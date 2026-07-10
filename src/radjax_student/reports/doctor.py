@@ -82,6 +82,7 @@ class StudentDoctorReport:
     runtime_selection: RuntimeSelectionResult
     runtime_smoke: CpuRuntimeSmokeReceipt | None
     placement_intent: Mapping[str, Any]
+    execution_boundary: Mapping[str, str]
     capability_state: Mapping[str, str]
     blockers: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -122,6 +123,7 @@ class StudentDoctorReport:
                 None if self.runtime_smoke is None else self.runtime_smoke.to_dict()
             ),
             "placement_intent": dict(self.placement_intent),
+            "execution_boundary": dict(self.execution_boundary),
             "capability_state": dict(self.capability_state),
             "blockers": list(self.blockers),
             "warnings": list(self.warnings),
@@ -235,6 +237,14 @@ def build_doctor_report(*, run_runtime_smoke: bool = False) -> StudentDoctorRepo
                 ),
             }
         ),
+        execution_boundary=MappingProxyType(
+            {
+                "eager": "available_on_explicit_request",
+                "jit": "available_on_explicit_request_when_jax_available",
+                "automatic": "resolves_to_eager_with_warning",
+                "default_execution": "not_run",
+            }
+        ),
         capability_state=MappingProxyType(
             {
                 "metadata_inspection": "available",
@@ -245,6 +255,7 @@ def build_doctor_report(*, run_runtime_smoke: bool = False) -> StudentDoctorRepo
                 "runtime_backend_selection": "available",
                 "runtime_cpu_smoke": "available_on_explicit_request",
                 "placement_intent": "available",
+                "execution_boundary": "available",
                 "payload_loading": "unavailable",
                 "training": "unavailable",
                 "jax_execution": "unavailable",

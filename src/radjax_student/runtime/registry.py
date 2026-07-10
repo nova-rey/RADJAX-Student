@@ -209,11 +209,11 @@ class JaxRuntimeBackend:
     """JAX declaration with the deliberately tiny P2.4 CPU smoke operations."""
 
     backend_id = "jax"
-    implementation_version = "p2.4"
+    implementation_version = "p2.7"
     supported_platforms = SUPPORTED_RUNTIME_PLATFORMS
     notes = (
-        "P2.4 proves one eager single-device CPU smoke only.",
-        "Declared capabilities beyond that smoke are not execution proof.",
+        "P2.7 proves controlled pure eager and explicit JIT execution policy.",
+        "Declared capabilities beyond tested paths are not execution proof.",
     )
 
     def __init__(self) -> None:
@@ -221,16 +221,19 @@ class JaxRuntimeBackend:
 
     def capability_profile(self) -> RuntimeCapabilityProfile:
         return RuntimeCapabilityProfile(
-            profile_id="jax.runtime.p2.4",
+            profile_id="jax.runtime.p2.7",
             backend_id=self.backend_id,
             version=1,
             capabilities=(
+                "compilation.jit_v1",
+                "execution.argument_donation_v1",
+                "execution.eager_v1",
+                "execution.static_arguments_v1",
+                "execution.synchronize_v1",
                 "placement.single_device_v1",
                 "runtime.single_process_v1",
             ),
             non_capabilities=(
-                "compilation.jit_v1",
-                "execution.synchronize_v1",
                 "placement.data_sharded_v1",
                 "placement.model_sharded_v1",
                 "placement.replicated_v1",
@@ -238,7 +241,7 @@ class JaxRuntimeBackend:
                 "state.runtime_envelope_v1",
             ),
             notes=(
-                "P2.4 proves eager CPU placement, execution, and synchronization only.",
+                "P2.7 proves controlled pure eager/JIT execution on declared paths.",
             ),
         )
 
@@ -327,6 +330,75 @@ class JaxRuntimeBackend:
     def close_cpu_context(self, context: ExecutionContext) -> None:
         self._cpu_contexts.pop(context.runtime_id, None)
 
+    def prepare_runtime_execution(
+        self,
+        context: ExecutionContext,
+        function: Callable[..., Any],
+        request: Any,
+        mode: str,
+    ) -> _JaxExecutionHandle:
+        del context
+        jax_module = _import_jax()
+        options = request.compilation_options
+        if mode == "eager":
+            return _JaxExecutionHandle(
+                mode=mode,
+                jax_module=jax_module,
+                callable=function,
+                cache_policy=options.cache_policy,
+            )
+        jit_kwargs: dict[str, Any] = {}
+        if options.static_arg_names:
+            jit_kwargs["static_argnames"] = options.static_arg_names
+        if options.static_arg_positions:
+            jit_kwargs["static_argnums"] = options.static_arg_positions
+        if options.donate_arg_names:
+            jit_kwargs["donate_argnames"] = options.donate_arg_names
+        if options.donate_arg_positions:
+            jit_kwargs["donate_argnums"] = options.donate_arg_positions
+        return _JaxExecutionHandle(
+            mode=mode,
+            jax_module=jax_module,
+            callable=jax_module.jit(function, **jit_kwargs),
+            cache_policy=options.cache_policy,
+        )
+
+    def compile_runtime_execution(
+        self,
+        context: ExecutionContext,
+        handle: _JaxExecutionHandle,
+        args: tuple[Any, ...],
+        kwargs: Mapping[str, Any],
+    ) -> tuple[_JaxExecutionHandle, bool]:
+        del context
+        if handle.mode == "eager":
+            return handle, False
+        if handle.executable is not None and handle.cache_policy == "reuse":
+            return handle, False
+        handle.executable = handle.callable.lower(*args, **kwargs).compile()
+        return handle, True
+
+    def dispatch_runtime_execution(
+        self,
+        context: ExecutionContext,
+        handle: _JaxExecutionHandle,
+        args: tuple[Any, ...],
+        kwargs: Mapping[str, Any],
+    ) -> Any:
+        del context
+        executable = (
+            handle.executable if handle.executable is not None else handle.callable
+        )
+        return executable(*args, **kwargs)
+
+    def synchronize_runtime_execution(
+        self,
+        context: ExecutionContext,
+        output: Any,
+    ) -> Any:
+        del context
+        return self._jax_for_execution(output).block_until_ready(output)
+
     def _cpu_context(self, context: ExecutionContext) -> tuple[Any, Any]:
         try:
             return self._cpu_contexts[context.runtime_id]
@@ -336,6 +408,21 @@ class JaxRuntimeBackend:
                 "JAX CPU context is not active",
                 details={"runtime_id": context.runtime_id},
             ) from exc
+
+    def _jax_for_execution(self, output: Any) -> Any:
+        del output
+        if self._cpu_contexts:
+            return next(iter(self._cpu_contexts.values()))[0]
+        return _import_jax()
+
+
+@dataclass
+class _JaxExecutionHandle:
+    mode: str
+    jax_module: Any
+    callable: Callable[..., Any]
+    cache_policy: str
+    executable: Callable[..., Any] | None = None
 
 
 @dataclass(frozen=True)

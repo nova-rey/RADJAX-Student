@@ -88,6 +88,10 @@ is the sole concrete placement proof; replicated, data-sharded, model-sharded,
 automatic, and unspecified declarations remain unresolved. The report never
 creates a mesh, sharding object, or multi-device array.
 
+Doctor also reports P2.7 execution-boundary availability without executing a
+function. Eager and JIT are invoked only through explicit runtime APIs; automatic
+resolves to eager with a warning, and normal doctor output remains non-executing.
+
 An expected compatibility failure does not make doctor unhealthy. Missing or
 changed fixtures, failed Contract imports, pipeline failures, or serialization
 failures do. Runtime inspection fails doctor only when observation itself is

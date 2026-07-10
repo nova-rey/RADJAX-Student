@@ -52,6 +52,9 @@ Start here for Phase 0 foundation context.
 - [P2.6 Placement and Sharding Intent](P2_6_PLACEMENT_AND_SHARDING_INTENT.md):
   topology-free logical axes, value placement declarations, validation,
   centralized capabilities, and unresolved-resolution boundary.
+- [P2.7 Compilation and Execution Boundary](P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md):
+  pure eager/JIT execution requests, opaque preparations, argument policy,
+  synchronization, phase timing, and structured results.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -95,5 +98,5 @@ Do not use it for installation instructions, CLI documentation, API reference,
 or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
-Runtime work has begun under the locked roadmap; P2.6 placement intent is
-complete, and P2.7 compilation and execution boundary is the next checkpoint.
+Runtime work has begun under the locked roadmap; P2.7 execution policy is
+complete, and P2.8 runtime state save/restore is the next checkpoint.

@@ -309,3 +309,22 @@
 - Kept P2.6 declarative. It proves validated portable intent and a doctor report,
   not meshes, JAX sharding objects, replicated/data/model placement, topology
   solving, multi-device execution, distributed behavior, or training.
+
+## 2026-07-10 - P2.7 compilation and execution boundary
+
+- Centralized pure-function execution policy so architecture and training code
+  cannot scatter raw JIT calls, donation switches, synchronization waits, and
+  misleading timing around the repository. Callers declare intent; runtime owns
+  backend realization and keeps compiled objects opaque.
+- Kept eager as the correctness baseline and made automatic explicitly resolve
+  to eager with a warning. JIT remains a requested capability, never an implicit
+  optimization that changes semantics behind a caller's back.
+- Split preparation, compilation, dispatch, and synchronization timing. First-use
+  JIT compilation is measured before dispatch, while diagnostic timing remains
+  clearly non-benchmark data rather than a performance claim.
+- Made static arguments and donation constrained declarations. They validate
+  signatures/capabilities and never activate automatically; donation records
+  intent without claiming memory savings or backend cache behavior.
+- Kept the claim narrow: P2.7 proves a runtime boundary for pure execution, not
+  gradients, optimizer steps, training, model APIs, sharding, distributed work,
+  acceleration, payload loading, evaluation, or compiled performance.

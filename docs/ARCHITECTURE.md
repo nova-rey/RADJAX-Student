@@ -105,3 +105,8 @@ P2.6 adds a topology-free placement language at the same runtime boundary.
 Architecture plugins may declare semantic logical axes and stable value paths;
 runtime retains ownership of future device/mesh translation. Plans are immutable
 intent with no JAX sharding object, device list, model tree, or execution path.
+
+P2.7 gives runtime the only public pure-function execution surface. Callers
+provide stable function/request intent; backend adapters own compilation,
+dispatch, synchronization, and opaque handles. This keeps raw JAX JIT options,
+timing policy, and argument donation out of architecture and training code.

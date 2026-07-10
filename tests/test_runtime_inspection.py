@@ -247,9 +247,13 @@ def test_doctor_reports_absent_jax_as_healthy_runtime_inspection(
         == "available_on_explicit_request"
     )
     assert payload["capability_state"]["placement_intent"] == "available"
+    assert payload["capability_state"]["execution_boundary"] == "available"
     assert payload["placement_intent"]["concrete_resolution"] == [
         "single_device_cpu_smoke_only"
     ]
+    assert (
+        payload["execution_boundary"]["automatic"] == "resolves_to_eager_with_warning"
+    )
     assert payload["capability_state"]["jax_execution"] == "unavailable"
     assert payload["runtime_backend_descriptors"][0]["backend_id"] == "jax"
     assert payload["runtime_selection"]["status"] == "fail"
@@ -260,6 +264,7 @@ def test_doctor_reports_absent_jax_as_healthy_runtime_inspection(
     assert "Runtime Inspection" in human_stdout.getvalue()
     assert "Runtime Backend Selection" in human_stdout.getvalue()
     assert "Placement Intent" in human_stdout.getvalue()
+    assert "Execution Boundary" in human_stdout.getvalue()
     assert "JAX available: no" in human_stdout.getvalue()
     assert "warnings: jax_not_installed" in human_stdout.getvalue()
     assert "JAX execution: unavailable" in human_stdout.getvalue()

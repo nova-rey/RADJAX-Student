@@ -55,6 +55,9 @@ DISTRIBUTED_POLICIES: tuple[str, ...] = ("disabled", "auto", "required")
 FALLBACK_POLICIES: tuple[str, ...] = ("disallowed", "allow_compatible")
 RUNTIME_CAPABILITY_VOCABULARY: tuple[str, ...] = (
     "compilation.jit_v1",
+    "execution.argument_donation_v1",
+    "execution.eager_v1",
+    "execution.static_arguments_v1",
     "execution.synchronize_v1",
     "placement.data_sharded_v1",
     "placement.model_sharded_v1",
@@ -405,15 +408,29 @@ class RuntimeCapabilityProfile:
 
 @dataclass(frozen=True)
 class CompilationOptions:
+    """Stable execution policy, intentionally smaller than raw ``jax.jit``."""
+
     enabled: bool = False
+    mode: CompilationPolicy = "eager"
     static_arg_names: tuple[str, ...] = ()
+    static_arg_positions: tuple[int, ...] = ()
     donate_arg_names: tuple[str, ...] = ()
+    donate_arg_positions: tuple[int, ...] = ()
     debug: bool = False
     synchronize_results: bool = False
+    cache_policy: Literal["reuse", "disabled"] = "reuse"
+    metadata: Mapping[str, Any] = MappingProxyType({})
 
     def __post_init__(self) -> None:
         for name in ("enabled", "debug", "synchronize_results"):
             _require_boolean(name, getattr(self, name))
+        _require_choice("mode", self.mode, ("eager", "jit", "automatic"))
+        mode = "jit" if self.enabled and self.mode == "eager" else self.mode
+        if self.enabled and mode != "jit":
+            raise ValueError("enabled compilation compatibility flag requires jit mode")
+        if not self.enabled and self.mode == "jit":
+            object.__setattr__(self, "enabled", True)
+        object.__setattr__(self, "mode", mode)
         object.__setattr__(
             self,
             "static_arg_names",
@@ -421,36 +438,81 @@ class CompilationOptions:
         )
         object.__setattr__(
             self,
+            "static_arg_positions",
+            _unique_nonnegative_integers(
+                self.static_arg_positions,
+                "static_arg_positions",
+            ),
+        )
+        object.__setattr__(
+            self,
             "donate_arg_names",
             _unique_strings(self.donate_arg_names, "donate_arg_names"),
         )
+        object.__setattr__(
+            self,
+            "donate_arg_positions",
+            _unique_nonnegative_integers(
+                self.donate_arg_positions,
+                "donate_arg_positions",
+            ),
+        )
+        if set(self.static_arg_names) & set(self.donate_arg_names):
+            raise ValueError("static and donated argument names must not overlap")
+        if set(self.static_arg_positions) & set(self.donate_arg_positions):
+            raise ValueError("static and donated argument positions must not overlap")
+        _require_choice("cache_policy", self.cache_policy, ("reuse", "disabled"))
+        if not isinstance(self.metadata, Mapping):
+            raise TypeError("compilation metadata must be a mapping")
+        object.__setattr__(self, "metadata", freeze_json_mapping(self.metadata))
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "enabled": self.enabled,
+            "mode": self.mode,
             "static_arg_names": list(self.static_arg_names),
+            "static_arg_positions": list(self.static_arg_positions),
             "donate_arg_names": list(self.donate_arg_names),
+            "donate_arg_positions": list(self.donate_arg_positions),
             "debug": self.debug,
             "synchronize_results": self.synchronize_results,
+            "cache_policy": self.cache_policy,
+            "metadata": json_value(self.metadata),
         }
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> CompilationOptions:
         return cls(
             enabled=_required_bool(payload.get("enabled", False), "enabled"),
+            mode=str(
+                payload.get(
+                    "mode",
+                    "jit" if payload.get("enabled", False) else "eager",
+                )
+            ),
             static_arg_names=_string_tuple(
                 payload.get("static_arg_names", ()),
                 "static_arg_names",
             ),
+            static_arg_positions=_integer_tuple(
+                payload.get("static_arg_positions", ()),
+                "static_arg_positions",
+            ),
             donate_arg_names=_string_tuple(
                 payload.get("donate_arg_names", ()),
                 "donate_arg_names",
+            ),
+            donate_arg_positions=_integer_tuple(
+                payload.get("donate_arg_positions", ()),
+                "donate_arg_positions",
             ),
             debug=_required_bool(payload.get("debug", False), "debug"),
             synchronize_results=_required_bool(
                 payload.get("synchronize_results", False),
                 "synchronize_results",
             ),
+            cache_policy=str(payload.get("cache_policy", "reuse")),
+            metadata=_mapping(payload.get("metadata", {}), "metadata"),
         )
 
 
@@ -652,6 +714,24 @@ def _unique_strings(value: Any, name: str) -> tuple[str, ...]:
 
 def _unique_sorted_strings(value: Any, name: str) -> tuple[str, ...]:
     return tuple(sorted(_unique_strings(value, name)))
+
+
+def _integer_tuple(value: Any, name: str) -> tuple[int, ...]:
+    if not isinstance(value, (list, tuple)):
+        raise TypeError(f"{name} must be a list or tuple")
+    result = tuple(value)
+    if any(isinstance(item, bool) or not isinstance(item, int) for item in result):
+        raise TypeError(f"{name} must contain integers")
+    return result
+
+
+def _unique_nonnegative_integers(value: Any, name: str) -> tuple[int, ...]:
+    result = _integer_tuple(value, name)
+    if any(item < 0 for item in result):
+        raise ValueError(f"{name} must contain nonnegative integers")
+    if len(set(result)) != len(result):
+        raise ValueError(f"{name} must not contain duplicates")
+    return result
 
 
 def _mapping(value: Any, name: str) -> Mapping[str, Any]:

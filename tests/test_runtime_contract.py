@@ -244,10 +244,15 @@ def test_compilation_options_are_narrow_and_serializable() -> None:
     assert CompilationOptions.from_dict(options.to_dict()) == options
     assert set(options.to_dict()) == {
         "enabled",
+        "mode",
         "static_arg_names",
+        "static_arg_positions",
         "donate_arg_names",
+        "donate_arg_positions",
         "debug",
         "synchronize_results",
+        "cache_policy",
+        "metadata",
     }
 
 
