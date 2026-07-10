@@ -135,3 +135,20 @@
   behavior was introduced.
 - Kept future surface kinds and plugin-defined target scopes extensible, while
   singular payload/adapter defaults remain isolated to legacy dense smoke use.
+
+## 2026-07-10 - P1.8 Student compatibility report
+
+- Separated Contract structural validity from Student readiness. A valid Tome
+  can still fail because the declared Student profile lacks a surface schema,
+  capability, target scope, tokenizer, dimension, or plan feature.
+- Made compatibility capability-based with stable structured blocker codes.
+  Missing requirements fail loudly instead of triggering hidden fallback or a
+  vague not-compatible result.
+- Added an honest metadata-inspection-only profile, which fails the production
+  fixture because it declares no payload-consumption capabilities or dimension
+  limits.
+- Allowed a synthetic fully declared profile to pass evaluator logic while
+  warning that declarations are not implementation or execution proof.
+- Established P1.8 as the first reproducible yes/no gate before runtime action;
+  no payload, model, architecture, runtime, checkpoint, or schedule execution
+  was introduced.

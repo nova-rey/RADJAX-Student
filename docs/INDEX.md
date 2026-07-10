@@ -25,6 +25,8 @@ Start here for Phase 0 foundation context.
   Contract-backed metadata view, legacy isolation, and current non-claims.
 - [P1.7 Student Run Defaults](P1_7_STUDENT_RUN_DEFAULTS.md): source-separated
   artifact facts, capabilities, pass intent, user choices, and deferred policy.
+- [P1.8 Student Compatibility Report](P1_8_STUDENT_COMPATIBILITY_REPORT.md):
+  explicit profile-based readiness verdicts with structured blockers.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)

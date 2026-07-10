@@ -15,6 +15,9 @@ requirements, and the declarative pass plan without loading training payloads.
 `infer_run_defaults()` converts those facts into an immutable configuration seed
 while leaving architecture, runtime, training budget, and later policy choices
 unresolved.
+`evaluate_student_compatibility()` compares that seed with an explicit Student
+capability profile and returns a reproducible pass/fail report without executing
+payload, model, runtime, checkpoint, or schedule behavior.
 
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
@@ -30,3 +33,4 @@ codebase. The normative Phase 0 docs are:
 - [Student split contract](docs/STUDENT_SPLIT_CONTRACT.md)
 - [Production artifact view](docs/P1_6_STUDENT_ARTIFACT_VIEW.md)
 - [Production run defaults](docs/P1_7_STUDENT_RUN_DEFAULTS.md)
+- [Student compatibility report](docs/P1_8_STUDENT_COMPATIBILITY_REPORT.md)

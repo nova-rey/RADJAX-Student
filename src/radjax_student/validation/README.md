@@ -8,5 +8,8 @@ should state whether this runtime can consume a valid Contract artifact.
 
 `run_defaults` is intentionally pre-compatibility. It reports artifact facts,
 surface and capability requirements, declarative pass intent, user choices, and
-later-phase policy gaps. The later P1.8 compatibility layer owns readiness
-decisions.
+later-phase policy gaps.
+
+`compatibility` owns the first readiness decision. It evaluates those facts
+against an explicit declaration profile and emits stable blockers and warnings.
+It does not prove execution support or instantiate runtime/architecture code.

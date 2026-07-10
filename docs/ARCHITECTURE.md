@@ -36,3 +36,9 @@ requirements, and declarative passes. It does not decide compatibility or turn
 pass metadata into a schedule. User input remains limited to architecture,
 architecture size/config, training budget, and output location; runtime and
 training policy remain owned by later phases.
+
+`evaluate_student_compatibility()` is the first Student readiness gate. Contract
+still owns structural artifact validity; Student compares normalized requirements
+with an immutable capability profile. The report can pass or fail declared
+readiness, but it does not instantiate an architecture or prove that declared
+capabilities execute correctly.
