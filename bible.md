@@ -60,3 +60,19 @@
 - Kept unresolved runtime, optimizer, schedule, evaluation, and HF export
   choices explicit by phase so inferred defaults are not mistaken for a final
   training config.
+
+## 2026-07-10 - P1.3 production Tome contract gap review
+
+- Paused Phase 1 implementation to compare the initial Contract-backed Student
+  view with the richer production Tome. The P1.1/P1.2 public seams remain
+  useful, but the real artifact has distinct corridor and exemplar surfaces and
+  cannot be represented truthfully by one manifest payload and one adapter.
+- Modularity made the correction cheap: keep the artifact-opening and inferred
+  defaults boundaries, then correct their inputs after RADJAX-Contract owns the
+  production cover page, contents roles, surface schemas, capability set, and
+  recommended pass order.
+- Future work must follow the production semantic contract rather than the
+  historical dense fixture shape. Modes and packed mode assignments are
+  training-critical; fingerprints and delivery-path details are diagnostic.
+- Recommended coordinated Contract and Student changes before any corridor or
+  exemplar loader, loss, schedule, runtime, or training implementation.
