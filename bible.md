@@ -76,3 +76,18 @@
   training-critical; fingerprints and delivery-path details are diagnostic.
 - Recommended coordinated Contract and Student changes before any corridor or
   exemplar loader, loss, schedule, runtime, or training implementation.
+
+## 2026-07-10 - P1.4 production Tome alignment plan
+
+- Made P1.4 cross-repository because no one repository can repair an artifact
+  boundary alone: Tome owns emitted truth, Contract owns shared meaning and
+  validation, and Student owns normalized consumption.
+- Forbid Student from compensating for incomplete producer indexing by walking
+  directories, guessing filenames, importing Tome, or maintaining private
+  schema knowledge. A failed upstream contract gate stops downstream work.
+- Preserved the public `open_tome_artifact()` / `TomeArtifactView` and
+  `infer_run_defaults()` seams while planning replacement of their provisional
+  single-manifest, single-payload, and single-adapter internals.
+- Required a generic surface collection, capability sets, surface-referenced
+  pass recommendations, and extensible target scopes so corridor/exemplar are
+  current typed projections rather than permanent limits on future research.
