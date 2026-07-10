@@ -32,8 +32,8 @@ P2.2  Device and Environment Inspection         COMPLETE
 P2.3  Runtime Backend Registry                  COMPLETE
 P2.4  Single-Device CPU Runtime Smoke           COMPLETE
 P2.5  RNG and Reproducibility Contract          COMPLETE
-P2.6  Placement and Sharding Intent             UNBLOCKED; NEXT
-P2.7  Compilation and Execution Boundary        BLOCKED ON P2.6
+P2.6  Placement and Sharding Intent             COMPLETE
+P2.7  Compilation and Execution Boundary        UNBLOCKED; NEXT
 P2.8  Runtime State Save/Restore Foundation     BLOCKED ON P2.7
 P2.9  GPU/TPU Portability Smoke                 BLOCKED ON P2.8
 P2.10 Runtime Golden Acceptance Gate            BLOCKED ON P2.9

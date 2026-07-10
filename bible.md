@@ -290,3 +290,22 @@
 - Kept the claim honest: this is an RNG identity contract, not proof that model
   initialization, dropout, augmentation, training, evaluation, distributed RNG,
   or persistence behavior has run correctly.
+
+## 2026-07-10 - P2.6 placement and sharding intent
+
+- Defined logical axes as architecture-facing semantics without turning them into
+  topology instructions. A plugin may say `batch` is data-oriented or `model` is
+  model-oriented, while runtime remains the only owner of future mesh/device
+  translation.
+- Kept value paths stable and object-free so placement can be planned before
+  parameter trees, Flax/Equinox structures, or architecture instances exist.
+  This preserves the contract-first path from declaration to later backend work.
+- Made `automatic` and `unspecified` materially different. Automatic delegates a
+  future supported decision to runtime; unspecified intentionally makes no
+  decision. Collapsing them would silently invent policy.
+- Centralized placement-to-capability mapping so callers cannot infer support
+  from an architecture name or scatter capability strings through model code.
+  Contradictory declarations now fail as structured placement contract errors.
+- Kept P2.6 declarative. It proves validated portable intent and a doctor report,
+  not meshes, JAX sharding objects, replicated/data/model placement, topology
+  solving, multi-device execution, distributed behavior, or training.

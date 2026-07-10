@@ -100,3 +100,8 @@ P2.5 keeps deterministic randomness in the runtime boundary through a versioned
 are portable lineage metadata, not backend RNG objects. Architecture and training
 code must later consume supplied streams rather than creating independent RNG
 state.
+
+P2.6 adds a topology-free placement language at the same runtime boundary.
+Architecture plugins may declare semantic logical axes and stable value paths;
+runtime retains ownership of future device/mesh translation. Plans are immutable
+intent with no JAX sharding object, device list, model tree, or execution path.

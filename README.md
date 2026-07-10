@@ -72,6 +72,11 @@ runtime-owned root-seed hierarchy with named immutable streams for future model,
 data, dropout, augmentation, evaluation, and runtime-test behavior. It creates
 no backend RNG object and does not implement stochastic model behavior.
 
+[P2.6](docs/P2_6_PLACEMENT_AND_SHARDING_INTENT.md) adds portable logical axes,
+value placement declarations, centralized capability mapping, and deterministic
+precedence. It defines placement intent only: the CPU smoke is still the sole
+concrete placement proof, with no mesh or multi-device sharding implementation.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
@@ -95,3 +100,4 @@ codebase. The normative Phase 0 docs are:
 - [P2.3 runtime backend registry and selection](docs/P2_3_RUNTIME_BACKEND_REGISTRY.md)
 - [P2.4 single-device CPU runtime smoke](docs/P2_4_SINGLE_DEVICE_CPU_RUNTIME_SMOKE.md)
 - [P2.5 RNG and reproducibility contract](docs/P2_5_RNG_AND_REPRODUCIBILITY.md)
+- [P2.6 placement and sharding intent](docs/P2_6_PLACEMENT_AND_SHARDING_INTENT.md)

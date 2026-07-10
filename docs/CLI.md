@@ -83,6 +83,11 @@ receipt in JSON output. The normal doctor command never executes it. A failed
 requested smoke returns status `1` with structured receipt blockers; absent JAX
 is a coherent failed smoke rather than a traceback.
 
+Doctor also reports P2.6 placement declarations. `single_device_cpu_smoke_only`
+is the sole concrete placement proof; replicated, data-sharded, model-sharded,
+automatic, and unspecified declarations remain unresolved. The report never
+creates a mesh, sharding object, or multi-device array.
+
 An expected compatibility failure does not make doctor unhealthy. Missing or
 changed fixtures, failed Contract imports, pipeline failures, or serialization
 failures do. Runtime inspection fails doctor only when observation itself is

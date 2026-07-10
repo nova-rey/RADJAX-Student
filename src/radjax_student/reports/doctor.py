@@ -13,6 +13,7 @@ from typing import Any
 
 from radjax_student.artifacts import open_tome_artifact
 from radjax_student.runtime import (
+    PLACEMENT_INTENTS,
     CpuRuntimeSmokeReceipt,
     RuntimeBackendDescriptor,
     RuntimeConfig,
@@ -80,6 +81,7 @@ class StudentDoctorReport:
     runtime_backend_descriptors: tuple[RuntimeBackendDescriptor, ...]
     runtime_selection: RuntimeSelectionResult
     runtime_smoke: CpuRuntimeSmokeReceipt | None
+    placement_intent: Mapping[str, Any]
     capability_state: Mapping[str, str]
     blockers: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -119,6 +121,7 @@ class StudentDoctorReport:
             "runtime_smoke": (
                 None if self.runtime_smoke is None else self.runtime_smoke.to_dict()
             ),
+            "placement_intent": dict(self.placement_intent),
             "capability_state": dict(self.capability_state),
             "blockers": list(self.blockers),
             "warnings": list(self.warnings),
@@ -214,6 +217,24 @@ def build_doctor_report(*, run_runtime_smoke: bool = False) -> StudentDoctorRepo
         runtime_backend_descriptors=runtime_backend_descriptors,
         runtime_selection=runtime_selection,
         runtime_smoke=runtime_smoke,
+        placement_intent=MappingProxyType(
+            {
+                "supported_declarations": PLACEMENT_INTENTS,
+                "concrete_resolution": ("single_device_cpu_smoke_only",),
+                "unresolved_declarations": (
+                    "replicated",
+                    "data_sharded",
+                    "model_sharded",
+                    "automatic",
+                    "unspecified",
+                ),
+                "claims_not_made": (
+                    "mesh_not_created",
+                    "concrete_sharding_not_implemented",
+                    "multi_device_placement_not_tested",
+                ),
+            }
+        ),
         capability_state=MappingProxyType(
             {
                 "metadata_inspection": "available",
@@ -223,6 +244,7 @@ def build_doctor_report(*, run_runtime_smoke: bool = False) -> StudentDoctorRepo
                 "runtime_backend_registry": "available",
                 "runtime_backend_selection": "available",
                 "runtime_cpu_smoke": "available_on_explicit_request",
+                "placement_intent": "available",
                 "payload_loading": "unavailable",
                 "training": "unavailable",
                 "jax_execution": "unavailable",

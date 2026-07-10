@@ -40,3 +40,8 @@ P2.5 adds backend-neutral `RuntimeKeys` as the deterministic root-seed hierarchy
 owned by `ExecutionContext`. It serializes semantic stream lineage rather than
 JAX key objects and establishes no random model/training behavior. See
 [P2.5 RNG and Reproducibility Contract](P2_5_RNG_AND_REPRODUCIBILITY.md).
+
+P2.6 adds logical-axis and value-level placement declarations, with centralized
+capability mapping and value -> plan -> runtime-config precedence. It does not
+translate declarations into devices, meshes, or backend sharding objects. See
+[P2.6 Placement and Sharding Intent](P2_6_PLACEMENT_AND_SHARDING_INTENT.md).

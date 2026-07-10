@@ -209,6 +209,23 @@ def render_doctor_human(report: StudentDoctorReport) -> str:
             ),
             "  backend initialization: unavailable",
             "",
+            "Placement Intent",
+            "  supported declarations: "
+            + _joined(
+                tuple(report.placement_intent["supported_declarations"]),
+                empty="none",
+            ),
+            "  concrete resolution: "
+            + _joined(
+                tuple(report.placement_intent["concrete_resolution"]),
+                empty="none",
+            ),
+            "  unresolved: "
+            + _joined(
+                tuple(report.placement_intent["unresolved_declarations"]),
+                empty="none",
+            ),
+            "",
             "CPU Runtime Smoke",
         ]
     )

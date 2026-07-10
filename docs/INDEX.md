@@ -49,6 +49,9 @@ Start here for Phase 0 foundation context.
 - [P2.5 RNG and Reproducibility Contract](P2_5_RNG_AND_REPRODUCIBILITY.md):
   one runtime-owned root seed, fixed named immutable stream lineage, and
   backend-neutral serialization.
+- [P2.6 Placement and Sharding Intent](P2_6_PLACEMENT_AND_SHARDING_INTENT.md):
+  topology-free logical axes, value placement declarations, validation,
+  centralized capabilities, and unresolved-resolution boundary.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -92,5 +95,5 @@ Do not use it for installation instructions, CLI documentation, API reference,
 or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
-Runtime work has begun under the locked roadmap; P2.5 RNG identity is complete,
-and P2.6 placement and sharding intent is the next checkpoint.
+Runtime work has begun under the locked roadmap; P2.6 placement intent is
+complete, and P2.7 compilation and execution boundary is the next checkpoint.
