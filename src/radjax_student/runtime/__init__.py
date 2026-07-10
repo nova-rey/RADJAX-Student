@@ -41,7 +41,25 @@ from radjax_student.runtime.models import (
     RuntimeStatus,
 )
 from radjax_student.runtime.protocols import RuntimeBackend
+from radjax_student.runtime.registry import (
+    SUPPORTED_RUNTIME_PLATFORMS,
+    BackendAvailabilityStatus,
+    FakeRuntimeBackend,
+    JaxRuntimeBackend,
+    RuntimeBackendAvailability,
+    RuntimeBackendDescriptor,
+    RuntimeBackendRegistry,
+    build_default_runtime_registry,
+)
 from radjax_student.runtime.reports import RuntimeReport
+from radjax_student.runtime.selection import (
+    AUTOMATIC_PLATFORM_PREFERENCE,
+    RUNTIME_SELECTION_CLAIMS_NOT_MADE,
+    RUNTIME_SELECTION_WARNING_CODES,
+    RuntimeSelectionResult,
+    SelectionStatus,
+    select_runtime_backend,
+)
 
 __all__ = [
     "COMPILATION_POLICIES",
@@ -53,17 +71,27 @@ __all__ = [
     "RUNTIME_ERROR_CODES",
     "RUNTIME_INSPECTION_CLAIMS_NOT_MADE",
     "RUNTIME_INSPECTION_FINDING_CODES",
+    "RUNTIME_SELECTION_CLAIMS_NOT_MADE",
+    "RUNTIME_SELECTION_WARNING_CODES",
+    "SUPPORTED_RUNTIME_PLATFORMS",
+    "AUTOMATIC_PLATFORM_PREFERENCE",
+    "BackendAvailabilityStatus",
     "CompilationOptions",
     "CompilationPolicy",
     "DeviceDescriptor",
     "DeviceInventory",
     "DistributedPolicy",
     "ExecutionContext",
+    "FakeRuntimeBackend",
     "FallbackPolicy",
     "InspectionStatus",
+    "JaxRuntimeBackend",
     "PlacementPolicy",
     "PrecisionPolicy",
     "RuntimeBackend",
+    "RuntimeBackendAvailability",
+    "RuntimeBackendDescriptor",
+    "RuntimeBackendRegistry",
     "RuntimeCapabilityProfile",
     "RuntimeConfig",
     "RuntimeContractError",
@@ -72,7 +100,11 @@ __all__ = [
     "RuntimeIssue",
     "RuntimeInspection",
     "RuntimeReport",
+    "RuntimeSelectionResult",
     "RuntimeState",
     "RuntimeStatus",
+    "SelectionStatus",
+    "build_default_runtime_registry",
     "inspect_runtime_environment",
+    "select_runtime_backend",
 ]

@@ -56,7 +56,10 @@ backend, initialize JAX, or execute computation.
 environment and device inspection. Missing JAX is reported coherently without
 breaking the base install; observed devices normalize into stable JSON models.
 Inspection does not select a backend or execute computation. P2.3 backend
-registry is the next checkpoint.
+registry and selection now compare requested policy with those supplied facts.
+The default registry declares JAX without importing it, reports optional JAX
+absence coherently, and never initializes or executes a backend. See
+[P2.3 runtime backend registry and selection](docs/P2_3_RUNTIME_BACKEND_REGISTRY.md).
 
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
@@ -78,3 +81,4 @@ codebase. The normative Phase 0 docs are:
 - [Phase 2 runtime roadmap](docs/RADJAX_PHASE2_RUNTIME_ROADMAP.md)
 - [P2.1 runtime contract](docs/P2_1_RUNTIME_CONTRACT.md)
 - [P2.2 device and environment inspection](docs/P2_2_DEVICE_ENVIRONMENT_INSPECTION.md)
+- [P2.3 runtime backend registry and selection](docs/P2_3_RUNTIME_BACKEND_REGISTRY.md)

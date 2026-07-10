@@ -12,7 +12,15 @@ from types import MappingProxyType
 from typing import Any
 
 from radjax_student.artifacts import open_tome_artifact
-from radjax_student.runtime import RuntimeInspection, inspect_runtime_environment
+from radjax_student.runtime import (
+    RuntimeBackendDescriptor,
+    RuntimeConfig,
+    RuntimeInspection,
+    RuntimeSelectionResult,
+    build_default_runtime_registry,
+    inspect_runtime_environment,
+    select_runtime_backend,
+)
 from radjax_student.validation import (
     evaluate_student_compatibility,
     infer_run_defaults,
@@ -67,6 +75,8 @@ class StudentDoctorReport:
     expected_metadata_failure_recognized: bool
     report_serialization_succeeds: bool
     runtime_inspection: RuntimeInspection
+    runtime_backend_descriptors: tuple[RuntimeBackendDescriptor, ...]
+    runtime_selection: RuntimeSelectionResult
     capability_state: Mapping[str, str]
     blockers: tuple[str, ...]
     warnings: tuple[str, ...]
@@ -99,6 +109,10 @@ class StudentDoctorReport:
             ),
             "report_serialization_succeeds": self.report_serialization_succeeds,
             "runtime_inspection": self.runtime_inspection.to_dict(),
+            "runtime_backend_descriptors": [
+                item.to_dict() for item in self.runtime_backend_descriptors
+            ],
+            "runtime_selection": self.runtime_selection.to_dict(),
             "capability_state": dict(self.capability_state),
             "blockers": list(self.blockers),
             "warnings": list(self.warnings),
@@ -163,6 +177,13 @@ def build_doctor_report() -> StudentDoctorReport:
     runtime_inspection = inspect_runtime_environment()
     if not runtime_inspection.ok:
         blockers.append("runtime_inspection_failed")
+    runtime_registry = build_default_runtime_registry()
+    runtime_backend_descriptors = runtime_registry.describe(runtime_inspection)
+    runtime_selection = select_runtime_backend(
+        config=RuntimeConfig(),
+        inspection=runtime_inspection,
+        registry=runtime_registry,
+    )
     return StudentDoctorReport(
         status="pass" if not blockers else "fail",
         python_version=platform.python_version(),
@@ -181,12 +202,16 @@ def build_doctor_report() -> StudentDoctorReport:
         expected_metadata_failure_recognized=expected_failure,
         report_serialization_succeeds=serialization_succeeds,
         runtime_inspection=runtime_inspection,
+        runtime_backend_descriptors=runtime_backend_descriptors,
+        runtime_selection=runtime_selection,
         capability_state=MappingProxyType(
             {
                 "metadata_inspection": "available",
                 "run_default_inference": "available",
                 "compatibility_reporting": "available",
                 "runtime_inspection": "available",
+                "runtime_backend_registry": "available",
+                "runtime_backend_selection": "available",
                 "payload_loading": "unavailable",
                 "training": "unavailable",
                 "jax_execution": "unavailable",

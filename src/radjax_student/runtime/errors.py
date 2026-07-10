@@ -10,24 +10,34 @@ from radjax_student.runtime.models import freeze_json_mapping, json_value
 RuntimeErrorCode: TypeAlias = Literal[
     "runtime_backend_not_found",
     "runtime_backend_unavailable",
+    "runtime_backend_duplicate",
+    "runtime_backend_ineligible",
     "requested_platform_unavailable",
     "runtime_capability_missing",
+    "runtime_policy_unsupported",
     "runtime_initialization_failed",
     "runtime_configuration_invalid",
     "runtime_environment_incompatible",
     "runtime_fallback_disallowed",
+    "runtime_selection_ambiguous",
+    "runtime_selection_internal_error",
     "runtime_internal_error",
 ]
 
 RUNTIME_ERROR_CODES: tuple[str, ...] = (
     "runtime_backend_not_found",
     "runtime_backend_unavailable",
+    "runtime_backend_duplicate",
+    "runtime_backend_ineligible",
     "requested_platform_unavailable",
     "runtime_capability_missing",
+    "runtime_policy_unsupported",
     "runtime_initialization_failed",
     "runtime_configuration_invalid",
     "runtime_environment_incompatible",
     "runtime_fallback_disallowed",
+    "runtime_selection_ambiguous",
+    "runtime_selection_internal_error",
     "runtime_internal_error",
 )
 

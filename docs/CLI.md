@@ -66,6 +66,12 @@ JAX/JAXLIB versions, observed platform/process/device facts, normalized device
 kinds, and structured inspection warnings. Missing JAX is healthy and appears as
 `jax_not_installed`; doctor still states that JAX execution is unavailable.
 
+Doctor also previews P2.3 backend selection from the same inspection: registered
+backend IDs, availability, declared platforms/capabilities, selected target when
+one is eligible, and structured selection blockers or warnings. This preview
+does not initialize a backend or execute JAX. An unavailable optional JAX
+declaration does not make doctor unhealthy.
+
 An expected compatibility failure does not make doctor unhealthy. Missing or
 changed fixtures, failed Contract imports, pipeline failures, or serialization
 failures do. Runtime inspection fails doctor only when observation itself is

@@ -166,8 +166,52 @@ def render_doctor_human(report: StudentDoctorReport) -> str:
         ),
         "  JAX execution: unavailable",
         "",
-        "Available Profiles",
+        "Runtime Backend Selection",
+        "  registered backends: "
+        + _joined(
+            tuple(item.backend_id for item in report.runtime_backend_descriptors),
+            empty="none",
+        ),
     ]
+    for descriptor in report.runtime_backend_descriptors:
+        lines.extend(
+            [
+                f"  {descriptor.backend_id}: {descriptor.availability.status}",
+                "    platforms: "
+                + _joined(descriptor.supported_platforms, empty="none"),
+                "    capabilities: "
+                + _joined(
+                    descriptor.capability_profile.capabilities,
+                    empty="none",
+                ),
+            ]
+        )
+    lines.extend(
+        [
+            "  preview status: " + report.runtime_selection.status.upper(),
+            "  selected backend: "
+            + _display(
+                None
+                if report.runtime_selection.selected_backend is None
+                else report.runtime_selection.selected_backend.backend_id
+            ),
+            "  selected platform: "
+            + _display(report.runtime_selection.selected_platform),
+            "  preview blockers: "
+            + _joined(
+                tuple(item.code for item in report.runtime_selection.blockers),
+                empty="none",
+            ),
+            "  preview warnings: "
+            + _joined(
+                tuple(item.code for item in report.runtime_selection.warnings),
+                empty="none",
+            ),
+            "  backend initialization: unavailable",
+            "",
+            "Available Profiles",
+        ]
+    )
     lines.extend(f"  - {item}" for item in report.available_profiles)
     lines.extend(["", "Current Capability State"])
     lines.extend(

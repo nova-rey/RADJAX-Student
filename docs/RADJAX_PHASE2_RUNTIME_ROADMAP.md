@@ -119,8 +119,8 @@ with any external project.
 ```text
 P2.1  Runtime Contract and Terminology          COMPLETE
 P2.2  Device and Environment Inspection         COMPLETE
-P2.3  Runtime Backend Registry                  UNBLOCKED; NEXT
-P2.4  Single-Device CPU Runtime Smoke           BLOCKED ON P2.3
+P2.3  Runtime Backend Registry                  COMPLETE
+P2.4  Single-Device CPU Runtime Smoke           UNBLOCKED; NEXT
 P2.5  RNG and Reproducibility Contract          BLOCKED ON P2.4
 P2.6  Placement and Sharding Intent             BLOCKED ON P2.5
 P2.7  Compilation and Execution Boundary        BLOCKED ON P2.6

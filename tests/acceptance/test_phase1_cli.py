@@ -123,6 +123,8 @@ def test_doctor_proves_pipeline_and_honest_expected_failure() -> None:
         "run_default_inference": "available",
         "compatibility_reporting": "available",
         "runtime_inspection": "available",
+        "runtime_backend_registry": "available",
+        "runtime_backend_selection": "available",
         "payload_loading": "unavailable",
         "training": "unavailable",
         "jax_execution": "unavailable",

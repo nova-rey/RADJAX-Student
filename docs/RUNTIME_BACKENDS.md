@@ -16,6 +16,18 @@ P2.2 provides lazy environment/device inspection through public JAX APIs when
 JAX is installed. Inspection returns normalized P2.1 models and treats optional
 JAX absence as a healthy fact; it does not select a backend or execute work.
 
-P2.3 adds the registry and initial JAX backend boundary, and P2.4 proves the
-first single-device CPU smoke. Fast paths remain later optional layers and never
-become correctness paths.
+P2.3 adds `RuntimeBackendRegistry`, serializable backend descriptors, and pure
+selection over supplied P2.2 inspection facts. The default registry declares a
+JAX backend without importing, initializing, or executing it; JAX can remain
+registered but unavailable when it is not installed. Selection keeps registered,
+available, capability-compatible, platform-compatible, and selected distinct.
+
+An explicit platform requires a visible compatible device. `automatic` uses the
+documented `gpu -> tpu -> metal -> cpu` order, while `unspecified` does not
+silently choose an automatic target. Fallback is disallowed by default and is
+always reported when explicitly allowed. Capability declarations remain
+non-proof until an execution gate verifies them.
+
+See [P2.3 Runtime Backend Registry and Selection](P2_3_RUNTIME_BACKEND_REGISTRY.md).
+P2.4 proves the first single-device CPU smoke. Fast paths remain later optional
+layers and never become correctness paths.

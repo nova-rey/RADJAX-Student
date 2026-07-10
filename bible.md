@@ -232,3 +232,22 @@
 - Kept inspection separate from execution proof. Seeing a CPU, GPU, or TPU does
   not prove placement, JIT, synchronization, precision behavior, distributed
   execution, runtime initialization, architecture support, or training.
+
+## 2026-07-10 - P2.3 runtime backend registry and selection
+
+- Made backend selection an explicit pure seam after observation and before
+  initialization. Registry declarations report registration, availability,
+  platform support, capability declarations, and selection evidence without
+  retaining implementation objects or depending on architecture/training code.
+- Kept JAX registered without importing or initializing it. Optional JAX absence
+  is a coherent unavailable backend fact, not a crash and not a reason for the
+  non-execution doctor to fail.
+- Made platform policy visible: explicit targets require visible compatible
+  devices, `automatic` has a deterministic accelerator-first order, and
+  `unspecified` remains unresolved rather than silently using a JAX default.
+- Preserved fallback as a semantic change that must be requested and reported.
+  A GPU/TPU request cannot silently become CPU, and capability/policy blockers
+  remain structured even where a compatible fallback exists.
+- Treated capability declarations as selection inputs rather than proof. P2.3
+  makes reproducible choices; P2.4 must still prove initialization, arrays,
+  placement, execution, synchronization, and teardown on CPU.

@@ -240,12 +240,17 @@ def test_doctor_reports_absent_jax_as_healthy_runtime_inspection(
     assert payload["runtime_inspection"]["status"] == "pass"
     assert payload["runtime_inspection"]["environment"]["jax_available"] is False
     assert payload["capability_state"]["runtime_inspection"] == "available"
+    assert payload["capability_state"]["runtime_backend_registry"] == "available"
+    assert payload["capability_state"]["runtime_backend_selection"] == "available"
     assert payload["capability_state"]["jax_execution"] == "unavailable"
+    assert payload["runtime_backend_descriptors"][0]["backend_id"] == "jax"
+    assert payload["runtime_selection"]["status"] == "fail"
 
     human_stdout = StringIO()
     human_code = main(("doctor",), stdout=human_stdout, stderr=StringIO())
     assert human_code == 0
     assert "Runtime Inspection" in human_stdout.getvalue()
+    assert "Runtime Backend Selection" in human_stdout.getvalue()
     assert "JAX available: no" in human_stdout.getvalue()
     assert "warnings: jax_not_installed" in human_stdout.getvalue()
     assert "JAX execution: unavailable" in human_stdout.getvalue()

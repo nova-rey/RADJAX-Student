@@ -80,5 +80,10 @@ ML packages.
 P2.2 implements only the protocol's observation side as the standalone
 `inspect_runtime_environment()` API. JAX/JAXLIB imports are lazy, visible
 devices normalize into serializable descriptors, and unknown facts stay
-unknown. The inspection result never selects a backend or creates an
-`ExecutionContext`; those remain P2.3/P2.4 responsibilities.
+unknown.
+
+P2.3 consumes those supplied facts through an instance-owned backend registry
+and a pure selection function. Backend declarations remain serializable and
+selection never initializes a context, imports JAX, allocates an array, places a
+value, compiles, synchronizes, or executes. `ExecutionContext` and the first
+execution proof remain P2.4 responsibilities.
