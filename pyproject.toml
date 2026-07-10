@@ -14,6 +14,9 @@ dependencies = [
   "radjax-contract @ git+https://github.com/nova-rey/RADJAX-Contract.git@ff8f6e9af976fc599ee31173d4f177fb1250b4d7",
 ]
 
+[project.scripts]
+radjax-student = "radjax_student.cli.main:main"
+
 [project.optional-dependencies]
 jax = [
   "jax[cpu]>=0.4.0",

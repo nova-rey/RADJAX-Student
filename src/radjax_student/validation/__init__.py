@@ -26,6 +26,11 @@ from radjax_student.validation.default_models import (
     RecommendedPass,
     StudentRunDefaults,
 )
+from radjax_student.validation.profile_registry import (
+    available_profile_ids,
+    declaration_test_only_profile,
+    resolve_profile,
+)
 from radjax_student.validation.run_defaults import (
     infer_run_defaults,
     infer_run_defaults_from_tome,
@@ -47,7 +52,10 @@ __all__ = [
     "TargetScopeCompatibility",
     "evaluate_student_compatibility",
     "evaluate_tome_path_compatibility",
+    "available_profile_ids",
+    "declaration_test_only_profile",
     "infer_run_defaults",
     "infer_run_defaults_from_tome",
     "metadata_inspection_only_profile",
+    "resolve_profile",
 ]

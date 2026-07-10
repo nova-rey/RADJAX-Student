@@ -1,3 +1,5 @@
+"""Deprecated tiny smoke shim; this is not the RADJAX product train command."""
+
 from __future__ import annotations
 
 from radjax_student.training import run_tiny_train_step

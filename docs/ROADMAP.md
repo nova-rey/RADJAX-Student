@@ -14,8 +14,8 @@ P1.5  Tome/Contract production alignment           COMPLETE
 P1.6  Student artifact-view correction              COMPLETE
 P1.7  Student run-defaults correction               COMPLETE
 P1.8  Student compatibility report                  COMPLETE
-P1.9  Inspect/doctor CLI                            UNBLOCKED; NEXT
-P1.10 Production golden acceptance gate             BLOCKED ON P1.9
+P1.9  Inspect/doctor CLI                            COMPLETE
+P1.10 Production golden acceptance gate             UNBLOCKED; NEXT
 ```
 
 1. Keep tiny debug student and artifact inspection green.

@@ -42,3 +42,22 @@ still owns structural artifact validity; Student compares normalized requirement
 with an immutable capability profile. The report can pass or fail declared
 readiness, but it does not instantiate an architecture or prove that declared
 capabilities execute correctly.
+
+## CLI and Reports
+
+`radjax-student inspect` is a thin adapter over the same public pipeline:
+
+```text
+open_tome_artifact()
+-> infer_run_defaults()
+-> evaluate_student_compatibility()
+-> StudentInspectionReport
+-> human or JSON renderer
+```
+
+Artifact parsing and validation remain in Contract-backed artifact APIs;
+default inference and compatibility policy remain in `validation/`; stable
+aggregates live in `reports/`; argument parsing, rendering, and exit-code mapping
+live in `cli/`. `radjax-student doctor` composes those same boundaries against
+the accepted fixture. Neither command owns producer schemas, loads Student
+training payloads, allocates a model, or executes a runtime or schedule.

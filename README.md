@@ -19,6 +19,21 @@ unresolved.
 capability profile and returns a reproducible pass/fail report without executing
 payload, model, runtime, checkpoint, or schedule behavior.
 
+The Phase 1 pipeline is available from the command line:
+
+```bash
+radjax-student inspect --tome /path/to/tome
+radjax-student doctor
+```
+
+`inspect` supports compact human output and complete deterministic JSON. Its
+default `metadata_inspection_only` profile intentionally fails when a Tome
+requires capabilities that Student has not implemented; that result is useful,
+not a command error. `doctor` verifies the local Contract boundary, accepted
+canonical fixture digest, and metadata-only reporting pipeline while listing
+unavailable execution capabilities honestly. See the [CLI guide](docs/CLI.md)
+for formats, file output, profiles, and exit codes.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
@@ -34,3 +49,4 @@ codebase. The normative Phase 0 docs are:
 - [Production artifact view](docs/P1_6_STUDENT_ARTIFACT_VIEW.md)
 - [Production run defaults](docs/P1_7_STUDENT_RUN_DEFAULTS.md)
 - [Student compatibility report](docs/P1_8_STUDENT_COMPATIBILITY_REPORT.md)
+- [Inspect and doctor CLI](docs/CLI.md)

@@ -152,3 +152,23 @@
 - Established P1.8 as the first reproducible yes/no gate before runtime action;
   no payload, model, architecture, runtime, checkpoint, or schedule execution
   was introduced.
+
+## 2026-07-10 - P1.9 inspect and doctor CLI
+
+- Made Phase 1 useful before training exists: humans and automation can now
+  inspect a production Tome, see inferred defaults and required capabilities,
+  receive an explicit compatibility verdict, and understand every blocker and
+  non-claim.
+- Kept `inspect` and `doctor` on the same Contract-backed artifact, defaults,
+  and compatibility pipeline that later acceptance automation will depend on.
+  The CLI owns only arguments, rendering, file output, and exit-code mapping.
+- Treated failed compatibility as a legitimate product result rather than a
+  malformed-artifact error. The public metadata-only profile fails honestly,
+  while the hidden declaration-only test profile proves comparison wiring
+  without pretending that declaration is implementation.
+- Made doctor verify the accepted production fixture digest and report current
+  capabilities and non-capabilities without loading Student training payloads,
+  allocating a model, executing a schedule, or accessing the network.
+- Left Phase 1 formally open. P1.10 must consolidate the golden fixture,
+  malformed variants, CLI behavior, compatibility reports, and non-claims into
+  one maintained acceptance gate.
