@@ -27,5 +27,12 @@ backend handles, explicit synchronization, static/donation policy, phase timing,
 and structured reports. It does not implement model functions, gradients,
 optimizers, training, distributed execution, or state persistence.
 
+P2.8 finalizes a small versioned runtime-state envelope and stores it as
+deterministic JSON plus a SHA-256 manifest. It persists runtime identity, step,
+config, RNG lineage, environment/topology summaries, precision, placement, and
+generic resume metadata. It deliberately excludes model/optimizer state,
+compiled executables, raw devices, raw JAX keys, and architecture data. See
+[`docs/P2_8_RUNTIME_STATE_SAVE_RESTORE.md`](../../../docs/P2_8_RUNTIME_STATE_SAVE_RESTORE.md).
+
 See
 [`docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md`](../../../docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md).

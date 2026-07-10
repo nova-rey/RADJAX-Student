@@ -209,10 +209,10 @@ class JaxRuntimeBackend:
     """JAX declaration with the deliberately tiny P2.4 CPU smoke operations."""
 
     backend_id = "jax"
-    implementation_version = "p2.7"
+    implementation_version = "p2.8"
     supported_platforms = SUPPORTED_RUNTIME_PLATFORMS
     notes = (
-        "P2.7 proves controlled pure eager and explicit JIT execution policy.",
+        "P2.8 adds portable runtime-state persistence outside JAX execution.",
         "Declared capabilities beyond tested paths are not execution proof.",
     )
 
@@ -221,7 +221,7 @@ class JaxRuntimeBackend:
 
     def capability_profile(self) -> RuntimeCapabilityProfile:
         return RuntimeCapabilityProfile(
-            profile_id="jax.runtime.p2.7",
+            profile_id="jax.runtime.p2.8",
             backend_id=self.backend_id,
             version=1,
             capabilities=(
@@ -232,17 +232,15 @@ class JaxRuntimeBackend:
                 "execution.synchronize_v1",
                 "placement.single_device_v1",
                 "runtime.single_process_v1",
+                "state.runtime_envelope_v1",
             ),
             non_capabilities=(
                 "placement.data_sharded_v1",
                 "placement.model_sharded_v1",
                 "placement.replicated_v1",
                 "runtime.multi_process_v1",
-                "state.runtime_envelope_v1",
             ),
-            notes=(
-                "P2.7 proves controlled pure eager/JIT execution on declared paths.",
-            ),
+            notes=("P2.8 adds a runtime-only state envelope, not a model checkpoint.",),
         )
 
     def availability(self, inspection: RuntimeInspection) -> RuntimeBackendAvailability:

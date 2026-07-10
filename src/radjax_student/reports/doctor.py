@@ -19,8 +19,10 @@ from radjax_student.runtime import (
     RuntimeConfig,
     RuntimeInspection,
     RuntimeSelectionResult,
+    RuntimeStateSmokeReceipt,
     build_default_runtime_registry,
     inspect_runtime_environment,
+    run_runtime_state_smoke,
     run_single_device_cpu_smoke,
     select_runtime_backend,
 )
@@ -81,6 +83,7 @@ class StudentDoctorReport:
     runtime_backend_descriptors: tuple[RuntimeBackendDescriptor, ...]
     runtime_selection: RuntimeSelectionResult
     runtime_smoke: CpuRuntimeSmokeReceipt | None
+    runtime_state_smoke: RuntimeStateSmokeReceipt | None
     placement_intent: Mapping[str, Any]
     execution_boundary: Mapping[str, str]
     capability_state: Mapping[str, str]
@@ -122,6 +125,11 @@ class StudentDoctorReport:
             "runtime_smoke": (
                 None if self.runtime_smoke is None else self.runtime_smoke.to_dict()
             ),
+            "runtime_state_smoke": (
+                None
+                if self.runtime_state_smoke is None
+                else self.runtime_state_smoke.to_dict()
+            ),
             "placement_intent": dict(self.placement_intent),
             "execution_boundary": dict(self.execution_boundary),
             "capability_state": dict(self.capability_state),
@@ -131,7 +139,11 @@ class StudentDoctorReport:
         }
 
 
-def build_doctor_report(*, run_runtime_smoke: bool = False) -> StudentDoctorReport:
+def build_doctor_report(
+    *,
+    run_runtime_smoke: bool = False,
+    run_runtime_state_smoke_check: bool = False,
+) -> StudentDoctorReport:
     blockers: list[str] = []
     warnings: list[str] = []
     contract_importable = _contract_import_health()
@@ -198,6 +210,11 @@ def build_doctor_report(*, run_runtime_smoke: bool = False) -> StudentDoctorRepo
     runtime_smoke = run_single_device_cpu_smoke() if run_runtime_smoke else None
     if runtime_smoke is not None and not runtime_smoke.ok:
         blockers.append("runtime_smoke_failed")
+    runtime_state_smoke = (
+        run_runtime_state_smoke() if run_runtime_state_smoke_check else None
+    )
+    if runtime_state_smoke is not None and not runtime_state_smoke.ok:
+        blockers.append("runtime_state_smoke_failed")
     return StudentDoctorReport(
         status="pass" if not blockers else "fail",
         python_version=platform.python_version(),
@@ -219,6 +236,7 @@ def build_doctor_report(*, run_runtime_smoke: bool = False) -> StudentDoctorRepo
         runtime_backend_descriptors=runtime_backend_descriptors,
         runtime_selection=runtime_selection,
         runtime_smoke=runtime_smoke,
+        runtime_state_smoke=runtime_state_smoke,
         placement_intent=MappingProxyType(
             {
                 "supported_declarations": PLACEMENT_INTENTS,
@@ -256,6 +274,7 @@ def build_doctor_report(*, run_runtime_smoke: bool = False) -> StudentDoctorRepo
                 "runtime_cpu_smoke": "available_on_explicit_request",
                 "placement_intent": "available",
                 "execution_boundary": "available",
+                "runtime_state": "available_on_explicit_request",
                 "payload_loading": "unavailable",
                 "training": "unavailable",
                 "jax_execution": "unavailable",

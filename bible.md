@@ -328,3 +328,23 @@
 - Kept the claim narrow: P2.7 proves a runtime boundary for pure execution, not
   gradients, optimizer steps, training, model APIs, sharding, distributed work,
   acceleration, payload loading, evaluation, or compiled performance.
+
+## 2026-07-10 - P2.8 runtime state save/restore foundation
+
+- Made runtime persistence a small outer envelope rather than an early
+  checkpoint format. Runtime owns identity, policy, step, RNG lineage, and
+  historical environment/topology metadata; model and optimizer state require
+  separate future contracts with their own ownership and validation rules.
+- Used deterministic JSON, explicit schema versions, manifest sizes, and
+  SHA-256 digests so a saved artifact is portable and independently verifiable.
+  Restore refuses malformed, unsafe, incomplete, incompatible, or tampered
+  state instead of trying to recover questionable runtime intent.
+- Kept topology as historical metadata. It is useful for a resume comparison but
+  does not recreate devices, migrate placement, or prove the current machine is
+  execution-equivalent to the saved one.
+- Revalidated the complete immutable RNG tree on load. A root seed alone is not
+  sufficient evidence when derived stream lineage can be tampered with.
+- Kept the P2.8 claim narrow: save/restore proves runtime metadata continuity,
+  not model checkpoints, optimizer checkpoints, training resumption, distributed
+  restoration, executable persistence, topology migration, or reproducibility of
+  a complete run.

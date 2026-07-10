@@ -110,3 +110,9 @@ P2.7 gives runtime the only public pure-function execution surface. Callers
 provide stable function/request intent; backend adapters own compilation,
 dispatch, synchronization, and opaque handles. This keeps raw JAX JIT options,
 timing policy, and argument donation out of architecture and training code.
+
+P2.8 gives runtime the only persistence surface for runtime identity and policy.
+The envelope records metadata, not model or optimizer trees: future checkpoint
+contracts may extend it through explicit ownership boundaries, but they cannot
+turn this runtime artifact into architecture-specific state. Restore validates
+continuity and compatibility; it does not prove equivalent execution.

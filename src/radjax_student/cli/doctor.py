@@ -22,6 +22,11 @@ def configure_parser(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         help="run the explicit P2.4 JAX CPU execution smoke",
     )
+    parser.add_argument(
+        "--runtime-state-smoke",
+        action="store_true",
+        help="run the explicit P2.8 runtime-state save/restore smoke",
+    )
     parser.add_argument("--output", help="write the rendered report to this path")
     parser.add_argument(
         "--overwrite",
@@ -32,7 +37,10 @@ def configure_parser(subparsers: argparse._SubParsersAction) -> None:
 
 
 def run(args: argparse.Namespace, stdout: TextIO) -> int:
-    report = build_doctor_report(run_runtime_smoke=args.runtime_smoke)
+    report = build_doctor_report(
+        run_runtime_smoke=args.runtime_smoke,
+        run_runtime_state_smoke_check=args.runtime_state_smoke,
+    )
     rendered = (
         render_json(report) if args.format == "json" else render_doctor_human(report)
     )

@@ -92,6 +92,18 @@ Doctor also reports P2.7 execution-boundary availability without executing a
 function. Eager and JIT are invoked only through explicit runtime APIs; automatic
 resolves to eager with a warning, and normal doctor output remains non-executing.
 
+P2.8 state persistence remains equally explicit:
+
+```bash
+radjax-student doctor --runtime-state-smoke
+```
+
+This first runs the CPU runtime heartbeat, saves and restores only runtime-owned
+metadata in a temporary directory, verifies manifest digests and RNG lineage,
+checks runtime compatibility, and runs a continuation heartbeat. It never saves
+model, optimizer, architecture, executable, raw-device, or raw-JAX-key state.
+Normal doctor does not write or execute this smoke.
+
 An expected compatibility failure does not make doctor unhealthy. Missing or
 changed fixtures, failed Contract imports, pipeline failures, or serialization
 failures do. Runtime inspection fails doctor only when observation itself is

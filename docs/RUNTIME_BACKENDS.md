@@ -51,3 +51,11 @@ and diagnostic timing. Raw JAX compilation stays inside `JaxRuntimeBackend`;
 generic callers handle only requests, opaque preparations, output metadata, and
 structured results. See
 [P2.7 Compilation and Execution Boundary](P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md).
+
+P2.8 persists only a small runtime-owned envelope: identity, global step,
+runtime config, root-seed lineage, environment/topology summaries, precision,
+placement, and generic resume metadata. Canonical JSON plus a manifest, sizes,
+and SHA-256 digests make restore portable and verifiable. Model parameters,
+optimizer state, architecture data, compiled executables, raw devices, and raw
+JAX keys are deliberately excluded. See
+[P2.8 Runtime State Save/Restore](P2_8_RUNTIME_STATE_SAVE_RESTORE.md).

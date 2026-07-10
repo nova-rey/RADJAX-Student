@@ -80,6 +80,7 @@ def normalized_doctor_payload(report: StudentDoctorReport | None = None) -> dict
     payload.pop("runtime_backend_descriptors")
     payload.pop("runtime_selection")
     payload.pop("runtime_smoke")
+    payload.pop("runtime_state_smoke")
     payload.pop("placement_intent")
     payload.pop("execution_boundary")
     payload["capability_state"].pop("runtime_inspection")
@@ -88,6 +89,7 @@ def normalized_doctor_payload(report: StudentDoctorReport | None = None) -> dict
     payload["capability_state"].pop("runtime_cpu_smoke")
     payload["capability_state"].pop("placement_intent")
     payload["capability_state"].pop("execution_boundary")
+    payload["capability_state"].pop("runtime_state")
     payload["capability_state"].pop("jax_execution")
     payload["python_version"] = "<PYTHON_VERSION>"
     for package in ("student_package", "contract_package"):

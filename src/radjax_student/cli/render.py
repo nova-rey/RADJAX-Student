@@ -257,6 +257,28 @@ def render_doctor_human(report: StudentDoctorReport) -> str:
                 + _joined(tuple(item.code for item in smoke.warnings), empty="none"),
             ]
         )
+    lines.extend(["", "Runtime State Smoke"])
+    if report.runtime_state_smoke is None:
+        lines.append("  status: NOT RUN (pass --runtime-state-smoke to execute)")
+    else:
+        state_smoke = report.runtime_state_smoke
+        lines.extend(
+            [
+                "  status: " + state_smoke.status.upper(),
+                "  schema: " + state_smoke.schema_version,
+                "  global step: " + _display(state_smoke.global_step),
+                "  seed tree verified: " + _yes_no(state_smoke.seed_tree_verified),
+                "  config round-trip: " + _yes_no(state_smoke.config_round_trip),
+                "  digest verified: " + _yes_no(state_smoke.digest_verified),
+                "  topology restored as metadata: "
+                + _yes_no(state_smoke.topology_restored_as_metadata),
+                "  continuation execution: "
+                + _yes_no(state_smoke.continuation_execution_succeeds),
+                "  model state included: " + _yes_no(state_smoke.model_state_included),
+                "  optimizer state included: "
+                + _yes_no(state_smoke.optimizer_state_included),
+            ]
+        )
     lines.extend(["", "Available Profiles"])
     lines.extend(f"  - {item}" for item in report.available_profiles)
     lines.extend(["", "Current Capability State"])

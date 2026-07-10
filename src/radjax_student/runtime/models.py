@@ -67,6 +67,7 @@ RUNTIME_CAPABILITY_VOCABULARY: tuple[str, ...] = (
     "runtime.single_process_v1",
     "state.runtime_envelope_v1",
 )
+RUNTIME_STATE_SCHEMA_VERSION = "runtime_state.v1"
 
 
 @dataclass(frozen=True)
@@ -597,7 +598,7 @@ class ExecutionContext:
 
 @dataclass(frozen=True)
 class RuntimeState:
-    """Reserved serializable runtime envelope; persistence arrives in P2.8."""
+    """Portable, versioned runtime-only state with no executable or model data."""
 
     runtime_id: str
     global_step: int
@@ -607,6 +608,16 @@ class RuntimeState:
     precision_policy: PrecisionPolicy
     placement_policy: PlacementPolicy
     resume_metadata: Mapping[str, Any] = MappingProxyType({})
+    schema_version: str = RUNTIME_STATE_SCHEMA_VERSION
+    runtime_keys: RuntimeKeys | None = None
+    environment_summary: Mapping[str, Any] = MappingProxyType({})
+    backend_id: str | None = None
+    claims_not_made: tuple[str, ...] = (
+        "model_parameters_not_included",
+        "optimizer_state_not_included",
+        "compiled_executables_not_included",
+        "architecture_state_not_included",
+    )
 
     def __post_init__(self) -> None:
         _require_string("runtime_id", self.runtime_id)
@@ -618,8 +629,22 @@ class RuntimeState:
             raise TypeError("runtime_config must be RuntimeConfig")
         if self.global_step < 0 or self.root_seed < 0:
             raise ValueError("global_step and root_seed must be nonnegative")
+        if self.schema_version != RUNTIME_STATE_SCHEMA_VERSION:
+            raise ValueError("unsupported runtime state schema version")
         _require_choice("precision_policy", self.precision_policy, PRECISION_POLICIES)
         _require_choice("placement_policy", self.placement_policy, PLACEMENT_POLICIES)
+        runtime_keys = (
+            RuntimeKeys.from_seed(self.root_seed)
+            if self.runtime_keys is None
+            else self.runtime_keys
+        )
+        if not isinstance(runtime_keys, RuntimeKeys):
+            raise TypeError("runtime_keys must be RuntimeKeys when specified")
+        if runtime_keys.root_seed != self.root_seed:
+            raise ValueError("runtime key root seed must match state root_seed")
+        _require_optional_string("backend_id", self.backend_id)
+        if self.backend_id == "":
+            raise ValueError("backend_id must be nonempty when specified")
         object.__setattr__(
             self,
             "topology_summary",
@@ -630,27 +655,57 @@ class RuntimeState:
             "resume_metadata",
             freeze_json_mapping(self.resume_metadata),
         )
+        object.__setattr__(
+            self,
+            "environment_summary",
+            freeze_json_mapping(self.environment_summary),
+        )
+        object.__setattr__(
+            self,
+            "claims_not_made",
+            _unique_strings(self.claims_not_made, "claims_not_made"),
+        )
+        object.__setattr__(self, "runtime_keys", runtime_keys)
 
     def to_dict(self) -> dict[str, Any]:
         return {
+            "schema_version": self.schema_version,
             "runtime_id": self.runtime_id,
             "global_step": self.global_step,
             "root_seed": self.root_seed,
+            "runtime_keys": self.runtime_keys.to_dict(),
             "runtime_config": self.runtime_config.to_dict(),
+            "environment_summary": json_value(self.environment_summary),
             "topology_summary": json_value(self.topology_summary),
             "precision_policy": self.precision_policy,
             "placement_policy": self.placement_policy,
+            "backend_id": self.backend_id,
             "resume_metadata": json_value(self.resume_metadata),
+            "claims_not_made": list(self.claims_not_made),
         }
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> RuntimeState:
         return cls(
+            schema_version=str(
+                payload.get("schema_version", RUNTIME_STATE_SCHEMA_VERSION)
+            ),
             runtime_id=str(payload["runtime_id"]),
             global_step=_required_int(payload["global_step"], "global_step"),
             root_seed=_required_int(payload["root_seed"], "root_seed"),
+            runtime_keys=(
+                None
+                if payload.get("runtime_keys") is None
+                else RuntimeKeys.from_dict(
+                    _mapping(payload["runtime_keys"], "runtime_keys")
+                )
+            ),
             runtime_config=RuntimeConfig.from_dict(
                 _mapping(payload["runtime_config"], "runtime_config")
+            ),
+            environment_summary=_mapping(
+                payload.get("environment_summary", {}),
+                "environment_summary",
             ),
             topology_summary=_mapping(
                 payload.get("topology_summary", {}),
@@ -658,9 +713,22 @@ class RuntimeState:
             ),
             precision_policy=str(payload["precision_policy"]),
             placement_policy=str(payload["placement_policy"]),
+            backend_id=_optional_string(payload.get("backend_id")),
             resume_metadata=_mapping(
                 payload.get("resume_metadata", {}),
                 "resume_metadata",
+            ),
+            claims_not_made=_string_tuple(
+                payload.get(
+                    "claims_not_made",
+                    (
+                        "model_parameters_not_included",
+                        "optimizer_state_not_included",
+                        "compiled_executables_not_included",
+                        "architecture_state_not_included",
+                    ),
+                ),
+                "claims_not_made",
             ),
         )
 

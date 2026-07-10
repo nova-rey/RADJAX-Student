@@ -82,6 +82,13 @@ architecture-independent pure-function boundary for eager and explicit JIT
 execution, static/donation policy, synchronization, timing, and opaque reports.
 It does not introduce model functions, gradients, or training.
 
+[P2.8](docs/P2_8_RUNTIME_STATE_SAVE_RESTORE.md) persists a small versioned
+runtime-owned envelope with deterministic JSON, manifest hashes, restore
+validation, and explicit resume compatibility reporting. It stores no model,
+optimizer, architecture, executable, raw device, or raw JAX key state. The
+opt-in `radjax-student doctor --runtime-state-smoke` path uses a temporary
+directory; normal doctor remains non-writing and non-executing.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
@@ -107,3 +114,4 @@ codebase. The normative Phase 0 docs are:
 - [P2.5 RNG and reproducibility contract](docs/P2_5_RNG_AND_REPRODUCIBILITY.md)
 - [P2.6 placement and sharding intent](docs/P2_6_PLACEMENT_AND_SHARDING_INTENT.md)
 - [P2.7 compilation and execution boundary](docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md)
+- [P2.8 runtime state save/restore](docs/P2_8_RUNTIME_STATE_SAVE_RESTORE.md)

@@ -248,6 +248,9 @@ def test_doctor_reports_absent_jax_as_healthy_runtime_inspection(
     )
     assert payload["capability_state"]["placement_intent"] == "available"
     assert payload["capability_state"]["execution_boundary"] == "available"
+    assert (
+        payload["capability_state"]["runtime_state"] == "available_on_explicit_request"
+    )
     assert payload["placement_intent"]["concrete_resolution"] == [
         "single_device_cpu_smoke_only"
     ]
@@ -265,6 +268,7 @@ def test_doctor_reports_absent_jax_as_healthy_runtime_inspection(
     assert "Runtime Backend Selection" in human_stdout.getvalue()
     assert "Placement Intent" in human_stdout.getvalue()
     assert "Execution Boundary" in human_stdout.getvalue()
+    assert "Runtime State Smoke" in human_stdout.getvalue()
     assert "JAX available: no" in human_stdout.getvalue()
     assert "warnings: jax_not_installed" in human_stdout.getvalue()
     assert "JAX execution: unavailable" in human_stdout.getvalue()
