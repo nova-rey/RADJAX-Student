@@ -1,4 +1,5 @@
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 
@@ -434,6 +435,36 @@ def test_51_nondeterministic_json_detected():
 
     result = run_p3_8_observability_acceptance(
         dependencies(build_report_fn=unstable_report)
+    )
+    assert not result.run_reporting_valid and "p3_8_run_reporting_failed" in codes(
+        result
+    )
+
+
+def test_51a_merged_warning_and_blocker_reporting_detected():
+    base = _default_dependencies().build_report_fn
+
+    class MergedReport:
+        def __init__(self, report):
+            self._report = report
+
+        @property
+        def issues(self):
+            return SimpleNamespace(
+                warning_codes=self._report.issues.warning_codes
+                + self._report.issues.hook_blocker_codes,
+                hook_blocker_codes=(),
+            )
+
+        def __getattr__(self, name):
+            return getattr(self._report, name)
+
+    def merged_builder(**kwargs):
+        report = base(**kwargs)
+        return MergedReport(report) if kwargs["loop_result"].hook_blockers else report
+
+    result = run_p3_8_observability_acceptance(
+        dependencies(build_report_fn=merged_builder)
     )
     assert not result.run_reporting_valid and "p3_8_run_reporting_failed" in codes(
         result

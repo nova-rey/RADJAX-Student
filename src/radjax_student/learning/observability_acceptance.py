@@ -394,6 +394,15 @@ def _audit_run_reporting(deps: P38AuditDependencies) -> bool:
         update_scope="whole_student",
         objective_scope="final_output",
     )
+    blocked = deps.run_loop_fn(
+        hooks=(_FailingEventHook("loop_start"),), emit_run_report=True
+    )
+    blocked_report = deps.build_report_fn(
+        loop_result=blocked,
+        run_id="p3-8-acceptance",
+        update_scope="whole_student",
+        objective_scope="final_output",
+    )
     return (
         plain.report is None
         and report is not None
@@ -410,6 +419,10 @@ def _audit_run_reporting(deps: P38AuditDependencies) -> bool:
         and report.to_json() == report.to_json()
         and rebuilt.to_json() == rebuilt.to_json()
         and rebuilt.to_json() == rebuilt_again.to_json()
+        and tuple(blocked_report.issues.hook_blocker_codes)
+        == tuple(issue.code for issue in blocked.hook_blockers)
+        and not set(blocked_report.issues.warning_codes)
+        & set(blocked_report.issues.hook_blocker_codes)
         and report.to_dict()["metric_summary_source"] == "bounded_history"
         and "parameters" not in report.to_json()
         and plain.final_execution.parameters == reported.final_execution.parameters
