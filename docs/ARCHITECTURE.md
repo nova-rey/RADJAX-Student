@@ -122,3 +122,8 @@ do not branch by CPU/GPU/TPU: runtime selects one observed device, places one
 small value, executes the shared pure function, validates state continuity, and
 emits a target receipt. Absent hardware remains a runtime observation, not an
 architecture failure.
+
+P2.10 closes the runtime foundation with an acceptance gate rather than a new
+runtime abstraction. Its receipt records the validated seams and non-claims, so
+later generic training work can depend on the runtime boundary without treating
+architecture, model state, or performance as already proven.

@@ -18,7 +18,8 @@ P1.9  Inspect/doctor CLI                            COMPLETE
 P1.10 Production golden acceptance gate             COMPLETE
 
 PHASE 1 - CONTRACT LAYER                            COMPLETE
-PHASE 2 - STUDENT RUNTIME                           UNBLOCKED
+PHASE 2 - STUDENT RUNTIME                           COMPLETE
+PHASE 3 - GENERIC TRAINING CORE                     UNBLOCKED
 ```
 
 ## Phase 2 Status
@@ -36,7 +37,7 @@ P2.6  Placement and Sharding Intent             COMPLETE
 P2.7  Compilation and Execution Boundary        COMPLETE
 P2.8  Runtime State Save/Restore Foundation     COMPLETE
 P2.9  GPU/TPU Portability Smoke                 COMPLETE
-P2.10 Runtime Golden Acceptance Gate            UNBLOCKED; NEXT
+P2.10 Runtime Golden Acceptance Gate            COMPLETE
 ```
 
 1. Keep tiny debug student and artifact inspection green.

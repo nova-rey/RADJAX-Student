@@ -380,3 +380,21 @@
 - Kept this patch narrow. It changes neither target selection nor P2.7 execution
   or P2.8 state behavior; it makes the existing receipt truthful about the full
   runtime lifecycle.
+
+## 2026-07-10 - P2.10 runtime golden acceptance gate
+
+- Closed Phase 2 with a maintained acceptance gate instead of a new runtime
+  capability. The gate composes the completed public seams into one deterministic
+  CPU trace and makes the runtime foundation a dependency future training work
+  can rely on without re-litigating every earlier phase.
+- Committed a machine-readable receipt with the accepted P2.9.1 runtime commit,
+  schema versions, gate inventory, required CI commands, external accelerator
+  evidence policy, phase status, and explicit non-claims. It is intentionally
+  timestamp-free and contains no raw devices, arrays, executables, or model data.
+- Kept GPU and TPU evidence honest: optional target receipts remain external
+  artifacts when hardware is observed. Backend declarations and absent hardware
+  never become portability passes.
+- Preserved the boundary at Phase completion. Passing P2.10 proves runtime
+  infrastructure, not training, gradients, optimizer behavior, model
+  initialization, Tome payload loading, distributed execution, sharding,
+  performance, scale, or model quality.

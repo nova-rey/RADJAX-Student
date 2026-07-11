@@ -1,0 +1,52 @@
+{
+  "blockers": [],
+  "claims_not_made": [
+    "training_not_run",
+    "gradients_not_computed",
+    "optimizer_not_updated",
+    "model_initialization_not_tested",
+    "tome_payload_loading_not_tested",
+    "distributed_execution_not_tested",
+    "sharding_not_tested",
+    "scale_not_tested",
+    "performance_not_benchmarked",
+    "model_quality_not_claimed"
+  ],
+  "gate": "P2.10",
+  "gate_version": 1,
+  "optional_accelerator_receipts": {
+    "gpu": "external_when_available",
+    "tpu": "external_when_available"
+  },
+  "passing_gates": [
+    "runtime_contract_and_import_boundary",
+    "environment_and_backend_selection",
+    "cpu_heartbeat",
+    "rng_and_runtime_state",
+    "placement_and_execution_boundary",
+    "portability_and_teardown_receipt",
+    "doctor_integration"
+  ],
+  "phase_status": {
+    "phase_2_student_runtime": "complete",
+    "phase_3_generic_training_core": "unblocked"
+  },
+  "required_ci": [
+    "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q tests/acceptance/runtime",
+    "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q"
+  ],
+  "runtime": {
+    "accepted_runtime_commit": "e3aceebf97fab8a900a9c712e86c41ae5c72871b",
+    "schema_versions": {
+      "execution_capabilities": "execution_capabilities.v1",
+      "placement_capabilities": "placement_capabilities.v1",
+      "runtime_keys": "runtime_keys.v1",
+      "runtime_state": "runtime_state.v1"
+    }
+  },
+  "status": "pass",
+  "warnings": [
+    "GPU and TPU receipts remain external until those targets are observed.",
+    "Runtime timings are diagnostic and are not performance benchmarks."
+  ]
+}

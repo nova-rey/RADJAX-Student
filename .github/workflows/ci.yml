@@ -32,6 +32,9 @@ jobs:
       - name: Run Phase 1 acceptance gate
         run: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -q tests/acceptance
 
+      - name: Run Phase 2 runtime acceptance gate
+        run: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest -q tests/acceptance/runtime
+
       - name: Run tests
         run: python -m pytest
 

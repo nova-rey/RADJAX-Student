@@ -137,12 +137,11 @@ traceback. A compatibility exit of `1` is a valid product result.
 
 ## Current Boundary
 
-The commands provide metadata inspection, run-default inference, and
-compatibility reporting. They do not claim payload consumption, training,
-checkpoint execution, architecture implementation, runtime execution, JAX
-portability, Hugging Face export, or model quality. The legacy
-`cli/train_student.py` module remains a deprecated tiny smoke shim and is not the
-product `train` command.
+The commands provide metadata inspection, run-default inference, compatibility
+reporting, and explicit Phase 2 runtime smokes. They do not claim payload
+consumption, training, model checkpoint execution, architecture implementation,
+Hugging Face export, or model quality. The legacy `cli/train_student.py` module
+remains a deprecated tiny smoke shim and is not the product `train` command.
 
 P1.10 promotes the fixture, malformed variants, CLI behavior, reports, and
 non-claims into the maintained [Phase 1 acceptance gate](P1_10_PHASE1_ACCEPTANCE_GATE.md).

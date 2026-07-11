@@ -61,6 +61,9 @@ Start here for Phase 0 foundation context.
 - [P2.9 GPU/TPU Portability Smoke](P2_9_GPU_TPU_PORTABILITY_SMOKE.md): one
   selected-device CPU/GPU/TPU path with explicit receipts and honest target
   availability.
+- [P2.10 Runtime Acceptance Gate](P2_10_RUNTIME_ACCEPTANCE_GATE.md): maintained
+  Phase 2 closure gate, machine-readable receipt, external accelerator evidence,
+  and explicit runtime non-claims.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -104,5 +107,5 @@ Do not use it for installation instructions, CLI documentation, API reference,
 or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
-Runtime work has begun under the locked roadmap; P2.9 selected-device portability
-is complete, and the P2.10 runtime golden acceptance gate is next.
+Runtime is complete under the P2.10 runtime acceptance gate; Phase 3 Generic
+Training Core is unblocked.

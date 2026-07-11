@@ -96,10 +96,17 @@ target-specific receipt. `radjax-student doctor --portability-smoke gpu` and
 `--portability-smoke tpu` report unavailable hardware honestly without claiming
 an accelerator pass.
 
+[P2.10](docs/P2_10_RUNTIME_ACCEPTANCE_GATE.md) closes Phase 2 with a maintained
+runtime acceptance gate and the committed
+[`runtime_phase2_acceptance_receipt.json`](runtime_phase2_acceptance_receipt.json).
+The gate verifies the completed runtime pipeline without claiming training,
+model behavior, distributed execution, sharding, performance, or quality. Phase
+3 Generic Training Core is now unblocked.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
-working training, JAX portability, Hugging Face export, complete Tome
-compatibility, or model quality.
+working training, Hugging Face export, complete Tome compatibility, or model
+quality.
 
 Start with the [documentation index](docs/INDEX.md) before extending the
 codebase. The normative Phase 0 docs are:
@@ -123,3 +130,4 @@ codebase. The normative Phase 0 docs are:
 - [P2.7 compilation and execution boundary](docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md)
 - [P2.8 runtime state save/restore](docs/P2_8_RUNTIME_STATE_SAVE_RESTORE.md)
 - [P2.9 GPU/TPU portability smoke](docs/P2_9_GPU_TPU_PORTABILITY_SMOKE.md)
+- [P2.10 runtime acceptance gate](docs/P2_10_RUNTIME_ACCEPTANCE_GATE.md)

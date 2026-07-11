@@ -65,3 +65,9 @@ requests. It reuses selection, explicit placement, the P2.7 execution boundary,
 synchronization, P2.8 state round-trip, and one target receipt shape. Missing
 GPU/TPU hardware is an `unavailable` receipt, never a false pass. See
 [P2.9 GPU/TPU Portability Smoke](P2_9_GPU_TPU_PORTABILITY_SMOKE.md).
+
+P2.10 freezes these seams under one maintained acceptance gate. The gate runs a
+deterministic shared CPU trace through inspection, selection, heartbeat,
+execution, runtime-state validation, portability teardown receipt, and doctor
+integration; GPU/TPU receipts remain external evidence when those targets exist.
+See [P2.10 Runtime Acceptance Gate](P2_10_RUNTIME_ACCEPTANCE_GATE.md).
