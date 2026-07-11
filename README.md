@@ -141,6 +141,12 @@ separate architecture, learning, and optimizer components validated by a
 deterministic SHA-256 manifest. It is a layered persistence contract, not a
 distributed or production-scale checkpoint claim.
 
+P3.9.1 amends that checkpoint boundary with `learning_checkpoint.v2`: resumable
+batch-source state is stored in the integrity-covered `source.json` component,
+not in an unsigned sidecar. The synthetic smoke now proves that a resumed run
+matches uninterrupted execution across state, cadence, metrics, normalized hook
+events, and the required report surfaces.
+
 P3.7 adds the [Generic Learning Loop](docs/P3_7_GENERIC_LEARNING_LOOP.md), a
 bounded orchestrator that delegates every update to P3.5 and retains generic
 batch-source position for deterministic continuation.

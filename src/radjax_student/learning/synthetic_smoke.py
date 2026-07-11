@@ -19,6 +19,7 @@ from radjax_student.checkpoints import (
     load_learning_checkpoint,
     save_learning_checkpoint,
 )
+from radjax_student.checkpoints.learning import CHECKPOINT_FILES
 from radjax_student.learning.hooks import HookContext, HookResult
 from radjax_student.learning.models import LearningBatch, LearningState, MetricRecord
 from radjax_student.learning.run_report import SCHEMA as REPORT_SCHEMA
@@ -411,7 +412,14 @@ class _ObservationHook:
             (context.event_type, context.event_sequence, context.global_step)
         )
         return HookResult(
-            metrics=(MetricRecord("synthetic.hook_observed", 1.0, context.global_step),)
+            metrics=(
+                MetricRecord(
+                    "synthetic.hook_observed",
+                    1.0,
+                    context.global_step,
+                    metadata={"event": context.event_type},
+                ),
+            )
         )
 
 
@@ -501,7 +509,9 @@ def _execute(
     hook = _ObservationHook()
     result = deps.run_loop_fn(
         config=LearningLoopConfig(
-            steps, checkpoint_every_n_steps=3 if checkpoint else None
+            steps,
+            metric_history_limit=128,
+            checkpoint_every_n_steps=3 if checkpoint else None,
         ),
         architecture=architecture,
         architecture_config=config,
@@ -567,22 +577,23 @@ def _write_checkpoint(
         ArchitectureState("synthetic_linear.state"),
         evidence.optimizer_state,
         evidence.parameters,
+        evidence.source_state,
         {},
         {},
     )
     deps.checkpoint_write_fn(checkpoint, directory)
-    (directory / "source.json").write_text(
-        json.dumps(evidence.source_state, sort_keys=True, separators=(",", ":"))
-    )
     return "p3_9_checkpoint_" + str(evidence.learning_state.global_step)
 
 
-def _restore_checkpoint(directory: Path, deps: P39SmokeDependencies, scope: str):
+def _restore_checkpoint(
+    directory: Path,
+    deps: P39SmokeDependencies,
+    scope: str,
+    destination: dict[str, Any] | None = None,
+):
     checkpoint = deps.checkpoint_restore_fn(directory, runtime_reference="p3_9.runtime")
-    source_path = directory / "source.json"
-    if not source_path.is_file():
+    if checkpoint.source_state is None:
         raise ValueError("checkpoint source state is missing")
-    source_state = json.loads(source_path.read_text())
     architecture, config, optimizer, optimizer_config, _, _, _ = _initial(
         scope, checkpoint.learning_state.run_id
     )
@@ -594,8 +605,8 @@ def _restore_checkpoint(directory: Path, deps: P39SmokeDependencies, scope: str)
     if checkpoint.optimizer_state.optimizer_id != OPTIMIZER_ID:
         raise ValueError("checkpoint optimizer mismatch")
     source = SyntheticBatchSource((_batch(),) * 16, source_id="p3_9.synthetic")
-    source.load_state_dict(source_state)
-    return (
+    source.load_state_dict(checkpoint.source_state)
+    restored = (
         architecture,
         config,
         optimizer,
@@ -603,7 +614,85 @@ def _restore_checkpoint(directory: Path, deps: P39SmokeDependencies, scope: str)
         checkpoint.optimizer_state,
         checkpoint.learning_state,
         checkpoint.parameters,
-    ), source
+    )
+    if destination is not None:
+        destination.update(
+            {
+                "parameters": dict(checkpoint.parameters),
+                "optimizer_state": checkpoint.optimizer_state,
+                "learning_state": checkpoint.learning_state,
+                "source_position": source.position,
+            }
+        )
+    return restored, source
+
+
+def _checkpoint_receipt(execution: Any) -> str:
+    return f"p3_9_checkpoint_{execution.learning_state.global_step}"
+
+
+def _normalized_resume_events(events: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(event for event in events if event not in {"loop_start", "loop_end"})
+
+
+def _reports_are_equivalent(
+    uninterrupted: LearningRunReport, resumed: LearningRunReport
+) -> bool:
+    return (
+        uninterrupted.schema_version == resumed.schema_version
+        and uninterrupted.status.to_dict() == resumed.status.to_dict()
+        and uninterrupted.scopes.to_dict() == resumed.scopes.to_dict()
+        and [metric.to_dict() for metric in uninterrupted.metrics]
+        == [metric.to_dict() for metric in resumed.metrics]
+        and uninterrupted.checkpoints.to_dict() == resumed.checkpoints.to_dict()
+        and uninterrupted.to_json() == uninterrupted.to_json()
+        and resumed.to_json() == resumed.to_json()
+    )
+
+
+def _combined_resume_evidence(
+    first: _RunEvidence, second: _RunEvidence, deps: P39SmokeDependencies
+) -> _RunEvidence:
+    first_metrics = tuple(
+        metric
+        for metric in first.result.metrics
+        if not (
+            metric.name == "synthetic.hook_observed"
+            and metric.metadata.get("event") == "loop_end"
+        )
+    )
+    second_metrics = tuple(
+        metric
+        for metric in second.result.metrics
+        if not (
+            metric.name == "synthetic.hook_observed"
+            and metric.metadata.get("event") == "loop_start"
+        )
+    )
+    combined = replace(
+        second.result,
+        steps_completed=first.result.steps_completed + second.result.steps_completed,
+        batches_consumed=first.result.batches_consumed + second.result.batches_consumed,
+        metrics=first_metrics + second_metrics,
+        checkpoints=first.result.checkpoints + second.result.checkpoints,
+        hook_events=first.result.hook_events + second.result.hook_events,
+    )
+    report = deps.build_report_fn(
+        loop_result=combined,
+        run_id=second.learning_state.run_id,
+        update_scope=second.learning_state.active_update_scope.kind,
+        objective_scope="final_output",
+    )
+    result = replace(combined, report=report)
+    summary = replace(
+        second.summary,
+        steps_completed=result.steps_completed,
+        checkpoint_count=len(result.checkpoints),
+        initial_loss=first.summary.initial_loss,
+        loss_ratio=second.summary.final_loss / first.summary.initial_loss,
+        report_schema_version=report.schema_version,
+    )
+    return replace(second, summary=summary, result=result)
 
 
 def _issue(code: str, section: str, check: str, expected: Any, actual: Any):
@@ -780,63 +869,93 @@ def run_p3_9_synthetic_learning_smoke(
         temp_dir = Path(deps.temporary_directory_factory())
         try:
             uninterrupted = _execute(
-                mode="resume", scope="whole_student", steps=12, deps=deps
+                mode="resume",
+                scope="whole_student",
+                steps=12,
+                deps=deps,
+                checkpoint=_checkpoint_receipt,
             )
-            first = _execute(mode="resume", scope="whole_student", steps=6, deps=deps)
-            _write_checkpoint(first, temp_dir, deps)
-            restored_state, restored_source = _restore_checkpoint(
-                temp_dir, deps, "whole_student"
-            )
-            second = _execute(
+            first = _execute(
                 mode="resume",
                 scope="whole_student",
                 steps=6,
                 deps=deps,
-                source=restored_source,
-                state=restored_state,
+                checkpoint=_checkpoint_receipt,
             )
-            resume = replace(
-                second.summary,
-                steps_completed=first.summary.steps_completed
-                + second.summary.steps_completed,
-                checkpoint_count=1,
-            )
-            values["checkpoint_restore_valid"] = (
-                second.parameters == uninterrupted.parameters
-                and second.optimizer_state.backend_state
-                == uninterrupted.optimizer_state.backend_state
-                and second.learning_state == uninterrupted.learning_state
-                and restored_source.state_dict()["position"] == 12
-            )
-            if not values["checkpoint_restore_valid"]:
-                blockers.append(
-                    _issue(
-                        "p3_9_resume_mismatch",
-                        "checkpoint_resume",
-                        "restored_continuation",
-                        uninterrupted.parameters,
-                        second.parameters,
-                    )
-                )
-            corrupt = temp_dir / "architecture.json"
-            corrupt.write_text("{}")
+            _write_checkpoint(first, temp_dir, deps)
             try:
-                _restore_checkpoint(temp_dir, deps, "whole_student")
-            except ValueError:
-                corruption_rejected = True
-            else:
-                corruption_rejected = False
-            if not corruption_rejected:
+                restored_state, restored_source = _restore_checkpoint(
+                    temp_dir, deps, "whole_student"
+                )
+            except ValueError as exc:
                 values["checkpoint_restore_valid"] = False
                 blockers.append(
                     _issue(
-                        "p3_9_checkpoint_corruption_not_detected",
-                        "checkpoint",
-                        "corrupt_hash",
-                        "ValueError",
-                        "accepted",
+                        "p3_9_checkpoint_restore_failed",
+                        "checkpoint_resume",
+                        "valid checkpoint-owned source state",
+                        "present and accepted",
+                        str(exc),
                     )
                 )
+            else:
+                second = _execute(
+                    mode="resume",
+                    scope="whole_student",
+                    steps=6,
+                    deps=deps,
+                    source=restored_source,
+                    state=restored_state,
+                    checkpoint=_checkpoint_receipt,
+                )
+                resume_evidence = _combined_resume_evidence(first, second, deps)
+                resume = resume_evidence.summary
+                values["checkpoint_restore_valid"] = (
+                    resume_evidence.parameters == uninterrupted.parameters
+                    and resume_evidence.optimizer_state.backend_state
+                    == uninterrupted.optimizer_state.backend_state
+                    and resume_evidence.learning_state == uninterrupted.learning_state
+                    and resume_evidence.source_state == uninterrupted.source_state
+                    and resume_evidence.result.stop_reason
+                    == uninterrupted.result.stop_reason
+                    and resume_evidence.result.checkpoints
+                    == uninterrupted.result.checkpoints
+                    and resume_evidence.result.metrics == uninterrupted.result.metrics
+                    and _normalized_resume_events(resume_evidence.result.hook_events)
+                    == _normalized_resume_events(uninterrupted.result.hook_events)
+                    and _reports_are_equivalent(
+                        uninterrupted.result.report, resume_evidence.result.report
+                    )
+                )
+                if not values["checkpoint_restore_valid"]:
+                    blockers.append(
+                        _issue(
+                            "p3_9_resume_mismatch",
+                            "checkpoint_resume",
+                            "all documented resume surfaces",
+                            uninterrupted.result.report.to_dict(),
+                            resume_evidence.result.report.to_dict(),
+                        )
+                    )
+                corrupted_component = temp_dir / CHECKPOINT_FILES[-2]
+                corrupted_component.write_text("{}")
+                try:
+                    _restore_checkpoint(temp_dir, deps, "whole_student")
+                except ValueError:
+                    corruption_rejected = True
+                else:
+                    corruption_rejected = False
+                if not corruption_rejected:
+                    values["checkpoint_restore_valid"] = False
+                    blockers.append(
+                        _issue(
+                            "p3_9_checkpoint_corruption_not_detected",
+                            "checkpoint",
+                            "source_component_hash",
+                            "ValueError",
+                            "accepted",
+                        )
+                    )
         finally:
             shutil.rmtree(temp_dir, ignore_errors=True)
 

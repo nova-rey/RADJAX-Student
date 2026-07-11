@@ -7,6 +7,7 @@ from tempfile import TemporaryDirectory
 
 import pytest
 
+from radjax_student.checkpoints.learning import CHECKPOINT_FILES
 from radjax_student.learning import LearningIssue
 from radjax_student.learning.synthetic_smoke import (
     ARCHITECTURE_ID,
@@ -346,19 +347,27 @@ def test_46_optimizer_mismatch_rejected():
 def test_47_missing_source_state_rejected():
     with TemporaryDirectory() as raw:
         checkpoint_evidence(Path(raw))
-        (Path(raw) / "source.json").unlink()
+        (Path(raw) / CHECKPOINT_FILES[-2]).unlink()
         with pytest.raises(ValueError):
             _restore_checkpoint(Path(raw), _default_dependencies(), "whole_student")
 
 
 def test_48_failed_restore_preserves_destination():
-    source = _initial("whole_student", "unchanged")[-1]
+    destination = {
+        "parameters": _initial("whole_student", "unchanged")[-1],
+        "optimizer_state": "unchanged",
+        "learning_state": "unchanged",
+        "source_position": 0,
+    }
+    snapshot = dict(destination)
     with TemporaryDirectory() as raw:
         checkpoint_evidence(Path(raw))
-        (Path(raw) / "source.json").unlink()
+        (Path(raw) / CHECKPOINT_FILES[-2]).unlink()
         with pytest.raises(ValueError):
-            _restore_checkpoint(Path(raw), _default_dependencies(), "whole_student")
-    assert source == {"trunk.weight": 0.0, "head.bias": 0.0}
+            _restore_checkpoint(
+                Path(raw), _default_dependencies(), "whole_student", destination
+            )
+    assert destination == snapshot
 
 
 def test_49_required_metrics_present():
@@ -617,3 +626,168 @@ def test_76_replay_metric_tamper_fails_receipt():
     )
     assert not result.deterministic_replay_valid
     assert "p3_9_replay_mismatch" in codes(result)
+
+
+def test_77_smoke_checkpoint_stores_checkpoint_owned_source_state():
+    with TemporaryDirectory() as raw:
+        evidence = checkpoint_evidence(Path(raw))
+        restored, source = _restore_checkpoint(
+            Path(raw), _default_dependencies(), "whole_student"
+        )
+    assert restored[6] == evidence.parameters
+    assert source.position == evidence.source_state["position"]
+
+
+def test_78_smoke_has_no_ad_hoc_source_sidecar_logic():
+    source = (
+        Path(__file__).parents[1] / "src/radjax_student/learning/synthetic_smoke.py"
+    )
+    assert "source.json" not in source.read_text()
+
+
+def test_79_source_corruption_fails_through_checkpoint_loader():
+    with TemporaryDirectory() as raw:
+        checkpoint_evidence(Path(raw))
+        (Path(raw) / CHECKPOINT_FILES[-2]).write_text("{}")
+        with pytest.raises(ValueError, match="component hash"):
+            _restore_checkpoint(Path(raw), _default_dependencies(), "whole_student")
+
+
+def test_80_missing_source_component_fails_through_checkpoint_loader():
+    with TemporaryDirectory() as raw:
+        checkpoint_evidence(Path(raw))
+        (Path(raw) / CHECKPOINT_FILES[-2]).unlink()
+        with pytest.raises(ValueError, match="component missing"):
+            _restore_checkpoint(Path(raw), _default_dependencies(), "whole_student")
+
+
+def test_81_absent_source_state_is_rejected_before_continuation():
+    def without_source(path, **kwargs):
+        checkpoint = _default_dependencies().checkpoint_restore_fn(path, **kwargs)
+        return replace(checkpoint, source_state=None)
+
+    result = run_p3_9_synthetic_learning_smoke(
+        replace(_default_dependencies(), checkpoint_restore_fn=without_source)
+    )
+    assert result.status == "fail"
+    assert not result.checkpoint_restore_valid
+    assert "p3_9_checkpoint_restore_failed" in codes(result)
+
+
+def test_82_resume_source_position_matches_uninterrupted():
+    assert receipt().checkpoint_restore_valid
+
+
+def test_83_resume_stop_reason_and_cadence_match_uninterrupted():
+    assert receipt().resume.stop_reason == "max_steps"
+    assert receipt().resume.checkpoint_count == 4
+
+
+def test_84_resume_metrics_hooks_and_reports_match_uninterrupted():
+    assert receipt().checkpoint_restore_valid
+
+
+def test_85_source_state_tamper_fails_full_smoke():
+    def altered_source(path, **kwargs):
+        checkpoint = _default_dependencies().checkpoint_restore_fn(path, **kwargs)
+        return replace(
+            checkpoint,
+            source_state={**checkpoint.source_state, "position": 0},
+        )
+
+    result = run_p3_9_synthetic_learning_smoke(
+        replace(_default_dependencies(), checkpoint_restore_fn=altered_source)
+    )
+    assert result.status == "fail"
+    assert not result.checkpoint_restore_valid
+    assert "p3_9_resume_mismatch" in codes(result)
+
+
+def test_86_checkpoint_cadence_tamper_fails_full_smoke():
+    base = _default_dependencies().run_loop_fn
+    calls = 0
+
+    def altered_cadence(**kwargs):
+        nonlocal calls
+        calls += 1
+        result = base(**kwargs)
+        if calls == 6:
+            return replace(result, checkpoints=("altered",))
+        return result
+
+    result = run_p3_9_synthetic_learning_smoke(
+        replace(_default_dependencies(), run_loop_fn=altered_cadence)
+    )
+    assert result.status == "fail"
+    assert not result.checkpoint_restore_valid
+    assert "p3_9_resume_mismatch" in codes(result)
+
+
+def test_87_resumed_metric_tamper_fails_full_smoke():
+    base = _default_dependencies().run_loop_fn
+    calls = 0
+
+    def altered_metric(**kwargs):
+        nonlocal calls
+        calls += 1
+        result = base(**kwargs)
+        if calls != 6:
+            return result
+        metrics = list(result.metrics)
+        loss_index = next(
+            index for index, metric in enumerate(metrics) if metric.name == "loss"
+        )
+        metrics[loss_index] = replace(metrics[loss_index], value=99.0)
+        return replace(result, metrics=tuple(metrics))
+
+    result = run_p3_9_synthetic_learning_smoke(
+        replace(_default_dependencies(), run_loop_fn=altered_metric)
+    )
+    assert result.status == "fail"
+    assert not result.checkpoint_restore_valid
+    assert "p3_9_resume_mismatch" in codes(result)
+
+
+def test_88_resumed_hook_event_tamper_fails_full_smoke():
+    base = _default_dependencies().run_loop_fn
+    calls = 0
+
+    def altered_hook_event(**kwargs):
+        nonlocal calls
+        calls += 1
+        result = base(**kwargs)
+        if calls == 6:
+            return replace(
+                result,
+                hook_events=tuple(
+                    event for event in result.hook_events if event != "checkpoint"
+                ),
+            )
+        return result
+
+    result = run_p3_9_synthetic_learning_smoke(
+        replace(_default_dependencies(), run_loop_fn=altered_hook_event)
+    )
+    assert result.status == "fail"
+    assert not result.checkpoint_restore_valid
+    assert "p3_9_resume_mismatch" in codes(result)
+
+
+def test_89_resumed_report_summary_tamper_fails_full_smoke():
+    base = _default_dependencies().build_report_fn
+    calls = 0
+
+    def altered_report(**kwargs):
+        nonlocal calls
+        calls += 1
+        report = base(**kwargs)
+        if calls == 7:
+            return replace(report, status=replace(report.status, global_step=999))
+        return report
+
+    result = run_p3_9_synthetic_learning_smoke(
+        replace(_default_dependencies(), build_report_fn=altered_report)
+    )
+    assert result.status == "fail"
+    assert not result.checkpoint_restore_valid
+    assert "p3_9_resume_mismatch" in codes(result)

@@ -4,22 +4,32 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 from radjax_student.architecture import ArchitectureState
 from radjax_student.learning import LearningState
 from radjax_student.optimizers import OptimizerState
 
-CHECKPOINT_SCHEMA_VERSION = "learning_checkpoint.v1"
+CHECKPOINT_SCHEMA_VERSION = "learning_checkpoint.v2"
 CHECKPOINT_FILES = (
     "architecture.json",
     "learning.json",
     "optimizer.json",
+    "source.json",
     "manifest.json",
 )
+_COMPONENT_FILES = CHECKPOINT_FILES[:-1]
+_OWNERSHIP = {
+    "architecture.json": "architecture",
+    "learning.json": "learning",
+    "optimizer.json": "optimizer",
+    "source.json": "batch_source",
+}
 
 
 @dataclass(frozen=True)
@@ -29,6 +39,7 @@ class LearningCheckpoint:
     architecture_state: ArchitectureState | None
     optimizer_state: OptimizerState
     parameters: Mapping[str, float]
+    source_state: Mapping[str, Any] | None
     manifest: Mapping[str, Any]
     integrity: Mapping[str, str]
     schema_version: str = CHECKPOINT_SCHEMA_VERSION
@@ -50,6 +61,9 @@ class LearningCheckpoint:
             for path, value in self.parameters.items()
         ):
             raise TypeError("checkpoint parameters must be scalar path mappings")
+        object.__setattr__(
+            self, "source_state", _freeze_source_state(self.source_state)
+        )
 
     def payloads(self) -> dict[str, dict[str, Any]]:
         return {
@@ -67,6 +81,7 @@ class LearningCheckpoint:
                 "optimizer_state": self.optimizer_state.to_dict(),
                 "backend_state": self.optimizer_state.backend_state,
             },
+            "source.json": {"source_state": _json_value(self.source_state)},
         }
 
 
@@ -82,11 +97,7 @@ def save_learning_checkpoint(
         "files": list(payloads),
         "hashes": hashes,
         "sizes": sizes,
-        "ownership": {
-            "architecture.json": "architecture",
-            "learning.json": "learning",
-            "optimizer.json": "optimizer",
-        },
+        "ownership": _OWNERSHIP,
     }
     integrity = {"algorithm": "sha256", "manifest_digest": _digest(_encode(manifest))}
     for name, payload in payloads.items():
@@ -100,6 +111,7 @@ def save_learning_checkpoint(
         checkpoint.architecture_state,
         checkpoint.optimizer_state,
         checkpoint.parameters,
+        checkpoint.source_state,
         manifest,
         integrity,
     )
@@ -114,14 +126,20 @@ def load_learning_checkpoint(
         raise ValueError("checkpoint manifest hash mismatch")
     if manifest_payload.get("schema_version") != CHECKPOINT_SCHEMA_VERSION:
         raise ValueError("checkpoint schema mismatch")
+    _validate_manifest(manifest_payload)
     for name, expected in manifest_payload["hashes"].items():
+        if not (directory / name).is_file():
+            raise ValueError("checkpoint component missing")
         data = (directory / name).read_bytes()
         if _digest(data) != expected:
             raise ValueError("checkpoint component hash mismatch")
-    architecture, learning, optimizer = (
-        _read(directory / name)
-        for name in ("architecture.json", "learning.json", "optimizer.json")
+        if len(data) != manifest_payload["sizes"][name]:
+            raise ValueError("checkpoint component size mismatch")
+    architecture, learning, optimizer, source = (
+        _read(directory / name) for name in _COMPONENT_FILES
     )
+    if not isinstance(source, Mapping) or set(source) != {"source_state"}:
+        raise ValueError("checkpoint source component is invalid")
     if (
         runtime_reference is not None
         and learning["runtime_reference"] != runtime_reference
@@ -139,6 +157,7 @@ def load_learning_checkpoint(
         else ArchitectureState.from_dict(architecture_state),
         state,
         architecture["parameters"],
+        source["source_state"],
         manifest_payload,
         integrity,
     )
@@ -168,4 +187,57 @@ def _digest(value: bytes) -> str:
 
 
 def _read(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text())
+    try:
+        return json.loads(path.read_text())
+    except (FileNotFoundError, json.JSONDecodeError) as exc:
+        raise ValueError("checkpoint component is unreadable") from exc
+
+
+def _validate_manifest(manifest: Mapping[str, Any]) -> None:
+    if tuple(manifest.get("files", ())) != _COMPONENT_FILES:
+        raise ValueError("checkpoint manifest components are invalid")
+    if set(manifest.get("hashes", ())) != set(_COMPONENT_FILES):
+        raise ValueError("checkpoint manifest hashes are invalid")
+    if set(manifest.get("sizes", ())) != set(_COMPONENT_FILES):
+        raise ValueError("checkpoint manifest sizes are invalid")
+    if manifest.get("ownership") != _OWNERSHIP:
+        raise ValueError("checkpoint manifest ownership is invalid")
+
+
+def _freeze_source_state(value: Mapping[str, Any] | None) -> Mapping[str, Any] | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise TypeError("checkpoint source state must be a mapping or None")
+    return _freeze_mapping(value)
+
+
+def _freeze_mapping(value: Mapping[str, Any]) -> Mapping[str, Any]:
+    normalized: dict[str, Any] = {}
+    for key, item in value.items():
+        if not isinstance(key, str):
+            raise TypeError("checkpoint source state keys must be strings")
+        normalized[key] = _freeze_value(item)
+    return MappingProxyType(dict(sorted(normalized.items())))
+
+
+def _freeze_value(value: Any) -> Any:
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ValueError("checkpoint source state values must be finite")
+        return value
+    if isinstance(value, Mapping):
+        return _freeze_mapping(value)
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_value(item) for item in value)
+    raise TypeError("checkpoint source state must be JSON-safe")
+
+
+def _json_value(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {key: _json_value(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_json_value(item) for item in value]
+    return value

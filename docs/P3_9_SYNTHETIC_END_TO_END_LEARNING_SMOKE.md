@@ -18,17 +18,23 @@ report. Retained metrics include loss, gradient norm, parameter norm, learning
 rate, and changed/unchanged parameter counts. A deterministic observer-only
 hook records lifecycle observations and emits `synthetic.hook_observed`.
 
-Checkpoint evidence uses the P3.6 layered checkpoint for learning state,
-architecture parameters, and optimizer state, plus a validated source-state
-sidecar owned by this smoke's batch-source continuation boundary. Restore first
-validates every component and then constructs a new source, so a failed restore
-does not mutate a destination. Resume matches an uninterrupted 12-step run
-exactly. Hash corruption, incompatible architecture/optimizer identity, and a
-missing source state are rejected.
+Checkpoint evidence uses the P3.6 v2 layered checkpoint for learning state,
+architecture parameters, optimizer state, and checkpoint-owned batch-source
+state. There is no unsigned sidecar. `source.json` is integrity-covered by the
+same manifest hashes, sizes, ownership map, and manifest digest as the other
+components. Restore validates every component, then loads source state into a
+candidate source before exposing a destination, so a failed restore leaves the
+caller-owned parameters, optimizer state, learning state, and source position
+unchanged. Source corruption and a missing source component are rejected by the
+P3.6 loader.
 
-The runner repeats the whole-student configuration from an identical initial
-state and compares parameters, optimizer state, retained metrics, hook events,
-checkpoint receipts, reports, and deterministic receipt serialization. The
+The runner compares an uninterrupted 12-step execution with a 6-step execution,
+checkpoint, restore, and 6-step continuation. It compares final parameters,
+optimizer and learning state, global step, source position, stop reason,
+checkpoint cadence, retained metrics, normalized hook events, and report status,
+scope, metric summaries, and checkpoint receipts. Segment-only `loop_start` and
+`loop_end` events are normalized away; `step_end`, `checkpoint`, and `failure`
+events are retained. The
 top-level schema is `radjax.p3_9_synthetic_learning_smoke.v1`; it emits the
 stable `p3_9_*` blockers defined by the implementation without tracebacks.
 

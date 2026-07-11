@@ -578,3 +578,9 @@
 - Replay evidence must perturb the replay run itself. A missing metric validates
   metric presence; it does not prove the deterministic replay comparison notices
   divergent retained observations.
+
+## 2026-07-11 - P3.9.1 checkpoint-owned batch-source state
+
+- Deterministic continuation requires the batch source to be checkpoint-owned.
+  P3.9 rejected unsigned sidecars and extended the layered checkpoint contract so
+  source position is hashed, owned, validated, and restored atomically.
