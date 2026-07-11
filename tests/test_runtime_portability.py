@@ -22,6 +22,7 @@ from radjax_student.runtime import (
     RuntimeInspection,
     run_portability_smoke,
 )
+from radjax_student.runtime import portability as portability_module
 
 
 @pytest.mark.parametrize("platform", ("cpu", "gpu", "tpu"))
@@ -44,6 +45,10 @@ def test_shared_portability_path_passes_on_fake_targets(platform: str) -> None:
     assert receipt.runtime_state_round_trip
     assert backend.placed_device_ids == [f"{platform}:0"]
     assert backend.closed_context_ids == [f"fake-{platform}-context"]
+    assert receipt.timings.teardown_seconds >= 0.0
+    assert receipt.to_dict()["timings"]["teardown_seconds"] == pytest.approx(
+        receipt.timings.teardown_seconds
+    )
     assert json.dumps(receipt.to_dict(), sort_keys=True) == json.dumps(
         receipt.to_dict(), sort_keys=True
     )
@@ -132,6 +137,103 @@ def test_portability_smoke_does_not_use_network(
     assert receipt.ok
 
 
+@pytest.mark.parametrize(
+    ("failure_phase", "expected_blocker"),
+    (
+        ("placement", "runtime_portability_placement_failed"),
+        ("execution", "runtime_portability_execution_failed"),
+        ("synchronization", "runtime_portability_execution_failed"),
+    ),
+)
+def test_teardown_runs_after_runtime_phase_failure(
+    failure_phase: str,
+    expected_blocker: str,
+) -> None:
+    backend = _FakePortabilityBackend(
+        platforms=("cpu",),
+        failure_phase=failure_phase,
+    )
+
+    receipt = _run_fake(backend)
+
+    assert receipt.status == "fail"
+    assert receipt.blockers[0].code == expected_blocker
+    assert backend.closed_context_ids == ["fake-cpu-context"]
+    assert receipt.timings.teardown_seconds >= 0.0
+
+
+def test_teardown_runs_after_runtime_state_round_trip_failure(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    backend = _FakePortabilityBackend(platforms=("cpu",))
+
+    def fail_state(*args, **kwargs):
+        del args, kwargs
+        raise RuntimeError("controlled state failure")
+
+    monkeypatch.setattr(portability_module, "save_runtime_state", fail_state)
+    receipt = _run_fake(backend)
+
+    assert receipt.status == "fail"
+    assert receipt.blockers[0].code == "runtime_portability_state_round_trip_failed"
+    assert backend.closed_context_ids == ["fake-cpu-context"]
+    assert receipt.timings.teardown_seconds >= 0.0
+
+
+def test_teardown_failure_converts_passing_receipt_to_failure() -> None:
+    backend = _FakePortabilityBackend(platforms=("cpu",), failure_phase="teardown")
+
+    receipt = _run_fake(backend)
+
+    assert receipt.status == "fail"
+    assert [item.code for item in receipt.blockers] == [
+        "runtime_portability_teardown_failed"
+    ]
+    assert receipt.result_validated
+    assert receipt.synchronized
+    assert receipt.runtime_state_round_trip
+    assert receipt.blockers[0].details["exception_type"] == "RuntimeError"
+    assert receipt.timings.teardown_seconds >= 0.0
+
+
+def test_receipt_uses_teardown_timing_captured_after_cleanup(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    ticks = iter(range(20))
+    monkeypatch.setattr(portability_module.time, "perf_counter", lambda: next(ticks))
+
+    receipt = _run_fake(_FakePortabilityBackend(platforms=("cpu",)))
+
+    assert receipt.status == "pass"
+    assert receipt.timings.teardown_seconds == 1.0
+    assert receipt.to_dict()["timings"]["teardown_seconds"] == 1.0
+
+
+def test_teardown_failure_preserves_the_original_failure() -> None:
+    backend = _FakePortabilityBackend(
+        platforms=("cpu",),
+        failure_phase="execution_and_teardown",
+    )
+
+    receipt = _run_fake(backend)
+
+    assert receipt.status == "fail"
+    assert [item.code for item in receipt.blockers] == [
+        "runtime_portability_execution_failed",
+        "runtime_portability_teardown_failed",
+    ]
+    assert backend.closed_context_ids == ["fake-cpu-context"]
+
+
+def _run_fake(backend: _FakePortabilityBackend):
+    return run_portability_smoke(
+        "cpu",
+        config=_config("cpu"),
+        inspection=_inspection("cpu"),
+        registry=_registry(backend),
+    )
+
+
 def test_portability_runtime_source_has_no_forbidden_dependencies() -> None:
     source = (
         Path(__file__).resolve().parents[1]
@@ -211,6 +313,7 @@ class _FakePortabilityBackend:
     placed_device_ids: list[str] = field(default_factory=list)
     closed_context_ids: list[str] = field(default_factory=list)
     compilation_modes: list[str] = field(default_factory=list)
+    failure_phase: str | None = None
 
     @property
     def supported_platforms(self) -> tuple[str, ...]:
@@ -257,11 +360,15 @@ class _FakePortabilityBackend:
         context: ExecutionContext,
         value: tuple[float, ...],
     ) -> _FakeVector:
+        if self.failure_phase == "placement":
+            raise RuntimeError("controlled placement failure")
         self.placed_device_ids.append(str(context.metadata["selected_device_id"]))
         return _FakeVector(value)
 
     def close_portability_context(self, context: ExecutionContext) -> None:
         self.closed_context_ids.append(context.runtime_id)
+        if self.failure_phase in {"teardown", "execution_and_teardown"}:
+            raise RuntimeError("controlled teardown failure")
 
     def prepare_runtime_execution(
         self,
@@ -283,11 +390,15 @@ class _FakePortabilityBackend:
 
     def dispatch_runtime_execution(self, context, handle, args, kwargs):
         del context
+        if self.failure_phase in {"execution", "execution_and_teardown"}:
+            raise RuntimeError("controlled execution failure")
         function, _ = handle
         return function(*args, **kwargs)
 
     def synchronize_runtime_execution(self, context, output):
         del context
+        if self.failure_phase == "synchronization":
+            raise RuntimeError("controlled synchronization failure")
         return output
 
 

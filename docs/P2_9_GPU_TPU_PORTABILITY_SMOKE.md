@@ -60,3 +60,17 @@ runtime-state round-trip, and target-specific receipts. It does not claim
 multi-device or distributed execution, sharding, training, gradients, optimizer
 state, throughput, kernel quality, scale, model quality, or cross-target numeric
 identity beyond the tiny smoke tolerance.
+
+## P2.9.1 Receipt Integrity Correction
+
+P2.9.1 corrects the portability receipt lifecycle without changing target
+selection or execution behavior. A provisional phase outcome is now recorded
+first, teardown always runs when context initialization succeeded, and the final
+receipt is constructed only after teardown timing and any teardown exception have
+been captured.
+
+Consequently, `timings.teardown_seconds` describes the completed cleanup attempt.
+A teardown failure adds `runtime_portability_teardown_failed` with safe exception
+type detail and converts an otherwise passing receipt to `fail`. When an earlier
+phase already failed, its blocker remains first and the teardown blocker is
+appended; cleanup no longer hides or replaces the original cause.

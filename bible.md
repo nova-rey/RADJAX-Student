@@ -367,3 +367,16 @@
 - Kept the claim narrow: P2.9 proves one small single-device runtime path on
   observed targets, not multi-device scale, sharding, distributed execution,
   training, gradients, optimizer behavior, or model quality.
+
+## 2026-07-10 - P2.9.1 portability teardown receipt integrity
+
+- Corrected the receipt lifecycle so cleanup is no longer outside the reported
+  lifecycle. The portability outcome is now provisional until teardown completes,
+  its duration is recorded, and only then is the immutable receipt constructed.
+- Made cleanup failure explicit and compositional. A teardown exception turns an
+  otherwise passing receipt into a failure with
+  `runtime_portability_teardown_failed`; when a phase already failed, the
+  original blocker remains and teardown failure is appended deterministically.
+- Kept this patch narrow. It changes neither target selection nor P2.7 execution
+  or P2.8 state behavior; it makes the existing receipt truthful about the full
+  runtime lifecycle.

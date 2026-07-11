@@ -54,6 +54,7 @@ PORTABILITY_BLOCKER_CODES: tuple[str, ...] = (
     "runtime_portability_synchronization_failed",
     "runtime_portability_result_mismatch",
     "runtime_portability_state_round_trip_failed",
+    "runtime_portability_teardown_failed",
     "runtime_portability_internal_error",
 )
 PORTABILITY_WARNING_CODES: tuple[str, ...] = (
@@ -314,8 +315,11 @@ def _run_selected_portability_smoke(
 ) -> RuntimePortabilityReceipt:
     timings = _MutableTimings()
     context: ExecutionContext | None = None
-    placed: Any = None
     backend_id = getattr(backend, "backend_id", None)
+    blockers: list[RuntimeIssue] = []
+    result_validated = False
+    synchronized = False
+    runtime_state_round_trip = False
     try:
         start = time.perf_counter()
         try:
@@ -323,201 +327,168 @@ def _run_selected_portability_smoke(
                 config, inspection, selection, device
             )
         except Exception as exc:
-            return _failure_receipt(
-                platform=platform,
-                mode=mode,
-                config=config,
-                inspection=inspection,
-                backend_id=backend_id,
-                device_id=device.device_id,
-                timings=timings.freeze(),
-                blocker=_exception_issue(
+            blockers.append(
+                _exception_issue(
                     "runtime_portability_initialization_failed",
                     "selected target context could not be initialized",
                     exc,
-                ),
+                )
             )
         finally:
             timings.initialization_seconds = time.perf_counter() - start
 
-        start = time.perf_counter()
-        try:
-            placed = backend.place_portability_value(context, (1.0, 2.0, 3.0))
-        except Exception as exc:
-            return _failure_receipt(
-                platform=platform,
-                mode=mode,
-                config=config,
-                inspection=inspection,
-                backend_id=backend_id,
-                device_id=device.device_id,
-                timings=timings.freeze(),
-                blocker=_exception_issue(
-                    "runtime_portability_placement_failed",
-                    "selected target value could not be explicitly placed",
-                    exc,
-                ),
-            )
-        finally:
-            timings.placement_seconds = time.perf_counter() - start
+        if not blockers:
+            start = time.perf_counter()
+            try:
+                placed = backend.place_portability_value(context, (1.0, 2.0, 3.0))
+            except Exception as exc:
+                blockers.append(
+                    _exception_issue(
+                        "runtime_portability_placement_failed",
+                        "selected target value could not be explicitly placed",
+                        exc,
+                    )
+                )
+            finally:
+                timings.placement_seconds = time.perf_counter() - start
 
-        request = ExecutionRequest(
-            request_id=f"portability-{platform}-{mode}-v1",
-            function_id="runtime.portability_scale_add",
-            mode=mode,
-            compilation_options=CompilationOptions(
+        if not blockers:
+            request = ExecutionRequest(
+                request_id=f"portability-{platform}-{mode}-v1",
+                function_id="runtime.portability_scale_add",
                 mode=mode,
-                synchronize_results=True,
-            ),
-        )
-        output, execution = execute_function(
-            context=context,
-            function=_scale_add,
-            request=request,
-            backend=backend,
-            args=(placed,),
-        )
-        timings.execution_seconds = (
-            execution.preparation_seconds
-            + execution.compilation_seconds
-            + execution.dispatch_seconds
-        )
-        timings.synchronization_seconds = execution.synchronization_seconds
-        if not execution.ok:
-            return _failure_receipt(
-                platform=platform,
-                mode=mode,
-                config=config,
-                inspection=inspection,
-                backend_id=backend_id,
-                device_id=device.device_id,
-                timings=timings.freeze(),
-                blocker=_issue(
-                    "runtime_portability_execution_failed",
-                    "shared P2.7 execution boundary failed on selected target",
-                    execution_blockers=tuple(item.code for item in execution.blockers),
+                compilation_options=CompilationOptions(
+                    mode=mode,
+                    synchronize_results=True,
                 ),
             )
-        if not execution.synchronized:
-            return _failure_receipt(
-                platform=platform,
-                mode=mode,
-                config=config,
-                inspection=inspection,
-                backend_id=backend_id,
-                device_id=device.device_id,
-                timings=timings.freeze(),
-                blocker=_issue(
-                    "runtime_portability_synchronization_failed",
-                    "shared P2.7 execution did not confirm target completion",
-                ),
+            output, execution = execute_function(
+                context=context,
+                function=_scale_add,
+                request=request,
+                backend=backend,
+                args=(placed,),
             )
-        if not _expected_output(output):
-            return _failure_receipt(
-                platform=platform,
-                mode=mode,
-                config=config,
-                inspection=inspection,
-                backend_id=backend_id,
-                device_id=device.device_id,
-                timings=timings.freeze(),
-                blocker=_issue(
-                    "runtime_portability_result_mismatch",
-                    "selected target result differs from the shared smoke expectation",
-                ),
+            timings.execution_seconds = (
+                execution.preparation_seconds
+                + execution.compilation_seconds
+                + execution.dispatch_seconds
             )
+            timings.synchronization_seconds = execution.synchronization_seconds
+            if not execution.ok:
+                blockers.append(
+                    _issue(
+                        "runtime_portability_execution_failed",
+                        "shared P2.7 execution boundary failed on selected target",
+                        execution_blockers=tuple(
+                            item.code for item in execution.blockers
+                        ),
+                    )
+                )
+            elif not execution.synchronized:
+                blockers.append(
+                    _issue(
+                        "runtime_portability_synchronization_failed",
+                        "shared P2.7 execution did not confirm target completion",
+                    )
+                )
+            else:
+                synchronized = True
+                if _expected_output(output):
+                    result_validated = True
+                else:
+                    blockers.append(
+                        _issue(
+                            "runtime_portability_result_mismatch",
+                            "selected target result differs from the shared smoke "
+                            "expectation",
+                        )
+                    )
 
-        start = time.perf_counter()
-        try:
-            state = runtime_state_from_context(
-                context,
-                config,
-                global_step=3,
-                resume_metadata={"portability_platform": platform},
-            )
-            with tempfile.TemporaryDirectory(prefix="radjax-portability-") as temp_dir:
-                state_dir = Path(temp_dir) / "runtime_state"
-                save_runtime_state(state, state_dir)
-                loaded, receipt = load_runtime_state_with_receipt(state_dir)
-            compatibility = evaluate_runtime_resume_compatibility(
-                loaded,
-                config,
-                inspection,
-            )
-            state_round_trip = (
-                loaded == state and bool(receipt.verified_files) and compatibility.ok
-            )
-        except Exception as exc:
-            return _failure_receipt(
-                platform=platform,
-                mode=mode,
-                config=config,
-                inspection=inspection,
-                backend_id=backend_id,
-                device_id=device.device_id,
-                timings=timings.freeze(),
-                blocker=_exception_issue(
-                    "runtime_portability_state_round_trip_failed",
-                    "runtime metadata save/restore failed on selected target",
-                    exc,
-                ),
-            )
-        finally:
-            timings.state_seconds = time.perf_counter() - start
-        if not state_round_trip:
-            return _failure_receipt(
-                platform=platform,
-                mode=mode,
-                config=config,
-                inspection=inspection,
-                backend_id=backend_id,
-                device_id=device.device_id,
-                timings=timings.freeze(),
-                blocker=_issue(
-                    "runtime_portability_state_round_trip_failed",
-                    "runtime metadata round trip did not preserve compatible state",
-                ),
-            )
-        return RuntimePortabilityReceipt(
-            status="pass",
-            platform=platform,
-            backend_id=backend_id,
-            device_id=device.device_id,
-            process_count=inspection.environment.process_count,
-            local_device_count=inspection.device_inventory.local_device_count,
-            global_device_count=inspection.device_inventory.global_device_count,
-            execution_mode=mode,
-            placement_policy=config.placement_policy,
-            result_validated=True,
-            synchronized=True,
-            runtime_state_round_trip=True,
-            timings=timings.freeze(),
-            warnings=_warnings(platform, mode, inspection),
-            metadata=_receipt_metadata(inspection, device),
-        )
+        if not blockers:
+            start = time.perf_counter()
+            try:
+                state = runtime_state_from_context(
+                    context,
+                    config,
+                    global_step=3,
+                    resume_metadata={"portability_platform": platform},
+                )
+                with tempfile.TemporaryDirectory(
+                    prefix="radjax-portability-"
+                ) as temp_dir:
+                    state_dir = Path(temp_dir) / "runtime_state"
+                    save_runtime_state(state, state_dir)
+                    loaded, receipt = load_runtime_state_with_receipt(state_dir)
+                compatibility = evaluate_runtime_resume_compatibility(
+                    loaded,
+                    config,
+                    inspection,
+                )
+                runtime_state_round_trip = (
+                    loaded == state
+                    and bool(receipt.verified_files)
+                    and compatibility.ok
+                )
+                if not runtime_state_round_trip:
+                    blockers.append(
+                        _issue(
+                            "runtime_portability_state_round_trip_failed",
+                            "runtime metadata round trip did not preserve compatible "
+                            "state",
+                        )
+                    )
+            except Exception as exc:
+                blockers.append(
+                    _exception_issue(
+                        "runtime_portability_state_round_trip_failed",
+                        "runtime metadata save/restore failed on selected target",
+                        exc,
+                    )
+                )
+            finally:
+                timings.state_seconds = time.perf_counter() - start
     except Exception as exc:
-        return _failure_receipt(
-            platform=platform,
-            mode=mode,
-            config=config,
-            inspection=inspection,
-            backend_id=backend_id,
-            device_id=device.device_id,
-            timings=timings.freeze(),
-            blocker=_exception_issue(
+        blockers.append(
+            _exception_issue(
                 "runtime_portability_internal_error",
                 "portability smoke failed outside a recognized phase",
                 exc,
-            ),
+            )
         )
     finally:
         if context is not None:
             start = time.perf_counter()
             try:
                 backend.close_portability_context(context)
-            except Exception:
-                pass
-            timings.teardown_seconds = time.perf_counter() - start
+            except Exception as exc:
+                blockers.append(
+                    _exception_issue(
+                        "runtime_portability_teardown_failed",
+                        "selected target context could not be torn down cleanly",
+                        exc,
+                    )
+                )
+            finally:
+                timings.teardown_seconds = time.perf_counter() - start
+    return RuntimePortabilityReceipt(
+        status="fail" if blockers else "pass",
+        platform=platform,
+        backend_id=backend_id,
+        device_id=device.device_id,
+        process_count=inspection.environment.process_count,
+        local_device_count=inspection.device_inventory.local_device_count,
+        global_device_count=inspection.device_inventory.global_device_count,
+        execution_mode=mode,
+        placement_policy=config.placement_policy,
+        result_validated=result_validated,
+        synchronized=synchronized,
+        runtime_state_round_trip=runtime_state_round_trip,
+        timings=timings.freeze(),
+        blockers=tuple(blockers),
+        warnings=_warnings(platform, mode, inspection),
+        metadata=_receipt_metadata(inspection, device),
+    )
 
 
 def _unavailable_receipt(

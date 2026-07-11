@@ -68,6 +68,7 @@ RuntimeErrorCode: TypeAlias = Literal[
     "runtime_portability_synchronization_failed",
     "runtime_portability_result_mismatch",
     "runtime_portability_state_round_trip_failed",
+    "runtime_portability_teardown_failed",
     "runtime_portability_internal_error",
     "runtime_internal_error",
 ]
@@ -133,6 +134,7 @@ RUNTIME_ERROR_CODES: tuple[str, ...] = (
     "runtime_portability_synchronization_failed",
     "runtime_portability_result_mismatch",
     "runtime_portability_state_round_trip_failed",
+    "runtime_portability_teardown_failed",
     "runtime_portability_internal_error",
     "runtime_internal_error",
 )
