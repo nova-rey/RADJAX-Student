@@ -630,3 +630,9 @@
   Runtime owns JIT compilation, device policy, dispatch, and synchronization;
   architecture state is explicit pytree input/output and is not mutated at the
   batch boundary.
+
+## 2026-07-11 - P3.5.3 runtime state carrier correction
+
+- The runtime-only architecture state returned by the JAX forward path is
+  carried separately from the JSON architecture-state contract, so pytree
+  state can flow through value-and-grad without weakening serialized metadata.

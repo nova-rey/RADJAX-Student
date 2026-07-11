@@ -642,6 +642,7 @@ class ForwardResult:
     surface_values: Mapping[str, Any] = field(
         default_factory=lambda: MappingProxyType({}), repr=False, compare=False
     )
+    updated_runtime_state: Any = field(default=None, repr=False, compare=False)
     output_metadata: Mapping[str, Any] = field(
         default_factory=lambda: MappingProxyType({})
     )
