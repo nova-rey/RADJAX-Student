@@ -609,3 +609,10 @@
   gate must independently reject real optimizer, scoped single-step, loop, and
   checkpoint regressions, with all 78 named P3.10 scenarios exercising those
   public seams rather than merely restating the default receipt.
+
+## 2026-07-11 - P3.5.1 architecture integrity audit
+
+- The P3.5.1 audit records ownership, classifications, public exports, import
+  edges, and current blockers before cleanup. The first blockers are the root
+  students export, competing registry, raw-parameter objective path,
+  discarded forward result, and public smoke/debug exports.
