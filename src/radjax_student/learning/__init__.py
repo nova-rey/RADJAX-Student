@@ -36,7 +36,11 @@ from radjax_student.learning.objectives import (
     WeightingPolicy,
     canonical_objective_json,
 )
-from radjax_student.learning.protocols import ObjectiveEvaluator, UpdateScopeResolver
+from radjax_student.learning.protocols import (
+    ForwardObjectiveEvaluator,
+    ObjectiveEvaluator,
+    UpdateScopeResolver,
+)
 from radjax_student.learning.run_report import (
     LearningRunReport,
     RunCheckpointSummary,
@@ -103,6 +107,7 @@ __all__ = [
     "ObjectiveRequest",
     "ObjectiveResult",
     "ObjectiveEvaluator",
+    "ForwardObjectiveEvaluator",
     "ObjectiveScope",
     "ObjectiveScopeKind",
     "P38ObservabilityAcceptanceReceipt",

@@ -28,7 +28,10 @@ from radjax_student.architecture.models import (
     ResolvedObjectiveSelection,
     canonical_architecture_json,
 )
-from radjax_student.architecture.protocols import ArchitecturePlugin
+from radjax_student.architecture.protocols import (
+    ArchitecturePlugin,
+    JaxArchitectureExecution,
+)
 from radjax_student.architecture.registry import ArchitectureRegistry
 
 __all__ = [
@@ -47,6 +50,7 @@ __all__ = [
     "ArchitectureIssue",
     "ArchitectureMetadata",
     "ArchitecturePlugin",
+    "JaxArchitectureExecution",
     "ArchitectureRegistry",
     "ArchitectureState",
     "BatchValidationResult",

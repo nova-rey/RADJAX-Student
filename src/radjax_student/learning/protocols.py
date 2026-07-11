@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from collections.abc import Mapping
+from typing import Any, Protocol, runtime_checkable
 
 from radjax_student.learning.models import LearningBatch, LossResult
 from radjax_student.learning.scopes import (
@@ -16,6 +17,19 @@ class ObjectiveEvaluator(Protocol):
     """A future architecture or behavior adapter that evaluates a generic objective."""
 
     def evaluate(self, batch: LearningBatch, scope: ObjectiveScope) -> LossResult: ...
+
+
+@runtime_checkable
+class ForwardObjectiveEvaluator(Protocol):
+    """Objective seam that consumes architecture output, never parameters."""
+
+    def evaluate(
+        self,
+        surface: Any,
+        targets: Mapping[str, Any],
+        weights: Mapping[str, Any],
+        objective_config: Any,
+    ) -> tuple[Any, Mapping[str, Any]]: ...
 
 
 class UpdateScopeResolver(Protocol):

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
 from radjax_student.architecture.models import (
     ArchitectureCapabilityProfile,
@@ -58,3 +58,19 @@ class ArchitecturePlugin(Protocol):
     def resolve_objective_scope(
         self, scope: ObjectiveScope, metadata: ArchitectureMetadata
     ) -> ResolvedObjectiveSelection: ...
+
+
+@runtime_checkable
+class JaxArchitectureExecution(Protocol):
+    """Optional JAX capability of an existing architecture plugin identity."""
+
+    def apply_jax(
+        self,
+        parameters: Any,
+        architecture_state: Any,
+        batch: Any,
+        *,
+        objective_scope: ObjectiveScope,
+        training: bool,
+        rng_key: Any | None,
+    ) -> ForwardResult: ...

@@ -616,3 +616,10 @@
   edges, and current blockers before cleanup. The first blockers are the root
   students export, competing registry, raw-parameter objective path,
   discarded forward result, and public smoke/debug exports.
+
+## 2026-07-11 - P3.5.2 forward-result objective contract
+
+- Architecture plugins now own named runtime forward surfaces, while the new
+  forward-objective protocol receives only a selected surface, targets,
+  weights, and objective configuration. The scalar path remains transitional
+  until the JAX path is accepted and the legacy adapter is quarantined.

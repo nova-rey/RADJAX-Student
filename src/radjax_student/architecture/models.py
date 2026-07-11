@@ -17,7 +17,10 @@ from radjax_student.architecture._json import (
     optional_string,
     strings,
 )
-from radjax_student.architecture.errors import ArchitectureIssue
+from radjax_student.architecture.errors import (
+    ArchitectureContractError,
+    ArchitectureIssue,
+)
 from radjax_student.learning import LearningBatch, ObjectiveScope
 
 ARCHITECTURE_CONFIG_SCHEMA_VERSION = "architecture_config.v1"
@@ -636,6 +639,9 @@ class ForwardResult:
     intermediate_surfaces: tuple[str, ...] = ()
     updated_architecture_state: ArchitectureState | None = None
     outputs: Any = field(default=None, repr=False, compare=False)
+    surface_values: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({}), repr=False, compare=False
+    )
     output_metadata: Mapping[str, Any] = field(
         default_factory=lambda: MappingProxyType({})
     )
@@ -657,6 +663,13 @@ class ForwardResult:
             "intermediate_surfaces",
             strings(self.intermediate_surfaces, "intermediate_surfaces", sort=True),
         )
+        if not isinstance(self.surface_values, Mapping):
+            raise TypeError("surface_values must be a mapping")
+        if any(not isinstance(key, str) or not key for key in self.surface_values):
+            raise TypeError("surface_values keys must be nonempty strings")
+        object.__setattr__(
+            self, "surface_values", MappingProxyType(dict(self.surface_values))
+        )
         object.__setattr__(
             self, "output_metadata", freeze_mapping(self.output_metadata)
         )
@@ -665,10 +678,29 @@ class ForwardResult:
             self, "claims_not_made", strings(self.claims_not_made, "claims_not_made")
         )
 
+    def surface(self, surface_id: str) -> Any:
+        """Return one architecture-owned objective surface value."""
+        if surface_id == "final_output":
+            if self.outputs is None:
+                raise ArchitectureContractError(
+                    "architecture_forward_failed",
+                    "final_output surface is unavailable",
+                )
+            return self.outputs
+        try:
+            return self.surface_values[surface_id]
+        except KeyError as exc:
+            raise ArchitectureContractError(
+                "architecture_forward_failed",
+                "requested forward surface is unavailable",
+                details={"surface_id": surface_id},
+            ) from exc
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "outputs_present": self.outputs is not None,
             "intermediate_surfaces": list(self.intermediate_surfaces),
+            "surface_ids": sorted(self.surface_values),
             "updated_architecture_state": None
             if self.updated_architecture_state is None
             else self.updated_architecture_state.to_dict(),
