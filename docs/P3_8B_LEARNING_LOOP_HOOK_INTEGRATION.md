@@ -16,3 +16,6 @@ P3.8C run reporting and the P3.8 completion gate remain pending.
 `failure` is emitted for learning-step and checkpoint exceptions; `checkpoint`
 is emitted only after successful creation. Checkpoint and loop-end hook blockers
 are respected, while core failure reasons remain distinct from hook failures.
+
+Failure hooks preserve their own blockers and warnings without replacing the
+core learning-step or checkpoint failure reason.

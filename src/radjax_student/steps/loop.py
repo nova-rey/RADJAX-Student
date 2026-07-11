@@ -70,6 +70,7 @@ class LearningLoopResult:
     checkpoints: tuple[str, ...] = ()
     warnings: tuple[LearningIssue, ...] = ()
     hook_events: tuple[str, ...] = ()
+    hook_blockers: tuple[LearningIssue, ...] = ()
 
 
 def run_learning_loop(
@@ -185,7 +186,7 @@ def run_learning_loop(
                 objective=objective,
             )
         except Exception as exc:
-            observe(
+            failure_dispatch = observe(
                 "failure",
                 learning_state,
                 {
@@ -203,6 +204,7 @@ def run_learning_loop(
                 tuple(checkpoints),
                 tuple(warnings),
                 tuple(events),
+                failure_dispatch.blockers,
             )
         learning_state, optimizer_state, parameters = (
             execution.learning_state,
@@ -231,7 +233,7 @@ def run_learning_loop(
             try:
                 checkpoints.append(checkpoint(execution))
             except Exception as exc:
-                observe(
+                failure_dispatch = observe(
                     "failure",
                     learning_state,
                     {
@@ -249,6 +251,7 @@ def run_learning_loop(
                     tuple(checkpoints),
                     tuple(warnings),
                     tuple(events),
+                    failure_dispatch.blockers,
                 )
             checkpoint_dispatch = observe("checkpoint", learning_state)
             if checkpoint_dispatch.blockers:

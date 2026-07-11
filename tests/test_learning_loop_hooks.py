@@ -1,67 +1,270 @@
-from tests.test_learning_loop import (
-    test_loop_stops_exactly_and_restores_source_position,
+from dataclasses import dataclass, field
+
+from radjax_student.architecture import ArchitectureConfig
+from radjax_student.architecture.testing import FakeArchitecturePlugin
+from radjax_student.learning import (
+    HookPolicy,
+    HookResult,
+    LearningBatch,
+    LearningIssue,
+    LearningState,
+    MetricRecord,
 )
+from radjax_student.optimizers import (
+    OptimizerConfig,
+    OptimizerInitRequest,
+    SgdOptimizer,
+)
+from radjax_student.steps import (
+    LearningLoopConfig,
+    SyntheticBatchSource,
+    run_learning_loop,
+)
+from tests.test_single_learning_step import LinearObjective
+
+DEFAULT_POLICY = HookPolicy()
 
 
-def test_01_normal_lifecycle():
-    test_loop_stops_exactly_and_restores_source_position()
+@dataclass
+class RecordingHook:
+    hook_id: str = "record"
+    priority: int = 0
+    supported_events: tuple[str, ...] = (
+        "loop_start",
+        "batch_received",
+        "step_start",
+        "step_end",
+        "checkpoint",
+        "loop_end",
+        "failure",
+    )
+    events: list = field(default_factory=list)
+    result: HookResult = HookResult()
+
+    def on_event(self, c):
+        self.events.append(
+            (c.event_type, c.event_sequence, c.global_step, dict(c.metadata))
+        )
+        return self.result
 
 
-def test_02_checkpoint_success():
-    assert True
+@dataclass(frozen=True)
+class FailingHook:
+    hook_id: str = "fail"
+    priority: int = 0
+    supported_events: tuple[str, ...] = (
+        "loop_start",
+        "batch_received",
+        "step_start",
+        "step_end",
+        "checkpoint",
+        "loop_end",
+        "failure",
+    )
+    event_to_fail: str = "loop_start"
+
+    def on_event(self, c):
+        return (
+            HookResult("fail", warnings=(LearningIssue("hook_test", "failed"),))
+            if c.event_type == self.event_to_fail
+            else HookResult()
+        )
 
 
-def test_03_source_exhaustion():
-    assert True
+def build(hooks=(), policy=DEFAULT_POLICY, checkpoint=None, steps=1):
+    arch = FakeArchitecturePlugin()
+    cat = arch.describe_parameters()
+    opt = SgdOptimizer()
+    cfg = OptimizerConfig(optimizer_id="sgd.v1", learning_rate=0.1)
+    state = opt.initialize_state(
+        OptimizerInitRequest(
+            cfg,
+            cat,
+            arch.resolve_update_scope(
+                LearningState(run_id="r").active_update_scope, cat
+            ),
+        )
+    ).optimizer_state
+    batch = LearningBatch(
+        batch_id="b",
+        inputs={"token_ids": {"rank": 2, "sequence_length": 1, "x": 1.0}},
+        targets={"target": {"y": 3.0}},
+    )
+    return run_learning_loop(
+        config=LearningLoopConfig(
+            max_steps=steps, checkpoint_every_n_steps=1 if checkpoint else None
+        ),
+        architecture=arch,
+        architecture_config=ArchitectureConfig(
+            architecture_id=arch.architecture_id, sequence_length=4
+        ),
+        optimizer=opt,
+        optimizer_config=cfg,
+        optimizer_state=state,
+        learning_state=LearningState(run_id="r"),
+        parameters={"head.weight": 0.0, "trunk.bias": 0.0, "trunk.weight": 0.0},
+        objective=LinearObjective(),
+        batch_source=SyntheticBatchSource((batch,) * 3),
+        checkpoint=checkpoint,
+        hooks=hooks,
+        hook_policy=policy,
+    )
 
 
-def test_04_step_failure_event_contract():
-    assert True
+def test_normal_max_steps_lifecycle_order():
+    h = RecordingHook()
+    assert build((h,), steps=1).hook_events == (
+        "loop_start",
+        "batch_received",
+        "step_start",
+        "step_end",
+        "loop_end",
+    )
 
 
-def test_05_checkpoint_failure_event_contract():
-    assert True
+def test_successful_checkpoint_event_order():
+    h = RecordingHook()
+    assert build((h,), checkpoint=lambda e: "c").hook_events[-2:] == (
+        "checkpoint",
+        "loop_end",
+    )
 
 
-def test_06_step_failure_no_step_end():
-    assert True
+def test_source_exhaustion_emits_loop_end():
+    h = RecordingHook()
+    assert build((h,), steps=4).hook_events[-1] == "loop_end"
 
 
-def test_07_checkpoint_failure_no_checkpoint():
-    assert True
+def test_learning_step_exception_emits_failure(monkeypatch):
+    monkeypatch.setattr(
+        "radjax_student.steps.loop.learning_step",
+        lambda **k: (_ for _ in ()).throw(RuntimeError()),
+    )
+    h = RecordingHook()
+    assert build((h,)).hook_events[-1] == "failure"
 
 
-def test_08_start_fail_fast():
-    assert True
+def test_learning_step_exception_does_not_emit_step_end(monkeypatch):
+    monkeypatch.setattr(
+        "radjax_student.steps.loop.learning_step",
+        lambda **k: (_ for _ in ()).throw(RuntimeError()),
+    )
+    assert "step_end" not in build().hook_events
 
 
-def test_09_step_start_fail_fast():
-    assert True
+def test_checkpoint_exception_emits_failure():
+    h = RecordingHook()
+    assert (
+        build(
+            (h,), checkpoint=lambda e: (_ for _ in ()).throw(RuntimeError())
+        ).hook_events[-1]
+        == "failure"
+    )
 
 
-def test_10_step_end_fail_fast():
-    assert True
+def test_checkpoint_exception_does_not_emit_checkpoint():
+    assert (
+        "checkpoint"
+        not in build(
+            checkpoint=lambda e: (_ for _ in ()).throw(RuntimeError())
+        ).hook_events
+    )
 
 
-def test_11_checkpoint_fail_fast():
-    assert True
+def test_failure_context_contains_stage_and_exception_type(monkeypatch):
+    monkeypatch.setattr(
+        "radjax_student.steps.loop.learning_step",
+        lambda **k: (_ for _ in ()).throw(RuntimeError()),
+    )
+    h = RecordingHook()
+    build((h,))
+    assert (
+        h.events[-1][3]["failure_stage"] == "learning_step"
+        and h.events[-1][3]["exception_type"] == "RuntimeError"
+    )
 
 
-def test_12_checkpoint_prevents_later_steps():
-    assert True
+def test_loop_start_fail_fast_consumes_no_batch():
+    assert build((FailingHook(),)).stop_reason == "hook_failure"
 
 
-def test_13_loop_end_fail_fast():
-    assert True
+def test_step_start_fail_fast_skips_learning_step():
+    assert build((FailingHook(event_to_fail="step_start"),)).steps_completed == 0
 
 
-def test_14_continue_policy():
-    assert True
+def test_step_end_fail_fast_stops():
+    assert build((FailingHook(event_to_fail="step_end"),)).stop_reason == "hook_failure"
 
 
-def test_15_disable_policy():
-    assert True
+def test_checkpoint_fail_fast_returns_hook_failure():
+    assert (
+        build(
+            (FailingHook(event_to_fail="checkpoint"),), checkpoint=lambda e: "c"
+        ).stop_reason
+        == "hook_failure"
+    )
 
 
-def test_16_failure_event_preserves_core_reason():
-    assert True
+def test_checkpoint_fail_fast_prevents_later_steps():
+    assert (
+        build(
+            (FailingHook(event_to_fail="checkpoint"),),
+            checkpoint=lambda e: "c",
+            steps=2,
+        ).steps_completed
+        == 1
+    )
+
+
+def test_loop_end_fail_fast_returns_hook_failure():
+    assert build((FailingHook(event_to_fail="loop_end"),)).stop_reason == "hook_failure"
+
+
+def test_warn_and_continue_completes_learning():
+    assert (
+        build(
+            (FailingHook(event_to_fail="step_start"),), HookPolicy("warn_and_continue")
+        ).status
+        == "pass"
+    )
+
+
+def test_warn_and_continue_preserves_warning():
+    assert build(
+        (FailingHook(event_to_fail="step_start"),), HookPolicy("warn_and_continue")
+    ).warnings
+
+
+def test_hook_metric_appears_in_loop_metrics():
+    h = RecordingHook(result=HookResult(metrics=(MetricRecord("hook.metric", 1, 0),)))
+    assert "hook.metric" in [m.name for m in build((h,)).metrics]
+
+
+def test_hook_warning_appears_in_loop_warnings():
+    h = RecordingHook(
+        result=HookResult("warning", warnings=(LearningIssue("hook.warning", "w"),))
+    )
+    assert "hook.warning" in [w.code for w in build((h,)).warnings]
+
+
+def test_learning_step_core_reason_survives_failure_hook_blocker(monkeypatch):
+    monkeypatch.setattr(
+        "radjax_student.steps.loop.learning_step",
+        lambda **k: (_ for _ in ()).throw(RuntimeError()),
+    )
+    r = build((FailingHook(event_to_fail="failure"),))
+    assert r.stop_reason == "learning_step_failure" and r.hook_blockers
+
+
+def test_checkpoint_core_reason_survives_failure_hook_blocker():
+    r = build(
+        (FailingHook(event_to_fail="failure"),),
+        checkpoint=lambda e: (_ for _ in ()).throw(RuntimeError()),
+    )
+    assert r.stop_reason == "checkpoint_failure" and r.hook_blockers
+
+
+def test_identical_runs_have_identical_event_order():
+    assert (
+        build((RecordingHook(),)).hook_events == build((RecordingHook(),)).hook_events
+    )

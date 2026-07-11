@@ -524,3 +524,6 @@
 - Terminal lifecycle hooks are part of loop control: a fail-fast checkpoint or
   loop-end hook must not be ignored, and failure hooks must not erase the core
   failure that triggered them.
+
+- Integration evidence must execute the real loop; named placeholder tests are
+  not acceptance evidence.
