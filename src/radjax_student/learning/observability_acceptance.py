@@ -275,6 +275,22 @@ def _audit_hooks(deps: P38AuditDependencies) -> bool:
         (_Hook("invalid", result=object()),), HookPolicy(), context
     )
     raised = deps.dispatch_hooks_fn((_RaisingHook(),), HookPolicy(), context)
+    detail = HookResult(
+        "fail",
+        warnings=(LearningIssue("explicit_hook_detail", "detail"),),
+        metadata={"origin": "acceptance"},
+    )
+    detailed_fast = deps.dispatch_hooks_fn(
+        (_Hook("detail", result=detail),), HookPolicy(), context
+    )
+    detailed_continue = deps.dispatch_hooks_fn(
+        (_Hook("detail", result=detail),), HookPolicy("warn_and_continue"), context
+    )
+    invalid_disabled = deps.dispatch_hooks_fn(
+        (_Hook("invalid-disable", result=object()),),
+        HookPolicy("disable_hook"),
+        context,
+    )
     return (
         immutable
         and [receipt.hook_id for receipt in ordered.receipts] == ["a", "z"]
@@ -290,6 +306,19 @@ def _audit_hooks(deps: P38AuditDependencies) -> bool:
         and invalid.receipts[0].metadata["returned_type"] == "object"
         and "learning_hook_failed" in [issue.code for issue in raised.blockers]
         and raised.receipts[0].metadata["exception_type"] == "RuntimeError"
+        and "explicit_hook_detail" in [issue.code for issue in detailed_fast.warnings]
+        and "explicit_hook_detail"
+        in [issue.code for issue in detailed_continue.warnings]
+        and detailed_fast.receipts[0].metadata["origin"] == "acceptance"
+        and detailed_fast.receipts[0].failure_code == "learning_hook_failed"
+        and {
+            "learning_hook_failed_continue",
+            "learning_hook_disabled",
+        }.issubset(issue.code for issue in disabled.warnings)
+        and {
+            "learning_hook_result_invalid",
+            "learning_hook_disabled",
+        }.issubset(issue.code for issue in invalid_disabled.warnings)
         and not set(HookContext.__dataclass_fields__) & _FORBIDDEN_SURFACES
     )
 
@@ -403,6 +432,35 @@ def _audit_run_reporting(deps: P38AuditDependencies) -> bool:
         update_scope="whole_student",
         objective_scope="final_output",
     )
+    receipts: list[str] = []
+    checkpointed = deps.run_loop_fn(
+        max_steps=2,
+        checkpoint=lambda execution: (
+            receipts.append(f"receipt-{len(receipts) + 1}") or receipts[-1]
+        ),
+    )
+    checkpoint_report = deps.build_report_fn(
+        loop_result=checkpointed,
+        run_id="p3-8-acceptance",
+        update_scope="whole_student",
+        objective_scope="final_output",
+    )
+    failed_report_input = deps.run_loop_fn()
+    failed_snapshot = _completed_state(failed_report_input)
+    try:
+        deps.build_report_fn(
+            loop_result=failed_report_input,
+            run_id="",
+            update_scope="whole_student",
+            objective_scope="final_output",
+        )
+    except ValueError:
+        report_failure_isolated = (
+            failed_report_input.report is None
+            and _completed_state(failed_report_input) == failed_snapshot
+        )
+    else:
+        report_failure_isolated = False
     return (
         plain.report is None
         and report is not None
@@ -419,6 +477,11 @@ def _audit_run_reporting(deps: P38AuditDependencies) -> bool:
         and report.to_json() == report.to_json()
         and rebuilt.to_json() == rebuilt.to_json()
         and rebuilt.to_json() == rebuilt_again.to_json()
+        and checkpointed.checkpoints == ("receipt-1", "receipt-2")
+        and checkpoint_report.checkpoints.receipts == ("receipt-1", "receipt-2")
+        and checkpoint_report.scopes.update_scope == "whole_student"
+        and checkpoint_report.scopes.objective_scope == "final_output"
+        and report_failure_isolated
         and tuple(blocked_report.issues.hook_blocker_codes)
         == tuple(issue.code for issue in blocked.hook_blockers)
         and not set(blocked_report.issues.warning_codes)
@@ -510,14 +573,9 @@ def _audit_observer_only_boundary(deps: P38AuditDependencies) -> bool:
     )
     return (
         not set(HookContext.__dataclass_fields__) & _FORBIDDEN_SURFACES
-        and plain.final_execution.parameters == reported.final_execution.parameters
-        and plain.final_execution.optimizer_state
-        == reported.final_execution.optimizer_state
-        and plain.final_execution.learning_state
-        == reported.final_execution.learning_state
-        and (plain.stop_reason, plain.steps_completed)
-        == (reported.stop_reason, reported.steps_completed)
+        and _completed_state(plain) == _completed_state(reported)
         and metadata == {"sentinel": "unchanged"}
+        and all(name not in reported.report.to_json() for name in _FORBIDDEN_JSON_NAMES)
     )
 
 
@@ -870,6 +928,21 @@ def _raise():
     raise RuntimeError("acceptance failure")
 
 
+def _completed_state(result) -> tuple[Any, ...]:
+    execution = result.final_execution
+    return (
+        result.status,
+        result.stop_reason,
+        result.steps_completed,
+        result.global_step,
+        result.batches_consumed,
+        result.checkpoints,
+        None if execution is None else dict(execution.parameters),
+        None if execution is None else execution.optimizer_state,
+        None if execution is None else execution.learning_state,
+    )
+
+
 def _receipt_flags(receipt: P38ObservabilityAcceptanceReceipt) -> dict[str, bool]:
     return {name: getattr(receipt, name) for name in _SECTION_CODES}
 
@@ -898,6 +971,17 @@ _FORBIDDEN_SURFACES = {
     "raw_batch",
     "update_scope",
     "objective_scope",
+}
+_FORBIDDEN_JSON_NAMES = {
+    "parameters",
+    "gradients",
+    "optimizer_state",
+    "architecture_state",
+    "runtime_state",
+    "runtime_handle",
+    "checkpoint_payload",
+    "raw_batch",
+    "traceback",
 }
 
 

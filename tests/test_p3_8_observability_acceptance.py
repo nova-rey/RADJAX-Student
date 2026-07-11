@@ -609,3 +609,352 @@ def test_67_acceptance_command_returns_nonzero_on_failed_receipt():
         metric_series_factory=lambda *args: (_ for _ in ()).throw(RuntimeError())
     )
     assert main((), failed) == 1
+
+
+def assert_gate_failure(receipt, flag, blocker):
+    assert (
+        receipt.status == "fail"
+        and not getattr(receipt, flag)
+        and blocker in codes(receipt)
+    )
+
+
+def test_explicit_hook_warning_preserved_by_real_audit():
+    assert _audit_hooks(_default_dependencies())
+
+
+def test_lost_explicit_hook_warning_fails_gate():
+    base = _default_dependencies().dispatch_hooks_fn
+
+    def dropped_warning(*args, **kwargs):
+        result = base(*args, **kwargs)
+        return replace(
+            result,
+            warnings=tuple(
+                issue
+                for issue in result.warnings
+                if issue.code != "explicit_hook_detail"
+            ),
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(
+            dependencies(dispatch_hooks_fn=dropped_warning)
+        ),
+        "hook_contract_valid",
+        "p3_8_hook_contract_failed",
+    )
+
+
+def test_disable_action_warning_preserved_by_real_audit():
+    assert _audit_hooks(_default_dependencies())
+
+
+def test_lost_disablement_action_fails_gate():
+    base = _default_dependencies().dispatch_hooks_fn
+
+    def dropped_action(*args, **kwargs):
+        result = base(*args, **kwargs)
+        return replace(
+            result,
+            warnings=tuple(
+                issue
+                for issue in result.warnings
+                if issue.code != "learning_hook_disabled"
+            ),
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(
+            dependencies(dispatch_hooks_fn=dropped_action)
+        ),
+        "hook_contract_valid",
+        "p3_8_hook_contract_failed",
+    )
+
+
+def test_checkpoint_order_preserved_by_real_audit():
+    assert _audit_run_reporting(_default_dependencies())
+
+
+def test_reordered_checkpoints_fail_gate():
+    base = _default_dependencies().build_report_fn
+
+    def reversed_receipts(**kwargs):
+        report = base(**kwargs)
+        return replace(
+            report,
+            checkpoints=replace(
+                report.checkpoints,
+                receipts=tuple(reversed(report.checkpoints.receipts)),
+            ),
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(
+            dependencies(build_report_fn=reversed_receipts)
+        ),
+        "run_reporting_valid",
+        "p3_8_run_reporting_failed",
+    )
+
+
+def test_scopes_preserved_by_real_audit():
+    assert _audit_run_reporting(_default_dependencies())
+
+
+def test_corrupted_update_scope_fails_gate():
+    base = _default_dependencies().build_report_fn
+
+    def wrong_scope(**kwargs):
+        report = base(**kwargs)
+        return replace(
+            report, scopes=replace(report.scopes, update_scope="named_region")
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(dependencies(build_report_fn=wrong_scope)),
+        "run_reporting_valid",
+        "p3_8_run_reporting_failed",
+    )
+
+
+def test_corrupted_objective_scope_fails_gate():
+    base = _default_dependencies().build_report_fn
+
+    def wrong_scope(**kwargs):
+        report = base(**kwargs)
+        return replace(
+            report, scopes=replace(report.scopes, objective_scope="named_region")
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(dependencies(build_report_fn=wrong_scope)),
+        "run_reporting_valid",
+        "p3_8_run_reporting_failed",
+    )
+
+
+def test_report_builder_receives_completed_result():
+    base = _default_dependencies().build_report_fn
+    observed = []
+
+    def recording_builder(**kwargs):
+        result = kwargs["loop_result"]
+        observed.append(
+            (result.steps_completed, result.global_step, result.stop_reason)
+        )
+        return base(**kwargs)
+
+    receipt = run_p3_8_observability_acceptance(
+        dependencies(build_report_fn=recording_builder)
+    )
+    assert receipt.status == "pass" and (2, 2, "max_steps") in observed
+
+
+def test_incomplete_report_input_fails_gate():
+    base = _default_dependencies().run_loop_fn
+
+    def incomplete_loop(**kwargs):
+        result = base(**kwargs)
+        return (
+            replace(result, global_step=0)
+            if kwargs.get("starting_global_step") == 40
+            else result
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(dependencies(run_loop_fn=incomplete_loop)),
+        "run_reporting_valid",
+        "p3_8_run_reporting_failed",
+    )
+
+
+def test_report_failure_preserves_full_completed_outcome():
+    assert _audit_run_reporting(_default_dependencies())
+
+
+def test_report_failure_outcome_mutation_fails_gate():
+    base = _default_dependencies().build_report_fn
+
+    def mutating_failure(**kwargs):
+        if kwargs["run_id"] == "":
+            kwargs["loop_result"].final_execution.parameters["head.weight"] = 99.0
+        return base(**kwargs)
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(
+            dependencies(build_report_fn=mutating_failure)
+        ),
+        "run_reporting_valid",
+        "p3_8_run_reporting_failed",
+    )
+
+
+def test_reported_and_unreported_full_state_equal():
+    assert _audit_observer_only_boundary(_default_dependencies())
+
+
+def test_status_mutation_fails_observer_audit():
+    base = _default_dependencies().run_loop_fn
+
+    def changed(**kwargs):
+        result = base(**kwargs)
+        return (
+            replace(result, status="fail") if kwargs.get("emit_run_report") else result
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(dependencies(run_loop_fn=changed)),
+        "observer_only_boundary_valid",
+        "p3_8_observer_boundary_failed",
+    )
+
+
+def test_global_step_mutation_fails_observer_audit():
+    base = _default_dependencies().run_loop_fn
+
+    def changed(**kwargs):
+        result = base(**kwargs)
+        return (
+            replace(result, global_step=result.global_step + 1)
+            if kwargs.get("emit_run_report")
+            else result
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(dependencies(run_loop_fn=changed)),
+        "observer_only_boundary_valid",
+        "p3_8_observer_boundary_failed",
+    )
+
+
+def test_batch_count_mutation_fails_observer_audit():
+    base = _default_dependencies().run_loop_fn
+
+    def changed(**kwargs):
+        result = base(**kwargs)
+        return (
+            replace(result, batches_consumed=result.batches_consumed + 1)
+            if kwargs.get("emit_run_report")
+            else result
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(dependencies(run_loop_fn=changed)),
+        "observer_only_boundary_valid",
+        "p3_8_observer_boundary_failed",
+    )
+
+
+def test_checkpoint_mutation_fails_observer_audit():
+    base = _default_dependencies().run_loop_fn
+
+    def changed(**kwargs):
+        result = base(**kwargs)
+        return (
+            replace(result, checkpoints=("wrong",))
+            if kwargs.get("emit_run_report")
+            else result
+        )
+
+    assert_gate_failure(
+        run_p3_8_observability_acceptance(dependencies(run_loop_fn=changed)),
+        "observer_only_boundary_valid",
+        "p3_8_observer_boundary_failed",
+    )
+
+
+def test_report_json_forbidden_state_names_absent():
+    assert _audit_observer_only_boundary(_default_dependencies())
+
+
+def injected_source(fragment):
+    base = _default_dependencies().source_loader
+    return lambda path: fragment if path.name == "hooks.py" else base(path)
+
+
+def test_torch_alias_import_fails_full_gate():
+    receipt = run_p3_8_observability_acceptance(
+        dependencies(source_loader=injected_source("import torch as t"))
+    )
+    assert_gate_failure(receipt, "import_boundary_valid", "p3_8_import_boundary_failed")
+
+
+def test_importlib_wandb_fails_full_gate():
+    receipt = run_p3_8_observability_acceptance(
+        dependencies(
+            source_loader=injected_source(
+                "import importlib\nimportlib.import_module('wandb')"
+            )
+        )
+    )
+    assert_gate_failure(receipt, "import_boundary_valid", "p3_8_import_boundary_failed")
+
+
+def test_dunder_requests_import_fails_full_gate():
+    receipt = run_p3_8_observability_acceptance(
+        dependencies(source_loader=injected_source("__import__('requests')"))
+    )
+    assert_gate_failure(receipt, "import_boundary_valid", "p3_8_import_boundary_failed")
+
+
+def injected_test_source(fragment):
+    base = _default_dependencies().source_loader
+    return lambda path: fragment if path.name == "test_hooks.py" else base(path)
+
+
+def test_assert_true_fails_full_gate():
+    receipt = run_p3_8_observability_acceptance(
+        dependencies(
+            source_loader=injected_test_source(
+                "def test_placeholder():\n    assert " + "True\n"
+            )
+        )
+    )
+    assert_gate_failure(receipt, "test_inventory_valid", "p3_8_test_inventory_failed")
+
+
+def test_skip_call_fails_full_gate():
+    receipt = run_p3_8_observability_acceptance(
+        dependencies(
+            source_loader=injected_test_source(
+                "def test_placeholder():\n    pytest" + ".skip('x')\n"
+            )
+        )
+    )
+    assert_gate_failure(receipt, "test_inventory_valid", "p3_8_test_inventory_failed")
+
+
+def test_imported_test_reuse_fails_full_gate():
+    source = (
+        "from "
+        + "tests.other import "
+        + "test_other\ndef test_placeholder():\n    return 1\n"
+    )
+    receipt = run_p3_8_observability_acceptance(
+        dependencies(source_loader=injected_test_source(source))
+    )
+    assert_gate_failure(receipt, "test_inventory_valid", "p3_8_test_inventory_failed")
+
+
+def test_called_test_reuse_fails_full_gate():
+    receipt = run_p3_8_observability_acceptance(
+        dependencies(
+            source_loader=injected_test_source(
+                "def test_placeholder():\n    test_other()\n"
+            )
+        )
+    )
+    assert_gate_failure(receipt, "test_inventory_valid", "p3_8_test_inventory_failed")
+
+
+def test_pass_placeholder_fails_full_gate():
+    receipt = run_p3_8_observability_acceptance(
+        dependencies(
+            source_loader=injected_test_source(
+                "def test_placeholder():\n    " + "pass\n"
+            )
+        )
+    )
+    assert_gate_failure(receipt, "test_inventory_valid", "p3_8_test_inventory_failed")

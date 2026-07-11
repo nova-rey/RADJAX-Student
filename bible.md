@@ -556,3 +556,8 @@
 
 - A golden gate is adversarial evidence, not Boolean bookkeeping. Negative tests
   must break the audited behavior and prove the gate notices.
+
+## 2026-07-11 - P3.8D.2 final coverage closure
+
+- A helper parser passing is not the same as the gate failing correctly; import
+  and test-inventory regressions must be routed through the complete receipt.

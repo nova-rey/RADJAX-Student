@@ -51,6 +51,19 @@ imports, dynamic import calls, test-function imports/calls, `assert True`,
 exceptions fail closed: the affected section is false and the receipt includes
 `p3_8_internal_error` with only section and exception type details.
 
+## Final Coverage Closure
+
+The gate also audits explicit hook warnings, failure codes, and disablement
+actions. Run-report coverage verifies checkpoint receipt order, public update
+and objective scopes, construction only from a completed result, and isolation
+when report construction fails. Observer-only coverage compares the complete
+finished-run state and rejects report JSON containing forbidden state names.
+
+Import and test-placeholder regressions are injected through the complete
+receipt, not accepted merely because a helper parser detects them. Each such
+regression must make its receipt section false and emit the corresponding stable
+blocker.
+
 ## Non-Claims
 
 P3.8D does not claim model quality, a real architecture, Tome training,
