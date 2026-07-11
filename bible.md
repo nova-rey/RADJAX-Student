@@ -514,3 +514,9 @@
 
 - Failure policy records both what failed and what action the dispatcher took;
   disablement must not erase the original failure identity.
+
+## 2026-07-11 - P3.8B loop hook integration
+
+- The loop owns when lifecycle events occur and the dispatcher owns hook
+  execution. Hooks return observations only; they cannot change core learning
+  state. P3.8C reporting remains the next boundary.

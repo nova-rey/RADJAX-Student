@@ -1,0 +1,12 @@
+# P3.8B Learning Loop Hook Integration
+
+The generic loop now emits immutable hook contexts at loop start, batch receipt,
+step start/end, successful checkpoint, and loop end. It uses only the P3.8A
+dispatcher, merges returned metrics and warnings, and carries disabled-hook IDs
+for the duration of the run.
+
+Fail-fast hook blockers stop the loop before the next core action. Hooks still
+receive no parameter, gradient, optimizer, architecture, runtime, or checkpoint
+payloads, so they remain observer-only.
+
+P3.8C run reporting and the P3.8 completion gate remain pending.

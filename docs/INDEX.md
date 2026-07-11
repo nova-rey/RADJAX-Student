@@ -84,6 +84,8 @@ Start here for Phase 0 foundation context.
   batch consumption, exact stopping, and source-position continuation.
 - [P3.8A Hook Lifecycle and Failure Policy](P3_8A_HOOK_LIFECYCLE_AND_FAILURE_POLICY.md):
   deterministic observer-only standalone hook dispatch.
+- [P3.8B Learning Loop Hook Integration](P3_8B_LEARNING_LOOP_HOOK_INTEGRATION.md):
+  lifecycle dispatch at generic loop boundaries.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)

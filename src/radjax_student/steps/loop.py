@@ -7,13 +7,26 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from radjax_student.architecture import ArchitectureConfig, ArchitecturePlugin
-from radjax_student.learning import LearningBatch, LearningState, MetricRecord
+from radjax_student.learning import (
+    LearningBatch,
+    LearningIssue,
+    LearningState,
+    MetricRecord,
+)
+from radjax_student.learning.hooks import (
+    HookContext,
+    HookPolicy,
+    LearningHook,
+    dispatch_hooks,
+)
 from radjax_student.optimizers import OptimizerBackend, OptimizerConfig, OptimizerState
 from radjax_student.steps.single import (
     ScalarObjective,
     SingleStepExecution,
     learning_step,
 )
+
+DEFAULT_HOOK_POLICY = HookPolicy()
 
 
 class BatchSource(Protocol):
@@ -55,6 +68,8 @@ class LearningLoopResult:
     stop_reason: str
     metrics: tuple[MetricRecord, ...]
     checkpoints: tuple[str, ...] = ()
+    warnings: tuple[LearningIssue, ...] = ()
+    hook_events: tuple[str, ...] = ()
 
 
 def run_learning_loop(
@@ -70,13 +85,51 @@ def run_learning_loop(
     objective: ScalarObjective,
     batch_source: BatchSource,
     checkpoint: Callable[[SingleStepExecution], str] | None = None,
+    hooks: tuple[LearningHook, ...] = (),
+    hook_policy: HookPolicy = DEFAULT_HOOK_POLICY,
 ) -> LearningLoopResult:
     execution: SingleStepExecution | None = None
     metrics: list[MetricRecord] = []
     checkpoints: list[str] = []
+    warnings: list[LearningIssue] = []
+    events: list[str] = []
+    disabled: tuple[str, ...] = ()
+    sequence = 0
+
+    def observe(event: str, current: LearningState):
+        nonlocal disabled, sequence
+        sequence += 1
+        events.append(event)
+        dispatch = dispatch_hooks(
+            hooks,
+            hook_policy,
+            HookContext(
+                current.run_id, event, sequence, current.global_step, tuple(metrics)
+            ),
+            disabled,
+        )
+        disabled = dispatch.disabled_hook_ids
+        metrics.extend(dispatch.metrics)
+        warnings.extend(dispatch.warnings)
+        return dispatch
+
+    start = observe("loop_start", learning_state)
+    if start.blockers:
+        return LearningLoopResult(
+            "fail",
+            execution,
+            learning_state.global_step,
+            0,
+            "hook_failure",
+            tuple(metrics[-config.metric_history_limit :]),
+            (),
+            tuple(warnings),
+            tuple(events),
+        )
     for _ in range(config.max_steps):
         batch = batch_source.next_batch()
         if batch is None:
+            observe("loop_end", learning_state)
             return LearningLoopResult(
                 "pass",
                 execution,
@@ -85,6 +138,34 @@ def run_learning_loop(
                 "source_exhausted",
                 tuple(metrics[-config.metric_history_limit :]),
                 tuple(checkpoints),
+                tuple(warnings),
+                tuple(events),
+            )
+        dispatched = observe("batch_received", learning_state)
+        if dispatched.blockers:
+            return LearningLoopResult(
+                "fail",
+                execution,
+                learning_state.global_step,
+                learning_state.global_step,
+                "hook_failure",
+                tuple(metrics[-config.metric_history_limit :]),
+                tuple(checkpoints),
+                tuple(warnings),
+                tuple(events),
+            )
+        dispatched = observe("step_start", learning_state)
+        if dispatched.blockers:
+            return LearningLoopResult(
+                "fail",
+                execution,
+                learning_state.global_step,
+                learning_state.global_step,
+                "hook_failure",
+                tuple(metrics[-config.metric_history_limit :]),
+                tuple(checkpoints),
+                tuple(warnings),
+                tuple(events),
             )
         execution = learning_step(
             batch=batch,
@@ -103,12 +184,27 @@ def run_learning_loop(
             execution.parameters,
         )
         metrics.extend(execution.result.metrics)
+        dispatched = observe("step_end", learning_state)
+        if dispatched.blockers:
+            return LearningLoopResult(
+                "fail",
+                execution,
+                learning_state.global_step,
+                learning_state.global_step,
+                "hook_failure",
+                tuple(metrics[-config.metric_history_limit :]),
+                tuple(checkpoints),
+                tuple(warnings),
+                tuple(events),
+            )
         if (
             checkpoint
             and config.checkpoint_every_n_steps
             and learning_state.global_step % config.checkpoint_every_n_steps == 0
         ):
             checkpoints.append(checkpoint(execution))
+            observe("checkpoint", learning_state)
+    observe("loop_end", learning_state)
     return LearningLoopResult(
         "pass",
         execution,
@@ -117,6 +213,8 @@ def run_learning_loop(
         "max_steps",
         tuple(metrics[-config.metric_history_limit :]),
         tuple(checkpoints),
+        tuple(warnings),
+        tuple(events),
     )
 
 
