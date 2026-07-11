@@ -59,6 +59,12 @@ and objective scopes, construction only from a completed result, and isolation
 when report construction fails. Observer-only coverage compares the complete
 finished-run state and rejects report JSON containing forbidden state names.
 
+The report-construction seam temporarily substitutes only the builder imported
+inside the public opt-in loop, restores it in `finally`, and exercises
+`run_learning_loop(..., emit_run_report=True)` directly. This proves both the
+single post-completion builder call and the public catch-and-return path when
+the builder fails.
+
 Import and test-placeholder regressions are injected through the complete
 receipt, not accepted merely because a helper parser detects them. Each such
 regression must make its receipt section false and emit the corresponding stable

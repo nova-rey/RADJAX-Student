@@ -561,3 +561,8 @@
 
 - A helper parser passing is not the same as the gate failing correctly; import
   and test-inventory regressions must be routed through the complete receipt.
+
+## 2026-07-11 - P3.8D report integration evidence correction
+
+- Report-failure evidence must execute the public opt-in loop path, not only a
+  direct report-builder call against a completed result.

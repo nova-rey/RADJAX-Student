@@ -79,6 +79,7 @@ class P38AuditDependencies:
     metric_series_factory: Callable[..., Any]
     dispatch_hooks_fn: Callable[..., Any]
     run_loop_fn: Callable[..., Any]
+    run_opt_in_loop_with_builder_fn: Callable[..., Any]
     build_report_fn: Callable[..., Any]
     source_loader: Callable[[Path], str]
     path_exists_fn: Callable[[Path], bool]
@@ -445,22 +446,27 @@ def _audit_run_reporting(deps: P38AuditDependencies) -> bool:
         update_scope="whole_student",
         objective_scope="final_output",
     )
-    failed_report_input = deps.run_loop_fn()
-    failed_snapshot = _completed_state(failed_report_input)
-    try:
-        deps.build_report_fn(
-            loop_result=failed_report_input,
-            run_id="",
-            update_scope="whole_student",
-            objective_scope="final_output",
+    public_observed = []
+
+    def observing_builder(**kwargs):
+        loop_result = kwargs["loop_result"]
+        public_observed.append(
+            (
+                loop_result.steps_completed,
+                loop_result.global_step,
+                loop_result.stop_reason,
+            )
         )
-    except ValueError:
-        report_failure_isolated = (
-            failed_report_input.report is None
-            and _completed_state(failed_report_input) == failed_snapshot
-        )
-    else:
-        report_failure_isolated = False
+        return deps.build_report_fn(**kwargs)
+
+    public_reported = deps.run_opt_in_loop_with_builder_fn(observing_builder)
+    public_plain = deps.run_loop_fn()
+    public_failure = deps.run_opt_in_loop_with_builder_fn(
+        lambda **kwargs: deps.build_report_fn(**{**kwargs, "run_id": ""})
+    )
+    report_failure_isolated = public_failure.report is None and _completed_state(
+        public_failure
+    ) == _completed_state(public_plain)
     return (
         plain.report is None
         and report is not None
@@ -481,6 +487,15 @@ def _audit_run_reporting(deps: P38AuditDependencies) -> bool:
         and checkpoint_report.checkpoints.receipts == ("receipt-1", "receipt-2")
         and checkpoint_report.scopes.update_scope == "whole_student"
         and checkpoint_report.scopes.objective_scope == "final_output"
+        and public_reported.report is not None
+        and public_observed
+        == [
+            (
+                public_reported.steps_completed,
+                public_reported.global_step,
+                public_reported.stop_reason,
+            )
+        ]
         and report_failure_isolated
         and tuple(blocked_report.issues.hook_blocker_codes)
         == tuple(issue.code for issue in blocked.hook_blockers)
@@ -660,10 +675,22 @@ def _default_dependencies() -> P38AuditDependencies:
         metric_series_factory=MetricSeries,
         dispatch_hooks_fn=dispatch_hooks,
         run_loop_fn=_run_loop,
+        run_opt_in_loop_with_builder_fn=_run_opt_in_loop_with_builder,
         build_report_fn=build_learning_run_report,
         source_loader=lambda path: path.read_text(encoding="utf-8"),
         path_exists_fn=lambda path: path.is_file(),
     )
+
+
+def _run_opt_in_loop_with_builder(builder: Callable[..., Any], **kwargs):
+    from radjax_student.learning import run_report
+
+    original = run_report.build_learning_run_report
+    run_report.build_learning_run_report = builder
+    try:
+        return _run_loop(emit_run_report=True, **kwargs)
+    finally:
+        run_report.build_learning_run_report = original
 
 
 def _source_has_forbidden_import(source: str, forbidden_roots: tuple[str, ...]) -> bool:

@@ -736,7 +736,7 @@ def test_corrupted_objective_scope_fails_gate():
 
 
 def test_report_builder_receives_completed_result():
-    base = _default_dependencies().build_report_fn
+    deps = _default_dependencies()
     observed = []
 
     def recording_builder(**kwargs):
@@ -744,12 +744,10 @@ def test_report_builder_receives_completed_result():
         observed.append(
             (result.steps_completed, result.global_step, result.stop_reason)
         )
-        return base(**kwargs)
+        return deps.build_report_fn(**kwargs)
 
-    receipt = run_p3_8_observability_acceptance(
-        dependencies(build_report_fn=recording_builder)
-    )
-    assert receipt.status == "pass" and (2, 2, "max_steps") in observed
+    result = deps.run_opt_in_loop_with_builder_fn(recording_builder, max_steps=2)
+    assert result.report is not None and observed == [(2, 2, "max_steps")]
 
 
 def test_incomplete_report_input_fails_gate():
