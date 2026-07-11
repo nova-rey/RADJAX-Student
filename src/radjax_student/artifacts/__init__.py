@@ -13,15 +13,9 @@ from radjax_student.artifacts.models import (
     TomeInferredDefaults,
     TomePayloadSummary,
 )
-from radjax_student.artifacts.targets import (
-    DenseTomeTargets,
-    load_dense_tome_targets,
-    target_batch_from_dense_tome,
-)
 from radjax_student.artifacts.view import open_tome_artifact
 
 __all__ = [
-    "DenseTomeTargets",
     "TomeArtifactError",
     "TomeArtifactIdentity",
     "TomeArtifactProvenance",
@@ -33,7 +27,5 @@ __all__ = [
     "TomeInferredDefaults",
     "TomePayloadSummary",
     "inspect_teacher_tome",
-    "load_dense_tome_targets",
     "open_tome_artifact",
-    "target_batch_from_dense_tome",
 ]

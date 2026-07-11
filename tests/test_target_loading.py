@@ -5,7 +5,7 @@ from radjax_contract.tome import TomeManifest, TomeShard
 from radjax_contract.vocab import VocabContract
 from tome_fixtures import write_dense_tome
 
-from radjax_student.artifacts import (
+from radjax_student.artifacts.targets import (
     load_dense_tome_targets,
     target_batch_from_dense_tome,
 )

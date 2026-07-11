@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from radjax_student.training import run_tiny_train_step
+from radjax_student.legacy.training import run_tiny_train_step
 
 
 def main() -> int:

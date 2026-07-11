@@ -30,6 +30,8 @@ CLASSIFICATIONS = {
     "students.tiny_debug": "smoke_debug",
     "debug": "smoke_debug",
     "debug.tiny_debug": "smoke_debug",
+    "legacy": "deprecated",
+    "legacy.training": "smoke_debug",
     "training": "transitional",
     "training.distill": "smoke_debug",
 }
@@ -40,6 +42,7 @@ OWNERS = {
     "cli": "product_cli",
     "hf": "hugging_face_integration",
     "learning": "learning_contracts",
+    "legacy": "legacy_compatibility",
     "losses": "objective_research",
     "optimizers": "optimizer_contracts",
     "reports": "reporting",

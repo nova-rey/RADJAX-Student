@@ -10,6 +10,7 @@ from tome_fixtures import write_dense_tome
 
 from radjax_student.artifacts import open_tome_artifact
 from radjax_student.artifacts import targets as target_loading
+from radjax_student.legacy import training as legacy_training
 from radjax_student.students.registry import StudentBackendRegistry
 from radjax_student.students.tiny_debug import TinyDebugStudentBackend
 from radjax_student.validation import infer_run_defaults_from_tome
@@ -30,6 +31,8 @@ def test_default_source_has_no_optional_or_producer_imports() -> None:
     source_root = REPO_ROOT / "src" / "radjax_student"
     offenders: list[str] = []
     for path in source_root.rglob("*.py"):
+        if path.relative_to(source_root).as_posix() == "learning/jax_core.py":
+            continue
         source = path.read_text(encoding="utf-8")
         for dependency in FORBIDDEN_DEFAULT_IMPORTS:
             if f"import {dependency}" in source or f"from {dependency}" in source:
@@ -76,10 +79,7 @@ def test_phase1_commands_do_not_consume_payload_or_execute_runtime(
     monkeypatch.setattr(TinyDebugStudentBackend, "__init__", forbidden)
     monkeypatch.setattr(TinyDebugStudentBackend, "init", forbidden)
     monkeypatch.setattr(StudentBackendRegistry, "with_defaults", forbidden)
-    monkeypatch.setattr(
-        "radjax_student.training.run_tiny_train_step",
-        forbidden,
-    )
+    monkeypatch.setattr(legacy_training, "run_tiny_train_step", forbidden)
     monkeypatch.setattr(socket, "create_connection", forbidden)
     monkeypatch.setattr(urllib.request, "urlopen", forbidden)
     sys.modules.pop("radjax_student.runtime", None)

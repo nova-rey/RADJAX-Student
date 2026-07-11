@@ -6,11 +6,6 @@
       "path": "src/radjax_student/architecture/registry.py;src/radjax_student/students/registry.py"
     },
     {
-      "code": "dense_targets_public_export",
-      "message": "Dense Tome target loading is exported from the production artifact namespace.",
-      "path": "src/radjax_student/artifacts/__init__.py"
-    },
-    {
       "code": "forbidden_import",
       "message": "A forbidden optional or sibling implementation import exists.",
       "path": "src/radjax_student/learning/jax_core.py"
@@ -24,11 +19,6 @@
       "code": "objective_receives_raw_parameters",
       "message": "The learning step passes raw parameters directly to the objective.",
       "path": "src/radjax_student/steps/single.py"
-    },
-    {
-      "code": "tiny_training_public_export",
-      "message": "The tiny debug training shim is exported from the training namespace.",
-      "path": "src/radjax_student/training/__init__.py"
     },
     {
       "code": "transitional_students_namespace",
@@ -107,10 +97,6 @@
     },
     {
       "source": "radjax_student.artifacts",
-      "target": "radjax_student.artifacts.targets"
-    },
-    {
-      "source": "radjax_student.artifacts",
       "target": "radjax_student.artifacts.view"
     },
     {
@@ -179,7 +165,7 @@
     },
     {
       "source": "radjax_student.cli.train_student",
-      "target": "radjax_student.training"
+      "target": "radjax_student.legacy.training"
     },
     {
       "source": "radjax_student.debug",
@@ -432,6 +418,14 @@
     {
       "source": "radjax_student.learning.telemetry",
       "target": "radjax_student.learning.models"
+    },
+    {
+      "source": "radjax_student.legacy.training",
+      "target": "radjax_student.debug.tiny_debug"
+    },
+    {
+      "source": "radjax_student.legacy.training",
+      "target": "radjax_student.losses"
     },
     {
       "source": "radjax_student.losses",
@@ -814,16 +808,8 @@
       "target": "radjax_student.debug.tiny_debug"
     },
     {
-      "source": "radjax_student.training",
-      "target": "radjax_student.training.distill"
-    },
-    {
       "source": "radjax_student.training.distill",
-      "target": "radjax_student.debug.tiny_debug"
-    },
-    {
-      "source": "radjax_student.training.distill",
-      "target": "radjax_student.losses"
+      "target": "radjax_student.legacy.training"
     },
     {
       "source": "radjax_student.validation",
@@ -899,7 +885,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 84,
+  "module_count": 86,
   "modules": [
     {
       "classification": "core",
@@ -1090,20 +1076,17 @@
       "imports": [
         "radjax_student.artifacts.loaders",
         "radjax_student.artifacts.models",
-        "radjax_student.artifacts.targets",
         "radjax_student.artifacts.view"
       ],
       "internal_edges": [
         "radjax_student.artifacts.loaders",
         "radjax_student.artifacts.models",
-        "radjax_student.artifacts.targets",
         "radjax_student.artifacts.view"
       ],
       "module": "radjax_student.artifacts",
       "owner": "artifact_consumption",
       "path": "src/radjax_student/artifacts/__init__.py",
       "public_exports": [
-        "DenseTomeTargets",
         "TomeArtifactError",
         "TomeArtifactIdentity",
         "TomeArtifactProvenance",
@@ -1115,9 +1098,7 @@
         "TomeInferredDefaults",
         "TomePayloadSummary",
         "inspect_teacher_tome",
-        "load_dense_tome_targets",
-        "open_tome_artifact",
-        "target_batch_from_dense_tome"
+        "open_tome_artifact"
       ]
     },
     {
@@ -1354,10 +1335,10 @@
       "has_module_getattr": false,
       "imports": [
         "__future__",
-        "radjax_student.training"
+        "radjax_student.legacy.training"
       ],
       "internal_edges": [
-        "radjax_student.training"
+        "radjax_student.legacy.training"
       ],
       "module": "radjax_student.cli.train_student",
       "owner": "product_cli",
@@ -1872,6 +1853,41 @@
       "owner": "learning_contracts",
       "path": "src/radjax_student/learning/telemetry.py",
       "public_exports": []
+    },
+    {
+      "classification": "deprecated",
+      "forbidden_imports": [],
+      "has_module_getattr": false,
+      "imports": [],
+      "internal_edges": [],
+      "module": "radjax_student.legacy",
+      "owner": "legacy_compatibility",
+      "path": "src/radjax_student/legacy/__init__.py",
+      "public_exports": []
+    },
+    {
+      "classification": "smoke_debug",
+      "forbidden_imports": [],
+      "has_module_getattr": false,
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "numpy",
+        "radjax_contract.vocab",
+        "radjax_student.debug.tiny_debug",
+        "radjax_student.losses"
+      ],
+      "internal_edges": [
+        "radjax_student.debug.tiny_debug",
+        "radjax_student.losses"
+      ],
+      "module": "radjax_student.legacy.training",
+      "owner": "legacy_compatibility",
+      "path": "src/radjax_student/legacy/training.py",
+      "public_exports": [
+        "TinyTrainStepResult",
+        "run_tiny_train_step"
+      ]
     },
     {
       "classification": "research",
@@ -2867,18 +2883,12 @@
       "classification": "transitional",
       "forbidden_imports": [],
       "has_module_getattr": false,
-      "imports": [
-        "radjax_student.training.distill"
-      ],
-      "internal_edges": [
-        "radjax_student.training.distill"
-      ],
+      "imports": [],
+      "internal_edges": [],
       "module": "radjax_student.training",
       "owner": "legacy_training_smoke",
       "path": "src/radjax_student/training/__init__.py",
-      "public_exports": [
-        "run_tiny_train_step"
-      ]
+      "public_exports": []
     },
     {
       "classification": "smoke_debug",
@@ -2886,20 +2896,19 @@
       "has_module_getattr": false,
       "imports": [
         "__future__",
-        "dataclasses",
-        "numpy",
-        "radjax_contract.vocab",
-        "radjax_student.debug.tiny_debug",
-        "radjax_student.losses"
+        "radjax_student.legacy.training",
+        "warnings"
       ],
       "internal_edges": [
-        "radjax_student.debug.tiny_debug",
-        "radjax_student.losses"
+        "radjax_student.legacy.training"
       ],
       "module": "radjax_student.training.distill",
       "owner": "legacy_training_smoke",
       "path": "src/radjax_student/training/distill.py",
-      "public_exports": []
+      "public_exports": [
+        "TinyTrainStepResult",
+        "run_tiny_train_step"
+      ]
     },
     {
       "classification": "core",

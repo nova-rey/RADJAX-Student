@@ -1,5 +1,7 @@
-"""Training smokes and mode scaffolds."""
+"""Reserved production training namespace.
 
-from radjax_student.training.distill import run_tiny_train_step
+The former NumPy training smoke is available only through
+``radjax_student.legacy.training``.
+"""
 
-__all__ = ["run_tiny_train_step"]
+__all__: list[str] = []

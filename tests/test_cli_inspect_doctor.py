@@ -13,6 +13,7 @@ from radjax_contract.testing import production_tome_fixture_path
 from radjax_student.artifacts import targets as target_loading
 from radjax_student.cli import inspect as inspect_command
 from radjax_student.cli.main import main
+from radjax_student.legacy import training as legacy_training
 from radjax_student.reports import ACCEPTED_FIXTURE_DIGEST
 from radjax_student.students.tiny_debug import TinyDebugStudentBackend
 
@@ -209,10 +210,7 @@ def test_commands_do_not_load_payloads_allocate_models_train_or_use_network(
 
     monkeypatch.setattr(target_loading, "load_dense_tome_targets", forbidden)
     monkeypatch.setattr(TinyDebugStudentBackend, "init", forbidden)
-    monkeypatch.setattr(
-        "radjax_student.training.run_tiny_train_step",
-        forbidden,
-    )
+    monkeypatch.setattr(legacy_training, "run_tiny_train_step", forbidden)
     monkeypatch.setattr(socket, "create_connection", forbidden)
     monkeypatch.setattr(urllib.request, "urlopen", forbidden)
     sys.modules.pop("radjax_student.schedules", None)

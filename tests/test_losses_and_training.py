@@ -1,7 +1,7 @@
 import numpy as np
 
+from radjax_student.legacy.training import run_tiny_train_step
 from radjax_student.losses import dense_kl_loss
-from radjax_student.training import run_tiny_train_step
 
 
 def test_dense_kl_loss_computes_finite_value() -> None:

@@ -643,3 +643,10 @@
   root is behavior-free, and the tiny NumPy backend has an explicit debug
   namespace. The students package is now a warning-emitting compatibility
   path with removal assigned to P4.1.
+
+## 2026-07-11 - P3.5.5 legacy and debug isolation
+
+- Dense target loading and the NumPy training smoke remain available through
+  explicit submodules only; neither is re-exported by the production artifact
+  or training package roots. The default CLI does not register the old train
+  shim.
