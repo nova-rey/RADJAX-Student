@@ -596,3 +596,24 @@ def test_75_optimizer_boundary_tamper_fails_receipt():
         not result.optimizer_boundaries_valid
         and "p3_9_optimizer_boundary_failed" in codes(result)
     )
+
+
+def test_76_replay_metric_tamper_fails_receipt():
+    base = _default_dependencies().run_loop_fn
+    calls = 0
+
+    def replay_metric_differs(**kwargs):
+        nonlocal calls
+        calls += 1
+        result = base(**kwargs)
+        if calls != 7:
+            return result
+        metrics = list(result.metrics)
+        metrics[0] = replace(metrics[0], value=99.0)
+        return replace(result, metrics=tuple(metrics))
+
+    result = run_p3_9_synthetic_learning_smoke(
+        replace(_default_dependencies(), run_loop_fn=replay_metric_differs)
+    )
+    assert not result.deterministic_replay_valid
+    assert "p3_9_replay_mismatch" in codes(result)

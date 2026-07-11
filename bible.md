@@ -574,3 +574,7 @@
   resumes, reports, and deterministically replays through the accepted contracts.
   The synthetic problem is intentionally trivial so integration bugs cannot hide
   behind model complexity.
+
+- Replay evidence must perturb the replay run itself. A missing metric validates
+  metric presence; it does not prove the deterministic replay comparison notices
+  divergent retained observations.
