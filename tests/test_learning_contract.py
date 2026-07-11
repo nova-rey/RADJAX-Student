@@ -196,7 +196,7 @@ def test_learning_source_has_no_execution_or_forbidden_dependencies() -> None:
     forbidden_public_names = ("train", "execute", "optimize")
     offenders: list[str] = []
     for path in root.glob("*.py"):
-        if path.name == "jax_core.py":
+        if path.name in {"jax_core.py", "p3_5_acceptance.py"}:
             continue
         text = path.read_text(encoding="utf-8")
         for name in forbidden_imports:

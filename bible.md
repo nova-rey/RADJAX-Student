@@ -694,3 +694,9 @@
   dependency boundaries, JAX-native contract, HF/checkpoint preservation,
   prior phase receipts, import purity, and deterministic replay without
   upgrading any unproven production-training claim.
+
+## 2026-07-11 - P3.5 final verification compatibility correction
+
+- The concrete JAX backend normalizes real values when JAX exposes its array
+  namespace, while preserving the existing minimal fake backend contract used
+  by runtime smoke tests.

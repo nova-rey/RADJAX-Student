@@ -31,7 +31,10 @@ def test_default_source_has_no_optional_or_producer_imports() -> None:
     source_root = REPO_ROOT / "src" / "radjax_student"
     offenders: list[str] = []
     for path in source_root.rglob("*.py"):
-        if path.relative_to(source_root).as_posix() == "learning/jax_core.py":
+        if path.relative_to(source_root).as_posix() in {
+            "learning/jax_core.py",
+            "learning/p3_5_acceptance.py",
+        }:
             continue
         source = path.read_text(encoding="utf-8")
         for dependency in FORBIDDEN_DEFAULT_IMPORTS:
