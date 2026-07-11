@@ -7,8 +7,7 @@ import warnings
 from radjax_student.legacy.training import TinyTrainStepResult, run_tiny_train_step
 
 warnings.warn(
-    "radjax_student.training.distill is deprecated; use "
-    "radjax_student.legacy.training",
+    "radjax_student.training.distill is deprecated; use radjax_student.legacy.training",
     DeprecationWarning,
     stacklevel=2,
 )

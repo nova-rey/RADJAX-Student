@@ -711,3 +711,9 @@
 - The final architecture receipt test is JAX-required and runs in the
   dedicated `test-jax` job; base CI skips it while retaining fresh import and
   contract checks without optional ML dependencies.
+
+## 2026-07-11 - P3.5 CI formatting closure
+
+- The deprecated training shim is formatted under the repository-wide Ruff
+  gate; both base Python matrix jobs and the dedicated JAX job now exercise the
+  same published tree.
