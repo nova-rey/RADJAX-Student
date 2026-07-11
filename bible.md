@@ -492,3 +492,11 @@
 - Kept the proof narrow: scalar component persistence establishes layered
   ownership and integrity, not distributed/sharded checkpoint behavior,
   execution equivalence, or production performance.
+
+## 2026-07-11 - P3.7 generic learning loop
+
+- Kept the loop intentionally boring: it repeats P3.5 rather than duplicating
+  forward, objective, gradient, or optimizer mechanics.
+- Kept batch sources generic and position-restorable so continuation does not
+  silently reset consumption order. Accumulation remains rejected until it is a
+  real accumulated-gradient feature, not repeated optimizer application.

@@ -141,6 +141,10 @@ separate architecture, learning, and optimizer components validated by a
 deterministic SHA-256 manifest. It is a layered persistence contract, not a
 distributed or production-scale checkpoint claim.
 
+P3.7 adds the [Generic Learning Loop](docs/P3_7_GENERIC_LEARNING_LOOP.md), a
+bounded orchestrator that delegates every update to P3.5 and retains generic
+batch-source position for deterministic continuation.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, Hugging Face export, complete Tome compatibility, or model
@@ -176,3 +180,4 @@ codebase. The normative Phase 0 docs are:
 - [P3.4 Generic Batch and Objective contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md)
 - [P3.5 Single Learning Step](docs/P3_5_SINGLE_LEARNING_STEP.md)
 - [P3.6 Model and Optimizer Checkpoint Contract](docs/P3_6_MODEL_AND_OPTIMIZER_CHECKPOINT_CONTRACT.md)
+- [P3.7 Generic Learning Loop](docs/P3_7_GENERIC_LEARNING_LOOP.md)

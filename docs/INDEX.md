@@ -80,6 +80,8 @@ Start here for Phase 0 foundation context.
   scalar contract composition with targeted-update proof.
 - [P3.6 Model and Optimizer Checkpoint Contract](P3_6_MODEL_AND_OPTIMIZER_CHECKPOINT_CONTRACT.md):
   layered ownership, deterministic manifests, and SHA-256 validation.
+- [P3.7 Generic Learning Loop](P3_7_GENERIC_LEARNING_LOOP.md): bounded generic
+  batch consumption, exact stopping, and source-position continuation.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
