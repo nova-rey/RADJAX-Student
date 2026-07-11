@@ -437,3 +437,21 @@
 - Used a non-numerical fake plugin instead of RWKV. It proves initialization,
   forward, batch-validation, scope-resolution, metadata, and registry contracts
   without claiming a concrete model, numerical execution, training, or quality.
+
+## 2026-07-11 - P3.3 optimizer contract
+
+- Made optimizer a plugin boundary because update mechanics must remain
+  architecture-independent. Learning owns when an optimizer step happens,
+  architecture owns parameter meaning, and runtime owns execution location.
+- Used scalar-mapping SGD as the first proof because its mechanics are easy to
+  inspect and prove without importing Optax or smuggling AdamW assumptions into
+  the public contract. It is a test backend, not a training claim.
+- Preserved stable parameter and optimizer-state trees for scoped updates. The
+  resolved selection controls which stable paths may change; excluded parameter
+  values and their per-path optimizer state remain unchanged.
+- Made clipping and weight-decay policy explicit in configuration and reporting.
+  A backend cannot silently apply either policy or inherit one optimizer's
+  semantics as the default for every future implementation.
+- Kept P3.3 below the learning-step boundary. It defines update mechanics for
+  supplied gradients, but does not compute gradients, invoke an architecture,
+  decide step timing, run a loop, checkpoint, or load Tome data.

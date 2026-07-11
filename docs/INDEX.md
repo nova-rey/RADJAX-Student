@@ -72,6 +72,8 @@ Start here for Phase 0 foundation context.
 - [P3.2 Student Architecture Plugin Contract](P3_2_STUDENT_ARCHITECTURE_PLUGIN_CONTRACT.md):
   architecture-owned parameter identity, scope and objective resolution, passive
   init/forward models, and test-plugin boundary.
+- [P3.3 Optimizer Contract](P3_3_OPTIMIZER_CONTRACT.md): scoped update mechanics,
+  opaque optimizer state, explicit policy vocabulary, and scalar SGD test proof.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -88,6 +90,7 @@ Long-term implementation packages exist under `src/radjax_student/`:
 - `runtime/`
 - `learning/`
 - `architecture/`
+- `optimizers/`
 - `training/`
 - `schedules/`
 - `hf/`
@@ -117,5 +120,5 @@ or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
 Runtime is complete under the P2.10 runtime acceptance gate. P3.1 establishes
-the Generic Learning Core contract, and P3.2 establishes the architecture-plugin
-contract; P3.3 is next.
+the Generic Learning Core contract, P3.2 establishes the architecture-plugin
+contract, and P3.3 establishes the optimizer contract; P3.4 is next.

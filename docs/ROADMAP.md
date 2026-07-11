@@ -48,8 +48,8 @@ The sequence is locked in
 ```text
 P3.1  Generic Learning Contract                 COMPLETE
 P3.2  Student Architecture Plugin Contract      COMPLETE
-P3.3  Optimizer Contract                        UNBLOCKED; NEXT
-P3.4  Generic Batch and Objective Contract      BLOCKED ON P3.3
+P3.3  Optimizer Contract                        COMPLETE
+P3.4  Generic Batch and Objective Contract      UNBLOCKED; NEXT
 P3.5  Single Learning Step                      BLOCKED ON P3.4
 P3.6  Model and Optimizer Checkpoint Contract   BLOCKED ON P3.5
 P3.7  Generic Learning Loop                     BLOCKED ON P3.6

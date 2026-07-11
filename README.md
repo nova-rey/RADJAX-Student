@@ -118,6 +118,13 @@ socket. The generic core keeps update intent separate from objective intent;
 runtime keeps execution policy. The included fake plugin is a non-numerical
 contract test double, not a concrete Student model.
 
+P3.3 establishes the [Optimizer Contract](docs/P3_3_OPTIMIZER_CONTRACT.md):
+explicit optimizer configuration and opaque state, stable-path update requests,
+and serializable update reports. The test-only scalar SGD backend proves
+whole-student and partial update masking while keeping excluded parameter values
+and per-parameter state unchanged. It is not an Optax integration or a learning
+loop.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, Hugging Face export, complete Tome compatibility, or model
@@ -149,3 +156,4 @@ codebase. The normative Phase 0 docs are:
 - [Phase 3 Generic Learning roadmap](docs/RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md)
 - [P3.1 Generic Learning contract](docs/P3_1_GENERIC_LEARNING_CONTRACT.md)
 - [P3.2 Student Architecture Plugin contract](docs/P3_2_STUDENT_ARCHITECTURE_PLUGIN_CONTRACT.md)
+- [P3.3 Optimizer contract](docs/P3_3_OPTIMIZER_CONTRACT.md)
