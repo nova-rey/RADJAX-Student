@@ -40,6 +40,12 @@ from radjax_student.learning.scopes import (
     UpdateScope,
     UpdateScopeKind,
 )
+from radjax_student.learning.telemetry import (
+    LearningEvent,
+    MetricRetentionPolicy,
+    MetricSeries,
+    MetricSummary,
+)
 
 __all__ = [
     "CHECKPOINT_POLICY_MODES",
@@ -61,6 +67,10 @@ __all__ = [
     "LearningStepResult",
     "LossResult",
     "MetricRecord",
+    "MetricRetentionPolicy",
+    "MetricSeries",
+    "MetricSummary",
+    "LearningEvent",
     "BatchMetadata",
     "ObjectiveRequest",
     "ObjectiveResult",
