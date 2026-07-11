@@ -597,3 +597,8 @@
   architecture, optimizer, single-step, loop, and checkpoint seams. Downstream
   smoke receipts may confirm integration, but they may not stand in for the
   seams they integrate.
+
+## 2026-07-11 - P3.10.1 CI formatting correction
+
+- The final acceptance test module must satisfy the repository-wide Ruff
+  formatting gate across both supported Python matrix versions.

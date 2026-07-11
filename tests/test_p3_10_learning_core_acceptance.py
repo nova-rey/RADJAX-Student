@@ -628,9 +628,7 @@ def test_73_cli_json_passes():
 def test_74_cli_injected_failure_is_nonzero():
     dependencies = replace(
         _default_dependencies(),
-        architecture_factory=lambda: (_ for _ in ()).throw(
-            RuntimeError("injected")
-        ),
+        architecture_factory=lambda: (_ for _ in ()).throw(RuntimeError("injected")),
     )
     assert main([], dependencies) != 0
 
