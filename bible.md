@@ -545,3 +545,9 @@
 
 - Run reports must record the odometer, not the trip meter: resumed global step
   and invocation-local steps completed are distinct values.
+
+## 2026-07-11 - P3.8D observability golden acceptance
+
+- P3.8 closed only after the full observability stack passed one deterministic
+  golden gate. The gate audits existing behavior and does not create a second
+  control plane.

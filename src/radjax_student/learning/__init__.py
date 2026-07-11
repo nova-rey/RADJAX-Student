@@ -105,6 +105,7 @@ __all__ = [
     "ObjectiveEvaluator",
     "ObjectiveScope",
     "ObjectiveScopeKind",
+    "P38ObservabilityAcceptanceReceipt",
     "ResolvedUpdateSelection",
     "UpdateScope",
     "UpdateScopeKind",
@@ -113,4 +114,22 @@ __all__ = [
     "WeightingPolicy",
     "canonical_learning_json",
     "canonical_objective_json",
+    "run_p3_8_observability_acceptance",
 ]
+
+
+def __getattr__(name):
+    if name in {
+        "P38ObservabilityAcceptanceReceipt",
+        "run_p3_8_observability_acceptance",
+    }:
+        from radjax_student.learning.observability_acceptance import (
+            P38ObservabilityAcceptanceReceipt,
+            run_p3_8_observability_acceptance,
+        )
+
+        return {
+            "P38ObservabilityAcceptanceReceipt": P38ObservabilityAcceptanceReceipt,
+            "run_p3_8_observability_acceptance": run_p3_8_observability_acceptance,
+        }[name]
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

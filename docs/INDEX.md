@@ -91,6 +91,8 @@ Start here for Phase 0 foundation context.
 - [P3.8C Deterministic Run Reporting](P3_8C_DETERMINISTIC_RUN_REPORTING.md):
   immutable completed-run reports, bounded metric summaries, and opt-in
   post-completion attachment.
+- [P3.8D Observability Golden Acceptance Gate](P3_8D_OBSERVABILITY_GOLDEN_ACCEPTANCE_GATE.md):
+  deterministic closure receipt for the complete P3.8 observability stack.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)

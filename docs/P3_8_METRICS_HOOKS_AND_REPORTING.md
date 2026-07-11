@@ -17,4 +17,6 @@ occurrences, checkpoint receipt order, and public scope kinds. It provides no
 external telemetry, evaluation, dashboards, architecture-specific fields, or
 Tome-specific reporting.
 
-P3.8D is the remaining Phase 3.8 completion gate.
+P3.8D closes P3.8 with one deterministic acceptance receipt. The gate audits
+the existing metric, hook, loop, and report behavior without creating a second
+control plane. P3.9 synthetic learning smoke is now unblocked.

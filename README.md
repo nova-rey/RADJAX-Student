@@ -149,7 +149,8 @@ P3.8B integrates observer-only hooks at generic loop lifecycle boundaries, and
 P3.8C adds deterministic immutable reports only after the generic loop has
 completed. Reports preserve lifecycle, warning, blocker, checkpoint, scope, and
 bounded retained-metric evidence without controlling execution or emitting
-external telemetry. P3.8D remains the next completion gate.
+external telemetry. P3.8D now closes the stack with a deterministic acceptance
+receipt; P3.9 synthetic learning smoke is unblocked next.
 
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
