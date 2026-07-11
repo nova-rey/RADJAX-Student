@@ -623,3 +623,10 @@
   forward-objective protocol receives only a selected surface, targets,
   weights, and objective configuration. The scalar path remains transitional
   until the JAX path is accepted and the legacy adapter is quarantined.
+
+## 2026-07-11 - P3.5.3 pure JAX learning through runtime
+
+- The optional JAX path is a pure functional loss/value-and-grad composition.
+  Runtime owns JIT compilation, device policy, dispatch, and synchronization;
+  architecture state is explicit pytree input/output and is not mutated at the
+  batch boundary.
