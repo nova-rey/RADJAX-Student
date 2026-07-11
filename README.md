@@ -131,6 +131,11 @@ weighting policies. Future Tome adapters populate these models rather than
 defining a parallel training vocabulary; this checkpoint does not load Tome data
 or execute objectives.
 
+P3.5 provides one [Single Learning Step](docs/P3_5_SINGLE_LEARNING_STEP.md): a
+deterministic scalar contract proof that calls the architecture and optimizer
+boundaries once, records metrics, advances state, and preserves excluded paths.
+It is not an epoch, training loop, Tome objective, or model-quality claim.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, Hugging Face export, complete Tome compatibility, or model
@@ -164,3 +169,4 @@ codebase. The normative Phase 0 docs are:
 - [P3.2 Student Architecture Plugin contract](docs/P3_2_STUDENT_ARCHITECTURE_PLUGIN_CONTRACT.md)
 - [P3.3 Optimizer contract](docs/P3_3_OPTIMIZER_CONTRACT.md)
 - [P3.4 Generic Batch and Objective contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md)
+- [P3.5 Single Learning Step](docs/P3_5_SINGLE_LEARNING_STEP.md)

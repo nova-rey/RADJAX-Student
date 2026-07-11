@@ -467,3 +467,16 @@
 - Kept objective requests separate from execution. Weighting policy, required
   outputs, and result reporting are explicit contracts, while architecture math,
   runtime execution, gradients, and learning-step orchestration remain later.
+
+## 2026-07-11 - P3.5 single learning step
+
+- Proved exactly one generic learning step before adding loop machinery. The
+  composition validates a batch, calls architecture and objective seams, applies
+  stable-path gradients through the optimizer, reports metrics, and advances
+  state once.
+- Treated the scalar synthetic objective as a mechanics proof, not a behavior or
+  quality claim. It carries no Tome behavior, language-model semantics, or
+  concrete production architecture.
+- Preserved targeted-update guarantees in the first execution proof: selected
+  paths may change, excluded parameter values remain identical, and excluded
+  per-path optimizer state does not advance.
