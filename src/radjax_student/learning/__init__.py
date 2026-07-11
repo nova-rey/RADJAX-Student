@@ -115,6 +115,9 @@ __all__ = [
     "canonical_learning_json",
     "canonical_objective_json",
     "run_p3_8_observability_acceptance",
+    "P39SyntheticLearningReceipt",
+    "SyntheticRunSummary",
+    "run_p3_9_synthetic_learning_smoke",
 ]
 
 
@@ -131,5 +134,21 @@ def __getattr__(name):
         return {
             "P38ObservabilityAcceptanceReceipt": P38ObservabilityAcceptanceReceipt,
             "run_p3_8_observability_acceptance": run_p3_8_observability_acceptance,
+        }[name]
+    if name in {
+        "P39SyntheticLearningReceipt",
+        "SyntheticRunSummary",
+        "run_p3_9_synthetic_learning_smoke",
+    }:
+        from radjax_student.learning.synthetic_smoke import (
+            P39SyntheticLearningReceipt,
+            SyntheticRunSummary,
+            run_p3_9_synthetic_learning_smoke,
+        )
+
+        return {
+            "P39SyntheticLearningReceipt": P39SyntheticLearningReceipt,
+            "SyntheticRunSummary": SyntheticRunSummary,
+            "run_p3_9_synthetic_learning_smoke": run_p3_9_synthetic_learning_smoke,
         }[name]
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -93,6 +93,9 @@ Start here for Phase 0 foundation context.
   post-completion attachment.
 - [P3.8D Observability Golden Acceptance Gate](P3_8D_OBSERVABILITY_GOLDEN_ACCEPTANCE_GATE.md):
   deterministic closure receipt for the complete P3.8 observability stack.
+- [P3.9 Synthetic End-to-End Learning Smoke](P3_9_SYNTHETIC_END_TO_END_LEARNING_SMOKE.md):
+  deterministic full-stack learning proof with scoped updates, checkpoint/resume,
+  reporting, and replay evidence.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)

@@ -566,3 +566,11 @@
 
 - Report-failure evidence must execute the public opt-in loop path, not only a
   direct report-builder call against a completed result.
+
+## 2026-07-11 - P3.9 synthetic end-to-end learning smoke
+
+- P3.9 is the first proof that the complete generic learning machine changes
+  parameters, reduces loss, preserves targeted-update boundaries, checkpoints,
+  resumes, reports, and deterministically replays through the accepted contracts.
+  The synthetic problem is intentionally trivial so integration bugs cannot hide
+  behind model complexity.

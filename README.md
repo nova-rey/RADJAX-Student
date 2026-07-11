@@ -152,6 +152,14 @@ bounded retained-metric evidence without controlling execution or emitting
 external telemetry. P3.8D now closes the stack with a deterministic acceptance
 receipt; P3.9 synthetic learning smoke is unblocked next.
 
+P3.9 now proves the complete generic learning machine on a deterministic
+two-parameter `y = 2x + 1` synthetic problem. It routes MSE through the
+accepted single-step, SGD, loop, metrics/hooks, P3.6 checkpoint, resume, and
+P3.8C reporting seams while proving scoped update boundaries and exact replay.
+Run `PYTHONPATH=src python3 -m radjax_student.learning.synthetic_smoke` for the
+offline smoke receipt. This is systems evidence only, not a model-quality,
+Tome-training, evaluation, or production-hyperparameter claim.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, Hugging Face export, complete Tome compatibility, or model
