@@ -700,3 +700,8 @@
 - The concrete JAX backend normalizes real values when JAX exposes its array
   namespace, while preserving the existing minimal fake backend contract used
   by runtime smoke tests.
+
+## 2026-07-11 - P3.5 acceptance module publication
+
+- The final acceptance implementation is published alongside its committed
+  receipt and tests; the gate is not represented only by a generated artifact.
