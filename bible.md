@@ -650,3 +650,10 @@
   explicit submodules only; neither is re-exported by the production artifact
   or training package roots. The default CLI does not register the old train
   shim.
+
+## 2026-07-11 - P3.5.6 Hugging Face preservation contract
+
+- HF compatibility is represented by dependency-free logical descriptors that
+  preserve architecture identity and distinct RADJAX, JAX-pytree, and HF
+  parameter paths. Architecture configuration remains the source of truth;
+  runtime sharding and optional HF packages are outside this contract.

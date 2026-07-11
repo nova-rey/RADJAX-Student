@@ -20,7 +20,7 @@ P3.5.2  Forward-result objective contract               COMPLETE
 P3.5.3  Pure JAX learning through runtime               COMPLETE
 P3.5.4  Architecture namespace consolidation             IN PROGRESS
 P3.5.5  Legacy and debug isolation                       COMPLETE
-P3.5.6  Hugging Face preservation contract               PENDING
+P3.5.6  Hugging Face preservation contract               COMPLETE
 P3.5.7  Checkpoint ownership and migration               PENDING
 P3.5.8  Documentation reconciliation                      PENDING
 P3.5.9  Regression and import-purity closure              PENDING
