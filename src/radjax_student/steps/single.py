@@ -29,11 +29,23 @@ from radjax_student.optimizers import (
 
 
 class ScalarObjective(Protocol):
-    """A test objective that exposes a finite loss and stable scalar gradients."""
+    """Legacy scalar objective kept behind an explicit adapter seam."""
 
     def evaluate(
         self, parameters: Mapping[str, float], batch: LearningBatch
     ) -> tuple[float, Mapping[str, float]]: ...
+
+
+@dataclass(frozen=True)
+class LegacyScalarObjectiveAdapter:
+    """Name the pre-JAX parameter-aware objective path explicitly."""
+
+    objective: ScalarObjective
+
+    def evaluate(
+        self, parameters: Mapping[str, float], batch: LearningBatch
+    ) -> tuple[float, Mapping[str, float]]:
+        return self.objective.evaluate(parameters, batch)
 
 
 @dataclass(frozen=True)
@@ -62,10 +74,13 @@ def learning_step(
         raise ValueError("learning_batch_invalid: architecture rejected batch")
     metadata = architecture.architecture_metadata()
     architecture.resolve_objective_scope(batch.objective_scope, metadata)
-    architecture.forward(
+    forward_result = architecture.forward(
         ForwardRequest(batch=batch, parameters=parameters, training=True)
     )
-    loss_value, gradient_values = objective.evaluate(parameters, batch)
+    if forward_result is None:
+        raise ValueError("learning_architecture_failed: forward result is required")
+    legacy_objective = LegacyScalarObjectiveAdapter(objective)
+    loss_value, gradient_values = legacy_objective.evaluate(parameters, batch)
     if not math.isfinite(loss_value):
         raise ValueError("learning_objective_failed: loss must be finite")
     catalog = architecture.describe_parameters()

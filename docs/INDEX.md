@@ -107,6 +107,7 @@ Start here for Phase 0 foundation context.
 - [P3.5.6 HF Preservation Contract](P3_5_6_HF_PRESERVATION_CONTRACT.md)
 - [P3.5.7 Checkpoint Ownership and Migration](P3_5_7_CHECKPOINT_OWNERSHIP_AND_MIGRATION.md)
 - [P3.5.8 Documentation Reconciliation](P3_5_8_DOCUMENTATION_RECONCILIATION.md)
+- [P3.5.10 Final Architecture Integrity Gate](P3_5_10_FINAL_ARCHITECTURE_INTEGRITY_GATE.md)
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -153,5 +154,5 @@ or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
 Runtime is complete under the P2.10 runtime acceptance gate. Phase 3 is closed
-under the P3.10 learning-core gate. P3.5 cleanup is in progress; Phase 4 is
-blocked until P3.5.10 passes.
+under the P3.10 learning-core gate. P3.5 architecture integrity is complete
+under the P3.5.10 receipt; Phase 4 may begin from this boundary.

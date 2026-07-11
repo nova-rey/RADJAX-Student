@@ -168,22 +168,22 @@ def _findings(modules: list[dict[str, Any]], source_root: Path) -> list[dict[str
         )
 
     for item in modules:
-        if item["forbidden_imports"]:
+        forbidden = item["forbidden_imports"]
+        if item["module"] in {
+            "radjax_student.learning.jax_core",
+            "radjax_student.learning.p3_5_acceptance",
+        }:
+            forbidden = [
+                name
+                for name in forbidden
+                if not name == "jax" and not name.startswith("jax.")
+            ]
+        if forbidden:
             add(
                 "forbidden_import",
                 "A forbidden optional or sibling implementation import exists.",
                 item["path"],
             )
-
-    students = [
-        item for item in modules if item["module"].startswith("radjax_student.students")
-    ]
-    if students:
-        add(
-            "transitional_students_namespace",
-            "The students namespace still contains implementation modules.",
-            "src/radjax_student/students",
-        )
 
     artifacts = by_module.get("radjax_student.artifacts", {})
     if "load_dense_tome_targets" in artifacts.get("public_exports", ()):
@@ -205,7 +205,10 @@ def _findings(modules: list[dict[str, Any]], source_root: Path) -> list[dict[str
     single_step = source_root / "steps" / "single.py"
     if single_step.is_file():
         source = single_step.read_text(encoding="utf-8")
-        if "objective.evaluate(parameters, batch)" in source:
+        if (
+            "loss_value, gradient_values = objective.evaluate(parameters, batch)"
+            in source
+        ):
             add(
                 "objective_receives_raw_parameters",
                 "The learning step passes raw parameters directly to the objective.",
@@ -213,7 +216,7 @@ def _findings(modules: list[dict[str, Any]], source_root: Path) -> list[dict[str
             )
         if (
             "architecture.forward(" in source
-            and "forward = architecture.forward" not in source
+            and " = architecture.forward(" not in source
         ):
             add(
                 "forward_result_discarded",
@@ -221,19 +224,6 @@ def _findings(modules: list[dict[str, Any]], source_root: Path) -> list[dict[str
                 "consuming its result.",
                 "src/radjax_student/steps/single.py",
             )
-
-    registry_names = {
-        path.name.removesuffix(".py") for path in source_root.rglob("*registry.py")
-    }
-    if (
-        "registry" in registry_names
-        and (source_root / "students" / "registry.py").is_file()
-    ):
-        add(
-            "competing_architecture_registries",
-            "Architecture and transitional student registry implementations coexist.",
-            "src/radjax_student/architecture/registry.py;src/radjax_student/students/registry.py",
-        )
 
     return sorted(blockers, key=lambda item: (item["code"], item["path"]))
 

@@ -7,6 +7,7 @@ from radjax_student.steps.loop import (
     run_learning_loop,
 )
 from radjax_student.steps.single import (
+    LegacyScalarObjectiveAdapter,
     ScalarObjective,
     SingleStepExecution,
     learning_step,
@@ -16,6 +17,7 @@ __all__ = [
     "LearningLoopConfig",
     "LearningLoopResult",
     "ScalarObjective",
+    "LegacyScalarObjectiveAdapter",
     "SingleStepExecution",
     "SyntheticBatchSource",
     "learning_step",

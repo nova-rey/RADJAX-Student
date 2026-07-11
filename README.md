@@ -199,9 +199,11 @@ not yet proven:
 - accelerator-scale training
 ```
 
-`radjax_student.students` is a deprecated compatibility package only. It is
-architecturally dead by P3.5.9 and is scheduled for removal at the numbered
-P4.1 architecture implementation checkpoint.
+P3.5.10 closes the architecture-integrity gate with a machine-readable receipt
+at `docs/P3_5_ARCHITECTURE_INTEGRITY_RECEIPT.json`. `radjax_student.students`
+is a deprecated compatibility package only, architecturally dead by P3.5.9,
+and scheduled for removal at the numbered P4.1 architecture implementation
+checkpoint.
 
 Start with the [documentation index](docs/INDEX.md) before extending the
 codebase. The normative Phase 0 docs are:

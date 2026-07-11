@@ -63,4 +63,4 @@ def test_human_report_and_roadmap_close_phase1() -> None:
     assert "PHASE 1 - CONTRACT LAYER" in roadmap
     assert "PHASE 2 - STUDENT RUNTIME" in roadmap
     assert "COMPLETE" in roadmap
-    assert "UNBLOCKED" in roadmap
+    assert "PHASE 3 - GENERIC LEARNING CORE" in roadmap

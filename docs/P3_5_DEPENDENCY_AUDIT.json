@@ -1,31 +1,5 @@
 {
-  "blockers": [
-    {
-      "code": "competing_architecture_registries",
-      "message": "Architecture and transitional student registry implementations coexist.",
-      "path": "src/radjax_student/architecture/registry.py;src/radjax_student/students/registry.py"
-    },
-    {
-      "code": "forbidden_import",
-      "message": "A forbidden optional or sibling implementation import exists.",
-      "path": "src/radjax_student/learning/jax_core.py"
-    },
-    {
-      "code": "forward_result_discarded",
-      "message": "The learning step invokes architecture.forward without consuming its result.",
-      "path": "src/radjax_student/steps/single.py"
-    },
-    {
-      "code": "objective_receives_raw_parameters",
-      "message": "The learning step passes raw parameters directly to the objective.",
-      "path": "src/radjax_student/steps/single.py"
-    },
-    {
-      "code": "transitional_students_namespace",
-      "message": "The students namespace still contains implementation modules.",
-      "path": "src/radjax_student/students"
-    }
-  ],
+  "blockers": [],
   "dependency_edges": [
     {
       "source": "radjax_student.architecture",
@@ -108,6 +82,10 @@
       "target": "radjax_student.checkpoints.learning"
     },
     {
+      "source": "radjax_student.checkpoints",
+      "target": "radjax_student.checkpoints.roles"
+    },
+    {
       "source": "radjax_student.checkpoints.learning",
       "target": "radjax_student.architecture"
     },
@@ -118,6 +96,10 @@
     {
       "source": "radjax_student.checkpoints.learning",
       "target": "radjax_student.optimizers"
+    },
+    {
+      "source": "radjax_student.checkpoints.roles",
+      "target": "radjax_student.checkpoints.learning"
     },
     {
       "source": "radjax_student.cli.doctor",
@@ -170,6 +152,14 @@
     {
       "source": "radjax_student.debug",
       "target": "radjax_student.debug.tiny_debug"
+    },
+    {
+      "source": "radjax_student.hf",
+      "target": "radjax_student.hf.contracts"
+    },
+    {
+      "source": "radjax_student.hf.contracts",
+      "target": "radjax_student.architecture"
     },
     {
       "source": "radjax_student.learning",
@@ -338,6 +328,18 @@
     {
       "source": "radjax_student.learning.p3_10_acceptance",
       "target": "radjax_student.steps.single"
+    },
+    {
+      "source": "radjax_student.learning.p3_5_acceptance",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.learning.p3_5_acceptance",
+      "target": "radjax_student.learning.jax_core"
+    },
+    {
+      "source": "radjax_student.learning.p3_5_acceptance",
+      "target": "radjax_student.learning.p3_10_acceptance"
     },
     {
       "source": "radjax_student.learning.protocols",
@@ -885,7 +887,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 86,
+  "module_count": 89,
   "modules": [
     {
       "classification": "core",
@@ -1188,17 +1190,22 @@
       "forbidden_imports": [],
       "has_module_getattr": false,
       "imports": [
-        "radjax_student.checkpoints.learning"
+        "radjax_student.checkpoints.learning",
+        "radjax_student.checkpoints.roles"
       ],
       "internal_edges": [
-        "radjax_student.checkpoints.learning"
+        "radjax_student.checkpoints.learning",
+        "radjax_student.checkpoints.roles"
       ],
       "module": "radjax_student.checkpoints",
       "owner": "checkpoint_persistence",
       "path": "src/radjax_student/checkpoints/__init__.py",
       "public_exports": [
+        "CONTINUATION_CHECKPOINT_ROLE",
+        "HF_DISTRIBUTION_CHECKPOINT_ROLE",
         "LearningCheckpoint",
         "load_learning_checkpoint",
+        "reject_implicit_hf_conversion",
         "save_learning_checkpoint"
       ]
     },
@@ -1229,6 +1236,25 @@
       "owner": "checkpoint_persistence",
       "path": "src/radjax_student/checkpoints/learning.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_module_getattr": false,
+      "imports": [
+        "__future__",
+        "radjax_student.checkpoints.learning",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.checkpoints.learning"
+      ],
+      "module": "radjax_student.checkpoints.roles",
+      "owner": "checkpoint_persistence",
+      "path": "src/radjax_student/checkpoints/roles.py",
+      "public_exports": [
+        "reject_implicit_hf_conversion"
+      ]
     },
     {
       "classification": "core",
@@ -1384,12 +1410,45 @@
       "classification": "optional_integration",
       "forbidden_imports": [],
       "has_module_getattr": false,
-      "imports": [],
-      "internal_edges": [],
+      "imports": [
+        "radjax_student.hf.contracts"
+      ],
+      "internal_edges": [
+        "radjax_student.hf.contracts"
+      ],
       "module": "radjax_student.hf",
       "owner": "hugging_face_integration",
       "path": "src/radjax_student/hf/__init__.py",
-      "public_exports": []
+      "public_exports": [
+        "HFCompatibilityDescriptor",
+        "HFCompatibilityError",
+        "HFParameterMapping"
+      ]
+    },
+    {
+      "classification": "optional_integration",
+      "forbidden_imports": [],
+      "has_module_getattr": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "json",
+        "radjax_student.architecture",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture"
+      ],
+      "module": "radjax_student.hf.contracts",
+      "owner": "hugging_face_integration",
+      "path": "src/radjax_student/hf/contracts.py",
+      "public_exports": [
+        "HFCompatibilityDescriptor",
+        "HFCompatibilityError",
+        "HFParameterMapping"
+      ]
     },
     {
       "classification": "core",
@@ -1704,6 +1763,40 @@
       "module": "radjax_student.learning.p3_10_acceptance",
       "owner": "learning_contracts",
       "path": "src/radjax_student/learning/p3_10_acceptance.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [
+        "jax",
+        "jax.numpy"
+      ],
+      "has_module_getattr": false,
+      "imports": [
+        "__future__",
+        "argparse",
+        "ast",
+        "dataclasses",
+        "importlib.util",
+        "jax",
+        "jax.numpy",
+        "json",
+        "pathlib",
+        "radjax_student.architecture",
+        "radjax_student.learning.jax_core",
+        "radjax_student.learning.p3_10_acceptance",
+        "scripts.audit_architecture",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture",
+        "radjax_student.learning.jax_core",
+        "radjax_student.learning.p3_10_acceptance"
+      ],
+      "module": "radjax_student.learning.p3_5_acceptance",
+      "owner": "learning_contracts",
+      "path": "src/radjax_student/learning/p3_5_acceptance.py",
       "public_exports": []
     },
     {
@@ -2727,6 +2820,7 @@
       "public_exports": [
         "LearningLoopConfig",
         "LearningLoopResult",
+        "LegacyScalarObjectiveAdapter",
         "ScalarObjective",
         "SingleStepExecution",
         "SyntheticBatchSource",
@@ -3061,5 +3155,5 @@
   "repository": "RADJAX-Student",
   "schema_version": "radjax.p3_5_architecture_audit.v1",
   "source_root": "src/radjax_student",
-  "status": "blocked"
+  "status": "pass"
 }

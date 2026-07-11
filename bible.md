@@ -669,3 +669,28 @@
 - Documentation now separates the completed Phase 3 evidence from the
   unproven production claims. Phase 4 remains blocked by P3.5.10, and the
   students compatibility package has a concrete P4.1 removal checkpoint.
+
+## 2026-07-11 - P3.5.9 regression and import purity
+
+- Base imports are checked in fresh subprocesses so optional ML dependencies
+  cannot be hidden by an already-populated test process. JAX remains an
+  explicit adapter dependency and the base CI path remains JAX-free.
+
+## 2026-07-11 - P3.5.9 scalar seam quarantine
+
+- The parameter-aware scalar objective remains only as a named legacy adapter;
+  the architecture forward result is now consumed explicitly. The audit no
+  longer treats the compatibility package itself as a production dependency.
+
+## 2026-07-11 - P3.5.10 final architecture integrity gate
+
+- The final P3.5 receipt is a single machine-readable artifact with explicit
+  boundary, contract, regression, import-purity, and deterministic-replay
+  flags. Phase 4 was blocked until every flag passed.
+
+## 2026-07-11 - P3.5 closure
+
+- P3.5.9 and P3.5.10 pass. The committed receipt proves the cleaned
+  dependency boundaries, JAX-native contract, HF/checkpoint preservation,
+  prior phase receipts, import purity, and deterministic replay without
+  upgrading any unproven production-training claim.

@@ -315,7 +315,7 @@ class JaxRuntimeBackend:
 
     def place_cpu_value(self, context: ExecutionContext, value: Any) -> Any:
         jax_module, device = self._cpu_context(context)
-        return jax_module.device_put(value, device)
+        return jax_module.device_put(jax_module.numpy.asarray(value), device)
 
     def execute_cpu_smoke(self, context: ExecutionContext, value: Any) -> Any:
         del context
