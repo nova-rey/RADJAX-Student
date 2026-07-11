@@ -28,6 +28,8 @@ CLASSIFICATIONS = {
     "schedules": "research",
     "students": "transitional",
     "students.tiny_debug": "smoke_debug",
+    "debug": "smoke_debug",
+    "debug.tiny_debug": "smoke_debug",
     "training": "transitional",
     "training.distill": "smoke_debug",
 }
@@ -45,6 +47,7 @@ OWNERS = {
     "schedules": "training_policy",
     "steps": "learning_execution",
     "students": "legacy_architecture_compatibility",
+    "debug": "debug_implementations",
     "training": "legacy_training_smoke",
     "validation": "compatibility_validation",
 }

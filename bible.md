@@ -636,3 +636,10 @@
 - The runtime-only architecture state returned by the JAX forward path is
   carried separately from the JSON architecture-state contract, so pytree
   state can flow through value-and-grad without weakening serialized metadata.
+
+## 2026-07-11 - P3.5.4 architecture namespace consolidation
+
+- ArchitectureRegistry is the sole public architecture registry, the package
+  root is behavior-free, and the tiny NumPy backend has an explicit debug
+  namespace. The students package is now a warning-emitting compatibility
+  path with removal assigned to P4.1.

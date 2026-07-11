@@ -5,8 +5,8 @@ from dataclasses import dataclass
 import numpy as np
 from radjax_contract.vocab import VocabContract
 
+from radjax_student.debug.tiny_debug import TinyDebugStudentBackend
 from radjax_student.losses import dense_kl_loss
-from radjax_student.students.tiny_debug import TinyDebugStudentBackend
 
 
 @dataclass(frozen=True)

@@ -11,6 +11,11 @@
       "path": "src/radjax_student/artifacts/__init__.py"
     },
     {
+      "code": "forbidden_import",
+      "message": "A forbidden optional or sibling implementation import exists.",
+      "path": "src/radjax_student/learning/jax_core.py"
+    },
+    {
       "code": "forward_result_discarded",
       "message": "The learning step invokes architecture.forward without consuming its result.",
       "path": "src/radjax_student/steps/single.py"
@@ -19,11 +24,6 @@
       "code": "objective_receives_raw_parameters",
       "message": "The learning step passes raw parameters directly to the objective.",
       "path": "src/radjax_student/steps/single.py"
-    },
-    {
-      "code": "root_exports_transitional_students",
-      "message": "The package root imports the transitional students namespace.",
-      "path": "src/radjax_student/__init__.py"
     },
     {
       "code": "tiny_training_public_export",
@@ -37,14 +37,6 @@
     }
   ],
   "dependency_edges": [
-    {
-      "source": "radjax_student",
-      "target": "radjax_student.students.registry"
-    },
-    {
-      "source": "radjax_student",
-      "target": "radjax_student.students.tiny_debug"
-    },
     {
       "source": "radjax_student.architecture",
       "target": "radjax_student.architecture.errors"
@@ -190,6 +182,10 @@
       "target": "radjax_student.training"
     },
     {
+      "source": "radjax_student.debug",
+      "target": "radjax_student.debug.tiny_debug"
+    },
+    {
       "source": "radjax_student.learning",
       "target": "radjax_student.learning.errors"
     },
@@ -248,6 +244,10 @@
     {
       "source": "radjax_student.learning.hooks",
       "target": "radjax_student.learning.models"
+    },
+    {
+      "source": "radjax_student.learning.jax_core",
+      "target": "radjax_student.architecture"
     },
     {
       "source": "radjax_student.learning.models",
@@ -810,16 +810,20 @@
       "target": "radjax_student.students.tiny_debug.backend"
     },
     {
+      "source": "radjax_student.students.tiny_debug.backend",
+      "target": "radjax_student.debug.tiny_debug"
+    },
+    {
       "source": "radjax_student.training",
       "target": "radjax_student.training.distill"
     },
     {
       "source": "radjax_student.training.distill",
-      "target": "radjax_student.losses"
+      "target": "radjax_student.debug.tiny_debug"
     },
     {
       "source": "radjax_student.training.distill",
-      "target": "radjax_student.students.tiny_debug"
+      "target": "radjax_student.losses"
     },
     {
       "source": "radjax_student.validation",
@@ -895,27 +899,18 @@
     "torch",
     "transformers"
   ],
-  "module_count": 81,
+  "module_count": 84,
   "modules": [
     {
       "classification": "core",
       "forbidden_imports": [],
       "has_module_getattr": false,
-      "imports": [
-        "radjax_student.students.registry",
-        "radjax_student.students.tiny_debug"
-      ],
-      "internal_edges": [
-        "radjax_student.students.registry",
-        "radjax_student.students.tiny_debug"
-      ],
+      "imports": [],
+      "internal_edges": [],
       "module": "radjax_student",
       "owner": "package_boundary",
       "path": "src/radjax_student/__init__.py",
-      "public_exports": [
-        "StudentBackendRegistry",
-        "TinyDebugStudentBackend"
-      ]
+      "public_exports": []
     },
     {
       "classification": "core",
@@ -957,6 +952,7 @@
         "ForwardRequest",
         "ForwardResult",
         "IntermediateSurfaceDescriptor",
+        "JaxArchitectureExecution",
         "NamedRegion",
         "PARAMETER_CATALOG_SCHEMA_VERSION",
         "ParameterCatalog",
@@ -1369,6 +1365,41 @@
       "public_exports": []
     },
     {
+      "classification": "smoke_debug",
+      "forbidden_imports": [],
+      "has_module_getattr": false,
+      "imports": [
+        "radjax_student.debug.tiny_debug"
+      ],
+      "internal_edges": [
+        "radjax_student.debug.tiny_debug"
+      ],
+      "module": "radjax_student.debug",
+      "owner": "debug_implementations",
+      "path": "src/radjax_student/debug/__init__.py",
+      "public_exports": [
+        "TinyDebugStudentBackend"
+      ]
+    },
+    {
+      "classification": "smoke_debug",
+      "forbidden_imports": [],
+      "has_module_getattr": false,
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "numpy",
+        "radjax_contract.provenance",
+        "radjax_contract.vocab",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.debug.tiny_debug",
+      "owner": "debug_implementations",
+      "path": "src/radjax_student/debug/tiny_debug.py",
+      "public_exports": []
+    },
+    {
       "classification": "optional_integration",
       "forbidden_imports": [],
       "has_module_getattr": false,
@@ -1417,6 +1448,7 @@
         "BatchMetadata",
         "CHECKPOINT_POLICY_MODES",
         "CheckpointPolicy",
+        "ForwardObjectiveEvaluator",
         "HookContext",
         "HookPolicy",
         "HookResult",
@@ -1530,6 +1562,30 @@
       "module": "radjax_student.learning.hooks",
       "owner": "learning_contracts",
       "path": "src/radjax_student/learning/hooks.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [
+        "jax",
+        "jax.numpy"
+      ],
+      "has_module_getattr": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "jax",
+        "jax.numpy",
+        "radjax_student.architecture",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture"
+      ],
+      "module": "radjax_student.learning.jax_core",
+      "owner": "learning_contracts",
+      "path": "src/radjax_student/learning/jax_core.py",
       "public_exports": []
     },
     {
@@ -1675,6 +1731,7 @@
       "has_module_getattr": false,
       "imports": [
         "__future__",
+        "collections.abc",
         "radjax_student.learning.models",
         "radjax_student.learning.scopes",
         "typing"
@@ -2720,7 +2777,8 @@
       "has_module_getattr": false,
       "imports": [
         "radjax_student.students.base",
-        "radjax_student.students.registry"
+        "radjax_student.students.registry",
+        "warnings"
       ],
       "internal_edges": [
         "radjax_student.students.base",
@@ -2758,7 +2816,8 @@
         "__future__",
         "dataclasses",
         "radjax_student.students.base",
-        "radjax_student.students.tiny_debug.backend"
+        "radjax_student.students.tiny_debug.backend",
+        "warnings"
       ],
       "internal_edges": [
         "radjax_student.students.base",
@@ -2791,18 +2850,18 @@
       "forbidden_imports": [],
       "has_module_getattr": false,
       "imports": [
-        "__future__",
-        "dataclasses",
-        "numpy",
-        "radjax_contract.provenance",
-        "radjax_contract.vocab",
-        "typing"
+        "radjax_student.debug.tiny_debug",
+        "warnings"
       ],
-      "internal_edges": [],
+      "internal_edges": [
+        "radjax_student.debug.tiny_debug"
+      ],
       "module": "radjax_student.students.tiny_debug.backend",
       "owner": "legacy_architecture_compatibility",
       "path": "src/radjax_student/students/tiny_debug/backend.py",
-      "public_exports": []
+      "public_exports": [
+        "TinyDebugStudentBackend"
+      ]
     },
     {
       "classification": "transitional",
@@ -2830,12 +2889,12 @@
         "dataclasses",
         "numpy",
         "radjax_contract.vocab",
-        "radjax_student.losses",
-        "radjax_student.students.tiny_debug"
+        "radjax_student.debug.tiny_debug",
+        "radjax_student.losses"
       ],
       "internal_edges": [
-        "radjax_student.losses",
-        "radjax_student.students.tiny_debug"
+        "radjax_student.debug.tiny_debug",
+        "radjax_student.losses"
       ],
       "module": "radjax_student.training.distill",
       "owner": "legacy_training_smoke",

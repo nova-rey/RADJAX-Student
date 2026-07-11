@@ -1,4 +1,4 @@
-"""Tiny debug student backend."""
+"""Deprecated compatibility namespace for the tiny debug backend."""
 
 from radjax_student.students.tiny_debug.backend import TinyDebugStudentBackend
 

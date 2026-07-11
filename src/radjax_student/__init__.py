@@ -1,6 +1,7 @@
-"""Student-side RADJAX training scaffold."""
+"""Student-side RADJAX package boundary.
 
-from radjax_student.students.registry import StudentBackendRegistry
-from radjax_student.students.tiny_debug import TinyDebugStudentBackend
+Debug and legacy implementations are intentionally not exported from the
+package root.
+"""
 
-__all__ = ["StudentBackendRegistry", "TinyDebugStudentBackend"]
+__all__: list[str] = []

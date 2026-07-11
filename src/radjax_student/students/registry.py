@@ -1,9 +1,17 @@
 from __future__ import annotations
 
+import warnings
 from dataclasses import dataclass, field
 
 from radjax_student.students.base import StudentBackend
 from radjax_student.students.tiny_debug.backend import TinyDebugStudentBackend
+
+warnings.warn(
+    "StudentBackendRegistry is deprecated; use ArchitectureRegistry for "
+    "architecture plugins",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 @dataclass

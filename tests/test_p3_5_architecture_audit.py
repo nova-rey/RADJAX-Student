@@ -34,7 +34,6 @@ def test_p3_5_audit_records_current_architecture_blockers():
     codes = {item["code"] for item in build_audit(REPO_ROOT)["blockers"]}
 
     assert {
-        "root_exports_transitional_students",
         "transitional_students_namespace",
         "competing_architecture_registries",
         "objective_receives_raw_parameters",
@@ -42,3 +41,4 @@ def test_p3_5_audit_records_current_architecture_blockers():
         "dense_targets_public_export",
         "tiny_training_public_export",
     } <= codes
+    assert "root_exports_transitional_students" not in codes
