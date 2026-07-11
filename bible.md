@@ -540,3 +540,8 @@
 - Preserved event, warning, blocker, and checkpoint occurrence order so a
   deterministic report records what the loop observed without creating a second
   execution or telemetry control surface.
+
+## 2026-07-11 - P3.8C.1 global-step and hook-blocker preservation
+
+- Run reports must record the odometer, not the trip meter: resumed global step
+  and invocation-local steps completed are distinct values.

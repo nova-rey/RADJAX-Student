@@ -92,18 +92,26 @@ class DisableCountingHook:
         return HookResult("fail", warnings=(LearningIssue("detail", "d"),))
 
 
-def build(hooks=(), policy=DEFAULT_POLICY, checkpoint=None, steps=1, batch_source=None):
+def build(
+    hooks=(),
+    policy=DEFAULT_POLICY,
+    checkpoint=None,
+    steps=1,
+    batch_source=None,
+    starting_global_step=0,
+    emit_run_report=False,
+    source_length=3,
+):
     arch = FakeArchitecturePlugin()
     cat = arch.describe_parameters()
     opt = SgdOptimizer()
     cfg = OptimizerConfig(optimizer_id="sgd.v1", learning_rate=0.1)
+    learning_state = LearningState(run_id="r", global_step=starting_global_step)
     state = opt.initialize_state(
         OptimizerInitRequest(
             cfg,
             cat,
-            arch.resolve_update_scope(
-                LearningState(run_id="r").active_update_scope, cat
-            ),
+            arch.resolve_update_scope(learning_state.active_update_scope, cat),
         )
     ).optimizer_state
     batch = LearningBatch(
@@ -122,13 +130,14 @@ def build(hooks=(), policy=DEFAULT_POLICY, checkpoint=None, steps=1, batch_sourc
         optimizer=opt,
         optimizer_config=cfg,
         optimizer_state=state,
-        learning_state=LearningState(run_id="r"),
+        learning_state=learning_state,
         parameters={"head.weight": 0.0, "trunk.bias": 0.0, "trunk.weight": 0.0},
         objective=LinearObjective(),
-        batch_source=batch_source or SyntheticBatchSource((batch,) * 3),
+        batch_source=batch_source or SyntheticBatchSource((batch,) * source_length),
         checkpoint=checkpoint,
         hooks=hooks,
         hook_policy=policy,
+        emit_run_report=emit_run_report,
     )
 
 
@@ -403,3 +412,51 @@ def test_disable_hook_preserves_failure_class_and_disablement():
     assert (
         "learning_hook_failed_continue" in codes and "learning_hook_disabled" in codes
     )
+
+
+def test_loop_start_hook_blocker_stored_in_result():
+    result = build((FailingHook(),))
+    assert [result.hook_blockers[0].code] == ["learning_hook_failed"]
+
+
+def test_batch_received_hook_blocker_stored_in_result():
+    result = build((FailingHook(event_to_fail="batch_received"),))
+    assert [issue.code for issue in result.hook_blockers] == ["learning_hook_failed"]
+
+
+def test_step_start_hook_blocker_stored_in_result():
+    result = build((FailingHook(event_to_fail="step_start"),))
+    assert [issue.code for issue in result.hook_blockers] == ["learning_hook_failed"]
+
+
+def test_step_end_hook_blocker_stored_in_result():
+    result = build((FailingHook(event_to_fail="step_end"),))
+    assert [issue.code for issue in result.hook_blockers] == ["learning_hook_failed"]
+
+
+def test_checkpoint_hook_blocker_stored_in_result():
+    result = build(
+        (FailingHook(event_to_fail="checkpoint"),),
+        checkpoint=lambda execution: "receipt",
+    )
+    assert [issue.code for issue in result.hook_blockers] == ["learning_hook_failed"]
+
+
+def test_source_exhausted_loop_end_blocker_stored_in_result():
+    result = build((FailingHook(event_to_fail="loop_end"),), steps=2, source_length=1)
+    assert [issue.code for issue in result.hook_blockers] == ["learning_hook_failed"]
+
+
+def test_max_steps_loop_end_blocker_stored_in_result():
+    result = build((FailingHook(event_to_fail="loop_end"),), steps=1)
+    assert [issue.code for issue in result.hook_blockers] == ["learning_hook_failed"]
+
+
+def test_nonzero_start_global_step_preserved_before_update_failure():
+    result = build((FailingHook(),), starting_global_step=40)
+    assert result.steps_completed == 0 and result.global_step == 40
+
+
+def test_nonzero_start_global_step_advances_after_completed_step():
+    result = build((FailingHook(event_to_fail="step_end"),), starting_global_step=40)
+    assert result.steps_completed == 1 and result.global_step == 41

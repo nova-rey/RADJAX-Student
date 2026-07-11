@@ -332,7 +332,7 @@ def build_learning_run_report(
             loop_result.status,
             loop_result.stop_reason,
             loop_result.steps_completed,
-            loop_result.steps_completed,
+            loop_result.global_step,
         ),
         metrics=tuple(summaries),
         lifecycle=RunLifecycleSummary(

@@ -67,6 +67,7 @@ class LearningLoopResult:
     status: str
     final_execution: SingleStepExecution | None
     steps_completed: int
+    global_step: int
     batches_consumed: int
     stop_reason: str
     metrics: tuple[MetricRecord, ...]
@@ -94,6 +95,8 @@ def _run_learning_loop(
     hook_policy: HookPolicy = DEFAULT_HOOK_POLICY,
 ) -> LearningLoopResult:
     execution: SingleStepExecution | None = None
+    steps_completed = 0
+    batches_consumed = 0
     metrics: list[MetricRecord] = []
     checkpoints: list[str] = []
     warnings: list[LearningIssue] = []
@@ -128,6 +131,7 @@ def _run_learning_loop(
         return LearningLoopResult(
             "fail",
             execution,
+            steps_completed,
             learning_state.global_step,
             0,
             "hook_failure",
@@ -135,6 +139,7 @@ def _run_learning_loop(
             (),
             tuple(warnings),
             tuple(events),
+            start.blockers,
         )
     for _ in range(config.max_steps):
         batch = batch_source.next_batch()
@@ -143,39 +148,46 @@ def _run_learning_loop(
             return LearningLoopResult(
                 "fail" if terminal.blockers else "pass",
                 execution,
+                steps_completed,
                 learning_state.global_step,
-                learning_state.global_step,
+                batches_consumed,
                 "hook_failure" if terminal.blockers else "source_exhausted",
                 tuple(metrics[-config.metric_history_limit :]),
                 tuple(checkpoints),
                 tuple(warnings),
                 tuple(events),
+                terminal.blockers,
             )
+        batches_consumed += 1
         dispatched = observe("batch_received", learning_state)
         if dispatched.blockers:
             return LearningLoopResult(
                 "fail",
                 execution,
+                steps_completed,
                 learning_state.global_step,
-                learning_state.global_step,
+                batches_consumed,
                 "hook_failure",
                 tuple(metrics[-config.metric_history_limit :]),
                 tuple(checkpoints),
                 tuple(warnings),
                 tuple(events),
+                dispatched.blockers,
             )
         dispatched = observe("step_start", learning_state)
         if dispatched.blockers:
             return LearningLoopResult(
                 "fail",
                 execution,
+                steps_completed,
                 learning_state.global_step,
-                learning_state.global_step,
+                batches_consumed,
                 "hook_failure",
                 tuple(metrics[-config.metric_history_limit :]),
                 tuple(checkpoints),
                 tuple(warnings),
                 tuple(events),
+                dispatched.blockers,
             )
         try:
             execution = learning_step(
@@ -201,8 +213,9 @@ def _run_learning_loop(
             return LearningLoopResult(
                 "fail",
                 execution,
+                steps_completed,
                 learning_state.global_step,
-                learning_state.global_step,
+                batches_consumed,
                 "learning_step_failure",
                 tuple(metrics[-config.metric_history_limit :]),
                 tuple(checkpoints),
@@ -215,19 +228,22 @@ def _run_learning_loop(
             execution.optimizer_state,
             execution.parameters,
         )
+        steps_completed += 1
         metrics.extend(execution.result.metrics)
         dispatched = observe("step_end", learning_state)
         if dispatched.blockers:
             return LearningLoopResult(
                 "fail",
                 execution,
+                steps_completed,
                 learning_state.global_step,
-                learning_state.global_step,
+                batches_consumed,
                 "hook_failure",
                 tuple(metrics[-config.metric_history_limit :]),
                 tuple(checkpoints),
                 tuple(warnings),
                 tuple(events),
+                dispatched.blockers,
             )
         if (
             checkpoint
@@ -248,8 +264,9 @@ def _run_learning_loop(
                 return LearningLoopResult(
                     "fail",
                     execution,
+                    steps_completed,
                     learning_state.global_step,
-                    learning_state.global_step,
+                    batches_consumed,
                     "checkpoint_failure",
                     tuple(metrics[-config.metric_history_limit :]),
                     tuple(checkpoints),
@@ -262,25 +279,29 @@ def _run_learning_loop(
                 return LearningLoopResult(
                     "fail",
                     execution,
+                    steps_completed,
                     learning_state.global_step,
-                    learning_state.global_step,
+                    batches_consumed,
                     "hook_failure",
                     tuple(metrics[-config.metric_history_limit :]),
                     tuple(checkpoints),
                     tuple(warnings),
                     tuple(events),
+                    checkpoint_dispatch.blockers,
                 )
     terminal = observe("loop_end", learning_state)
     return LearningLoopResult(
         "fail" if terminal.blockers else "pass",
         execution,
+        steps_completed,
         learning_state.global_step,
-        learning_state.global_step,
+        batches_consumed,
         "hook_failure" if terminal.blockers else "max_steps",
         tuple(metrics[-config.metric_history_limit :]),
         tuple(checkpoints),
         tuple(warnings),
         tuple(events),
+        terminal.blockers,
     )
 
 

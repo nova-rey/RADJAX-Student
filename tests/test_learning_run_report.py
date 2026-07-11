@@ -8,6 +8,7 @@ import pytest
 from radjax_student.architecture import ArchitectureConfig
 from radjax_student.architecture.testing import FakeArchitecturePlugin
 from radjax_student.learning import (
+    HookResult,
     LearningBatch,
     LearningIssue,
     LearningState,
@@ -46,11 +47,32 @@ class LinearObjective:
         }
 
 
-def make_loop_result(status="pass"):
+@dataclass(frozen=True)
+class FailingHook:
+    hook_id: str = "report-fail"
+    priority: int = 0
+    supported_events: tuple[str, ...] = (
+        "loop_start",
+        "batch_received",
+        "step_start",
+        "step_end",
+        "checkpoint",
+        "loop_end",
+    )
+    event_to_fail: str = "loop_start"
+
+    def on_event(self, context):
+        if context.event_type == self.event_to_fail:
+            return HookResult("fail", warnings=(LearningIssue("hook", "failed"),))
+        return HookResult()
+
+
+def make_loop_result(status="pass", steps_completed=2, global_step=2):
     return LearningLoopResult(
         status=status,
         final_execution=None,
-        steps_completed=2,
+        steps_completed=steps_completed,
+        global_step=global_step,
         batches_consumed=2,
         stop_reason="max_steps",
         metrics=(
@@ -82,13 +104,21 @@ def make_report(**kwargs):
     return build_learning_run_report(**defaults)
 
 
-def run_loop(*, emit_run_report=False, max_steps=1):
+def run_loop(
+    *,
+    emit_run_report=False,
+    max_steps=1,
+    starting_global_step=0,
+    hooks=(),
+    checkpoint=None,
+    source_length=3,
+):
     architecture = FakeArchitecturePlugin()
     optimizer = SgdOptimizer()
     optimizer_config = OptimizerConfig(
         optimizer_id=optimizer.optimizer_id, learning_rate=0.1
     )
-    state = LearningState(run_id="loop-report")
+    state = LearningState(run_id="loop-report", global_step=starting_global_step)
     selection = architecture.resolve_update_scope(
         state.active_update_scope, architecture.describe_parameters()
     )
@@ -103,7 +133,10 @@ def run_loop(*, emit_run_report=False, max_steps=1):
         targets={"target": {"y": 3.0}},
     )
     return run_learning_loop(
-        config=LearningLoopConfig(max_steps=max_steps),
+        config=LearningLoopConfig(
+            max_steps=max_steps,
+            checkpoint_every_n_steps=1 if checkpoint is not None else None,
+        ),
         architecture=architecture,
         architecture_config=ArchitectureConfig(
             architecture_id=architecture.architecture_id, sequence_length=4
@@ -114,7 +147,9 @@ def run_loop(*, emit_run_report=False, max_steps=1):
         learning_state=state,
         parameters={"head.weight": 0.0, "trunk.bias": 0.0, "trunk.weight": 0.0},
         objective=LinearObjective(),
-        batch_source=SyntheticBatchSource((batch,) * 3),
+        batch_source=SyntheticBatchSource((batch,) * source_length),
+        checkpoint=checkpoint,
+        hooks=hooks,
         emit_run_report=emit_run_report,
     )
 
@@ -395,3 +430,71 @@ def test_52_report_failure_does_not_rewrite_successful_learning_outcome(monkeypa
         and result.stop_reason == "max_steps"
         and result.report is None
     )
+
+
+def test_resumed_run_report_preserves_actual_global_step():
+    report = make_report(
+        loop_result=make_loop_result(steps_completed=5, global_step=105)
+    )
+    assert report.status.steps_completed == 5 and report.status.global_step == 105
+
+
+def test_report_global_step_is_not_derived_from_steps_completed():
+    assert (
+        make_report(
+            loop_result=make_loop_result(steps_completed=2, global_step=50)
+        ).status.global_step
+        == 50
+    )
+
+
+def test_fresh_run_report_global_step_matches_final_state():
+    report = make_report(loop_result=make_loop_result(steps_completed=2, global_step=2))
+    assert report.status.steps_completed == 2 and report.status.global_step == 2
+
+
+def test_loop_start_hook_blocker_appears_in_report():
+    result = run_loop(emit_run_report=True, hooks=(FailingHook(),))
+    assert (
+        result.stop_reason == "hook_failure"
+        and result.hook_blockers[0].code == "learning_hook_failed"
+        and result.report.issues.hook_blocker_codes == ("learning_hook_failed",)
+    )
+
+
+def test_step_end_hook_blocker_appears_in_report():
+    result = run_loop(
+        emit_run_report=True, hooks=(FailingHook(event_to_fail="step_end"),)
+    )
+    assert (
+        result.steps_completed == 1
+        and result.global_step == 1
+        and result.report.issues.hook_blocker_codes == ("learning_hook_failed",)
+    )
+
+
+def test_checkpoint_hook_blocker_appears_in_report():
+    result = run_loop(
+        emit_run_report=True,
+        hooks=(FailingHook(event_to_fail="checkpoint"),),
+        checkpoint=lambda execution: "receipt",
+    )
+    assert (
+        result.checkpoints == ("receipt",)
+        and result.stop_reason == "hook_failure"
+        and result.report.issues.hook_blocker_codes == ("learning_hook_failed",)
+    )
+
+
+def test_loop_end_hook_blocker_appears_in_report():
+    result = run_loop(
+        emit_run_report=True, hooks=(FailingHook(event_to_fail="loop_end"),)
+    )
+    assert (
+        result.stop_reason == "hook_failure"
+        and result.report.issues.hook_blocker_codes == ("learning_hook_failed",)
+    )
+
+
+def test_hook_blocker_order_preserved_in_report():
+    assert make_report().issues.hook_blocker_codes == ("blocker-one", "blocker-two")

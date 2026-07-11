@@ -24,6 +24,10 @@ The conversion is pure. It does not write files, make network calls, mutate the
 loop result, or serialize parameters, gradients, optimizer state, architecture
 state, runtime handles, raw batches, or traceback data.
 
+`global_step` is the actual final learning-state step and is not inferred from
+the number of steps completed in the current loop invocation. Hook blockers from
+every fail-fast lifecycle boundary are preserved in the loop result and report.
+
 ## Metrics And Ordering
 
 Each metric name is summarized with `count`, `last`, `minimum`, `maximum`,
