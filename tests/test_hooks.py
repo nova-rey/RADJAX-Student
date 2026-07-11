@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import FrozenInstanceError, dataclass
 
 import pytest
 
@@ -226,3 +226,136 @@ def test_30_serialization_deterministic():
         ctx().to_dict() == ctx().to_dict()
         and HookPolicy().to_dict() == HookPolicy().to_dict()
     )
+
+
+def test_31_fail_fast_preserves_warning():
+    assert "explicit" in [
+        x.code
+        for x in dispatch_hooks(
+            (Hook("x", result=fail()),), HookPolicy(), ctx()
+        ).warnings
+    ]
+
+
+def test_32_fail_fast_stops_later():
+    assert (
+        len(
+            dispatch_hooks(
+                (Hook("x", result=fail()), Hook("z")), HookPolicy(), ctx()
+            ).receipts
+        )
+        == 1
+    )
+
+
+def test_33_disable_invalid_class():
+    assert "learning_hook_result_invalid" in [
+        x.code
+        for x in dispatch_hooks(
+            (Hook("x", result=object()),), HookPolicy("disable_hook"), ctx()
+        ).warnings
+    ]
+
+
+def test_34_disable_invalid_disabled():
+    assert "learning_hook_disabled" in [
+        x.code
+        for x in dispatch_hooks(
+            (Hook("x", result=object()),), HookPolicy("disable_hook"), ctx()
+        ).warnings
+    ]
+
+
+def test_35_disable_metric_class():
+    assert "learning_hook_metric_policy_violation" in [
+        x.code
+        for x in dispatch_hooks(
+            (Hook("x", result=HookResult(metrics=(MetricRecord("loss", 1, 0),))),),
+            HookPolicy("disable_hook", False),
+            ctx(),
+        ).warnings
+    ]
+
+
+def test_36_disable_metric_disabled():
+    assert "learning_hook_disabled" in [
+        x.code
+        for x in dispatch_hooks(
+            (Hook("x", result=HookResult(metrics=(MetricRecord("loss", 1, 0),))),),
+            HookPolicy("disable_hook", False),
+            ctx(),
+        ).warnings
+    ]
+
+
+@dataclass(frozen=True)
+class RaisingHook:
+    hook_id: str = "raise"
+    priority: int = 0
+    supported_events: tuple[str, ...] = ("loop_start",)
+
+    def on_event(self, context):
+        raise RuntimeError("bad")
+
+
+def test_37_exception_type():
+    assert (
+        dispatch_hooks((RaisingHook(),), HookPolicy(), ctx())
+        .receipts[0]
+        .metadata["exception_type"]
+        == "RuntimeError"
+    )
+
+
+def test_38_disable_exception_class():
+    assert "learning_hook_failed_continue" in [
+        x.code
+        for x in dispatch_hooks(
+            (RaisingHook(),), HookPolicy("disable_hook"), ctx()
+        ).warnings
+    ]
+
+
+def test_39_disable_exception_disabled():
+    assert "learning_hook_disabled" in [
+        x.code
+        for x in dispatch_hooks(
+            (RaisingHook(),), HookPolicy("disable_hook"), ctx()
+        ).warnings
+    ]
+
+
+def test_40_receipt_original_code():
+    assert (
+        dispatch_hooks((Hook("x", result=object()),), HookPolicy("disable_hook"), ctx())
+        .receipts[0]
+        .failure_code
+        == "learning_hook_result_invalid"
+    )
+
+
+def test_41_receipt_disabled():
+    assert (
+        dispatch_hooks((Hook("x", result=object()),), HookPolicy("disable_hook"), ctx())
+        .receipts[0]
+        .disabled_after_failure
+    )
+
+
+def test_42_context_immutable_field():
+    with pytest.raises(FrozenInstanceError):
+        ctx().run_id = "changed"
+
+
+def test_43_metrics_tuple_immutable():
+    with pytest.raises(FrozenInstanceError):
+        ctx().metrics += ()
+
+
+def test_44_registration_serialization():
+    assert HookRegistration("x", 1).to_dict() == HookRegistration("x", 1).to_dict()
+
+
+def test_45_dispatch_serialization():
+    r = dispatch_hooks((Hook("x"),), HookPolicy(), ctx())
+    assert r.to_dict() == r.to_dict()

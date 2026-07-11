@@ -511,3 +511,6 @@
 
 - The hook contract was not considered complete until model validation, failure
   fidelity, mutation boundaries, and focused tests were all present.
+
+- Failure policy records both what failed and what action the dispatcher took;
+  disablement must not erase the original failure identity.

@@ -330,27 +330,28 @@ def dispatch_hooks(
                     metadata=details,
                 )
             )
+            if result is not None:
+                warnings.extend(result.warnings)
             if policy.failure_mode == "fail_fast":
                 blockers.append(issue)
                 break
-            warnings.extend(result.warnings if result is not None else ())
-            warnings.append(
-                LearningIssue(
-                    "learning_hook_disabled"
-                    if disable
-                    else (
-                        code
-                        if code
-                        in (
-                            "learning_hook_result_invalid",
-                            "learning_hook_metric_policy_violation",
-                        )
-                        else "learning_hook_failed_continue"
-                    ),
-                    issue.message,
-                    issue.details,
+            if code in (
+                "learning_hook_result_invalid",
+                "learning_hook_metric_policy_violation",
+            ):
+                warnings.append(LearningIssue(code, issue.message, issue.details))
+            elif code == "learning_hook_failed":
+                warnings.append(
+                    LearningIssue(
+                        "learning_hook_failed_continue", issue.message, issue.details
+                    )
                 )
-            )
+            if disable:
+                warnings.append(
+                    LearningIssue(
+                        "learning_hook_disabled", issue.message, issue.details
+                    )
+                )
             disabled.update((hook.hook_id,) if disable else ())
         else:
             receipts.append(

@@ -21,3 +21,6 @@ All public hook models validate at runtime, malformed hooks are rejected before
 dispatch, explicit failure details are preserved, and non-fatal warnings retain
 their specific failure class. Mutation boundaries and focused dispatch evidence
 live in `tests/test_hooks.py`.
+
+Fail-fast preserves explicit hook warnings before stopping. Disable-hook
+preserves the original failure class and separately records hook disablement.
