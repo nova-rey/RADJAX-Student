@@ -590,3 +590,10 @@
 - Phase 3 closes with one public-API audit receipt. The gate audits every
   accepted learning seam and depends on evidence from the real P3.8 and P3.9
   acceptance paths; it does not introduce another learning control plane.
+
+## 2026-07-11 - P3.10.1 independent seam hardening
+
+- Phase 3 closes only when the final gate independently exercises the accepted
+  architecture, optimizer, single-step, loop, and checkpoint seams. Downstream
+  smoke receipts may confirm integration, but they may not stand in for the
+  seams they integrate.
