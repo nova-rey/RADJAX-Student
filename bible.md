@@ -705,3 +705,9 @@
 
 - The final acceptance implementation is published alongside its committed
   receipt and tests; the gate is not represented only by a generated artifact.
+
+## 2026-07-11 - P3.5 base/JAX CI split
+
+- The final architecture receipt test is JAX-required and runs in the
+  dedicated `test-jax` job; base CI skips it while retaining fresh import and
+  contract checks without optional ML dependencies.

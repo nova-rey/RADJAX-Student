@@ -3,6 +3,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+pytest.importorskip("jax")
+
 from radjax_student.learning.p3_5_acceptance import (
     FLAGS,
     SCHEMA,

@@ -64,4 +64,7 @@ jobs:
         run: python -m pytest -q -m jax
 
       - name: Run JAX acceptance gate
-        run: python -m pytest -q tests/test_p3_5_forward_surface_contract.py
+        run: >-
+          python -m pytest -q
+          tests/test_p3_5_forward_surface_contract.py
+          tests/test_p3_5_final_acceptance.py
