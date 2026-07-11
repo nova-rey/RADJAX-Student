@@ -8,8 +8,10 @@ import pytest
 
 from radjax_student.architecture import ArchitectureState
 from radjax_student.checkpoints import (
+    CONTINUATION_CHECKPOINT_ROLE,
     LearningCheckpoint,
     load_learning_checkpoint,
+    reject_implicit_hf_conversion,
     save_learning_checkpoint,
 )
 from radjax_student.learning import LearningState
@@ -93,6 +95,18 @@ def test_v2_checkpoint_includes_source_component_and_manifest_ownership(tmp_path
         "source.json",
     ]
     assert manifest["ownership"]["source.json"] == "batch_source"
+    assert saved.role == CONTINUATION_CHECKPOINT_ROLE
+    assert manifest["checkpoint_role"] == CONTINUATION_CHECKPOINT_ROLE
+    assert manifest["payload_descriptors"]["architecture.json"]["kind"] == (
+        "pytree_reference"
+    )
+
+
+def test_continuation_checkpoint_cannot_be_used_as_hf_distribution(tmp_path):
+    checkpoint = _checkpoint()
+    save_learning_checkpoint(checkpoint, tmp_path)
+    with pytest.raises(ValueError, match="explicit HF distribution conversion"):
+        reject_implicit_hf_conversion(checkpoint)
 
 
 def test_source_component_has_hash_size_and_deterministic_payload(tmp_path):

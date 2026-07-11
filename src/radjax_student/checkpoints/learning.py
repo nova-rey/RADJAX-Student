@@ -16,6 +16,8 @@ from radjax_student.learning import LearningState
 from radjax_student.optimizers import OptimizerState
 
 CHECKPOINT_SCHEMA_VERSION = "learning_checkpoint.v2"
+CONTINUATION_CHECKPOINT_ROLE = "radjax_continuation"
+HF_DISTRIBUTION_CHECKPOINT_ROLE = "hf_distribution"
 CHECKPOINT_FILES = (
     "architecture.json",
     "learning.json",
@@ -30,6 +32,20 @@ _OWNERSHIP = {
     "optimizer.json": "optimizer",
     "source.json": "batch_source",
 }
+_PAYLOAD_DESCRIPTORS = {
+    "architecture.json": {
+        "owner": "architecture",
+        "codec": "json",
+        "kind": "pytree_reference",
+    },
+    "learning.json": {"owner": "learning", "codec": "json", "kind": "state"},
+    "optimizer.json": {"owner": "optimizer", "codec": "json", "kind": "state"},
+    "source.json": {
+        "owner": "batch_source",
+        "codec": "json",
+        "kind": "source_state",
+    },
+}
 
 
 @dataclass(frozen=True)
@@ -43,6 +59,7 @@ class LearningCheckpoint:
     manifest: Mapping[str, Any]
     integrity: Mapping[str, str]
     schema_version: str = CHECKPOINT_SCHEMA_VERSION
+    role: str = CONTINUATION_CHECKPOINT_ROLE
 
     def __post_init__(self) -> None:
         if (
@@ -51,6 +68,16 @@ class LearningCheckpoint:
         ):
             raise ValueError(
                 "checkpoint runtime reference or schema version is invalid"
+            )
+        if self.role not in {
+            CONTINUATION_CHECKPOINT_ROLE,
+            HF_DISTRIBUTION_CHECKPOINT_ROLE,
+        }:
+            raise ValueError("unsupported checkpoint role")
+        if self.role == HF_DISTRIBUTION_CHECKPOINT_ROLE:
+            raise ValueError(
+                "HF distribution checkpoints require an explicit conversion "
+                "boundary and cannot use the continuation payload"
             )
         if self.learning_state.optimizer_step != self.optimizer_state.step:
             raise ValueError("learning and optimizer step continuity mismatch")
@@ -76,6 +103,7 @@ class LearningCheckpoint:
             "learning.json": {
                 "runtime_reference": self.runtime_reference,
                 "learning_state": self.learning_state.to_dict(),
+                "checkpoint_role": self.role,
             },
             "optimizer.json": {
                 "optimizer_state": self.optimizer_state.to_dict(),
@@ -94,10 +122,12 @@ def save_learning_checkpoint(
     sizes = {name: len(_encode(payload)) for name, payload in payloads.items()}
     manifest = {
         "schema_version": CHECKPOINT_SCHEMA_VERSION,
+        "checkpoint_role": checkpoint.role,
         "files": list(payloads),
         "hashes": hashes,
         "sizes": sizes,
         "ownership": _OWNERSHIP,
+        "payload_descriptors": _PAYLOAD_DESCRIPTORS,
     }
     integrity = {"algorithm": "sha256", "manifest_digest": _digest(_encode(manifest))}
     for name, payload in payloads.items():
@@ -114,6 +144,7 @@ def save_learning_checkpoint(
         checkpoint.source_state,
         manifest,
         integrity,
+        role=checkpoint.role,
     )
 
 
@@ -160,6 +191,7 @@ def load_learning_checkpoint(
         source["source_state"],
         manifest_payload,
         integrity,
+        role=manifest_payload.get("checkpoint_role", CONTINUATION_CHECKPOINT_ROLE),
     )
 
 
@@ -202,6 +234,13 @@ def _validate_manifest(manifest: Mapping[str, Any]) -> None:
         raise ValueError("checkpoint manifest sizes are invalid")
     if manifest.get("ownership") != _OWNERSHIP:
         raise ValueError("checkpoint manifest ownership is invalid")
+    descriptors = manifest.get("payload_descriptors")
+    if descriptors is not None and descriptors != _PAYLOAD_DESCRIPTORS:
+        raise ValueError("checkpoint payload descriptors are invalid")
+    if manifest.get("checkpoint_role", CONTINUATION_CHECKPOINT_ROLE) != (
+        CONTINUATION_CHECKPOINT_ROLE
+    ):
+        raise ValueError("checkpoint role is not a continuation role")
 
 
 def _freeze_source_state(value: Mapping[str, Any] | None) -> Mapping[str, Any] | None:

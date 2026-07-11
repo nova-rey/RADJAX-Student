@@ -657,3 +657,9 @@
   preserve architecture identity and distinct RADJAX, JAX-pytree, and HF
   parameter paths. Architecture configuration remains the source of truth;
   runtime sharding and optional HF packages are outside this contract.
+
+## 2026-07-11 - P3.5.7 checkpoint ownership and migration
+
+- Checkpoint v2 remains canonical with additive role and payload-descriptor
+  metadata. Continuation state is separate from future HF distribution data,
+  and implicit cross-format use is rejected at an explicit boundary.

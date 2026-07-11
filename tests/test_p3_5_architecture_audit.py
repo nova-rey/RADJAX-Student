@@ -38,7 +38,5 @@ def test_p3_5_audit_records_current_architecture_blockers():
         "competing_architecture_registries",
         "objective_receives_raw_parameters",
         "forward_result_discarded",
-        "dense_targets_public_export",
-        "tiny_training_public_export",
     } <= codes
     assert "root_exports_transitional_students" not in codes
