@@ -6,6 +6,12 @@ from radjax_student.learning.errors import (
     LearningErrorCode,
     LearningIssue,
 )
+from radjax_student.learning.hooks import (
+    HookContext,
+    HookPolicy,
+    HookResult,
+    dispatch_hooks,
+)
 from radjax_student.learning.models import (
     CHECKPOINT_POLICY_MODES,
     LEARNING_CLAIMS_NOT_MADE,
@@ -71,6 +77,10 @@ __all__ = [
     "MetricSeries",
     "MetricSummary",
     "LearningEvent",
+    "HookContext",
+    "HookPolicy",
+    "HookResult",
+    "dispatch_hooks",
     "BatchMetadata",
     "ObjectiveRequest",
     "ObjectiveResult",
