@@ -127,6 +127,7 @@ class HookRegistration:
             not isinstance(self.hook_id, str)
             or not self.hook_id
             or type(self.priority) is not int
+            or not isinstance(self.enabled, bool)
             or any(x not in HOOK_EVENTS for x in self.supported_events)
         ):
             raise ValueError("learning_hook_invalid")
@@ -184,6 +185,28 @@ class HookExecutionReceipt:
     failure_code: str | None = None
     metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
+    def __post_init__(self):
+        if (
+            not isinstance(self.hook_id, str)
+            or not self.hook_id
+            or self.event_type not in HOOK_EVENTS
+            or type(self.event_sequence) is not int
+            or self.event_sequence < 0
+            or self.status not in ("pass", "warning", "fail")
+            or type(self.metrics_emitted) is not int
+            or self.metrics_emitted < 0
+            or not isinstance(self.disabled_after_failure, bool)
+            or (
+                self.failure_code is not None
+                and (not isinstance(self.failure_code, str) or not self.failure_code)
+            )
+        ):
+            raise ValueError("learning_hook_invalid")
+        object.__setattr__(
+            self, "warning_codes", unique_strings(self.warning_codes, "warning_codes")
+        )
+        object.__setattr__(self, "metadata", freeze_json_mapping(self.metadata))
+
     def to_dict(self):
         return {
             "hook_id": self.hook_id,
@@ -207,6 +230,33 @@ class HookDispatchResult:
     blockers: tuple[LearningIssue, ...]
     disabled_hook_ids: tuple[str, ...]
 
+    def __post_init__(self):
+        if (
+            self.status not in ("pass", "warning", "fail")
+            or any(not isinstance(x, HookExecutionReceipt) for x in self.receipts)
+            or any(not isinstance(x, MetricRecord) for x in self.metrics)
+            or any(
+                not isinstance(x, LearningIssue)
+                for x in (*self.warnings, *self.blockers)
+            )
+        ):
+            raise ValueError("learning_hook_dispatch_failed")
+        if (
+            (self.status == "fail" and not self.blockers)
+            or (self.status == "pass" and (self.blockers or self.warnings))
+            or (self.status == "warning" and (not self.warnings or self.blockers))
+        ):
+            raise ValueError("learning_hook_dispatch_failed")
+        object.__setattr__(self, "receipts", tuple(self.receipts))
+        object.__setattr__(self, "metrics", tuple(self.metrics))
+        object.__setattr__(self, "warnings", tuple(self.warnings))
+        object.__setattr__(self, "blockers", tuple(self.blockers))
+        object.__setattr__(
+            self,
+            "disabled_hook_ids",
+            tuple(sorted(unique_strings(self.disabled_hook_ids, "disabled_hook_ids"))),
+        )
+
     def to_dict(self):
         return {
             "status": self.status,
@@ -221,6 +271,17 @@ class HookDispatchResult:
 def dispatch_hooks(
     hooks, policy: HookPolicy, context: HookContext, disabled_hook_ids=()
 ):
+    for hook in hooks:
+        if (
+            not isinstance(getattr(hook, "hook_id", None), str)
+            or not hook.hook_id
+            or type(getattr(hook, "priority", None)) is not int
+            or not isinstance(getattr(hook, "supported_events", None), (tuple, list))
+            or len(set(hook.supported_events)) != len(hook.supported_events)
+            or any(event not in HOOK_EVENTS for event in hook.supported_events)
+            or not callable(getattr(hook, "on_event", None))
+        ):
+            raise ValueError("learning_hook_invalid")
     disabled = set(disabled_hook_ids)
     ordered = sorted(hooks, key=lambda h: (h.priority, h.hook_id))
     if len({h.hook_id for h in ordered}) != len(ordered):
@@ -248,7 +309,7 @@ def dispatch_hooks(
                 result = None
             elif result.status == "fail":
                 code = "learning_hook_failed"
-                details = {"hook_id": hook.hook_id}
+                details = {"hook_id": hook.hook_id, **dict(result.metadata)}
             elif result.metrics and not policy.allow_metric_emission:
                 code = "learning_hook_metric_policy_violation"
                 details = {"hook_id": hook.hook_id}
@@ -272,11 +333,20 @@ def dispatch_hooks(
             if policy.failure_mode == "fail_fast":
                 blockers.append(issue)
                 break
+            warnings.extend(result.warnings if result is not None else ())
             warnings.append(
                 LearningIssue(
                     "learning_hook_disabled"
                     if disable
-                    else "learning_hook_failed_continue",
+                    else (
+                        code
+                        if code
+                        in (
+                            "learning_hook_result_invalid",
+                            "learning_hook_metric_policy_violation",
+                        )
+                        else "learning_hook_failed_continue"
+                    ),
                     issue.message,
                     issue.details,
                 )

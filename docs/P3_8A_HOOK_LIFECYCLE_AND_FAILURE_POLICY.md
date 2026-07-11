@@ -14,3 +14,10 @@ stable order, and core blockers can be merged without being overwritten.
 
 P3.8A does not integrate hooks into the loop. P3.8B, P3.8C, P3.8D, and P3.9
 remain pending.
+
+## Validation and Evidence
+
+All public hook models validate at runtime, malformed hooks are rejected before
+dispatch, explicit failure details are preserved, and non-fatal warnings retain
+their specific failure class. Mutation boundaries and focused dispatch evidence
+live in `tests/test_hooks.py`.

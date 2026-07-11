@@ -508,3 +508,6 @@
 - The partial implementation was insufficient because a passing narrow test did
   not establish serialization, metric policy, mutation boundaries, or failure
   behavior. Loop integration remains deliberately deferred to P3.8B.
+
+- The hook contract was not considered complete until model validation, failure
+  fidelity, mutation boundaries, and focused tests were all present.
