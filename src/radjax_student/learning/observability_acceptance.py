@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import ast
 import importlib
 import json
 from collections.abc import Callable, Mapping
@@ -74,6 +75,16 @@ _FORBIDDEN_METADATA = {
 
 
 @dataclass(frozen=True)
+class P38AuditDependencies:
+    metric_series_factory: Callable[..., Any]
+    dispatch_hooks_fn: Callable[..., Any]
+    run_loop_fn: Callable[..., Any]
+    build_report_fn: Callable[..., Any]
+    source_loader: Callable[[Path], str]
+    path_exists_fn: Callable[[Path], bool]
+
+
+@dataclass(frozen=True)
 class P38ObservabilityAcceptanceReceipt:
     schema_version: str
     status: Literal["pass", "fail"]
@@ -136,10 +147,13 @@ class P38ObservabilityAcceptanceReceipt:
         return json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
 
 
-def run_p3_8_observability_acceptance() -> P38ObservabilityAcceptanceReceipt:
+def run_p3_8_observability_acceptance(
+    dependencies: P38AuditDependencies | None = None,
+) -> P38ObservabilityAcceptanceReceipt:
     """Audit the completed P3.8 stack without changing learning behavior."""
 
-    audits: tuple[tuple[str, Callable[[], bool]], ...] = (
+    deps = _default_dependencies() if dependencies is None else dependencies
+    audits: tuple[tuple[str, Callable[[P38AuditDependencies], bool]], ...] = (
         ("metrics_contract_valid", _audit_metrics),
         ("hook_contract_valid", _audit_hooks),
         ("loop_integration_valid", _audit_loop_integration),
@@ -156,9 +170,16 @@ def run_p3_8_observability_acceptance() -> P38ObservabilityAcceptanceReceipt:
     blockers: list[LearningIssue] = []
     for field_name, audit in audits:
         try:
-            values[field_name] = audit()
-        except (TypeError, ValueError, AttributeError, KeyError):
+            values[field_name] = bool(audit(deps))
+        except Exception as exc:
             values[field_name] = False
+            blockers.append(
+                LearningIssue(
+                    "p3_8_internal_error",
+                    "P3.8 acceptance audit raised unexpectedly",
+                    {"section": field_name, "exception_type": type(exc).__name__},
+                )
+            )
         if not values[field_name]:
             blockers.append(
                 LearningIssue(
@@ -190,14 +211,14 @@ def _receipt_from_values(
     )
 
 
-def _audit_metrics() -> bool:
+def _audit_metrics(deps: P38AuditDependencies) -> bool:
     try:
         MetricRecord("loss", float("nan"), 0)
     except ValueError:
         invalid_rejected = True
     else:
         invalid_rejected = False
-    series = MetricSeries("loss", MetricRetentionPolicy(max_records=2))
+    series = deps.metric_series_factory("loss", MetricRetentionPolicy(max_records=2))
     for step, value in enumerate((3.0, 2.0, 1.0)):
         series.add(MetricRecord("loss", value, step))
     summary = series.summary()
@@ -212,9 +233,9 @@ def _audit_metrics() -> bool:
     )
 
 
-def _audit_hooks() -> bool:
+def _audit_hooks(deps: P38AuditDependencies) -> bool:
     context = HookContext("audit", "loop_start", 1, 0)
-    ordered = dispatch_hooks(
+    ordered = deps.dispatch_hooks_fn(
         (_Hook("z", priority=1), _Hook("a", priority=0)), HookPolicy(), context
     )
     try:
@@ -224,30 +245,36 @@ def _audit_hooks() -> bool:
     else:
         immutable = False
     try:
-        dispatch_hooks((_Hook("duplicate"), _Hook("duplicate")), HookPolicy(), context)
+        deps.dispatch_hooks_fn(
+            (_Hook("duplicate"), _Hook("duplicate")), HookPolicy(), context
+        )
     except ValueError:
         duplicates_rejected = True
     else:
         duplicates_rejected = False
-    fail_fast = dispatch_hooks(
+    fail_fast = deps.dispatch_hooks_fn(
         (_Hook("fail", result=HookResult("fail")), _Hook("later")),
         HookPolicy(),
         context,
     )
-    continued = dispatch_hooks(
+    continued = deps.dispatch_hooks_fn(
         (_Hook("fail", result=HookResult("fail")),),
         HookPolicy("warn_and_continue"),
         context,
     )
-    disabled = dispatch_hooks(
+    disabled = deps.dispatch_hooks_fn(
         (_Hook("disable", result=HookResult("fail")),),
         HookPolicy("disable_hook"),
         context,
     )
-    unsupported = dispatch_hooks(
+    unsupported = deps.dispatch_hooks_fn(
         (_Hook("other", supported_events=("step_end",)),), HookPolicy(), context
     )
-    skipped = dispatch_hooks((_Hook("skip"),), HookPolicy(), context, ("skip",))
+    skipped = deps.dispatch_hooks_fn((_Hook("skip"),), HookPolicy(), context, ("skip",))
+    invalid = deps.dispatch_hooks_fn(
+        (_Hook("invalid", result=object()),), HookPolicy(), context
+    )
+    raised = deps.dispatch_hooks_fn((_RaisingHook(),), HookPolicy(), context)
     return (
         immutable
         and [receipt.hook_id for receipt in ordered.receipts] == ["a", "z"]
@@ -259,34 +286,50 @@ def _audit_hooks() -> bool:
         and "learning_hook_failed_continue"
         in [issue.code for issue in disabled.warnings]
         and disabled.disabled_hook_ids == ("disable",)
+        and "learning_hook_result_invalid" in [issue.code for issue in invalid.blockers]
+        and invalid.receipts[0].metadata["returned_type"] == "object"
+        and "learning_hook_failed" in [issue.code for issue in raised.blockers]
+        and raised.receipts[0].metadata["exception_type"] == "RuntimeError"
         and not set(HookContext.__dataclass_fields__) & _FORBIDDEN_SURFACES
     )
 
 
-def _audit_loop_integration() -> bool:
+def _audit_loop_integration(deps: P38AuditDependencies) -> bool:
     recorder = _RecordingHook()
-    normal = _run_loop(hooks=(recorder,), checkpoint=lambda execution: "receipt")
-    learning_failure = _run_loop(objective=_RaisingObjective())
-    checkpoint_failure = _run_loop(checkpoint=lambda execution: _raise())
+    normal = deps.run_loop_fn(hooks=(recorder,), checkpoint=lambda execution: "receipt")
+    learning_failure = deps.run_loop_fn(objective=_RaisingObjective())
+    checkpoint_failure = deps.run_loop_fn(checkpoint=lambda execution: _raise())
     start_source = _CountingBatchSource((_batch(),))
-    start_failure = _run_loop(
+    start_failure = deps.run_loop_fn(
         hooks=(_FailingEventHook("loop_start"),), batch_source=start_source
     )
-    step_start = _run_loop(hooks=(_FailingEventHook("step_start"),))
+    step_start = deps.run_loop_fn(hooks=(_FailingEventHook("step_start"),))
     checkpoint_calls: list[object] = []
-    step_end = _run_loop(
+    step_end = deps.run_loop_fn(
         hooks=(_FailingEventHook("step_end"),),
         checkpoint=lambda execution: checkpoint_calls.append(execution) or "receipt",
     )
-    checkpoint_stop = _run_loop(
+    checkpoint_stop = deps.run_loop_fn(
         hooks=(_FailingEventHook("checkpoint"),),
         checkpoint=lambda execution: "receipt",
         max_steps=2,
     )
-    terminal = _run_loop(hooks=(_FailingEventHook("loop_end"),))
+    terminal = deps.run_loop_fn(hooks=(_FailingEventHook("loop_end"),))
     disabled_hook = _FailingEventHook("batch_received", hook_id="disabled")
-    disabled = _run_loop(
+    disabled = deps.run_loop_fn(
         hooks=(disabled_hook,), hook_policy=HookPolicy("disable_hook"), max_steps=2
+    )
+    flow = deps.run_loop_fn(
+        hooks=(
+            _Hook(
+                "flow",
+                result=HookResult(
+                    "warning",
+                    metrics=(MetricRecord("hook.metric", 1, 0),),
+                    warnings=(LearningIssue("hook.warning", "flow"),),
+                ),
+            ),
+        )
     )
     observed = [event[0] for event in recorder.events]
     sequences = [event[1] for event in recorder.events]
@@ -301,6 +344,7 @@ def _audit_loop_integration() -> bool:
             "loop_end",
         ]
         and sequences == list(range(1, len(sequences) + 1))
+        and normal.hook_events == tuple(observed)
         and normal.checkpoints == ("receipt",)
         and learning_failure.stop_reason == "learning_step_failure"
         and learning_failure.hook_events[-1] == "failure"
@@ -311,6 +355,8 @@ def _audit_loop_integration() -> bool:
         and "checkpoint" not in checkpoint_failure.hook_events
         and start_failure.batches_consumed == 0
         and start_source.next_calls == 0
+        and [issue.code for issue in start_failure.hook_blockers]
+        == ["learning_hook_failed"]
         and step_start.steps_completed == 0
         and step_end.steps_completed == 1
         and not checkpoint_calls
@@ -318,19 +364,43 @@ def _audit_loop_integration() -> bool:
         and terminal.stop_reason == "hook_failure"
         and disabled.status == "pass"
         and disabled_hook.calls == 2
+        and "hook.metric" in [metric.name for metric in flow.metrics]
+        and "hook.warning" in [warning.code for warning in flow.warnings]
     )
 
 
-def _audit_run_reporting() -> bool:
-    plain = _run_loop()
-    reported = _run_loop(emit_run_report=True)
-    resumed = _run_loop(emit_run_report=True, starting_global_step=40, max_steps=2)
+def _audit_run_reporting(deps: P38AuditDependencies) -> bool:
+    plain = deps.run_loop_fn()
+    reported = deps.run_loop_fn(emit_run_report=True)
+    resumed = deps.run_loop_fn(
+        emit_run_report=True, starting_global_step=40, max_steps=2
+    )
     report = reported.report
+    rebuilt = deps.build_report_fn(
+        loop_result=plain,
+        run_id="p3-8-acceptance",
+        update_scope="whole_student",
+        objective_scope="final_output",
+    )
+    rebuilt_resumed = deps.build_report_fn(
+        loop_result=resumed,
+        run_id="p3-8-acceptance",
+        update_scope="whole_student",
+        objective_scope="final_output",
+    )
+    rebuilt_again = deps.build_report_fn(
+        loop_result=plain,
+        run_id="p3-8-acceptance",
+        update_scope="whole_student",
+        objective_scope="final_output",
+    )
     return (
         plain.report is None
         and report is not None
         and report.schema_version == "radjax.learning_run_report.v1"
         and report.status.global_step == reported.global_step
+        and rebuilt.status.global_step == plain.global_step
+        and rebuilt_resumed.status.global_step == resumed.global_step
         and resumed.report.status.steps_completed == 2
         and resumed.report.status.global_step == 42
         and [metric.name for metric in report.metrics]
@@ -338,15 +408,19 @@ def _audit_run_reporting() -> bool:
         and report.lifecycle.events == reported.hook_events
         and report.to_dict() == report.to_dict()
         and report.to_json() == report.to_json()
+        and rebuilt.to_json() == rebuilt.to_json()
+        and rebuilt.to_json() == rebuilt_again.to_json()
         and report.to_dict()["metric_summary_source"] == "bounded_history"
         and "parameters" not in report.to_json()
         and plain.final_execution.parameters == reported.final_execution.parameters
     )
 
 
-def _audit_deterministic_replay() -> bool:
+def _audit_deterministic_replay(deps: P38AuditDependencies) -> bool:
     def replay():
-        return _run_loop(emit_run_report=True, checkpoint=lambda execution: "receipt")
+        return deps.run_loop_fn(
+            emit_run_report=True, checkpoint=lambda execution: "receipt"
+        )
 
     first, second = replay(), replay()
     return (
@@ -378,14 +452,16 @@ def _audit_deterministic_replay() -> bool:
     )
 
 
-def _audit_failure_paths() -> bool:
-    hook = _run_loop(emit_run_report=True, hooks=(_FailingEventHook("loop_start"),))
-    learning = _run_loop(
+def _audit_failure_paths(deps: P38AuditDependencies) -> bool:
+    hook = deps.run_loop_fn(
+        emit_run_report=True, hooks=(_FailingEventHook("loop_start"),)
+    )
+    learning = deps.run_loop_fn(
         emit_run_report=True,
         objective=_RaisingObjective(),
         hooks=(_FailingEventHook("failure"),),
     )
-    checkpoint = _run_loop(
+    checkpoint = deps.run_loop_fn(
         emit_run_report=True,
         checkpoint=lambda execution: _raise(),
         hooks=(_FailingEventHook("failure"),),
@@ -409,8 +485,16 @@ def _audit_failure_paths() -> bool:
     )
 
 
-def _audit_observer_only_boundary() -> bool:
-    plain, reported = _run_loop(), _run_loop(emit_run_report=True)
+def _audit_observer_only_boundary(deps: P38AuditDependencies) -> bool:
+    plain, reported = deps.run_loop_fn(), deps.run_loop_fn(emit_run_report=True)
+    metadata = {"sentinel": "unchanged"}
+    deps.build_report_fn(
+        loop_result=plain,
+        run_id="p3-8-acceptance",
+        update_scope="whole_student",
+        objective_scope="final_output",
+        metadata=metadata,
+    )
     return (
         not set(HookContext.__dataclass_fields__) & _FORBIDDEN_SURFACES
         and plain.final_execution.parameters == reported.final_execution.parameters
@@ -420,12 +504,18 @@ def _audit_observer_only_boundary() -> bool:
         == reported.final_execution.learning_state
         and (plain.stop_reason, plain.steps_completed)
         == (reported.stop_reason, reported.steps_completed)
+        and metadata == {"sentinel": "unchanged"}
     )
 
 
-def _audit_bounded_history() -> bool:
-    result = _run_loop(emit_run_report=True, max_steps=3, metric_history_limit=2)
-    report = result.report
+def _audit_bounded_history(deps: P38AuditDependencies) -> bool:
+    result = deps.run_loop_fn(emit_run_report=True, max_steps=3, metric_history_limit=2)
+    report = deps.build_report_fn(
+        loop_result=result,
+        run_id="p3-8-acceptance",
+        update_scope="whole_student",
+        objective_scope="final_output",
+    )
     summary_count = sum(metric.count for metric in report.metrics)
     return (
         len(result.metrics) == 2
@@ -435,7 +525,7 @@ def _audit_bounded_history() -> bool:
     )
 
 
-def _audit_import_boundary() -> bool:
+def _audit_import_boundary(deps: P38AuditDependencies) -> bool:
     forbidden = (
         "torch",
         "transformers",
@@ -454,18 +544,16 @@ def _audit_import_boundary() -> bool:
         _repo_root() / "src" / "radjax_student" / "learning" / "run_report.py",
         Path(__file__),
     )
-    return all(
-        f"import {name}" not in source.read_text(encoding="utf-8")
-        and f"from {name}" not in source.read_text(encoding="utf-8")
+    return not any(
+        _source_has_forbidden_import(deps.source_loader(source), forbidden)
         for source in sources
-        for name in forbidden
     )
 
 
-def _audit_documentation() -> bool:
+def _audit_documentation(deps: P38AuditDependencies) -> bool:
     root = _repo_root()
     return all(
-        (root / path).is_file()
+        deps.path_exists_fn(root / path)
         for path in (
             "docs/P3_8A_HOOK_LIFECYCLE_AND_FAILURE_POLICY.md",
             "docs/P3_8B_LEARNING_LOOP_HOOK_INTEGRATION.md",
@@ -476,7 +564,7 @@ def _audit_documentation() -> bool:
     )
 
 
-def _audit_test_inventory() -> bool:
+def _audit_test_inventory(deps: P38AuditDependencies) -> bool:
     root = _repo_root()
     paths = tuple(
         root / path
@@ -487,12 +575,99 @@ def _audit_test_inventory() -> bool:
             "tests/test_p3_8_observability_acceptance.py",
         )
     )
-    forbidden = ("assert True", "pytest.skip", "\n    pass\n")
     return all(
-        path.is_file()
-        and not any(token in path.read_text(encoding="utf-8") for token in forbidden)
+        deps.path_exists_fn(path)
+        and not _has_test_placeholder(deps.source_loader(path))
         for path in paths
     )
+
+
+def _default_dependencies() -> P38AuditDependencies:
+    from radjax_student.learning.run_report import build_learning_run_report
+
+    return P38AuditDependencies(
+        metric_series_factory=MetricSeries,
+        dispatch_hooks_fn=dispatch_hooks,
+        run_loop_fn=_run_loop,
+        build_report_fn=build_learning_run_report,
+        source_loader=lambda path: path.read_text(encoding="utf-8"),
+        path_exists_fn=lambda path: path.is_file(),
+    )
+
+
+def _source_has_forbidden_import(source: str, forbidden_roots: tuple[str, ...]) -> bool:
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if any(alias.name.split(".")[0] in forbidden_roots for alias in node.names):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            root = (node.module or "").split(".")[0]
+            if root in forbidden_roots:
+                return True
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "__import__"
+        ):
+            if (
+                node.args
+                and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, str)
+            ):
+                if node.args[0].value.split(".")[0] in forbidden_roots:
+                    return True
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            if (
+                node.func.attr == "import_module"
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, str)
+            ):
+                if node.args[0].value.split(".")[0] in forbidden_roots:
+                    return True
+    return False
+
+
+def _has_test_placeholder(source: str) -> bool:
+    tree = ast.parse(source)
+    for function in (
+        node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+    ):
+        if not function.name.startswith("test_"):
+            continue
+        for node in ast.walk(function):
+            if isinstance(node, ast.Pass):
+                return True
+            if (
+                isinstance(node, ast.Assert)
+                and isinstance(node.test, ast.Constant)
+                and node.test.value is True
+            ):
+                return True
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id.startswith("test_")
+            ):
+                return True
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "pytest"
+                and node.func.attr == "skip"
+            ):
+                return True
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and node.module.startswith("tests")
+            ):
+                if any(alias.name.startswith("test_") for alias in node.names):
+                    return True
+    return False
 
 
 def _run_loop(
@@ -602,6 +777,17 @@ class _Hook:
         return self.result
 
 
+@dataclass(frozen=True)
+class _RaisingHook:
+    hook_id: str = "raise"
+    priority: int = 0
+    supported_events: tuple[str, ...] = ("loop_start",)
+
+    def on_event(self, context):
+        del context
+        raise RuntimeError("acceptance hook failure")
+
+
 @dataclass
 class _RecordingHook:
     hook_id: str = "record"
@@ -702,13 +888,16 @@ _FORBIDDEN_SURFACES = {
 }
 
 
-def main(argv: tuple[str, ...] | None = None) -> int:
+def main(
+    argv: tuple[str, ...] | None = None,
+    dependencies: P38AuditDependencies | None = None,
+) -> int:
     parser = argparse.ArgumentParser(
         description="Run the P3.8 observability acceptance gate"
     )
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args(argv)
-    receipt = run_p3_8_observability_acceptance()
+    receipt = run_p3_8_observability_acceptance(dependencies)
     if args.json:
         print(receipt.to_json())
     else:

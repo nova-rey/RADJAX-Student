@@ -551,3 +551,8 @@
 - P3.8 closed only after the full observability stack passed one deterministic
   golden gate. The gate audits existing behavior and does not create a second
   control plane.
+
+## 2026-07-11 - P3.8D.1 adversarial golden-gate hardening
+
+- A golden gate is adversarial evidence, not Boolean bookkeeping. Negative tests
+  must break the audited behavior and prove the gate notices.

@@ -38,6 +38,19 @@ PYTHONPATH=src python3 -m radjax_student.learning.observability_acceptance --jso
 The command is offline, writes no files, exits zero only for a passing receipt,
 and prints no model or report payloads.
 
+## Adversarial Hardening
+
+Each audit uses immutable injectable production seams. Negative tests introduce
+broken retention, summaries, hook dispatches, loop results, report builders,
+source loaders, and path checks, then prove the corresponding validity flag and
+stable blocker fail.
+
+Import and test-inventory checks use Python AST inspection, covering aliased
+imports, dynamic import calls, test-function imports/calls, `assert True`,
+`pytest.skip`, and bare `pass` statements in test bodies. Unexpected audit
+exceptions fail closed: the affected section is false and the receipt includes
+`p3_8_internal_error` with only section and exception type details.
+
 ## Non-Claims
 
 P3.8D does not claim model quality, a real architecture, Tome training,
