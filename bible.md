@@ -531,3 +531,12 @@
 - Integration claims require direct evidence about side effects: no batch
   consumption, no learning-step call, no checkpoint call, and no hidden mutable
   state exposure.
+
+## 2026-07-11 - P3.8C deterministic run reporting
+
+- Run reporting describes completed execution; it does not control the loop.
+- Statistics must be honest about whether they summarize complete history or
+  only the bounded observations retained by the loop.
+- Preserved event, warning, blocker, and checkpoint occurrence order so a
+  deterministic report records what the loop observed without creating a second
+  execution or telemetry control surface.

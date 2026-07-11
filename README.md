@@ -145,8 +145,11 @@ P3.7 adds the [Generic Learning Loop](docs/P3_7_GENERIC_LEARNING_LOOP.md), a
 bounded orchestrator that delegates every update to P3.5 and retains generic
 batch-source position for deterministic continuation.
 
-P3.8B integrates observer-only hooks at generic loop lifecycle boundaries;
-P3.8C run reporting remains next.
+P3.8B integrates observer-only hooks at generic loop lifecycle boundaries, and
+P3.8C adds deterministic immutable reports only after the generic loop has
+completed. Reports preserve lifecycle, warning, blocker, checkpoint, scope, and
+bounded retained-metric evidence without controlling execution or emitting
+external telemetry. P3.8D remains the next completion gate.
 
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim

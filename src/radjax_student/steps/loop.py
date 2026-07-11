@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 from radjax_student.architecture import ArchitectureConfig, ArchitecturePlugin
 from radjax_student.learning import (
@@ -27,6 +27,9 @@ from radjax_student.steps.single import (
 )
 
 DEFAULT_HOOK_POLICY = HookPolicy()
+
+if TYPE_CHECKING:
+    from radjax_student.learning.run_report import LearningRunReport
 
 
 class BatchSource(Protocol):
@@ -71,9 +74,10 @@ class LearningLoopResult:
     warnings: tuple[LearningIssue, ...] = ()
     hook_events: tuple[str, ...] = ()
     hook_blockers: tuple[LearningIssue, ...] = ()
+    report: LearningRunReport | None = None
 
 
-def run_learning_loop(
+def _run_learning_loop(
     *,
     config: LearningLoopConfig,
     architecture: ArchitecturePlugin,
@@ -278,6 +282,63 @@ def run_learning_loop(
         tuple(warnings),
         tuple(events),
     )
+
+
+def run_learning_loop(
+    *,
+    config: LearningLoopConfig,
+    architecture: ArchitecturePlugin,
+    architecture_config: ArchitectureConfig,
+    optimizer: OptimizerBackend,
+    optimizer_config: OptimizerConfig,
+    optimizer_state: OptimizerState,
+    learning_state: LearningState,
+    parameters: Mapping[str, float],
+    objective: ScalarObjective,
+    batch_source: BatchSource,
+    checkpoint: Callable[[SingleStepExecution], str] | None = None,
+    hooks: tuple[LearningHook, ...] = (),
+    hook_policy: HookPolicy = DEFAULT_HOOK_POLICY,
+    emit_run_report: bool = False,
+) -> LearningLoopResult:
+    """Run generic learning and optionally attach a post-completion report."""
+
+    result = _run_learning_loop(
+        config=config,
+        architecture=architecture,
+        architecture_config=architecture_config,
+        optimizer=optimizer,
+        optimizer_config=optimizer_config,
+        optimizer_state=optimizer_state,
+        learning_state=learning_state,
+        parameters=parameters,
+        objective=objective,
+        batch_source=batch_source,
+        checkpoint=checkpoint,
+        hooks=hooks,
+        hook_policy=hook_policy,
+    )
+    if not emit_run_report:
+        return result
+    from dataclasses import replace
+
+    from radjax_student.learning.run_report import build_learning_run_report
+
+    report_state = (
+        result.final_execution.learning_state
+        if result.final_execution is not None
+        else learning_state
+    )
+    try:
+        report = build_learning_run_report(
+            loop_result=result,
+            run_id=report_state.run_id,
+            update_scope=report_state.active_update_scope.kind,
+            objective_scope=report_state.active_objective_scope.kind,
+        )
+    except (TypeError, ValueError):
+        return result
+    return replace(result, report=report)
 
 
 @dataclass

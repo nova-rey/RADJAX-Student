@@ -37,6 +37,16 @@ from radjax_student.learning.objectives import (
     canonical_objective_json,
 )
 from radjax_student.learning.protocols import ObjectiveEvaluator, UpdateScopeResolver
+from radjax_student.learning.run_report import (
+    LearningRunReport,
+    RunCheckpointSummary,
+    RunIssueSummary,
+    RunLifecycleSummary,
+    RunMetricSummary,
+    RunScopeSummary,
+    RunStatusSummary,
+    build_learning_run_report,
+)
 from radjax_student.learning.scopes import (
     OBJECTIVE_SCOPE_KINDS,
     UPDATE_SCOPE_KINDS,
@@ -77,6 +87,14 @@ __all__ = [
     "MetricSeries",
     "MetricSummary",
     "LearningEvent",
+    "LearningRunReport",
+    "RunCheckpointSummary",
+    "RunIssueSummary",
+    "RunLifecycleSummary",
+    "RunMetricSummary",
+    "RunScopeSummary",
+    "RunStatusSummary",
+    "build_learning_run_report",
     "HookContext",
     "HookPolicy",
     "HookResult",

@@ -86,6 +86,11 @@ Start here for Phase 0 foundation context.
   deterministic observer-only standalone hook dispatch.
 - [P3.8B Learning Loop Hook Integration](P3_8B_LEARNING_LOOP_HOOK_INTEGRATION.md):
   lifecycle dispatch at generic loop boundaries.
+- [P3.8 Metrics, Hooks, and Reporting](P3_8_METRICS_HOOKS_AND_REPORTING.md):
+  observer-only learning-loop observability boundaries.
+- [P3.8C Deterministic Run Reporting](P3_8C_DETERMINISTIC_RUN_REPORTING.md):
+  immutable completed-run reports, bounded metric summaries, and opt-in
+  post-completion attachment.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
