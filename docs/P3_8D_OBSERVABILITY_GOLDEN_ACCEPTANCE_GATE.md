@@ -74,4 +74,5 @@ blocker.
 
 P3.8D does not claim model quality, a real architecture, Tome training,
 language modeling, distributed training, accelerator performance, external
-telemetry, or evaluation. P3.9 is unblocked only after this receipt passes.
+telemetry, or evaluation. The receipt passed; P3.9 and P3.10 subsequently
+closed the Phase 3 learning-core evidence chain.

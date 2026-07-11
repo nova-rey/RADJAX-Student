@@ -156,7 +156,7 @@ P3.8C adds deterministic immutable reports only after the generic loop has
 completed. Reports preserve lifecycle, warning, blocker, checkpoint, scope, and
 bounded retained-metric evidence without controlling execution or emitting
 external telemetry. P3.8D now closes the stack with a deterministic acceptance
-receipt; P3.9 synthetic learning smoke is unblocked next.
+receipt; P3.9 synthetic learning smoke is complete.
 
 P3.9 now proves the complete generic learning machine on a deterministic
 two-parameter `y = 2x + 1` synthetic problem. It routes MSE through the
@@ -174,10 +174,34 @@ the completed contracts without adding execution behavior:
 PYTHONPATH=src python3 -m radjax_student.learning.p3_10_acceptance
 ```
 
-The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
-not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
-working training, Hugging Face export, complete Tome compatibility, or model
-quality.
+P3.5 adds a pure JAX linear learning contract through the Phase 2 runtime
+execution boundary, while keeping the base install JAX-free. The dedicated
+`test-jax` CI job proves eager/JIT agreement, autodiff, functional state, and
+scoped updates. The NumPy implementation remains explicit legacy/debug only.
+
+Maintained capability status:
+
+```text
+proven:
+- production Tome metadata inspection
+- compatibility evaluation
+- runtime lifecycle and execution policy
+- scalar generic learning orchestration
+- checkpoint/resume mechanics
+- pure JAX linear learning contract
+
+not yet proven:
+- real production architecture training
+- Tome payload consumption
+- behavioral distillation
+- Hugging Face export
+- model quality
+- accelerator-scale training
+```
+
+`radjax_student.students` is a deprecated compatibility package only. It is
+architecturally dead by P3.5.9 and is scheduled for removal at the numbered
+P4.1 architecture implementation checkpoint.
 
 Start with the [documentation index](docs/INDEX.md) before extending the
 codebase. The normative Phase 0 docs are:

@@ -48,9 +48,9 @@ P3.4  Generic Batch and Objective Contract      COMPLETE
 P3.5  Single Learning Step                      COMPLETE
 P3.6  Model and Optimizer Checkpoint Contract   COMPLETE
 P3.7  Generic Learning Loop                     COMPLETE
-P3.8  Metrics, Hooks, and Reporting             UNBLOCKED; NEXT
-P3.9  Synthetic End-to-End Learning Smoke       BLOCKED ON P3.8
-P3.10 Learning Core Golden Acceptance Gate      BLOCKED ON P3.9
+P3.8  Metrics, Hooks, and Reporting             COMPLETE
+P3.9  Synthetic End-to-End Learning Smoke       COMPLETE
+P3.10 Learning Core Golden Acceptance Gate      COMPLETE
 ```
 
 ## Current Non-Claims

@@ -98,6 +98,15 @@ Start here for Phase 0 foundation context.
   checkpoint source state, resume equivalence, reporting, and replay evidence.
 - [P3.10 Learning Core Golden Acceptance](P3_10_LEARNING_CORE_GOLDEN_ACCEPTANCE.md):
   final public-API audit of the completed Phase 3 learning core.
+- [P3.5 Architecture Integrity Roadmap](P3_5_ARCHITECTURE_INTEGRITY_ROADMAP.md):
+  ordered cleanup checkpoints required before Phase 4.
+- [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
+- [P3.5.3 JAX-Native Learning](P3_5_3_JAX_NATIVE_LEARNING.md)
+- [P3.5.4 Architecture Namespace Consolidation](P3_5_4_ARCHITECTURE_NAMESPACE_CONSOLIDATION.md)
+- [P3.5.5 Legacy and Debug Isolation](P3_5_5_LEGACY_DEBUG_ISOLATION.md)
+- [P3.5.6 HF Preservation Contract](P3_5_6_HF_PRESERVATION_CONTRACT.md)
+- [P3.5.7 Checkpoint Ownership and Migration](P3_5_7_CHECKPOINT_OWNERSHIP_AND_MIGRATION.md)
+- [P3.5.8 Documentation Reconciliation](P3_5_8_DOCUMENTATION_RECONCILIATION.md)
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -143,7 +152,6 @@ Do not use it for installation instructions, CLI documentation, API reference,
 or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
-Runtime is complete under the P2.10 runtime acceptance gate. P3.1 establishes
-the Generic Learning Core contract, P3.2 establishes the architecture-plugin
-contract, P3.3 establishes the optimizer contract, and P3.4 establishes generic
-batch and objective vocabulary; P3.5 is next.
+Runtime is complete under the P2.10 runtime acceptance gate. Phase 3 is closed
+under the P3.10 learning-core gate. P3.5 cleanup is in progress; Phase 4 is
+blocked until P3.5.10 passes.

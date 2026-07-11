@@ -19,4 +19,5 @@ Tome-specific reporting.
 
 P3.8D closes P3.8 with one deterministic acceptance receipt. The gate audits
 the existing metric, hook, loop, and report behavior without creating a second
-control plane. P3.9 synthetic learning smoke is now unblocked.
+control plane. P3.8D, P3.9, and P3.10 have since closed the Phase 3 evidence
+chain.

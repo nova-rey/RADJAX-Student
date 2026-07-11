@@ -18,12 +18,17 @@ Forbidden default imports:
 - datasets
 - accelerate
 
-JAX is optional and deferred until the default scaffold is stable.
+JAX remains optional in the base install. `learning/jax_core.py` is the only
+explicit JAX learning module; it is exercised by the dedicated `test-jax`
+extra/job and is not imported by base package entrypoints.
 
-The generic `learning/` contract package is standard-library-only. It must not
-import JAX, Flax, Equinox, Optax, architecture plugins, Tome code, or optional
-ML stacks. Later adapters may cross their own explicit boundaries; the generic
-learning vocabulary remains portable and passive.
+The generic `learning/` contract package remains portable and passive. The
+JAX adapter may receive parameters and architecture state, but objectives only
+receive selected forward surfaces, targets, weights, and configuration. Runtime
+owns JIT, device selection, placement, dispatch, and synchronization.
+
+The `students/` package is a warning-emitting compatibility namespace only;
+production code does not import it. Its removal is assigned to P4.1.
 
 See [ARCHITECTURE_CHARTER.md](ARCHITECTURE_CHARTER.md) for the full dependency
 direction rules.

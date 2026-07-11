@@ -82,7 +82,8 @@ src/radjax_student/
 Current directories that do not match this target are transitional. They should
 move only when a focused change can preserve behavior and tests. Empty
 long-term packages are placement boundaries, not proof of implemented
-capability.
+capability. The `students/` package is now explicitly deprecated and must be
+removed at P4.1; no Phase 4 code may import it.
 
 ## Architecture Plugins
 
@@ -125,7 +126,9 @@ Hugging Face compatibility is a design constraint, not a late export hack.
 
 Future config, tokenizer, vocabulary, checkpoint, model layout, save/load, and
 inference APIs should preserve the information needed for native Hugging Face
-packaging.
+packaging. P3.5.6 provides the dependency-free descriptor; architecture
+configuration remains the source of truth and logical parameter names may not
+encode runtime sharding or device layout.
 
 ## Product And Research Paths
 

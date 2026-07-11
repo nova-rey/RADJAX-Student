@@ -1,8 +1,9 @@
 # Architecture
 
 Architecture plugins answer how a model computes. P3.2 establishes the stable
-contract here with a non-numerical test double; it does not implement an RWKV,
-Mamba, transformer, or other concrete model.
+contract here with a non-numerical test double, and P3.5 adds named runtime
+surfaces plus an optional JAX execution capability; it does not implement an
+RWKV, Mamba, transformer, or other concrete model.
 
 This package is the long-term home for architecture plugin contracts and
 implementations such as RWKV, QRWKV, Mamba, Transformers, and future student

@@ -663,3 +663,9 @@
 - Checkpoint v2 remains canonical with additive role and payload-descriptor
   metadata. Continuation state is separate from future HF distribution data,
   and implicit cross-format use is rejected at an explicit boundary.
+
+## 2026-07-11 - P3.5.8 documentation reconciliation
+
+- Documentation now separates the completed Phase 3 evidence from the
+  unproven production claims. Phase 4 remains blocked by P3.5.10, and the
+  students compatibility package has a concrete P4.1 removal checkpoint.
