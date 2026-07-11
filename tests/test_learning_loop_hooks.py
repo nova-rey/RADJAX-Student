@@ -71,6 +71,27 @@ class FailingHook:
         )
 
 
+@dataclass
+class CountingBatchSource(SyntheticBatchSource):
+    next_calls: int = 0
+
+    def next_batch(self):
+        self.next_calls += 1
+        return super().next_batch()
+
+
+@dataclass
+class DisableCountingHook:
+    hook_id: str = "disable"
+    priority: int = 0
+    supported_events: tuple[str, ...] = ("batch_received",)
+    calls: int = 0
+
+    def on_event(self, context):
+        self.calls += 1
+        return HookResult("fail", warnings=(LearningIssue("detail", "d"),))
+
+
 def build(hooks=(), policy=DEFAULT_POLICY, checkpoint=None, steps=1):
     arch = FakeArchitecturePlugin()
     cat = arch.describe_parameters()
@@ -184,7 +205,7 @@ def test_failure_context_contains_stage_and_exception_type(monkeypatch):
     )
 
 
-def test_loop_start_fail_fast_consumes_no_batch():
+def test_loop_start_fail_fast_returns_hook_failure():
     assert build((FailingHook(),)).stop_reason == "hook_failure"
 
 
@@ -267,4 +288,120 @@ def test_checkpoint_core_reason_survives_failure_hook_blocker():
 def test_identical_runs_have_identical_event_order():
     assert (
         build((RecordingHook(),)).hook_events == build((RecordingHook(),)).hook_events
+    )
+
+
+def test_loop_start_fail_fast_consumes_no_batch(monkeypatch):
+    source = CountingBatchSource(())
+    # Build through the real loop but replace only the source factory argument.
+    monkeypatch.setattr(
+        "radjax_student.steps.loop.SyntheticBatchSource", lambda *a: source
+    )
+    assert (
+        build((FailingHook(),)).status == "fail"
+        and source.next_calls == 0
+        and source.position == 0
+    )
+
+
+def test_step_start_fail_fast_does_not_call_learning_step(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "radjax_student.steps.loop.learning_step", lambda **k: calls.append(k) or None
+    )
+    result = build((FailingHook(event_to_fail="step_start"),))
+    assert (
+        result.stop_reason == "hook_failure"
+        and calls == []
+        and result.steps_completed == 0
+    )
+
+
+def test_step_end_fail_fast_skips_checkpoint():
+    calls = []
+    result = build(
+        (FailingHook(event_to_fail="step_end"),),
+        checkpoint=lambda e: calls.append(e) or "c",
+    )
+    assert (
+        result.stop_reason == "hook_failure"
+        and calls == []
+        and result.steps_completed == 1
+    )
+
+
+def test_disable_hook_runs_once_then_remains_disabled():
+    hook = DisableCountingHook()
+    result = build((hook,), HookPolicy("disable_hook"), steps=2)
+    assert (
+        hook.calls == 1
+        and result.status == "pass"
+        and result.steps_completed == 2
+        and "learning_hook_disabled" in [x.code for x in result.warnings]
+    )
+
+
+def test_failure_hook_blocker_code_preserved(monkeypatch):
+    monkeypatch.setattr(
+        "radjax_student.steps.loop.learning_step",
+        lambda **k: (_ for _ in ()).throw(RuntimeError()),
+    )
+    assert [
+        x.code for x in build((FailingHook(event_to_fail="failure"),)).hook_blockers
+    ] == ["learning_hook_failed"]
+
+
+def test_failure_hook_warning_preserved(monkeypatch):
+    monkeypatch.setattr(
+        "radjax_student.steps.loop.learning_step",
+        lambda **k: (_ for _ in ()).throw(RuntimeError()),
+    )
+    assert "hook_test" in [
+        x.code for x in build((FailingHook(event_to_fail="failure"),)).warnings
+    ]
+
+
+def test_event_sequence_numbers_are_monotonic():
+    hook = RecordingHook()
+    build((hook,), steps=2)
+    seq = [x[1] for x in hook.events]
+    assert seq == sorted(seq) == list(range(1, len(seq) + 1)) and len(set(seq)) == len(
+        seq
+    )
+
+
+def test_hook_context_exposes_no_core_mutable_state():
+    hook = RecordingHook()
+    build((hook,))
+    names = set(
+        __import__(
+            "radjax_student.learning.hooks", fromlist=["HookContext"]
+        ).HookContext.__dataclass_fields__
+    )
+    assert not names & {
+        "parameters",
+        "gradients",
+        "optimizer_state",
+        "architecture_state",
+        "runtime_state",
+        "checkpoint_payload",
+        "update_scope",
+        "objective_scope",
+    }
+
+
+def test_identical_runs_preserve_event_sequence_and_order():
+    a, b = RecordingHook(), RecordingHook()
+    build((a,), steps=2)
+    build((b,), steps=2)
+    assert [(x[0], x[1], x[2]) for x in a.events] == [
+        (x[0], x[1], x[2]) for x in b.events
+    ]
+
+
+def test_disable_hook_preserves_failure_class_and_disablement():
+    result = build((DisableCountingHook(),), HookPolicy("disable_hook"), steps=2)
+    codes = [x.code for x in result.warnings]
+    assert (
+        "learning_hook_failed_continue" in codes and "learning_hook_disabled" in codes
     )

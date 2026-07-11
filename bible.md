@@ -527,3 +527,7 @@
 
 - Integration evidence must execute the real loop; named placeholder tests are
   not acceptance evidence.
+
+- Integration claims require direct evidence about side effects: no batch
+  consumption, no learning-step call, no checkpoint call, and no hidden mutable
+  state exposure.

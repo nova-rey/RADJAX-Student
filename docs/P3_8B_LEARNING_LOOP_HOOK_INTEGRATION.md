@@ -19,3 +19,7 @@ are respected, while core failure reasons remain distinct from hook failures.
 
 Failure hooks preserve their own blockers and warnings without replacing the
 core learning-step or checkpoint failure reason.
+
+P3.8B acceptance includes evidence that fail-fast stops before the next core
+action, disablement persists across later lifecycle events, event sequences are
+monotonic, and HookContext exposes no mutable learning state.
