@@ -69,6 +69,9 @@ Start here for Phase 0 foundation context.
 - [P3.1 Generic Learning Contract](P3_1_GENERIC_LEARNING_CONTRACT.md): immutable
   learning vocabulary, independent objective/update scopes, serialization, and
   non-execution boundary.
+- [P3.2 Student Architecture Plugin Contract](P3_2_STUDENT_ARCHITECTURE_PLUGIN_CONTRACT.md):
+  architecture-owned parameter identity, scope and objective resolution, passive
+  init/forward models, and test-plugin boundary.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -114,4 +117,5 @@ or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
 Runtime is complete under the P2.10 runtime acceptance gate. P3.1 establishes
-the Generic Learning Core contract; P3.2 is next.
+the Generic Learning Core contract, and P3.2 establishes the architecture-plugin
+contract; P3.3 is next.

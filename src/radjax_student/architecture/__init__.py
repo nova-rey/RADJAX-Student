@@ -1,6 +1,61 @@
-"""Architecture plugin boundary.
+"""Architecture plugin contracts; P3.2 defines no concrete model math."""
 
-This package is reserved for contracts and implementations that answer how a
-student model computes. Runtime placement, compilation, sharding, and device
-policy belong outside this package.
-"""
+from radjax_student.architecture.errors import (
+    ARCHITECTURE_ERROR_CODES,
+    ArchitectureContractError,
+    ArchitectureErrorCode,
+    ArchitectureIssue,
+)
+from radjax_student.architecture.models import (
+    ARCHITECTURE_CLAIMS_NOT_MADE,
+    ARCHITECTURE_CONFIG_SCHEMA_VERSION,
+    ARCHITECTURE_PARAMETER_ROLES,
+    ARCHITECTURE_STATE_SCHEMA_VERSION,
+    PARAMETER_CATALOG_SCHEMA_VERSION,
+    ArchitectureCapabilityProfile,
+    ArchitectureConfig,
+    ArchitectureInitRequest,
+    ArchitectureInitResult,
+    ArchitectureMetadata,
+    ArchitectureState,
+    BatchValidationResult,
+    ForwardRequest,
+    ForwardResult,
+    IntermediateSurfaceDescriptor,
+    NamedRegion,
+    ParameterCatalog,
+    ParameterDescriptor,
+    ResolvedObjectiveSelection,
+    canonical_architecture_json,
+)
+from radjax_student.architecture.protocols import ArchitecturePlugin
+from radjax_student.architecture.registry import ArchitectureRegistry
+
+__all__ = [
+    "ARCHITECTURE_CLAIMS_NOT_MADE",
+    "ARCHITECTURE_CONFIG_SCHEMA_VERSION",
+    "ARCHITECTURE_ERROR_CODES",
+    "ARCHITECTURE_PARAMETER_ROLES",
+    "ARCHITECTURE_STATE_SCHEMA_VERSION",
+    "PARAMETER_CATALOG_SCHEMA_VERSION",
+    "ArchitectureCapabilityProfile",
+    "ArchitectureConfig",
+    "ArchitectureContractError",
+    "ArchitectureErrorCode",
+    "ArchitectureInitRequest",
+    "ArchitectureInitResult",
+    "ArchitectureIssue",
+    "ArchitectureMetadata",
+    "ArchitecturePlugin",
+    "ArchitectureRegistry",
+    "ArchitectureState",
+    "BatchValidationResult",
+    "ForwardRequest",
+    "ForwardResult",
+    "IntermediateSurfaceDescriptor",
+    "NamedRegion",
+    "ParameterCatalog",
+    "ParameterDescriptor",
+    "ResolvedObjectiveSelection",
+    "canonical_architecture_json",
+]

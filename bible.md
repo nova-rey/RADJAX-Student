@@ -418,3 +418,22 @@
 - Kept P3.1 standard-library-only and non-executing. It declares no gradients,
   optimizer calls, parameter updates, checkpoint files, loops, architecture
   plugins, or Tome loading, so later phases must add each capability explicitly.
+
+## 2026-07-11 - P3.2 student architecture plugin contract
+
+- Made architecture a plugin boundary rather than the project center. A plugin
+  owns model math and parameter meaning, while learning owns state transitions
+  and runtime owns execution policy; this keeps later Student architectures
+  interchangeable without leaking device or optimizer policy into model code.
+- Made stable parameter paths contractual. They are deterministic, serializable
+  identities usable by scoped updates and future save/restore, never Python
+  object identities or raw parameter arrays.
+- Kept named regions architecture-owned and opaque to generic learning. A plugin
+  declares membership, overlap, validation, and versioning, so generic scopes do
+  not hard-code layers or assume any specific model family.
+- Reserved objective surfaces as optional declared capabilities. Final output is
+  universal for a trainable plugin, while hidden or intermediate surfaces remain
+  architecture-specific and do not imply functional-stage correspondence.
+- Used a non-numerical fake plugin instead of RWKV. It proves initialization,
+  forward, batch-validation, scope-resolution, metadata, and registry contracts
+  without claiming a concrete model, numerical execution, training, or quality.
