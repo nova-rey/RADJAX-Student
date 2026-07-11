@@ -101,7 +101,15 @@ runtime acceptance gate and the committed
 [`runtime_phase2_acceptance_receipt.json`](runtime_phase2_acceptance_receipt.json).
 The gate verifies the completed runtime pipeline without claiming training,
 model behavior, distributed execution, sharding, performance, or quality. Phase
-3 Generic Training Core is now unblocked.
+3 Generic Learning Core is active.
+
+P3.1 now establishes the [Generic Learning Contract](docs/P3_1_GENERIC_LEARNING_CONTRACT.md):
+immutable architecture-independent configuration, state, generic batch,
+objective/update scope, metric, error, and reporting models. The scopes remain
+independent, defaulting to whole-student updates and final-output objectives.
+This is a contract checkpoint only: it does not invoke objectives, gradients,
+optimizers, parameter updates, checkpoints, loops, or Tome loading. Phase 3
+follows the [locked Generic Learning Core roadmap](docs/RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md).
 
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
@@ -131,3 +139,5 @@ codebase. The normative Phase 0 docs are:
 - [P2.8 runtime state save/restore](docs/P2_8_RUNTIME_STATE_SAVE_RESTORE.md)
 - [P2.9 GPU/TPU portability smoke](docs/P2_9_GPU_TPU_PORTABILITY_SMOKE.md)
 - [P2.10 runtime acceptance gate](docs/P2_10_RUNTIME_ACCEPTANCE_GATE.md)
+- [Phase 3 Generic Learning roadmap](docs/RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md)
+- [P3.1 Generic Learning contract](docs/P3_1_GENERIC_LEARNING_CONTRACT.md)

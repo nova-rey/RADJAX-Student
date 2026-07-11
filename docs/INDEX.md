@@ -64,6 +64,11 @@ Start here for Phase 0 foundation context.
 - [P2.10 Runtime Acceptance Gate](P2_10_RUNTIME_ACCEPTANCE_GATE.md): maintained
   Phase 2 closure gate, machine-readable receipt, external accelerator evidence,
   and explicit runtime non-claims.
+- [Locked Phase 3 Generic Learning Roadmap](RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md):
+  ordered architecture-independent learning-core checkpoints.
+- [P3.1 Generic Learning Contract](P3_1_GENERIC_LEARNING_CONTRACT.md): immutable
+  learning vocabulary, independent objective/update scopes, serialization, and
+  non-execution boundary.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -78,6 +83,7 @@ Long-term implementation packages exist under `src/radjax_student/`:
 
 - `artifacts/`
 - `runtime/`
+- `learning/`
 - `architecture/`
 - `training/`
 - `schedules/`
@@ -107,5 +113,5 @@ Do not use it for installation instructions, CLI documentation, API reference,
 or ordinary module descriptions.
 
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
-Runtime is complete under the P2.10 runtime acceptance gate; Phase 3 Generic
-Training Core is unblocked.
+Runtime is complete under the P2.10 runtime acceptance gate. P3.1 establishes
+the Generic Learning Core contract; P3.2 is next.

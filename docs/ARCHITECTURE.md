@@ -127,3 +127,13 @@ P2.10 closes the runtime foundation with an acceptance gate rather than a new
 runtime abstraction. Its receipt records the validated seams and non-claims, so
 later generic training work can depend on the runtime boundary without treating
 architecture, model state, or performance as already proven.
+
+## Generic Learning Contract
+
+P3.1 establishes `learning/` as the architecture-independent owner of learning
+configuration, step state, generic batch envelopes, scope intent, metrics,
+checkpoint policy, structured findings, and reports. It defines no model math
+or execution path. `UpdateScope` controls parameters that may change;
+`ObjectiveScope` controls where a learning signal is observed. Architecture
+plugins will resolve opaque region IDs to stable paths, while runtime remains
+the owner of execution.

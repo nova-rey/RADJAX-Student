@@ -19,7 +19,7 @@ P1.10 Production golden acceptance gate             COMPLETE
 
 PHASE 1 - CONTRACT LAYER                            COMPLETE
 PHASE 2 - STUDENT RUNTIME                           COMPLETE
-PHASE 3 - GENERIC TRAINING CORE                     UNBLOCKED
+PHASE 3 - GENERIC LEARNING CORE                     ACTIVE
 ```
 
 ## Phase 2 Status
@@ -38,6 +38,24 @@ P2.7  Compilation and Execution Boundary        COMPLETE
 P2.8  Runtime State Save/Restore Foundation     COMPLETE
 P2.9  GPU/TPU Portability Smoke                 COMPLETE
 P2.10 Runtime Golden Acceptance Gate            COMPLETE
+```
+
+## Phase 3 Status
+
+The sequence is locked in
+[RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md](RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md).
+
+```text
+P3.1  Generic Learning Contract                 COMPLETE
+P3.2  Student Architecture Plugin Contract      UNBLOCKED; NEXT
+P3.3  Optimizer Contract                        BLOCKED ON P3.2
+P3.4  Generic Batch and Objective Contract      BLOCKED ON P3.3
+P3.5  Single Learning Step                      BLOCKED ON P3.4
+P3.6  Model and Optimizer Checkpoint Contract   BLOCKED ON P3.5
+P3.7  Generic Learning Loop                     BLOCKED ON P3.6
+P3.8  Metrics, Hooks, and Reporting             BLOCKED ON P3.7
+P3.9  Synthetic End-to-End Learning Smoke       BLOCKED ON P3.8
+P3.10 Learning Core Golden Acceptance Gate      BLOCKED ON P3.9
 ```
 
 1. Keep tiny debug student and artifact inspection green.

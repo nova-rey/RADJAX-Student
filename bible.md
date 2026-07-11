@@ -398,3 +398,23 @@
   infrastructure, not training, gradients, optimizer behavior, model
   initialization, Tome payload loading, distributed execution, sharding,
   performance, scale, or model quality.
+
+## 2026-07-11 - P3.1 generic learning contract
+
+- Named the Phase 3 foundation the Generic Learning Core because it defines how
+  learning state and outcomes are represented without assigning architecture,
+  Tome, or runtime meaning to them. This checkpoint deliberately defines more
+  than it executes.
+- Made targeted updates generic `UpdateScope` intent rather than hard-coded
+  layers. Architecture plugins will own region interpretation and future
+  resolution into stable parameter paths, keeping the core reusable across
+  Student architectures.
+- Kept `ObjectiveScope` separate from `UpdateScope`: where a signal is observed
+  and which parameters may change are independent decisions. Whole-student
+  updates and final-output objectives remain the boring public defaults.
+- Reserved stable parameter and optimizer trees with deterministic update masks
+  for future scoped updates. Removing and reinserting subtrees would make state
+  continuity and reproducibility harder to reason about.
+- Kept P3.1 standard-library-only and non-executing. It declares no gradients,
+  optimizer calls, parameter updates, checkpoint files, loops, architecture
+  plugins, or Tome loading, so later phases must add each capability explicitly.

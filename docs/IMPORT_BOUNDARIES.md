@@ -20,5 +20,10 @@ Forbidden default imports:
 
 JAX is optional and deferred until the default scaffold is stable.
 
+The generic `learning/` contract package is standard-library-only. It must not
+import JAX, Flax, Equinox, Optax, architecture plugins, Tome code, or optional
+ML stacks. Later adapters may cross their own explicit boundaries; the generic
+learning vocabulary remains portable and passive.
+
 See [ARCHITECTURE_CHARTER.md](ARCHITECTURE_CHARTER.md) for the full dependency
 direction rules.
