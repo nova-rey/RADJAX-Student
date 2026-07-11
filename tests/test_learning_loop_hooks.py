@@ -92,7 +92,7 @@ class DisableCountingHook:
         return HookResult("fail", warnings=(LearningIssue("detail", "d"),))
 
 
-def build(hooks=(), policy=DEFAULT_POLICY, checkpoint=None, steps=1):
+def build(hooks=(), policy=DEFAULT_POLICY, checkpoint=None, steps=1, batch_source=None):
     arch = FakeArchitecturePlugin()
     cat = arch.describe_parameters()
     opt = SgdOptimizer()
@@ -125,7 +125,7 @@ def build(hooks=(), policy=DEFAULT_POLICY, checkpoint=None, steps=1):
         learning_state=LearningState(run_id="r"),
         parameters={"head.weight": 0.0, "trunk.bias": 0.0, "trunk.weight": 0.0},
         objective=LinearObjective(),
-        batch_source=SyntheticBatchSource((batch,) * 3),
+        batch_source=batch_source or SyntheticBatchSource((batch,) * 3),
         checkpoint=checkpoint,
         hooks=hooks,
         hook_policy=policy,
@@ -291,17 +291,15 @@ def test_identical_runs_have_identical_event_order():
     )
 
 
-def test_loop_start_fail_fast_consumes_no_batch(monkeypatch):
-    source = CountingBatchSource(())
-    # Build through the real loop but replace only the source factory argument.
-    monkeypatch.setattr(
-        "radjax_student.steps.loop.SyntheticBatchSource", lambda *a: source
+def test_loop_start_fail_fast_consumes_no_batch():
+    batch = LearningBatch(
+        batch_id="counting",
+        inputs={"token_ids": {"rank": 2, "sequence_length": 1, "x": 1.0}},
+        targets={"target": {"y": 3.0}},
     )
-    assert (
-        build((FailingHook(),)).status == "fail"
-        and source.next_calls == 0
-        and source.position == 0
-    )
+    source = CountingBatchSource((batch, batch, batch))
+    result = build((FailingHook(),), batch_source=source)
+    assert result.status == "fail" and source.next_calls == 0 and source.position == 0
 
 
 def test_step_start_fail_fast_does_not_call_learning_step(monkeypatch):
