@@ -520,3 +520,7 @@
 - The loop owns when lifecycle events occur and the dispatcher owns hook
   execution. Hooks return observations only; they cannot change core learning
   state. P3.8C reporting remains the next boundary.
+
+- Terminal lifecycle hooks are part of loop control: a fail-fast checkpoint or
+  loop-end hook must not be ignored, and failure hooks must not erase the core
+  failure that triggered them.

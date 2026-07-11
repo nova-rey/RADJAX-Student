@@ -96,7 +96,7 @@ def run_learning_loop(
     disabled: tuple[str, ...] = ()
     sequence = 0
 
-    def observe(event: str, current: LearningState):
+    def observe(event: str, current: LearningState, metadata=None):
         nonlocal disabled, sequence
         sequence += 1
         events.append(event)
@@ -104,7 +104,12 @@ def run_learning_loop(
             hooks,
             hook_policy,
             HookContext(
-                current.run_id, event, sequence, current.global_step, tuple(metrics)
+                current.run_id,
+                event,
+                sequence,
+                current.global_step,
+                tuple(metrics),
+                metadata or {},
             ),
             disabled,
         )
@@ -129,13 +134,13 @@ def run_learning_loop(
     for _ in range(config.max_steps):
         batch = batch_source.next_batch()
         if batch is None:
-            observe("loop_end", learning_state)
+            terminal = observe("loop_end", learning_state)
             return LearningLoopResult(
-                "pass",
+                "fail" if terminal.blockers else "pass",
                 execution,
                 learning_state.global_step,
                 learning_state.global_step,
-                "source_exhausted",
+                "hook_failure" if terminal.blockers else "source_exhausted",
                 tuple(metrics[-config.metric_history_limit :]),
                 tuple(checkpoints),
                 tuple(warnings),
@@ -167,17 +172,38 @@ def run_learning_loop(
                 tuple(warnings),
                 tuple(events),
             )
-        execution = learning_step(
-            batch=batch,
-            architecture=architecture,
-            architecture_config=architecture_config,
-            optimizer=optimizer,
-            optimizer_config=optimizer_config,
-            optimizer_state=optimizer_state,
-            learning_state=learning_state,
-            parameters=parameters,
-            objective=objective,
-        )
+        try:
+            execution = learning_step(
+                batch=batch,
+                architecture=architecture,
+                architecture_config=architecture_config,
+                optimizer=optimizer,
+                optimizer_config=optimizer_config,
+                optimizer_state=optimizer_state,
+                learning_state=learning_state,
+                parameters=parameters,
+                objective=objective,
+            )
+        except Exception as exc:
+            observe(
+                "failure",
+                learning_state,
+                {
+                    "failure_stage": "learning_step",
+                    "exception_type": type(exc).__name__,
+                },
+            )
+            return LearningLoopResult(
+                "fail",
+                execution,
+                learning_state.global_step,
+                learning_state.global_step,
+                "learning_step_failure",
+                tuple(metrics[-config.metric_history_limit :]),
+                tuple(checkpoints),
+                tuple(warnings),
+                tuple(events),
+            )
         learning_state, optimizer_state, parameters = (
             execution.learning_state,
             execution.optimizer_state,
@@ -202,15 +228,48 @@ def run_learning_loop(
             and config.checkpoint_every_n_steps
             and learning_state.global_step % config.checkpoint_every_n_steps == 0
         ):
-            checkpoints.append(checkpoint(execution))
-            observe("checkpoint", learning_state)
-    observe("loop_end", learning_state)
+            try:
+                checkpoints.append(checkpoint(execution))
+            except Exception as exc:
+                observe(
+                    "failure",
+                    learning_state,
+                    {
+                        "failure_stage": "checkpoint",
+                        "exception_type": type(exc).__name__,
+                    },
+                )
+                return LearningLoopResult(
+                    "fail",
+                    execution,
+                    learning_state.global_step,
+                    learning_state.global_step,
+                    "checkpoint_failure",
+                    tuple(metrics[-config.metric_history_limit :]),
+                    tuple(checkpoints),
+                    tuple(warnings),
+                    tuple(events),
+                )
+            checkpoint_dispatch = observe("checkpoint", learning_state)
+            if checkpoint_dispatch.blockers:
+                return LearningLoopResult(
+                    "fail",
+                    execution,
+                    learning_state.global_step,
+                    learning_state.global_step,
+                    "hook_failure",
+                    tuple(metrics[-config.metric_history_limit :]),
+                    tuple(checkpoints),
+                    tuple(warnings),
+                    tuple(events),
+                )
+    terminal = observe("loop_end", learning_state)
     return LearningLoopResult(
-        "pass",
+        "fail" if terminal.blockers else "pass",
         execution,
         learning_state.global_step,
         learning_state.global_step,
-        "max_steps",
+        "hook_failure" if terminal.blockers else "max_steps",
         tuple(metrics[-config.metric_history_limit :]),
         tuple(checkpoints),
         tuple(warnings),

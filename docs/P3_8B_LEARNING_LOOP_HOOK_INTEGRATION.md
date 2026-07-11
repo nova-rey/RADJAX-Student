@@ -10,3 +10,9 @@ receive no parameter, gradient, optimizer, architecture, runtime, or checkpoint
 payloads, so they remain observer-only.
 
 P3.8C run reporting and the P3.8 completion gate remain pending.
+
+## Failure and Terminal Events
+
+`failure` is emitted for learning-step and checkpoint exceptions; `checkpoint`
+is emitted only after successful creation. Checkpoint and loop-end hook blockers
+are respected, while core failure reasons remain distinct from hook failures.
