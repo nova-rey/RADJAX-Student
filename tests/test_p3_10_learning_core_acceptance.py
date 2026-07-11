@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import math
 from dataclasses import replace
 from functools import lru_cache
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -20,12 +23,18 @@ from radjax_student.learning.p3_10_acceptance import (
     VALIDITY_FIELDS,
     P310LearningCoreAcceptanceReceipt,
     _default_dependencies,
+    _GoldenObjective,
     main,
     run_p3_10_learning_core_acceptance,
 )
 from radjax_student.learning.synthetic_smoke import (
     P39SmokeDependencies,
     run_p3_9_synthetic_learning_smoke,
+)
+from radjax_student.optimizers import (
+    GradientTree,
+    OptimizerConfig,
+    SgdOptimizer,
 )
 
 
@@ -317,63 +326,117 @@ def test_36_optimizer_excluded_parameter_tamper_detected():
     assert result.status == "fail" and "p3_10_optimizer_failed" in codes(result)
 
 
-def test_37_optimizer_state_tamper_detected():
+class OptimizerWrapperForTest:
+    def __init__(self):
+        self.inner = SgdOptimizer()
+
+    def __getattr__(self, name):
+        return getattr(self.inner, name)
+
+
+class ExcludedStateOptimizerForTest(OptimizerWrapperForTest):
+    def apply_updates(self, request):
+        result = self.inner.apply_updates(request)
+        backend_state = dict(result.updated_optimizer_state.backend_state)
+        per_parameter_steps = dict(backend_state["per_parameter_steps"])
+        per_parameter_steps["head.bias"] += 1
+        backend_state["per_parameter_steps"] = per_parameter_steps
+        return replace(
+            result,
+            updated_optimizer_state=replace(
+                result.updated_optimizer_state, backend_state=backend_state
+            ),
+        )
+
+
+class DoubleStepOptimizerForTest(OptimizerWrapperForTest):
+    def apply_updates(self, request):
+        result = self.inner.apply_updates(request)
+        return replace(
+            result,
+            updated_optimizer_state=replace(
+                result.updated_optimizer_state,
+                step=result.updated_optimizer_state.step + 2,
+            ),
+        )
+
+
+class IgnoredLearningRateOptimizerForTest(OptimizerWrapperForTest):
+    def apply_updates(self, request):
+        return self.inner.apply_updates(replace(request, schedule_values={}))
+
+
+class MismatchAcceptingOptimizerForTest(OptimizerWrapperForTest):
+    def apply_updates(self, request):
+        if request.config.optimizer_id == "wrong.optimizer":
+            values = vars(request).copy()
+            values["config"] = OptimizerConfig(
+                self.inner.optimizer_id, learning_rate=0.25
+            )
+            request = SimpleNamespace(**values)
+        return self.inner.apply_updates(request)
+
+
+class NonFiniteAcceptingOptimizerForTest(OptimizerWrapperForTest):
+    def apply_updates(self, request):
+        values = dict(request.gradients.values)
+        if any(not math.isfinite(float(value)) for value in values.values()):
+            request = replace(
+                request,
+                gradients=GradientTree(
+                    request.gradients.parameter_paths,
+                    values={
+                        path: 0.0 if not math.isfinite(float(value)) else value
+                        for path, value in values.items()
+                    },
+                ),
+            )
+        return self.inner.apply_updates(request)
+
+
+def test_37_optimizer_excluded_state_tamper_detected():
     result = run_p3_10_learning_core_acceptance(
-        replace(_default_dependencies(), optimizer_factory=LeakyOptimizerForTest)
+        replace(
+            _default_dependencies(), optimizer_factory=ExcludedStateOptimizerForTest
+        )
     )
     assert result.status == "fail" and "p3_10_optimizer_failed" in codes(result)
 
 
-class LeakyOptimizerForTest:
-    def __init__(self):
-        self.inner = SgdForTest()
-        self.optimizer_id = self.inner.optimizer_id
-
-    def __getattr__(self, name):
-        return getattr(self.inner, name)
-
-    def apply_updates(self, request):
-        result = self.inner.apply_updates(request)
-        state = replace(
-            result.updated_optimizer_state, step=result.updated_optimizer_state.step + 1
-        )
-        return replace(result, updated_optimizer_state=state)
-
-
-class SgdForTest:
-    def __init__(self):
-        from radjax_student.optimizers import SgdOptimizer
-
-        self.inner = SgdOptimizer()
-        self.optimizer_id = self.inner.optimizer_id
-
-    def __getattr__(self, name):
-        return getattr(self.inner, name)
-
-    def apply_updates(self, request):
-        return self.inner.apply_updates(request)
-
-
 def test_38_optimizer_step_tamper_detected():
     result = run_p3_10_learning_core_acceptance(
-        replace(_default_dependencies(), optimizer_factory=LeakyOptimizerForTest)
+        replace(_default_dependencies(), optimizer_factory=DoubleStepOptimizerForTest)
     )
     assert result.status == "fail" and "p3_10_optimizer_failed" in codes(result)
 
 
 def test_39_optimizer_learning_rate_tamper_detected():
     result = run_p3_10_learning_core_acceptance(
-        replace(_default_dependencies(), optimizer_factory=LeakyOptimizerForTest)
+        replace(
+            _default_dependencies(),
+            optimizer_factory=IgnoredLearningRateOptimizerForTest,
+        )
     )
     assert result.status == "fail" and "p3_10_optimizer_failed" in codes(result)
 
 
 def test_40_optimizer_mismatch_tamper_detected():
-    assert receipt().optimizer_valid
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(), optimizer_factory=MismatchAcceptingOptimizerForTest
+        )
+    )
+    assert result.status == "fail" and "p3_10_optimizer_failed" in codes(result)
 
 
 def test_41_optimizer_nonfinite_tamper_detected():
-    assert receipt().optimizer_valid
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            optimizer_factory=NonFiniteAcceptingOptimizerForTest,
+        )
+    )
+    assert result.status == "fail" and "p3_10_optimizer_failed" in codes(result)
 
 
 def test_42_optimizer_replay_is_deterministic():
@@ -395,24 +458,105 @@ def test_43_single_step_tamper_detected():
     assert result.status == "fail" and "p3_10_single_step_failed" in codes(result)
 
 
-def test_44_single_step_failure_surface_is_audited():
-    assert receipt().single_step_valid
+class AcceptingStepFailuresForTest:
+    def __init__(self):
+        self.inner = _default_dependencies().single_step_fn
+
+    def __call__(self, **kwargs):
+        try:
+            return self.inner(**kwargs)
+        except Exception:
+            return self.inner(**{**kwargs, "objective": _GoldenObjective()})
 
 
-def test_45_single_step_excluded_boundary_is_audited():
-    assert receipt().single_step_valid
+class LeakySingleStepParameterForTest:
+    def __init__(self):
+        self.inner = _default_dependencies().single_step_fn
+
+    def __call__(self, **kwargs):
+        result = self.inner(**kwargs)
+        return replace(
+            result,
+            parameters={**result.parameters, "head.bias": 1.0},
+        )
 
 
-def test_46_single_step_metrics_are_audited():
-    assert receipt().single_step_valid
+class LeakySingleStepStateForTest:
+    def __init__(self):
+        self.inner = _default_dependencies().single_step_fn
+
+    def __call__(self, **kwargs):
+        result = self.inner(**kwargs)
+        backend_state = dict(result.optimizer_state.backend_state)
+        steps = dict(backend_state["per_parameter_steps"])
+        steps["head.bias"] += 1
+        backend_state["per_parameter_steps"] = steps
+        return replace(
+            result,
+            optimizer_state=replace(
+                result.optimizer_state, backend_state=backend_state
+            ),
+        )
 
 
-def test_47_single_step_gradient_paths_are_audited():
-    assert receipt().single_step_valid
+class MutatingFailureExecutionForTest:
+    def __init__(self):
+        self.inner = _default_dependencies().single_step_fn
+
+    def __call__(self, **kwargs):
+        result = self.inner(**kwargs)
+        return replace(
+            result,
+            result=replace(result.result, status="fail"),
+            parameters={**result.parameters, "head.bias": 1.0},
+        )
 
 
-def test_48_single_step_delta_is_audited():
-    assert receipt().single_step_valid
+def test_44_single_step_invalid_gradient_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            single_step_fn=AcceptingStepFailuresForTest(),
+        )
+    )
+    assert result.status == "fail" and "p3_10_single_step_failed" in codes(result)
+
+
+def test_45_single_step_excluded_parameter_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            single_step_fn=LeakySingleStepParameterForTest(),
+        )
+    )
+    assert result.status == "fail" and "p3_10_single_step_failed" in codes(result)
+
+
+def test_46_single_step_excluded_state_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(_default_dependencies(), single_step_fn=LeakySingleStepStateForTest())
+    )
+    assert result.status == "fail" and "p3_10_single_step_failed" in codes(result)
+
+
+def test_47_single_step_nonfinite_loss_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            single_step_fn=AcceptingStepFailuresForTest(),
+        )
+    )
+    assert result.status == "fail" and "p3_10_single_step_failed" in codes(result)
+
+
+def test_48_single_step_mutating_failure_execution_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            single_step_fn=MutatingFailureExecutionForTest(),
+        )
+    )
+    assert result.status == "fail" and "p3_10_single_step_failed" in codes(result)
 
 
 def test_49_loop_wrong_consumption_tamper_detected():
@@ -439,40 +583,144 @@ def test_50_loop_global_step_tamper_detected():
     assert result.status == "fail" and "p3_10_loop_failed" in codes(result)
 
 
-def test_51_loop_cadence_tamper_detected():
-    assert receipt().loop_valid
+class ReorderedCheckpointLoopForTest:
+    def __init__(self):
+        self.inner = _default_dependencies().run_loop_fn
+
+    def __call__(self, **kwargs):
+        result = self.inner(**kwargs)
+        return replace(result, checkpoints=tuple(reversed(result.checkpoints)))
 
 
-def test_52_loop_failure_surface_audited():
-    assert receipt().loop_valid
+class ContinuingAfterFailureLoopForTest:
+    def __init__(self):
+        self.inner = _default_dependencies().run_loop_fn
+
+    def __call__(self, **kwargs):
+        result = self.inner(**kwargs)
+        if result.stop_reason == "learning_step_failure":
+            return replace(
+                result,
+                steps_completed=2,
+                global_step=2,
+                batches_consumed=2,
+            )
+        return result
 
 
-def test_53_loop_source_exhaustion_surface_audited():
-    assert receipt().loop_valid
+class MislabelledExhaustionLoopForTest:
+    def __init__(self):
+        self.inner = _default_dependencies().run_loop_fn
+
+    def __call__(self, **kwargs):
+        result = self.inner(**kwargs)
+        if kwargs["batch_source"].source_id == "p310.exhausted":
+            return replace(result, status="pass", stop_reason="max_steps")
+        return result
+
+
+def test_51_loop_checkpoint_cadence_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(_default_dependencies(), run_loop_fn=ReorderedCheckpointLoopForTest())
+    )
+    assert result.status == "fail" and "p3_10_loop_failed" in codes(result)
+
+
+def test_52_loop_continue_after_failure_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(), run_loop_fn=ContinuingAfterFailureLoopForTest()
+        )
+    )
+    assert result.status == "fail" and "p3_10_loop_failed" in codes(result)
+
+
+def test_53_loop_exhaustion_label_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            run_loop_fn=MislabelledExhaustionLoopForTest(),
+        )
+    )
+    assert result.status == "fail" and "p3_10_loop_failed" in codes(result)
 
 
 def test_54_loop_resumed_start_surface_audited():
     assert receipt().loop_valid
 
 
-def test_55_checkpoint_source_integrity_audited():
-    assert receipt().checkpoint_valid
+class CheckpointLoadTamperForTest:
+    def __init__(self, target=None, mode=None):
+        self.base = _default_dependencies().checkpoint_load_fn
+        self.target = target
+        self.mode = mode
+        self.good_path = None
+
+    def __call__(self, directory, *, runtime_reference=None):
+        directory = Path(directory)
+        if self.good_path is None and runtime_reference == "p310-runtime":
+            self.good_path = directory
+            return self.base(directory, runtime_reference=runtime_reference)
+        if self.mode == "runtime" and directory == self.good_path:
+            return self.base(self.good_path, runtime_reference="p310-runtime")
+        if directory.name == self.target:
+            loaded = self.base(self.good_path, runtime_reference="p310-runtime")
+            if self.mode == "none":
+                return replace(loaded, source_state={"position": 1})
+            return loaded
+        return self.base(directory, runtime_reference=runtime_reference)
 
 
-def test_56_checkpoint_missing_component_audited():
-    assert receipt().checkpoint_valid
+def test_55_checkpoint_source_hash_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            checkpoint_load_fn=CheckpointLoadTamperForTest("tamper-3"),
+        )
+    )
+    assert result.status == "fail" and "p3_10_checkpoint_failed" in codes(result)
 
 
-def test_57_checkpoint_runtime_mismatch_audited():
-    assert receipt().checkpoint_valid
+def test_56_checkpoint_source_size_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            checkpoint_load_fn=CheckpointLoadTamperForTest("tamper-4"),
+        )
+    )
+    assert result.status == "fail" and "p3_10_checkpoint_failed" in codes(result)
 
 
-def test_58_checkpoint_manifest_ownership_audited():
-    assert receipt().checkpoint_valid
+def test_57_checkpoint_runtime_mismatch_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            checkpoint_load_fn=CheckpointLoadTamperForTest(mode="runtime"),
+        )
+    )
+    assert result.status == "fail" and "p3_10_checkpoint_failed" in codes(result)
 
 
-def test_59_checkpoint_none_source_audited():
-    assert receipt().checkpoint_valid
+def test_58_checkpoint_manifest_ownership_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            checkpoint_load_fn=CheckpointLoadTamperForTest("tamper-5"),
+        )
+    )
+    assert result.status == "fail" and "p3_10_checkpoint_failed" in codes(result)
+
+
+def test_59_checkpoint_none_source_state_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            checkpoint_load_fn=CheckpointLoadTamperForTest(
+                "none-source-state", mode="none"
+            ),
+        )
+    )
+    assert result.status == "fail" and "p3_10_checkpoint_failed" in codes(result)
 
 
 def _broken_observability():
@@ -647,3 +895,25 @@ def test_75_public_lazy_export_resolves():
 
 def test_76_receipt_has_no_tracebacks():
     assert "traceback" not in receipt().to_json().lower()
+
+
+def test_77_checkpoint_schema_tamper_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            checkpoint_load_fn=CheckpointLoadTamperForTest("tamper-6"),
+        )
+    )
+    assert result.status == "fail" and "p3_10_checkpoint_failed" in codes(result)
+
+
+def test_78_checkpoint_altered_source_state_detected():
+    result = run_p3_10_learning_core_acceptance(
+        replace(
+            _default_dependencies(),
+            checkpoint_load_fn=CheckpointLoadTamperForTest(
+                "tamper-altered-source-state"
+            ),
+        )
+    )
+    assert result.status == "fail" and "p3_10_checkpoint_failed" in codes(result)

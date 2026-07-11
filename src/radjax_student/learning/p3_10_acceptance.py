@@ -4,12 +4,13 @@ from __future__ import annotations
 
 import argparse
 import ast
+import hashlib
 import json
 import tempfile
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field, replace
 from pathlib import Path
-from types import MappingProxyType
+from types import MappingProxyType, SimpleNamespace
 from typing import Any, Literal
 
 from radjax_student import architecture as _architecture
@@ -43,6 +44,7 @@ from radjax_student.learning.synthetic_smoke import (
 from radjax_student.optimizers import (
     GradientTree,
     OptimizerConfig,
+    OptimizerContractError,
     OptimizerInitRequest,
     OptimizerState,
     OptimizerUpdateRequest,
@@ -432,7 +434,7 @@ def _audit_contracts(deps: P310AcceptanceDependencies) -> bool:
         architecture.resolve_update_scope(
             UpdateScope("named_region", "missing"), architecture.describe_parameters()
         )
-    except (TypeError, ValueError):
+    except (OptimizerContractError, TypeError, ValueError):
         invalid_scope_rejected = True
     invalid_objective_rejected = False
     try:
@@ -440,12 +442,12 @@ def _audit_contracts(deps: P310AcceptanceDependencies) -> bool:
             ObjectiveScope("intermediate_surface", "missing"),
             architecture.architecture_metadata(),
         )
-    except (TypeError, ValueError):
+    except (OptimizerContractError, TypeError, ValueError):
         invalid_objective_rejected = True
     config_mismatch_rejected = False
     try:
         architecture.validate_config(ArchitectureConfig("wrong"))
-    except (TypeError, ValueError):
+    except (OptimizerContractError, TypeError, ValueError):
         config_mismatch_rejected = True
     invalid_rejected = 0
     for factory in (
@@ -496,6 +498,18 @@ def _audit_optimizer(deps: P310AcceptanceDependencies) -> bool:
             selection,
             0,
             parameters=parameters,
+            schedule_values={"learning_rate": 0.25},
+        )
+    )
+    replay = optimizer.apply_updates(
+        OptimizerUpdateRequest(
+            GradientTree(catalog.paths, values={path: 1.0 for path in catalog.paths}),
+            state,
+            optimizer_config,
+            selection,
+            0,
+            parameters=parameters,
+            schedule_values={"learning_rate": 0.25},
         )
     )
     invalid = 0
@@ -522,26 +536,63 @@ def _audit_optimizer(deps: P310AcceptanceDependencies) -> bool:
             optimizer.apply_updates(build_request())
         except (TypeError, ValueError):
             invalid += 1
+    nonfinite_rejected = False
+    try:
+        optimizer.apply_updates(
+            OptimizerUpdateRequest(
+                GradientTree(
+                    catalog.paths,
+                    values={"head.bias": float("nan"), "trunk.weight": 1.0},
+                ),
+                state,
+                optimizer_config,
+                selection,
+                0,
+                parameters=parameters,
+            )
+        )
+    except (OptimizerContractError, TypeError, ValueError):
+        nonfinite_rejected = True
+    mismatch_request = SimpleNamespace(
+        gradients=GradientTree(
+            catalog.paths, values={path: 1.0 for path in catalog.paths}
+        ),
+        optimizer_state=state,
+        config=OptimizerConfig("wrong.optimizer", learning_rate=0.25),
+        resolved_update_selection=selection,
+        learning_step=0,
+        parameters=parameters,
+        schedule_values={"learning_rate": 0.25},
+    )
+    mismatch_rejected = False
+    try:
+        optimizer.apply_updates(mismatch_request)
+    except (OptimizerContractError, TypeError, ValueError):
+        mismatch_rejected = True
+    result_steps = result.updated_optimizer_state.backend_state["per_parameter_steps"]
+    replay_steps = replay.updated_optimizer_state.backend_state["per_parameter_steps"]
     return (
         optimizer.optimizer_id == "sgd.v1"
         and state.step == 0
         and result.updated_optimizer_state.step == 1
-        and result.updated_parameters["trunk.weight"] == -0.1
+        and result.updated_parameters["trunk.weight"] == -0.25
         and result.updated_parameters["head.bias"] == 0.0
-        and result.updated_optimizer_state.backend_state["per_parameter_steps"][
-            "trunk.weight"
-        ]
-        == 1
-        and result.updated_optimizer_state.backend_state["per_parameter_steps"][
-            "head.bias"
-        ]
-        == 0
+        and result_steps["trunk.weight"] == 1
+        and result_steps["head.bias"] == 0
+        and result.update_metadata["learning_rate"] == 0.25
+        and replay.updated_parameters == result.updated_parameters
+        and replay.updated_optimizer_state.to_dict()
+        == result.updated_optimizer_state.to_dict()
+        and replay_steps == result_steps
+        and replay.parameter_updates == result.parameter_updates
         and invalid == 2
+        and nonfinite_rejected
+        and mismatch_rejected
     )
 
 
 def _audit_single_step(deps: P310AcceptanceDependencies) -> bool:
-    setup = _setup(deps)
+    setup = _setup(deps, scope="trunk")
     (
         architecture,
         architecture_config,
@@ -565,6 +616,8 @@ def _audit_single_step(deps: P310AcceptanceDependencies) -> bool:
     expected_loss, gradients = _objective_result(parameters, _batch())
     expected_delta = -0.1 * gradients["trunk.weight"]
     failure_unchanged = False
+    invalid_gradient_rejected = False
+    nonfinite_loss_rejected = False
 
     class FailingObjective:
         def evaluate(self, parameters, batch):
@@ -588,6 +641,46 @@ def _audit_single_step(deps: P310AcceptanceDependencies) -> bool:
             and state.step == 0
             and learning_state.global_step == 0
         )
+
+    class InvalidGradientObjective:
+        def evaluate(self, parameters, batch):
+            del parameters, batch
+            return 1.0, {"unknown.path": 1.0, "trunk.weight": 1.0}
+
+    try:
+        deps.single_step_fn(
+            batch=_batch(),
+            architecture=architecture,
+            architecture_config=architecture_config,
+            optimizer=optimizer,
+            optimizer_config=optimizer_config,
+            optimizer_state=state,
+            learning_state=learning_state,
+            parameters=parameters,
+            objective=InvalidGradientObjective(),
+        )
+    except (OptimizerContractError, TypeError, ValueError):
+        invalid_gradient_rejected = True
+
+    class NonFiniteLossObjective:
+        def evaluate(self, parameters, batch):
+            del parameters, batch
+            return float("nan"), {"trunk.weight": 1.0, "head.bias": 0.0}
+
+    try:
+        deps.single_step_fn(
+            batch=_batch(),
+            architecture=architecture,
+            architecture_config=architecture_config,
+            optimizer=optimizer,
+            optimizer_config=optimizer_config,
+            optimizer_state=state,
+            learning_state=learning_state,
+            parameters=parameters,
+            objective=NonFiniteLossObjective(),
+        )
+    except (TypeError, ValueError):
+        nonfinite_loss_rejected = True
     return (
         execution.result.status == "pass"
         and execution.result.global_step_before == 0
@@ -596,10 +689,16 @@ def _audit_single_step(deps: P310AcceptanceDependencies) -> bool:
         and execution.optimizer_state.step == 1
         and execution.result.loss.loss == expected_loss
         and execution.parameters["trunk.weight"] == expected_delta
-        and set(execution.result.changed_parameter_paths) == set(parameters)
+        and execution.result.changed_parameter_paths == ("trunk.weight",)
+        and execution.result.unchanged_parameter_paths == ("head.bias",)
+        and execution.parameters["head.bias"] == parameters["head.bias"] == 0.0
+        and execution.optimizer_state.backend_state["per_parameter_steps"]["head.bias"]
+        == state.backend_state["per_parameter_steps"]["head.bias"]
         and {metric.name for metric in execution.result.metrics}
         >= {"loss", "gradient_norm"}
         and failure_unchanged
+        and invalid_gradient_rejected
+        and nonfinite_loss_rejected
     )
 
 
@@ -689,6 +788,7 @@ def _audit_loop(deps: P310AcceptanceDependencies) -> bool:
         and result.final_execution is not None
         and source.position == 4
         and checkpoints == ["2", "4"]
+        and result.checkpoints == ("2", "4")
         and bool(result.metrics)
         and exhausted.stop_reason == "source_exhausted"
         and exhausted.steps_completed == exhausted.global_step == 2
@@ -714,43 +814,100 @@ def _audit_checkpoint(deps: P310AcceptanceDependencies) -> bool:
         {},
         {},
     )
-    with tempfile.TemporaryDirectory() as raw:
-        path = Path(raw)
-        saved = deps.checkpoint_save_fn(checkpoint, path)
-        loaded = deps.checkpoint_load_fn(path, runtime_reference="p310-runtime")
-        manifest = json.loads((path / "manifest.json").read_text())
-        files_ok = all(
-            (path / name).is_file()
-            for name in (
-                "architecture.json",
-                "learning.json",
-                "optimizer.json",
-                "source.json",
-                "manifest.json",
-            )
+    path = Path(deps.temporary_directory_factory())
+    saved = deps.checkpoint_save_fn(checkpoint, path)
+    loaded = deps.checkpoint_load_fn(path, runtime_reference="p310-runtime")
+    manifest = json.loads((path / "manifest.json").read_text())
+    files_ok = all(
+        (path / name).is_file()
+        for name in (
+            "architecture.json",
+            "learning.json",
+            "optimizer.json",
+            "source.json",
+            "manifest.json",
         )
-        rejected = []
-        mutations = (
-            lambda target: (target / "source.json").write_text("{}"),
-            lambda target: (target / "source.json").unlink(),
-            lambda target: (target / "manifest.json").write_text("{}"),
+    )
+
+    def rewrite_manifest(target: Path, mutate) -> None:
+        payload = json.loads((target / "manifest.json").read_text())
+        payload.pop("integrity", None)
+        mutate(payload)
+        encoded = (
+            json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n"
+        ).encode()
+        payload["integrity"] = {
+            "algorithm": "sha256",
+            "manifest_digest": hashlib.sha256(encoded).hexdigest(),
+        }
+        (target / "manifest.json").write_bytes(
+            (json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n").encode()
         )
-        for index, mutate in enumerate(mutations):
-            target = path / f"tamper-{index}"
-            deps.checkpoint_save_fn(checkpoint, target)
-            mutate(target)
-            try:
-                deps.checkpoint_load_fn(target)
-            except (TypeError, ValueError, KeyError, FileNotFoundError):
-                rejected.append(True)
-            else:
-                rejected.append(False)
+
+    def rejected(target: Path) -> bool:
         try:
-            deps.checkpoint_load_fn(path, runtime_reference="wrong")
-        except ValueError:
-            runtime_rejected = True
-        else:
-            runtime_rejected = False
+            deps.checkpoint_load_fn(target)
+        except Exception:
+            return True
+        return False
+
+    tamper_checks = []
+    tamper_mutations = (
+        lambda target: (target / "source.json").write_text("{}"),
+        lambda target: (target / "source.json").unlink(),
+        lambda target: (target / "manifest.json").write_text("{}"),
+        lambda target: rewrite_manifest(
+            target, lambda item: item["hashes"].update({"source.json": "0" * 64})
+        ),
+        lambda target: rewrite_manifest(
+            target, lambda item: item["sizes"].update({"source.json": 0})
+        ),
+        lambda target: rewrite_manifest(
+            target, lambda item: item["ownership"].update({"source.json": "wrong"})
+        ),
+        lambda target: rewrite_manifest(
+            target, lambda item: item.update({"schema_version": "unsupported"})
+        ),
+    )
+    for index, mutate in enumerate(tamper_mutations):
+        target = path / f"tamper-{index}"
+        deps.checkpoint_save_fn(checkpoint, target)
+        mutate(target)
+        tamper_checks.append(rejected(target))
+
+    altered_target = path / "tamper-altered-source-state"
+    deps.checkpoint_save_fn(checkpoint, altered_target)
+    altered_source = json.loads((altered_target / "source.json").read_text())
+    altered_source["source_state"]["position"] = 99
+    altered_bytes = (
+        json.dumps(altered_source, sort_keys=True, separators=(",", ":")) + "\n"
+    ).encode()
+    (altered_target / "source.json").write_bytes(altered_bytes)
+    rewrite_manifest(
+        altered_target,
+        lambda item: (
+            item["hashes"].update(
+                {"source.json": hashlib.sha256(altered_bytes).hexdigest()}
+            ),
+            item["sizes"].update({"source.json": len(altered_bytes)}),
+        ),
+    )
+    try:
+        altered_loaded = deps.checkpoint_load_fn(altered_target)
+    except Exception:
+        altered_state_rejected = True
+    else:
+        altered_state_rejected = altered_loaded.source_state != checkpoint.source_state
+
+    none_target = path / "none-source-state"
+    deps.checkpoint_save_fn(replace(checkpoint, source_state=None), none_target)
+    none_loaded = deps.checkpoint_load_fn(none_target)
+    try:
+        deps.checkpoint_load_fn(path, runtime_reference="wrong")
+    except ValueError:
+        runtime_rejected = True
+    else:
+        runtime_rejected = False
     return (
         saved.schema_version == CHECKPOINT_SCHEMA_VERSION == "learning_checkpoint.v2"
         and loaded.source_state["position"] == 1
@@ -760,7 +917,9 @@ def _audit_checkpoint(deps: P310AcceptanceDependencies) -> bool:
         == checkpoint.optimizer_state.backend_state
         and loaded.architecture_state == checkpoint.architecture_state
         and files_ok
-        and all(rejected)
+        and all(tamper_checks)
+        and altered_state_rejected
+        and none_loaded.source_state is None
         and runtime_rejected
         and manifest["ownership"]["source.json"] == "batch_source"
         and "source.json" in manifest["hashes"]

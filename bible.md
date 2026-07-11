@@ -602,3 +602,10 @@
 
 - The final acceptance test module must satisfy the repository-wide Ruff
   formatting gate across both supported Python matrix versions.
+
+## 2026-07-11 - P3.10.1 tamper coverage closure
+
+- A passing aggregate receipt is insufficient for golden acceptance. The final
+  gate must independently reject real optimizer, scoped single-step, loop, and
+  checkpoint regressions, with all 78 named P3.10 scenarios exercising those
+  public seams rather than merely restating the default receipt.
