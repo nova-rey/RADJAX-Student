@@ -13,6 +13,7 @@ class Hook:
     hook_id: str
     priority: int
     fail: bool = False
+    supported_events: tuple[str, ...] = ("loop_start",)
 
     def on_event(self, context):
         return HookResult(status="fail" if self.fail else "pass")

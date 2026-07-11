@@ -1,10 +1,17 @@
-"""Observer-only deterministic lifecycle hooks; not loop integration."""
+"""Deterministic observer-only lifecycle hooks; loop integration is deferred."""
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from types import MappingProxyType
+from typing import Any, Literal, Protocol
 
+from radjax_student.learning._json import (
+    freeze_json_mapping,
+    json_value,
+    unique_strings,
+)
 from radjax_student.learning.errors import LearningIssue
 from radjax_student.learning.models import MetricRecord
 
@@ -17,6 +24,7 @@ HOOK_EVENTS = (
     "loop_end",
     "failure",
 )
+_CLAIMS = ("hooks_do_not_mutate_core_state", "loop_integration_deferred")
 
 
 @dataclass(frozen=True)
@@ -26,14 +34,40 @@ class HookContext:
     event_sequence: int
     global_step: int
     metrics: tuple[MetricRecord, ...] = ()
+    metadata: Mapping[str, Any] = MappingProxyType({})
+    claims_not_made: tuple[str, ...] = _CLAIMS
 
     def __post_init__(self):
         if (
-            self.event_type not in HOOK_EVENTS
+            not isinstance(self.run_id, str)
+            or not self.run_id
+            or self.event_type not in HOOK_EVENTS
+            or type(self.event_sequence) is not int
             or self.event_sequence < 0
+            or type(self.global_step) is not int
             or self.global_step < 0
         ):
-            raise ValueError("hook context is invalid")
+            raise ValueError("learning_hook_context_invalid")
+        if any(not isinstance(x, MetricRecord) for x in self.metrics):
+            raise TypeError("metrics must contain MetricRecord")
+        object.__setattr__(self, "metrics", tuple(self.metrics))
+        object.__setattr__(self, "metadata", freeze_json_mapping(self.metadata))
+        object.__setattr__(
+            self,
+            "claims_not_made",
+            unique_strings(self.claims_not_made, "claims_not_made"),
+        )
+
+    def to_dict(self):
+        return {
+            "run_id": self.run_id,
+            "event_type": self.event_type,
+            "event_sequence": self.event_sequence,
+            "global_step": self.global_step,
+            "metrics": [x.to_dict() for x in self.metrics],
+            "metadata": json_value(self.metadata),
+            "claims_not_made": list(self.claims_not_made),
+        }
 
 
 @dataclass(frozen=True)
@@ -41,13 +75,76 @@ class HookResult:
     status: Literal["pass", "warning", "fail"] = "pass"
     metrics: tuple[MetricRecord, ...] = ()
     warnings: tuple[LearningIssue, ...] = ()
+    metadata: Mapping[str, Any] = MappingProxyType({})
+    claims_not_made: tuple[str, ...] = _CLAIMS
+
+    def __post_init__(self):
+        if self.status not in ("pass", "warning", "fail") or (
+            self.status == "warning" and not self.warnings
+        ):
+            raise ValueError("learning_hook_result_invalid")
+        if any(not isinstance(x, MetricRecord) for x in self.metrics) or any(
+            not isinstance(x, LearningIssue) for x in self.warnings
+        ):
+            raise TypeError("invalid hook result contents")
+        object.__setattr__(self, "metrics", tuple(self.metrics))
+        object.__setattr__(self, "warnings", tuple(self.warnings))
+        object.__setattr__(self, "metadata", freeze_json_mapping(self.metadata))
+        object.__setattr__(
+            self,
+            "claims_not_made",
+            unique_strings(self.claims_not_made, "claims_not_made"),
+        )
+
+    def to_dict(self):
+        return {
+            "status": self.status,
+            "metrics": [x.to_dict() for x in self.metrics],
+            "warnings": [x.to_dict() for x in self.warnings],
+            "metadata": json_value(self.metadata),
+            "claims_not_made": list(self.claims_not_made),
+        }
 
 
 class LearningHook(Protocol):
     hook_id: str
     priority: int
+    supported_events: tuple[str, ...]
 
     def on_event(self, context: HookContext) -> HookResult: ...
+
+
+@dataclass(frozen=True)
+class HookRegistration:
+    hook_id: str
+    priority: int
+    enabled: bool = True
+    supported_events: tuple[str, ...] = HOOK_EVENTS
+    metadata: Mapping[str, Any] = MappingProxyType({})
+
+    def __post_init__(self):
+        if (
+            not isinstance(self.hook_id, str)
+            or not self.hook_id
+            or type(self.priority) is not int
+            or any(x not in HOOK_EVENTS for x in self.supported_events)
+        ):
+            raise ValueError("learning_hook_invalid")
+        object.__setattr__(
+            self,
+            "supported_events",
+            unique_strings(self.supported_events, "supported_events"),
+        )
+        object.__setattr__(self, "metadata", freeze_json_mapping(self.metadata))
+
+    def to_dict(self):
+        return {
+            "hook_id": self.hook_id,
+            "priority": self.priority,
+            "enabled": self.enabled,
+            "supported_events": list(self.supported_events),
+            "metadata": json_value(self.metadata),
+        }
 
 
 @dataclass(frozen=True)
@@ -55,6 +152,24 @@ class HookPolicy:
     failure_mode: Literal["fail_fast", "warn_and_continue", "disable_hook"] = (
         "fail_fast"
     )
+    allow_metric_emission: bool = True
+    metadata: Mapping[str, Any] = MappingProxyType({})
+
+    def __post_init__(self):
+        if self.failure_mode not in (
+            "fail_fast",
+            "warn_and_continue",
+            "disable_hook",
+        ) or not isinstance(self.allow_metric_emission, bool):
+            raise ValueError("learning_hook_invalid")
+        object.__setattr__(self, "metadata", freeze_json_mapping(self.metadata))
+
+    def to_dict(self):
+        return {
+            "failure_mode": self.failure_mode,
+            "allow_metric_emission": self.allow_metric_emission,
+            "metadata": json_value(self.metadata),
+        }
 
 
 @dataclass(frozen=True)
@@ -63,16 +178,44 @@ class HookExecutionReceipt:
     event_type: str
     event_sequence: int
     status: str
+    metrics_emitted: int = 0
+    warning_codes: tuple[str, ...] = ()
     disabled_after_failure: bool = False
+    failure_code: str | None = None
+    metadata: Mapping[str, Any] = MappingProxyType({})
+
+    def to_dict(self):
+        return {
+            "hook_id": self.hook_id,
+            "event_type": self.event_type,
+            "event_sequence": self.event_sequence,
+            "status": self.status,
+            "metrics_emitted": self.metrics_emitted,
+            "warning_codes": list(self.warning_codes),
+            "disabled_after_failure": self.disabled_after_failure,
+            "failure_code": self.failure_code,
+            "metadata": json_value(self.metadata),
+        }
 
 
 @dataclass(frozen=True)
 class HookDispatchResult:
+    status: Literal["pass", "warning", "fail"]
     receipts: tuple[HookExecutionReceipt, ...]
     metrics: tuple[MetricRecord, ...]
     warnings: tuple[LearningIssue, ...]
     blockers: tuple[LearningIssue, ...]
     disabled_hook_ids: tuple[str, ...]
+
+    def to_dict(self):
+        return {
+            "status": self.status,
+            "receipts": [x.to_dict() for x in self.receipts],
+            "metrics": [x.to_dict() for x in self.metrics],
+            "warnings": [x.to_dict() for x in self.warnings],
+            "blockers": [x.to_dict() for x in self.blockers],
+            "disabled_hook_ids": list(self.disabled_hook_ids),
+        }
 
 
 def dispatch_hooks(
@@ -87,44 +230,44 @@ def dispatch_hooks(
     warnings = []
     blockers = []
     for hook in ordered:
-        if hook.hook_id in disabled:
+        if hook.hook_id in disabled or context.event_type not in hook.supported_events:
             continue
         try:
             result = hook.on_event(context)
-        except Exception:
-            result = HookResult(
-                status="fail",
-                warnings=(
-                    LearningIssue(
-                        "learning_hook_failed", "hook raised", {"hook_id": hook.hook_id}
-                    ),
-                ),
-            )
-        if not isinstance(result, HookResult):
-            result = HookResult(
-                status="fail",
-                warnings=(
-                    LearningIssue(
-                        "learning_hook_result_invalid",
-                        "hook returned invalid result",
-                        {"hook_id": hook.hook_id},
-                    ),
-                ),
-            )
-        failed = result.status == "fail"
-        disable = failed and policy.failure_mode == "disable_hook"
-        receipts.append(
-            HookExecutionReceipt(
-                hook.hook_id,
-                context.event_type,
-                context.event_sequence,
-                result.status,
-                disable,
-            )
-        )
-        if failed:
-            issue = LearningIssue(
-                "learning_hook_failed", "hook failed", {"hook_id": hook.hook_id}
+        except Exception as exc:
+            result = None
+            code = "learning_hook_failed"
+            details = {"hook_id": hook.hook_id, "exception_type": type(exc).__name__}
+        else:
+            if not isinstance(result, HookResult):
+                code = "learning_hook_result_invalid"
+                details = {
+                    "hook_id": hook.hook_id,
+                    "returned_type": type(result).__name__,
+                }
+                result = None
+            elif result.status == "fail":
+                code = "learning_hook_failed"
+                details = {"hook_id": hook.hook_id}
+            elif result.metrics and not policy.allow_metric_emission:
+                code = "learning_hook_metric_policy_violation"
+                details = {"hook_id": hook.hook_id}
+                result = None
+            else:
+                code = None
+        if code:
+            issue = LearningIssue(code, "hook dispatch failure", details)
+            disable = policy.failure_mode == "disable_hook"
+            receipts.append(
+                HookExecutionReceipt(
+                    hook.hook_id,
+                    context.event_type,
+                    context.event_sequence,
+                    "fail",
+                    disabled_after_failure=disable,
+                    failure_code=code,
+                    metadata=details,
+                )
             )
             if policy.failure_mode == "fail_fast":
                 blockers.append(issue)
@@ -138,15 +281,29 @@ def dispatch_hooks(
                     issue.details,
                 )
             )
-            if disable:
-                disabled.add(hook.hook_id)
+            disabled.update((hook.hook_id,) if disable else ())
         else:
+            receipts.append(
+                HookExecutionReceipt(
+                    hook.hook_id,
+                    context.event_type,
+                    context.event_sequence,
+                    result.status,
+                    len(result.metrics),
+                    tuple(x.code for x in result.warnings),
+                )
+            )
             metrics.extend(result.metrics)
             warnings.extend(result.warnings)
     return HookDispatchResult(
+        "fail" if blockers else "warning" if warnings else "pass",
         tuple(receipts),
         tuple(metrics),
         tuple(warnings),
         tuple(blockers),
         tuple(sorted(disabled)),
     )
+
+
+def merge_core_and_hook_issues(core_blockers, result):
+    return tuple(core_blockers) + result.blockers

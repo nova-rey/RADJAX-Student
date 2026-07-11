@@ -500,3 +500,11 @@
 - Kept batch sources generic and position-restorable so continuation does not
   silently reset consumption order. Accumulation remains rejected until it is a
   real accumulated-gradient feature, not repeated optimizer application.
+
+## 2026-07-11 - P3.8A hook contract completion
+
+- Replaced the initial dispatcher skeleton with validated immutable hook models,
+  deterministic ordering, explicit failure fidelity, and observer-only context.
+- The partial implementation was insufficient because a passing narrow test did
+  not establish serialization, metric policy, mutation boundaries, or failure
+  behavior. Loop integration remains deliberately deferred to P3.8B.

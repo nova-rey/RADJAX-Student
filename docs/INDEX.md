@@ -82,6 +82,8 @@ Start here for Phase 0 foundation context.
   layered ownership, deterministic manifests, and SHA-256 validation.
 - [P3.7 Generic Learning Loop](P3_7_GENERIC_LEARNING_LOOP.md): bounded generic
   batch consumption, exact stopping, and source-position continuation.
+- [P3.8A Hook Lifecycle and Failure Policy](P3_8A_HOOK_LIFECYCLE_AND_FAILURE_POLICY.md):
+  deterministic observer-only standalone hook dispatch.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
