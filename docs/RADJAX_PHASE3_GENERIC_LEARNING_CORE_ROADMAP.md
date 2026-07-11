@@ -46,8 +46,8 @@ P3.2  Student Architecture Plugin Contract      COMPLETE
 P3.3  Optimizer Contract                        COMPLETE
 P3.4  Generic Batch and Objective Contract      COMPLETE
 P3.5  Single Learning Step                      COMPLETE
-P3.6  Model and Optimizer Checkpoint Contract   UNBLOCKED; NEXT
-P3.7  Generic Learning Loop                     BLOCKED ON P3.6
+P3.6  Model and Optimizer Checkpoint Contract   COMPLETE
+P3.7  Generic Learning Loop                     UNBLOCKED; NEXT
 P3.8  Metrics, Hooks, and Reporting             BLOCKED ON P3.7
 P3.9  Synthetic End-to-End Learning Smoke       BLOCKED ON P3.8
 P3.10 Learning Core Golden Acceptance Gate      BLOCKED ON P3.9

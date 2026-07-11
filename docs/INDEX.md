@@ -78,6 +78,8 @@ Start here for Phase 0 foundation context.
   behavior-neutral batches, objective request/result models, and weighting policy.
 - [P3.5 Single Learning Step](P3_5_SINGLE_LEARNING_STEP.md): one deterministic
   scalar contract composition with targeted-update proof.
+- [P3.6 Model and Optimizer Checkpoint Contract](P3_6_MODEL_AND_OPTIMIZER_CHECKPOINT_CONTRACT.md):
+  layered ownership, deterministic manifests, and SHA-256 validation.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)

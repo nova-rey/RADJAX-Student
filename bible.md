@@ -480,3 +480,15 @@
 - Preserved targeted-update guarantees in the first execution proof: selected
   paths may change, excluded parameter values remain identical, and excluded
   per-path optimizer state does not advance.
+
+## 2026-07-11 - P3.6 layered checkpoint contract
+
+- Made checkpoint ownership mirror system ownership: runtime identity, learning
+  progress, architecture parameters/state, and optimizer moments remain separate
+  components rather than one anonymous checkpoint blob.
+- Required deterministic manifests and SHA-256 component validation before
+  restore. Partial, schema-mismatched, path-mismatched, or runtime-mismatched
+  checkpoints are rejected rather than silently accepted.
+- Kept the proof narrow: scalar component persistence establishes layered
+  ownership and integrity, not distributed/sharded checkpoint behavior,
+  execution equivalence, or production performance.
