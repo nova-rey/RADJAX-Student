@@ -96,6 +96,8 @@ Start here for Phase 0 foundation context.
 - [P3.9 Synthetic End-to-End Learning Smoke](P3_9_SYNTHETIC_END_TO_END_LEARNING_SMOKE.md):
   deterministic full-stack learning proof with scoped updates, integrity-covered
   checkpoint source state, resume equivalence, reporting, and replay evidence.
+- [P3.10 Learning Core Golden Acceptance](P3_10_LEARNING_CORE_GOLDEN_ACCEPTANCE.md):
+  final public-API audit of the completed Phase 3 learning core.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)

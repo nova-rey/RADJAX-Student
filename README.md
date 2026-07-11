@@ -166,6 +166,14 @@ Run `PYTHONPATH=src python3 -m radjax_student.learning.synthetic_smoke` for the
 offline smoke receipt. This is systems evidence only, not a model-quality,
 Tome-training, evaluation, or production-hyperparameter claim.
 
+P3.10 closes the [Learning Core Golden Acceptance](docs/P3_10_LEARNING_CORE_GOLDEN_ACCEPTANCE.md)
+with a deterministic public-API receipt covering P3.1 through P3.9. It audits
+the completed contracts without adding execution behavior:
+
+```bash
+PYTHONPATH=src python3 -m radjax_student.learning.p3_10_acceptance
+```
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, Hugging Face export, complete Tome compatibility, or model

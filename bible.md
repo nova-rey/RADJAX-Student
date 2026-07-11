@@ -584,3 +584,9 @@
 - Deterministic continuation requires the batch source to be checkpoint-owned.
   P3.9 rejected unsigned sidecars and extended the layered checkpoint contract so
   source position is hashed, owned, validated, and restored atomically.
+
+## 2026-07-11 - P3.10 learning core golden acceptance
+
+- Phase 3 closes with one public-API audit receipt. The gate audits every
+  accepted learning seam and depends on evidence from the real P3.8 and P3.9
+  acceptance paths; it does not introduce another learning control plane.

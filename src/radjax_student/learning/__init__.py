@@ -118,6 +118,8 @@ __all__ = [
     "P39SyntheticLearningReceipt",
     "SyntheticRunSummary",
     "run_p3_9_synthetic_learning_smoke",
+    "P310LearningCoreAcceptanceReceipt",
+    "run_p3_10_learning_core_acceptance",
 ]
 
 
@@ -134,6 +136,19 @@ def __getattr__(name):
         return {
             "P38ObservabilityAcceptanceReceipt": P38ObservabilityAcceptanceReceipt,
             "run_p3_8_observability_acceptance": run_p3_8_observability_acceptance,
+        }[name]
+    if name in {
+        "P310LearningCoreAcceptanceReceipt",
+        "run_p3_10_learning_core_acceptance",
+    }:
+        from radjax_student.learning.p3_10_acceptance import (
+            P310LearningCoreAcceptanceReceipt,
+            run_p3_10_learning_core_acceptance,
+        )
+
+        return {
+            "P310LearningCoreAcceptanceReceipt": P310LearningCoreAcceptanceReceipt,
+            "run_p3_10_learning_core_acceptance": run_p3_10_learning_core_acceptance,
         }[name]
     if name in {
         "P39SyntheticLearningReceipt",
