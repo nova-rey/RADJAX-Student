@@ -21,6 +21,15 @@ from radjax_student.learning.models import (
     MetricRecord,
     canonical_learning_json,
 )
+from radjax_student.learning.objectives import (
+    BATCH_OBJECTIVE_CLAIMS_NOT_MADE,
+    WEIGHTING_POLICIES,
+    BatchMetadata,
+    ObjectiveRequest,
+    ObjectiveResult,
+    WeightingPolicy,
+    canonical_objective_json,
+)
 from radjax_student.learning.protocols import ObjectiveEvaluator, UpdateScopeResolver
 from radjax_student.learning.scopes import (
     OBJECTIVE_SCOPE_KINDS,
@@ -34,6 +43,7 @@ from radjax_student.learning.scopes import (
 
 __all__ = [
     "CHECKPOINT_POLICY_MODES",
+    "BATCH_OBJECTIVE_CLAIMS_NOT_MADE",
     "LEARNING_CLAIMS_NOT_MADE",
     "LEARNING_ERROR_CODES",
     "LEARNING_STATE_SCHEMA_VERSION",
@@ -51,6 +61,9 @@ __all__ = [
     "LearningStepResult",
     "LossResult",
     "MetricRecord",
+    "BatchMetadata",
+    "ObjectiveRequest",
+    "ObjectiveResult",
     "ObjectiveEvaluator",
     "ObjectiveScope",
     "ObjectiveScopeKind",
@@ -58,5 +71,8 @@ __all__ = [
     "UpdateScope",
     "UpdateScopeKind",
     "UpdateScopeResolver",
+    "WEIGHTING_POLICIES",
+    "WeightingPolicy",
     "canonical_learning_json",
+    "canonical_objective_json",
 ]

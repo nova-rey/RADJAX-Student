@@ -44,8 +44,8 @@ forward computation.
 P3.1  Generic Learning Contract                 COMPLETE
 P3.2  Student Architecture Plugin Contract      COMPLETE
 P3.3  Optimizer Contract                        COMPLETE
-P3.4  Generic Batch and Objective Contract      UNBLOCKED; NEXT
-P3.5  Single Learning Step                      BLOCKED ON P3.4
+P3.4  Generic Batch and Objective Contract      COMPLETE
+P3.5  Single Learning Step                      UNBLOCKED; NEXT
 P3.6  Model and Optimizer Checkpoint Contract   BLOCKED ON P3.5
 P3.7  Generic Learning Loop                     BLOCKED ON P3.6
 P3.8  Metrics, Hooks, and Reporting             BLOCKED ON P3.7

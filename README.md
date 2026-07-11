@@ -125,6 +125,12 @@ whole-student and partial update masking while keeping excluded parameter values
 and per-parameter state unchanged. It is not an Optax integration or a learning
 loop.
 
+P3.4 establishes the [Generic Batch and Objective Contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
+behavior-neutral batch metadata, objective request/result models, and explicit
+weighting policies. Future Tome adapters populate these models rather than
+defining a parallel training vocabulary; this checkpoint does not load Tome data
+or execute objectives.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, Hugging Face export, complete Tome compatibility, or model
@@ -157,3 +163,4 @@ codebase. The normative Phase 0 docs are:
 - [P3.1 Generic Learning contract](docs/P3_1_GENERIC_LEARNING_CONTRACT.md)
 - [P3.2 Student Architecture Plugin contract](docs/P3_2_STUDENT_ARCHITECTURE_PLUGIN_CONTRACT.md)
 - [P3.3 Optimizer contract](docs/P3_3_OPTIMIZER_CONTRACT.md)
+- [P3.4 Generic Batch and Objective contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md)

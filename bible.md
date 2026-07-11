@@ -455,3 +455,15 @@
 - Kept P3.3 below the learning-step boundary. It defines update mechanics for
   supplied gradients, but does not compute gradients, invoke an architecture,
   decide step timing, run a loop, checkpoint, or load Tome data.
+
+## 2026-07-11 - P3.4 generic batch and objective contract
+
+- Kept batches behavior-neutral: they describe presented inputs, targets,
+  weights, metadata, and objective scope rather than Tome corridors, exemplars,
+  logits, or architecture tensors.
+- Required future Tome adapters to produce the generic batch contract instead of
+  redefining it. This keeps behavior extraction separate from learning and lets
+  later behavior formats share one objective boundary.
+- Kept objective requests separate from execution. Weighting policy, required
+  outputs, and result reporting are explicit contracts, while architecture math,
+  runtime execution, gradients, and learning-step orchestration remain later.

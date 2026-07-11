@@ -74,6 +74,8 @@ Start here for Phase 0 foundation context.
   init/forward models, and test-plugin boundary.
 - [P3.3 Optimizer Contract](P3_3_OPTIMIZER_CONTRACT.md): scoped update mechanics,
   opaque optimizer state, explicit policy vocabulary, and scalar SGD test proof.
+- [P3.4 Generic Batch and Objective Contract](P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
+  behavior-neutral batches, objective request/result models, and weighting policy.
 - [Architecture Overview](ARCHITECTURE.md)
 - [Import Boundaries](IMPORT_BOUNDARIES.md)
 - [Runtime Backends](RUNTIME_BACKENDS.md)
@@ -121,4 +123,5 @@ or ordinary module descriptions.
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
 Runtime is complete under the P2.10 runtime acceptance gate. P3.1 establishes
 the Generic Learning Core contract, P3.2 establishes the architecture-plugin
-contract, and P3.3 establishes the optimizer contract; P3.4 is next.
+contract, P3.3 establishes the optimizer contract, and P3.4 establishes generic
+batch and objective vocabulary; P3.5 is next.

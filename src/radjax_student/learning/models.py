@@ -255,6 +255,7 @@ class LearningBatch:
     targets: Mapping[str, Any] = MappingProxyType({})
     weights: Mapping[str, Any] = MappingProxyType({})
     metadata: Mapping[str, Any] = MappingProxyType({})
+    objective_scope: ObjectiveScope = ObjectiveScope()
 
     def __post_init__(self) -> None:
         nonempty_string(self.batch_id, "batch_id")
@@ -263,6 +264,8 @@ class LearningBatch:
             if not isinstance(value, Mapping):
                 raise TypeError(f"{name} must be a mapping")
             object.__setattr__(self, name, freeze_json_mapping(value))
+        if not isinstance(self.objective_scope, ObjectiveScope):
+            raise TypeError("objective_scope must be ObjectiveScope")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -271,6 +274,7 @@ class LearningBatch:
             "targets": json_value(self.targets),
             "weights": json_value(self.weights),
             "metadata": json_value(self.metadata),
+            "objective_scope": self.objective_scope.to_dict(),
         }
 
     @classmethod
@@ -281,6 +285,9 @@ class LearningBatch:
             targets=mapping(payload.get("targets", {}), "targets"),
             weights=mapping(payload.get("weights", {}), "weights"),
             metadata=mapping(payload.get("metadata", {}), "metadata"),
+            objective_scope=ObjectiveScope.from_dict(
+                mapping(payload.get("objective_scope", {}), "objective_scope")
+            ),
         )
 
 
