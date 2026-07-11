@@ -59,6 +59,16 @@ RuntimeErrorCode: TypeAlias = Literal[
     "runtime_state_save_failed",
     "runtime_state_load_failed",
     "runtime_state_internal_error",
+    "runtime_portability_platform_unavailable",
+    "runtime_portability_backend_unavailable",
+    "runtime_portability_device_unavailable",
+    "runtime_portability_initialization_failed",
+    "runtime_portability_placement_failed",
+    "runtime_portability_execution_failed",
+    "runtime_portability_synchronization_failed",
+    "runtime_portability_result_mismatch",
+    "runtime_portability_state_round_trip_failed",
+    "runtime_portability_internal_error",
     "runtime_internal_error",
 ]
 
@@ -114,6 +124,16 @@ RUNTIME_ERROR_CODES: tuple[str, ...] = (
     "runtime_state_save_failed",
     "runtime_state_load_failed",
     "runtime_state_internal_error",
+    "runtime_portability_platform_unavailable",
+    "runtime_portability_backend_unavailable",
+    "runtime_portability_device_unavailable",
+    "runtime_portability_initialization_failed",
+    "runtime_portability_placement_failed",
+    "runtime_portability_execution_failed",
+    "runtime_portability_synchronization_failed",
+    "runtime_portability_result_mismatch",
+    "runtime_portability_state_round_trip_failed",
+    "runtime_portability_internal_error",
     "runtime_internal_error",
 )
 

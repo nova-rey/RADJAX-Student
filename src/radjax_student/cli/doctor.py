@@ -27,6 +27,17 @@ def configure_parser(subparsers: argparse._SubParsersAction) -> None:
         action="store_true",
         help="run the explicit P2.8 runtime-state save/restore smoke",
     )
+    parser.add_argument(
+        "--portability-smoke",
+        choices=("cpu", "gpu", "tpu"),
+        help="run the explicit P2.9 one-device portability smoke",
+    )
+    parser.add_argument(
+        "--portability-mode",
+        choices=("eager", "jit"),
+        default="eager",
+        help="select eager or explicit JIT for --portability-smoke",
+    )
     parser.add_argument("--output", help="write the rendered report to this path")
     parser.add_argument(
         "--overwrite",
@@ -40,6 +51,8 @@ def run(args: argparse.Namespace, stdout: TextIO) -> int:
     report = build_doctor_report(
         run_runtime_smoke=args.runtime_smoke,
         run_runtime_state_smoke_check=args.runtime_state_smoke,
+        portability_platform=args.portability_smoke,
+        portability_mode=args.portability_mode,
     )
     rendered = (
         render_json(report) if args.format == "json" else render_doctor_human(report)

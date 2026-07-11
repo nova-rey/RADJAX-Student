@@ -18,10 +18,12 @@ from radjax_student.runtime import (
     RuntimeBackendDescriptor,
     RuntimeConfig,
     RuntimeInspection,
+    RuntimePortabilityReceipt,
     RuntimeSelectionResult,
     RuntimeStateSmokeReceipt,
     build_default_runtime_registry,
     inspect_runtime_environment,
+    run_portability_smoke,
     run_runtime_state_smoke,
     run_single_device_cpu_smoke,
     select_runtime_backend,
@@ -84,6 +86,7 @@ class StudentDoctorReport:
     runtime_selection: RuntimeSelectionResult
     runtime_smoke: CpuRuntimeSmokeReceipt | None
     runtime_state_smoke: RuntimeStateSmokeReceipt | None
+    runtime_portability_smoke: RuntimePortabilityReceipt | None
     placement_intent: Mapping[str, Any]
     execution_boundary: Mapping[str, str]
     capability_state: Mapping[str, str]
@@ -130,6 +133,11 @@ class StudentDoctorReport:
                 if self.runtime_state_smoke is None
                 else self.runtime_state_smoke.to_dict()
             ),
+            "runtime_portability_smoke": (
+                None
+                if self.runtime_portability_smoke is None
+                else self.runtime_portability_smoke.to_dict()
+            ),
             "placement_intent": dict(self.placement_intent),
             "execution_boundary": dict(self.execution_boundary),
             "capability_state": dict(self.capability_state),
@@ -143,6 +151,8 @@ def build_doctor_report(
     *,
     run_runtime_smoke: bool = False,
     run_runtime_state_smoke_check: bool = False,
+    portability_platform: str | None = None,
+    portability_mode: str = "eager",
 ) -> StudentDoctorReport:
     blockers: list[str] = []
     warnings: list[str] = []
@@ -215,6 +225,16 @@ def build_doctor_report(
     )
     if runtime_state_smoke is not None and not runtime_state_smoke.ok:
         blockers.append("runtime_state_smoke_failed")
+    runtime_portability_smoke = (
+        None
+        if portability_platform is None
+        else run_portability_smoke(portability_platform, portability_mode)
+    )
+    if (
+        runtime_portability_smoke is not None
+        and runtime_portability_smoke.status == "fail"
+    ):
+        blockers.append("runtime_portability_smoke_failed")
     return StudentDoctorReport(
         status="pass" if not blockers else "fail",
         python_version=platform.python_version(),
@@ -237,6 +257,7 @@ def build_doctor_report(
         runtime_selection=runtime_selection,
         runtime_smoke=runtime_smoke,
         runtime_state_smoke=runtime_state_smoke,
+        runtime_portability_smoke=runtime_portability_smoke,
         placement_intent=MappingProxyType(
             {
                 "supported_declarations": PLACEMENT_INTENTS,
@@ -275,6 +296,7 @@ def build_doctor_report(
                 "placement_intent": "available",
                 "execution_boundary": "available",
                 "runtime_state": "available_on_explicit_request",
+                "runtime_portability": "available_on_explicit_request",
                 "payload_loading": "unavailable",
                 "training": "unavailable",
                 "jax_execution": "unavailable",

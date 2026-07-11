@@ -129,6 +129,7 @@ def test_doctor_proves_pipeline_and_honest_expected_failure() -> None:
         "placement_intent": "available",
         "execution_boundary": "available",
         "runtime_state": "available_on_explicit_request",
+        "runtime_portability": "available_on_explicit_request",
         "payload_loading": "unavailable",
         "training": "unavailable",
         "jax_execution": "unavailable",

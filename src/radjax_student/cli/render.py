@@ -279,6 +279,27 @@ def render_doctor_human(report: StudentDoctorReport) -> str:
                 + _yes_no(state_smoke.optimizer_state_included),
             ]
         )
+    lines.extend(["", "Runtime Portability Smoke"])
+    if report.runtime_portability_smoke is None:
+        lines.append("  status: NOT RUN (pass --portability-smoke TARGET to execute)")
+    else:
+        portability = report.runtime_portability_smoke
+        lines.extend(
+            [
+                "  status: " + portability.status.upper(),
+                "  platform: " + portability.platform,
+                "  backend: " + _display(portability.backend_id),
+                "  device: " + _display(portability.device_id),
+                "  mode: " + portability.execution_mode,
+                "  result validated: " + _yes_no(portability.result_validated),
+                "  synchronized: " + _yes_no(portability.synchronized),
+                "  state round-trip: " + _yes_no(portability.runtime_state_round_trip),
+                "  blockers: "
+                + _joined(
+                    tuple(item.code for item in portability.blockers), empty="none"
+                ),
+            ]
+        )
     lines.extend(["", "Available Profiles"])
     lines.extend(f"  - {item}" for item in report.available_profiles)
     lines.extend(["", "Current Capability State"])

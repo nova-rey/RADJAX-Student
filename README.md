@@ -89,6 +89,13 @@ optimizer, architecture, executable, raw device, or raw JAX key state. The
 opt-in `radjax-student doctor --runtime-state-smoke` path uses a temporary
 directory; normal doctor remains non-writing and non-executing.
 
+[P2.9](docs/P2_9_GPU_TPU_PORTABILITY_SMOKE.md) provides one explicit
+selected-device CPU/GPU/TPU smoke path. It reuses runtime selection, placement,
+P2.7 execution, synchronization, and P2.8 metadata round-trip, returning a
+target-specific receipt. `radjax-student doctor --portability-smoke gpu` and
+`--portability-smoke tpu` report unavailable hardware honestly without claiming
+an accelerator pass.
+
 The initial scaffold uses NumPy for tiny debug smoke tests so default CI does
 not require JAX, TPU, Pallas, torch, or transformers. It does not yet claim
 working training, JAX portability, Hugging Face export, complete Tome
@@ -115,3 +122,4 @@ codebase. The normative Phase 0 docs are:
 - [P2.6 placement and sharding intent](docs/P2_6_PLACEMENT_AND_SHARDING_INTENT.md)
 - [P2.7 compilation and execution boundary](docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md)
 - [P2.8 runtime state save/restore](docs/P2_8_RUNTIME_STATE_SAVE_RESTORE.md)
+- [P2.9 GPU/TPU portability smoke](docs/P2_9_GPU_TPU_PORTABILITY_SMOKE.md)

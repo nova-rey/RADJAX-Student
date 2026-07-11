@@ -125,6 +125,6 @@ P2.5  RNG and Reproducibility Contract          COMPLETE
 P2.6  Placement and Sharding Intent             COMPLETE
 P2.7  Compilation and Execution Boundary        COMPLETE
 P2.8  Runtime State Save/Restore Foundation     COMPLETE
-P2.9  GPU/TPU Portability Smoke                 UNBLOCKED; NEXT
-P2.10 Runtime Golden Acceptance Gate            BLOCKED ON P2.9
+P2.9  GPU/TPU Portability Smoke                 COMPLETE
+P2.10 Runtime Golden Acceptance Gate            UNBLOCKED; NEXT
 ```

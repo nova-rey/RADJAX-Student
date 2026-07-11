@@ -104,6 +104,20 @@ checks runtime compatibility, and runs a continuation heartbeat. It never saves
 model, optimizer, architecture, executable, raw-device, or raw-JAX-key state.
 Normal doctor does not write or execute this smoke.
 
+P2.9 target portability is also explicit:
+
+```bash
+radjax-student doctor --portability-smoke cpu
+radjax-student doctor --portability-smoke gpu
+radjax-student doctor --portability-smoke tpu --portability-mode jit
+```
+
+The command runs one shared selected-device runtime path: inspect, explicit
+target selection and placement, P2.7 execution/synchronization, result
+validation, and P2.8 runtime-state round-trip. GPU/TPU absence emits an
+`unavailable` receipt rather than a pass or a default-doctor failure. Normal
+doctor remains non-executing.
+
 An expected compatibility failure does not make doctor unhealthy. Missing or
 changed fixtures, failed Contract imports, pipeline failures, or serialization
 failures do. Runtime inspection fails doctor only when observation itself is

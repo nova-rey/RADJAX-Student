@@ -116,3 +116,9 @@ The envelope records metadata, not model or optimizer trees: future checkpoint
 contracts may extend it through explicit ownership boundaries, but they cannot
 turn this runtime artifact into architecture-specific state. Restore validates
 continuity and compatibility; it does not prove equivalent execution.
+
+P2.9 keeps accelerator behavior in the same runtime path. Architecture plugins
+do not branch by CPU/GPU/TPU: runtime selects one observed device, places one
+small value, executes the shared pure function, validates state continuity, and
+emits a target receipt. Absent hardware remains a runtime observation, not an
+architecture failure.

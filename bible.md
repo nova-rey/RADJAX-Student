@@ -348,3 +348,22 @@
   not model checkpoints, optimizer checkpoints, training resumption, distributed
   restoration, executable persistence, topology migration, or reproducibility of
   a complete run.
+
+## 2026-07-10 - P2.9 GPU/TPU portability smoke
+
+- Kept one shared selected-device path because three target-specific scripts can
+  drift into three different products. Selection, placement, P2.7 execution,
+  synchronization, result validation, and P2.8 state continuity now remain one
+  runtime responsibility; only observed target facts and receipts vary.
+- Treated unavailable accelerators as observed capability boundaries, not failed
+  portability claims and not false passes. A GPU/TPU request without the target
+  produces an explicit `unavailable` receipt so automation can distinguish lack
+  of hardware from an executed regression.
+- Required target receipts for external accelerator evidence. They carry stable
+  target, topology, mode, validation, and non-claim data without raw backend
+  objects, paths, timestamps, or benchmark implications.
+- Kept timing diagnostic. Different accelerator compilation and dispatch times
+  are environment observations, never throughput or kernel-quality benchmarks.
+- Kept the claim narrow: P2.9 proves one small single-device runtime path on
+  observed targets, not multi-device scale, sharding, distributed execution,
+  training, gradients, optimizer behavior, or model quality.

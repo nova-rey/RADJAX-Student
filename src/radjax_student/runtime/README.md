@@ -34,5 +34,12 @@ generic resume metadata. It deliberately excludes model/optimizer state,
 compiled executables, raw devices, raw JAX keys, and architecture data. See
 [`docs/P2_8_RUNTIME_STATE_SAVE_RESTORE.md`](../../../docs/P2_8_RUNTIME_STATE_SAVE_RESTORE.md).
 
+P2.9 adds `run_portability_smoke(platform, mode)` for the one selected-device
+CPU/GPU/TPU path. It reuses explicit selection and placement, P2.7 execution and
+synchronization, then P2.8 runtime-state round-trip validation. GPU/TPU absence
+is reported as `unavailable`; no architecture, mesh, sharding, or distributed
+path is introduced. See
+[`docs/P2_9_GPU_TPU_PORTABILITY_SMOKE.md`](../../../docs/P2_9_GPU_TPU_PORTABILITY_SMOKE.md).
+
 See
 [`docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md`](../../../docs/P2_7_COMPILATION_AND_EXECUTION_BOUNDARY.md).

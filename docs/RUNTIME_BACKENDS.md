@@ -59,3 +59,9 @@ and SHA-256 digests make restore portable and verifiable. Model parameters,
 optimizer state, architecture data, compiled executables, raw devices, and raw
 JAX keys are deliberately excluded. See
 [P2.8 Runtime State Save/Restore](P2_8_RUNTIME_STATE_SAVE_RESTORE.md).
+
+P2.9 runs the same selected-device runtime path for explicit CPU, GPU, and TPU
+requests. It reuses selection, explicit placement, the P2.7 execution boundary,
+synchronization, P2.8 state round-trip, and one target receipt shape. Missing
+GPU/TPU hardware is an `unavailable` receipt, never a false pass. See
+[P2.9 GPU/TPU Portability Smoke](P2_9_GPU_TPU_PORTABILITY_SMOKE.md).

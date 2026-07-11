@@ -206,13 +206,13 @@ class RuntimeBackendRegistry:
 
 
 class JaxRuntimeBackend:
-    """JAX declaration with the deliberately tiny P2.4 CPU smoke operations."""
+    """JAX runtime declaration with CPU smoke and selected-device portability ops."""
 
     backend_id = "jax"
-    implementation_version = "p2.8"
+    implementation_version = "p2.9"
     supported_platforms = SUPPORTED_RUNTIME_PLATFORMS
     notes = (
-        "P2.8 adds portable runtime-state persistence outside JAX execution.",
+        "P2.9 adds one shared selected-device portability smoke path.",
         "Declared capabilities beyond tested paths are not execution proof.",
     )
 
@@ -221,7 +221,7 @@ class JaxRuntimeBackend:
 
     def capability_profile(self) -> RuntimeCapabilityProfile:
         return RuntimeCapabilityProfile(
-            profile_id="jax.runtime.p2.8",
+            profile_id="jax.runtime.p2.9",
             backend_id=self.backend_id,
             version=1,
             capabilities=(
@@ -240,7 +240,7 @@ class JaxRuntimeBackend:
                 "placement.replicated_v1",
                 "runtime.multi_process_v1",
             ),
-            notes=("P2.8 adds a runtime-only state envelope, not a model checkpoint.",),
+            notes=("P2.9 proves only selected single-device portability smoke paths.",),
         )
 
     def availability(self, inspection: RuntimeInspection) -> RuntimeBackendAvailability:
@@ -326,6 +326,51 @@ class JaxRuntimeBackend:
         return value.block_until_ready()
 
     def close_cpu_context(self, context: ExecutionContext) -> None:
+        self._cpu_contexts.pop(context.runtime_id, None)
+
+    def initialize_portability_context(
+        self,
+        config: RuntimeConfig,
+        inspection: RuntimeInspection,
+        selection: Any,
+        device_descriptor: Any,
+    ) -> ExecutionContext:
+        """Initialize one selected local CPU, GPU, or TPU device for P2.9."""
+
+        platform = selection.selected_platform
+        if platform not in ("cpu", "gpu", "tpu"):
+            raise RuntimeContractError(
+                "runtime_device_selection_failed",
+                "portability execution requires one selected CPU, GPU, or TPU",
+                details={"selected_platform": platform},
+            )
+        jax_module = _import_jax()
+        device = _selected_jax_device(jax_module, device_descriptor, platform)
+        runtime_id = f"jax-{platform}-portability-seed-{config.seed}"
+        context = ExecutionContext(
+            backend_id=self.backend_id,
+            environment=inspection.environment,
+            device_inventory=inspection.device_inventory,
+            capabilities=selection.selected_backend.capability_profile,
+            root_seed=config.seed,
+            runtime_id=runtime_id,
+            metadata={
+                "selected_platform": platform,
+                "selected_device_id": device_descriptor.device_id,
+                "placement_policy": config.placement_policy,
+                "portability_smoke": True,
+            },
+        )
+        self._cpu_contexts[runtime_id] = (jax_module, device)
+        return context
+
+    def place_portability_value(self, context: ExecutionContext, value: Any) -> Any:
+        """Materialize and explicitly place the shared P2.9 input on one device."""
+
+        jax_module, device = self._cpu_context(context)
+        return jax_module.device_put(jax_module.numpy.asarray(value), device)
+
+    def close_portability_context(self, context: ExecutionContext) -> None:
         self._cpu_contexts.pop(context.runtime_id, None)
 
     def prepare_runtime_execution(
@@ -524,13 +569,18 @@ def _import_jax() -> Any:
 
 
 def _selected_jax_cpu_device(jax_module: Any, descriptor: Any) -> Any:
+    return _selected_jax_device(jax_module, descriptor, "cpu")
+
+
+def _selected_jax_device(jax_module: Any, descriptor: Any, platform: str) -> Any:
     try:
-        raw_devices = tuple(jax_module.devices("cpu"))
+        raw_devices = tuple(jax_module.devices(platform))
     except Exception as exc:
         raise RuntimeContractError(
             "runtime_device_selection_failed",
-            "JAX could not list CPU devices for the selected smoke",
+            "JAX could not list devices for the selected portability smoke",
             details={
+                "platform": platform,
                 "exception_type": type(exc).__name__,
                 "exception_message": str(exc),
             },
@@ -539,15 +589,15 @@ def _selected_jax_cpu_device(jax_module: Any, descriptor: Any) -> Any:
     matches = [
         device
         for device in raw_devices
-        if getattr(device, "platform", None) == "cpu"
+        if getattr(device, "platform", None) == platform
         and getattr(device, "id", None) == reported_id
         and getattr(device, "process_index", None) == descriptor.process_index
     ]
     if not matches:
         raise RuntimeContractError(
             "runtime_device_selection_failed",
-            "selected inspected CPU device is unavailable to JAX execution",
-            details={"device_id": descriptor.device_id},
+            "selected inspected device is unavailable to JAX execution",
+            details={"platform": platform, "device_id": descriptor.device_id},
         )
     return matches[0]
 
