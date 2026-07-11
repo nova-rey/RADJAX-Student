@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
@@ -113,7 +113,7 @@ class LogicalAxisSpec:
     size: int | None = None
     sharding_role: LogicalAxisRole = "unspecified"
     required: bool = False
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         _require_axis_name(self.name)
@@ -175,7 +175,7 @@ class ValuePlacementSpec:
     logical_axes: tuple[str, ...] = ()
     required_capabilities: tuple[str, ...] = ()
     constraints: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         _require_value_path(self.value_path)
@@ -239,7 +239,7 @@ class PlacementPlan:
         "mesh_not_created",
         "sharding_not_executed",
     )
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.plan_id, str) or not self.plan_id:
@@ -342,7 +342,9 @@ class PlacementResolution:
     intent: PlacementIntent
     resolved_backend: str | None = None
     resolved_devices: tuple[str, ...] = ()
-    resolved_sharding: Mapping[str, Any] = MappingProxyType({})
+    resolved_sharding: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     blockers: tuple[RuntimeIssue, ...] = ()
     warnings: tuple[RuntimeIssue, ...] = ()
     claims_not_made: tuple[str, ...] = (

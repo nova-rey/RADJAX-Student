@@ -66,7 +66,7 @@ class OptimizerConfig:
     epsilon: float | None = None
     momentum: float | None = None
     schedule_reference: str | None = None
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.optimizer_id, str) or not self.optimizer_id:
@@ -147,7 +147,7 @@ class OptimizerCapabilityProfile:
     version: int
     capabilities: tuple[str, ...]
     non_capabilities: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.optimizer_id, str) or not self.optimizer_id:
@@ -177,7 +177,7 @@ class OptimizerCapabilityProfile:
 class GradientTree:
     parameter_paths: tuple[str, ...]
     values: Any = field(default=None, repr=False, compare=False)
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         paths = strings(self.parameter_paths, "parameter_paths", sort=True)
@@ -200,9 +200,11 @@ class OptimizerState:
     parameter_paths: tuple[str, ...]
     step: int = 0
     schema_version: str = OPTIMIZER_STATE_SCHEMA_VERSION
-    state_structure: Mapping[str, Any] = MappingProxyType({})
+    state_structure: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     backend_state: Any = field(default=None, repr=False, compare=False)
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
     claims_not_made: tuple[str, ...] = OPTIMIZER_CLAIMS_NOT_MADE
 
     def __post_init__(self) -> None:
@@ -249,7 +251,7 @@ class OptimizerStateDescriptor:
     tracked_parameter_paths: tuple[str, ...]
     state_roles: tuple[str, ...]
     state_count: int
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.optimizer_id, str) or not self.optimizer_id:
@@ -293,7 +295,9 @@ class OptimizerInitRequest:
     config: OptimizerConfig
     parameter_catalog: ParameterCatalog
     resolved_update_selection: ResolvedUpdateSelection
-    runtime_metadata: Mapping[str, Any] = MappingProxyType({})
+    runtime_metadata: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
     def __post_init__(self) -> None:
         if (
@@ -314,7 +318,9 @@ class OptimizerInitRequest:
 @dataclass(frozen=True)
 class OptimizerInitResult:
     optimizer_state: OptimizerState
-    state_metadata: Mapping[str, Any] = MappingProxyType({})
+    state_metadata: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     warnings: tuple[OptimizerIssue, ...] = ()
     claims_not_made: tuple[str, ...] = OPTIMIZER_CLAIMS_NOT_MADE
 
@@ -345,8 +351,10 @@ class OptimizerUpdateRequest:
     resolved_update_selection: ResolvedUpdateSelection
     learning_step: int
     parameters: Any = field(default=None, repr=False, compare=False)
-    schedule_values: Mapping[str, Any] = MappingProxyType({})
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    schedule_values: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if (
@@ -395,7 +403,7 @@ class ParameterUpdate:
     applied: bool
     update_norm: float | None = None
     clipped: bool = False
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.parameter_path, str) or not self.parameter_path:
@@ -423,7 +431,9 @@ class OptimizerUpdateResult:
     changed_parameter_paths: tuple[str, ...]
     unchanged_parameter_paths: tuple[str, ...]
     updated_parameters: Any = field(default=None, repr=False, compare=False)
-    update_metadata: Mapping[str, Any] = MappingProxyType({})
+    update_metadata: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     metrics: tuple[MetricRecord, ...] = ()
     warnings: tuple[OptimizerIssue, ...] = ()
     claims_not_made: tuple[str, ...] = OPTIMIZER_CLAIMS_NOT_MADE

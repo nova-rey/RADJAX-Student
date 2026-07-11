@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
@@ -52,7 +52,7 @@ class UpdateScope:
     kind: UpdateScopeKind = "whole_student"
     region_id: str | None = None
     parameter_paths: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if self.kind not in UPDATE_SCOPE_KINDS:
@@ -115,7 +115,7 @@ class ObjectiveScope:
 
     kind: ObjectiveScopeKind = "final_output"
     target_id: str | None = None
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if self.kind not in OBJECTIVE_SCOPE_KINDS:
@@ -167,7 +167,7 @@ class ResolvedUpdateSelection:
     selected_parameter_paths: tuple[str, ...]
     excluded_parameter_paths: tuple[str, ...] = ()
     capabilities: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.selection_id, str) or not self.selection_id:

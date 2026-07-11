@@ -5,7 +5,7 @@ from __future__ import annotations
 import tempfile
 import time
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Literal
@@ -132,7 +132,7 @@ class RuntimePortabilityReceipt:
     blockers: tuple[RuntimeIssue, ...] = ()
     warnings: tuple[RuntimeIssue, ...] = ()
     claims_not_made: tuple[str, ...] = PORTABILITY_CLAIMS_NOT_MADE
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if self.status not in ("pass", "unavailable", "fail"):

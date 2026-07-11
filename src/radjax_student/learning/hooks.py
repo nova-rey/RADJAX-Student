@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, Protocol
 
@@ -34,7 +34,7 @@ class HookContext:
     event_sequence: int
     global_step: int
     metrics: tuple[MetricRecord, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
     claims_not_made: tuple[str, ...] = _CLAIMS
 
     def __post_init__(self):
@@ -75,7 +75,7 @@ class HookResult:
     status: Literal["pass", "warning", "fail"] = "pass"
     metrics: tuple[MetricRecord, ...] = ()
     warnings: tuple[LearningIssue, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
     claims_not_made: tuple[str, ...] = _CLAIMS
 
     def __post_init__(self):
@@ -120,7 +120,7 @@ class HookRegistration:
     priority: int
     enabled: bool = True
     supported_events: tuple[str, ...] = HOOK_EVENTS
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self):
         if (
@@ -153,7 +153,7 @@ class HookPolicy:
         "fail_fast"
     )
     allow_metric_emission: bool = True
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self):
         if self.failure_mode not in (
@@ -182,7 +182,7 @@ class HookExecutionReceipt:
     warning_codes: tuple[str, ...] = ()
     disabled_after_failure: bool = False
     failure_code: str | None = None
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def to_dict(self):
         return {

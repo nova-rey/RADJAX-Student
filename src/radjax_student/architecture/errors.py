@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, TypeAlias
 
@@ -48,7 +48,7 @@ ARCHITECTURE_ERROR_CODES: tuple[str, ...] = (
 class ArchitectureIssue:
     code: str
     message: str
-    details: Mapping[str, Any] = MappingProxyType({})
+    details: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.code, str) or not self.code:

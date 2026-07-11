@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, TypeAlias
 
@@ -235,7 +235,7 @@ class DeviceDescriptor:
     local_hardware_id: str | int | None = None
     memory_bytes: int | None = None
     supported_precisions: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         _require_string("device_id", self.device_id)
@@ -298,7 +298,9 @@ class DeviceInventory:
     process_count: int | None = None
     local_device_count: int | None = None
     global_device_count: int | None = None
-    topology_summary: Mapping[str, Any] = MappingProxyType({})
+    topology_summary: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
 
     def __post_init__(self) -> None:
         devices = tuple(self.devices)
@@ -420,7 +422,7 @@ class CompilationOptions:
     debug: bool = False
     synchronize_results: bool = False
     cache_policy: Literal["reuse", "disabled"] = "reuse"
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         for name in ("enabled", "debug", "synchronize_results"):
@@ -527,7 +529,7 @@ class ExecutionContext:
     capabilities: RuntimeCapabilityProfile
     root_seed: int
     runtime_id: str
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
     runtime_keys: RuntimeKeys | None = None
 
     def __post_init__(self) -> None:
@@ -607,10 +609,14 @@ class RuntimeState:
     topology_summary: Mapping[str, Any]
     precision_policy: PrecisionPolicy
     placement_policy: PlacementPolicy
-    resume_metadata: Mapping[str, Any] = MappingProxyType({})
+    resume_metadata: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     schema_version: str = RUNTIME_STATE_SCHEMA_VERSION
     runtime_keys: RuntimeKeys | None = None
-    environment_summary: Mapping[str, Any] = MappingProxyType({})
+    environment_summary: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     backend_id: str | None = None
     claims_not_made: tuple[str, ...] = (
         "model_parameters_not_included",

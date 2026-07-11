@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
@@ -44,7 +44,7 @@ class CheckpointPolicy:
     mode: Literal["disabled", "every_n_steps", "on_improvement", "manual"] = "disabled"
     every_n_steps: int | None = None
     monitor_metric: str | None = None
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if self.mode not in CHECKPOINT_POLICY_MODES:
@@ -94,10 +94,12 @@ class LearningConfig:
     update_scope: UpdateScope = UpdateScope()
     objective_scope: ObjectiveScope = ObjectiveScope()
     checkpoint_policy: CheckpointPolicy = CheckpointPolicy()
-    metric_policy: Mapping[str, Any] = MappingProxyType({})
+    metric_policy: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     seed_reference: int | str | None = None
     debug: bool = False
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonnegative_int(self.max_steps, "max_steps")
@@ -176,7 +178,7 @@ class LearningState:
     active_update_scope: UpdateScope = UpdateScope()
     active_objective_scope: ObjectiveScope = ObjectiveScope()
     schema_version: str = LEARNING_STATE_SCHEMA_VERSION
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
     claims_not_made: tuple[str, ...] = LEARNING_CLAIMS_NOT_MADE
 
     def __post_init__(self) -> None:
@@ -251,10 +253,10 @@ class LearningBatch:
     """Generic finite-JSON batch description; P3.1 does not carry array objects."""
 
     batch_id: str
-    inputs: Mapping[str, Any] = MappingProxyType({})
-    targets: Mapping[str, Any] = MappingProxyType({})
-    weights: Mapping[str, Any] = MappingProxyType({})
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    inputs: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+    targets: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+    weights: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
     objective_scope: ObjectiveScope = ObjectiveScope()
 
     def __post_init__(self) -> None:
@@ -299,7 +301,7 @@ class MetricRecord:
     unit: str = "unitless"
     aggregation: Literal["last", "mean", "sum", "min", "max"] = "last"
     scope: str = "learning"
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonempty_string(self.name, "name")
@@ -341,7 +343,9 @@ class MetricRecord:
 class LossResult:
     loss: float
     objective_scope: ObjectiveScope = ObjectiveScope()
-    components: Mapping[str, float] = MappingProxyType({})
+    components: Mapping[str, float] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     metrics: tuple[MetricRecord, ...] = ()
     warnings: tuple[LearningIssue, ...] = ()
     claims_not_made: tuple[str, ...] = LEARNING_CLAIMS_NOT_MADE

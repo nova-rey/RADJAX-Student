@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
@@ -36,10 +36,12 @@ class BatchMetadata:
     sample_count: int
     sequence_length: int | None = None
     padding_policy: str = "unspecified"
-    mask_summary: Mapping[str, Any] = MappingProxyType({})
+    mask_summary: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     source: str | None = None
     claims_not_made: tuple[str, ...] = BATCH_OBJECTIVE_CLAIMS_NOT_MADE
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonnegative_int(self.sample_count, "sample_count")
@@ -87,7 +89,7 @@ class BatchMetadata:
 class WeightingPolicy:
     kind: Literal["uniform", "explicit_weights", "plugin_defined"] = "uniform"
     weight_key: str | None = None
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if self.kind not in WEIGHTING_POLICIES:
@@ -123,7 +125,7 @@ class ObjectiveRequest:
     batch_reference: str | None = None
     required_outputs: tuple[str, ...] = ()
     weighting_policy: WeightingPolicy = WeightingPolicy()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonempty_string(self.objective_id, "objective_id")
@@ -174,7 +176,9 @@ class ObjectiveRequest:
 class ObjectiveResult:
     objective_id: str
     loss: float
-    components: Mapping[str, float] = MappingProxyType({})
+    components: Mapping[str, float] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     metrics: tuple[MetricRecord, ...] = ()
     warnings: tuple[LearningIssue, ...] = ()
     claims_not_made: tuple[str, ...] = BATCH_OBJECTIVE_CLAIMS_NOT_MADE

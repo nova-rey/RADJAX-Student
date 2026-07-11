@@ -48,11 +48,13 @@ ARCHITECTURE_CLAIMS_NOT_MADE: tuple[str, ...] = (
 class ArchitectureConfig:
     architecture_id: str
     schema_version: str = ARCHITECTURE_CONFIG_SCHEMA_VERSION
-    model_config: Mapping[str, Any] = MappingProxyType({})
+    model_config: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     vocab_size: int | None = None
     sequence_length: int | None = None
     dtype_intent: str = "unspecified"
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonempty_string(self.architecture_id, "architecture_id")
@@ -100,7 +102,7 @@ class ArchitectureCapabilityProfile:
     version: int
     capabilities: tuple[str, ...]
     non_capabilities: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonempty_string(self.architecture_id, "architecture_id")
@@ -149,7 +151,7 @@ class ParameterDescriptor:
     role: str = "other"
     region_ids: tuple[str, ...] = ()
     trainable_by_default: bool = True
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         _stable_parameter_path(self.path)
@@ -196,7 +198,7 @@ class ParameterCatalog:
     architecture_id: str
     parameters: tuple[ParameterDescriptor, ...]
     schema_version: str = PARAMETER_CATALOG_SCHEMA_VERSION
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonempty_string(self.architecture_id, "architecture_id")
@@ -256,7 +258,7 @@ class ParameterCatalog:
 class NamedRegion:
     region_id: str
     parameter_paths: tuple[str, ...]
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonempty_string(self.region_id, "region_id")
@@ -288,11 +290,13 @@ class NamedRegion:
 class IntermediateSurfaceDescriptor:
     surface_id: str
     kind: str
-    shape_contract: Mapping[str, Any] = MappingProxyType({})
+    shape_contract: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     region_id: str | None = None
     available_in_training: bool = False
     available_in_inference: bool = False
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonempty_string(self.surface_id, "surface_id")
@@ -448,7 +452,7 @@ class ArchitectureMetadata:
 class ArchitectureState:
     state_id: str
     schema_version: str = ARCHITECTURE_STATE_SCHEMA_VERSION
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         nonempty_string(self.state_id, "state_id")
@@ -479,7 +483,7 @@ class ArchitectureInitRequest:
     config: ArchitectureConfig
     runtime_keys_reference: str
     precision_policy: str = "unspecified"
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.config, ArchitectureConfig):
@@ -574,8 +578,8 @@ class ForwardRequest:
     architecture_state: ArchitectureState | None = None
     parameters: Any = field(default=None, repr=False, compare=False)
     training: bool = False
-    rng_streams: Mapping[str, Any] = MappingProxyType({})
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    rng_streams: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.batch, LearningBatch):
@@ -632,7 +636,9 @@ class ForwardResult:
     intermediate_surfaces: tuple[str, ...] = ()
     updated_architecture_state: ArchitectureState | None = None
     outputs: Any = field(default=None, repr=False, compare=False)
-    output_metadata: Mapping[str, Any] = MappingProxyType({})
+    output_metadata: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     warnings: tuple[ArchitectureIssue, ...] = ()
     claims_not_made: tuple[str, ...] = ARCHITECTURE_CLAIMS_NOT_MADE
 
@@ -704,7 +710,7 @@ class ResolvedObjectiveSelection:
     scope: ObjectiveScope
     surface_id: str
     required_capabilities: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if not isinstance(self.scope, ObjectiveScope):
@@ -742,7 +748,7 @@ class BatchValidationResult:
     status: Literal["pass", "fail"]
     blockers: tuple[ArchitectureIssue, ...] = ()
     warnings: tuple[ArchitectureIssue, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         if self.status not in ("pass", "fail"):

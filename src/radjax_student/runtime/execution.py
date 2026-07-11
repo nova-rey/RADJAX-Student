@@ -126,9 +126,11 @@ class ExecutionRequest:
     mode: ExecutionMode
     compilation_options: CompilationOptions
     placement_plan_id: str | None = None
-    input_signature: Mapping[str, Any] = MappingProxyType({})
+    input_signature: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
     required_capabilities: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = MappingProxyType({})
+    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
         _require_identifier(self.request_id, "request_id")
