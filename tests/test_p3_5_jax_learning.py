@@ -25,6 +25,9 @@ from radjax_student.learning.jax_core import (  # noqa: E402
     build_value_and_grad_fn,
     validate_finite_loss_and_gradients,
 )
+from radjax_student.legacy.jax_learning import (  # noqa: E402
+    execute_legacy_jax_learning_step,
+)
 from radjax_student.runtime import (  # noqa: E402
     CompilationOptions,
     DeviceInventory,
@@ -34,7 +37,6 @@ from radjax_student.runtime import (  # noqa: E402
     RuntimeEnvironment,
     execute_function,
 )
-from radjax_student.steps.jax_step import execute_jax_learning_step  # noqa: E402
 
 pytestmark = pytest.mark.jax
 
@@ -331,7 +333,7 @@ def test_jax_eager_and_runtime_jit_match():
 
 def test_jax_jit_path_uses_runtime_execution_boundary(monkeypatch):
     architecture, objective, batch, parameters, carry, config, _ = _loss_and_grad()
-    import radjax_student.steps.jax_step as jax_step
+    import radjax_student.legacy.jax_learning as jax_step
 
     calls = []
     original = jax_step.execute_function
@@ -342,7 +344,7 @@ def test_jax_jit_path_uses_runtime_execution_boundary(monkeypatch):
 
     monkeypatch.setattr(jax_step, "execute_function", observed)
     context, backend, request = _runtime()
-    execution = execute_jax_learning_step(
+    execution = execute_legacy_jax_learning_step(
         architecture=architecture,
         objective=objective,
         parameters=parameters,

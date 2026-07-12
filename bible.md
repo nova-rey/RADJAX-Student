@@ -770,3 +770,10 @@
   Its numerical state is an opaque typed pytree with a canonical descriptor;
   learning carries the envelope but does not implement or interpret optimizer
   updates.
+
+## 2026-07-12 - P3.11.5 complete runtime JAX step
+
+- Runtime now executes one pure JAX function containing forward, objective,
+  autodiff, optimizer update, optimizer-array transition, and architecture
+  carry transition. The adapter only produces immutable learning records; the
+  pre-P3.11 partial update is isolated under the explicit legacy namespace.
