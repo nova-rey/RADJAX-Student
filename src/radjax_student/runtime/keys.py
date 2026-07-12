@@ -17,6 +17,16 @@ RUNTIME_KEY_STREAM_NAMES: tuple[str, ...] = (
     "evaluation",
     "runtime_tests",
 )
+JAX_KEY_BRIDGE_VERSION = "runtime_jax_key_bridge.v1"
+JAX_KEY_SLOTS: tuple[str, ...] = (
+    "initialization",
+    "dropout",
+    "augmentation",
+    "architecture_stochastic_state",
+    "optimizer_stochastic_state",
+    "evaluation",
+    "runtime_tests",
+)
 
 
 @dataclass(frozen=True)
@@ -164,6 +174,45 @@ def _stream(root_seed: int, name: str) -> RuntimeKeyStream:
 def _derived_seed(root_seed: int, lineage: tuple[str, ...]) -> int:
     payload = "\0".join((RUNTIME_KEYS_VERSION, str(root_seed), *lineage))
     return int.from_bytes(hashlib.sha256(payload.encode("utf-8")).digest()[:8], "big")
+
+
+def jax_key_words(
+    stream: RuntimeKeyStream,
+    *,
+    global_step: int,
+    micro_step: int,
+    slot: str,
+    invocation_index: int = 0,
+) -> tuple[int, int]:
+    """Derive canonical JAX key words from runtime-owned stream identity."""
+
+    if not isinstance(stream, RuntimeKeyStream):
+        raise TypeError("stream must be RuntimeKeyStream")
+    for name, value in (
+        ("global_step", global_step),
+        ("micro_step", micro_step),
+        ("invocation_index", invocation_index),
+    ):
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError(f"{name} must be a nonnegative integer")
+    if slot not in JAX_KEY_SLOTS:
+        raise ValueError("slot must be a declared runtime JAX key slot")
+    payload = "\0".join(
+        (
+            JAX_KEY_BRIDGE_VERSION,
+            str(stream.root_seed),
+            stream.name,
+            str(global_step),
+            str(micro_step),
+            slot,
+            str(invocation_index),
+        )
+    ).encode("utf-8")
+    digest = hashlib.sha256(payload).digest()
+    return (
+        int.from_bytes(digest[0:4], "big"),
+        int.from_bytes(digest[4:8], "big"),
+    )
 
 
 def _require_seed(value: object, name: str) -> None:

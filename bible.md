@@ -777,3 +777,10 @@
   autodiff, optimizer update, optimizer-array transition, and architecture
   carry transition. The adapter only produces immutable learning records; the
   pre-P3.11 partial update is isolated under the explicit legacy namespace.
+
+## 2026-07-12 - P3.11.6 runtime JAX bridge
+
+- Runtime-owned named streams now deterministically derive versioned JAX keys
+  from explicit step, slot, and invocation identity. Complete learning pytrees
+  are placed and precision-prepared by runtime policy without leaking device
+  selection into architecture or optimizer code.

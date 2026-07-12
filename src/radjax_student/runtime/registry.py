@@ -372,6 +372,38 @@ class JaxRuntimeBackend:
         jax_module, device = self._cpu_context(context)
         return jax_module.device_put(jax_module.numpy.asarray(value), device)
 
+    def place_execution_pytree(
+        self, context: ExecutionContext, value: Any, *, precision_policy: str
+    ) -> Any:
+        """Place a complete JAX input pytree on the selected runtime device."""
+
+        if precision_policy not in {
+            "float32",
+            "bfloat16",
+            "float16",
+            "mixed",
+            "automatic",
+            "unspecified",
+        }:
+            raise RuntimeContractError(
+                "runtime_placement_failed", "unsupported execution precision policy"
+            )
+        jax_module, device = self._cpu_context(context)
+        array_module = jax_module.numpy
+        dtype = {
+            "float32": array_module.float32,
+            "bfloat16": array_module.bfloat16,
+            "float16": array_module.float16,
+        }.get(precision_policy)
+
+        def place_leaf(leaf: Any) -> Any:
+            array = array_module.asarray(leaf)
+            if dtype is not None and getattr(array.dtype, "kind", "") == "f":
+                array = array.astype(dtype)
+            return jax_module.device_put(array, device)
+
+        return jax_module.tree_util.tree_map(place_leaf, value)
+
     def close_portability_context(self, context: ExecutionContext) -> None:
         self._cpu_contexts.pop(context.runtime_id, None)
 
