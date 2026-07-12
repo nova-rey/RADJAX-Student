@@ -6,6 +6,12 @@ from radjax_student.optimizers.errors import (
     OptimizerErrorCode,
     OptimizerIssue,
 )
+from radjax_student.optimizers.jax import (
+    JaxOptimizerState,
+    advanced_jax_optimizer_state,
+    require_finite_jax_gradients,
+    validate_jax_optimizer_state,
+)
 from radjax_student.optimizers.models import (
     GRADIENT_CLIP_MODES,
     OPTIMIZER_CLAIMS_NOT_MADE,
@@ -25,7 +31,7 @@ from radjax_student.optimizers.models import (
     ParameterUpdate,
     canonical_optimizer_json,
 )
-from radjax_student.optimizers.protocols import OptimizerBackend
+from radjax_student.optimizers.protocols import JaxOptimizerExecution, OptimizerBackend
 from radjax_student.optimizers.registry import OptimizerRegistry
 from radjax_student.optimizers.sgd import SGD_OPTIMIZER_ID, SgdOptimizer
 
@@ -39,6 +45,8 @@ __all__ = [
     "SGD_OPTIMIZER_ID",
     "WEIGHT_DECAY_MODES",
     "GradientTree",
+    "JaxOptimizerExecution",
+    "JaxOptimizerState",
     "OptimizerBackend",
     "OptimizerCapabilityProfile",
     "OptimizerConfig",
@@ -54,5 +62,8 @@ __all__ = [
     "OptimizerUpdateResult",
     "ParameterUpdate",
     "SgdOptimizer",
+    "advanced_jax_optimizer_state",
     "canonical_optimizer_json",
+    "require_finite_jax_gradients",
+    "validate_jax_optimizer_state",
 ]

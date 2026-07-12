@@ -763,3 +763,10 @@
   masks. Generic JAX execution receives architecture-resolved objective and
   update selections rather than interpreting plugin regions or accepting a
   caller-created production mask.
+
+## 2026-07-12 - P3.11.4 JAX optimizer capability
+
+- JAX SGD is now an optional capability of the existing optimizer identity.
+  Its numerical state is an opaque typed pytree with a canonical descriptor;
+  learning carries the envelope but does not implement or interpret optimizer
+  updates.

@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from typing import Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
 
+from radjax_student.contracts import JaxOptimizerStateDescriptor, ParameterTreeLayout
 from radjax_student.optimizers.models import (
     OptimizerCapabilityProfile,
     OptimizerConfig,
@@ -30,3 +31,31 @@ class OptimizerBackend(Protocol):
         self, request: OptimizerUpdateRequest
     ) -> OptimizerUpdateResult: ...
     def describe_state(self, state: OptimizerState) -> OptimizerStateDescriptor: ...
+
+
+@runtime_checkable
+class JaxOptimizerExecution(Protocol):
+    """Optional JAX capability attached to the existing optimizer identity."""
+
+    def jax_state_descriptor(
+        self, parameter_layout: ParameterTreeLayout
+    ) -> JaxOptimizerStateDescriptor: ...
+
+    def initialize_jax_state(
+        self,
+        *,
+        config: OptimizerConfig,
+        parameter_layout: ParameterTreeLayout,
+        optimizer_state: OptimizerState,
+    ) -> Any: ...
+
+    def apply_jax_updates(
+        self,
+        *,
+        parameters: Any,
+        gradients: Any,
+        optimizer_array_state: Any,
+        update_mask: Any,
+        config: OptimizerConfig,
+        schedule_values: dict[str, Any],
+    ) -> tuple[Any, Any, dict[str, Any]]: ...

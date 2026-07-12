@@ -5,7 +5,10 @@ from __future__ import annotations
 import math
 from collections.abc import Mapping
 from dataclasses import dataclass
+from importlib import import_module
+from typing import Any
 
+from radjax_student.contracts import JaxOptimizerStateDescriptor, ParameterTreeLayout
 from radjax_student.learning import MetricRecord
 from radjax_student.optimizers.errors import OptimizerContractError, OptimizerIssue
 from radjax_student.optimizers.models import (
@@ -24,6 +27,7 @@ SGD_OPTIMIZER_ID = "sgd.v1"
 SGD_CAPABILITIES: tuple[str, ...] = (
     "optimizer.apply_updates_v1",
     "optimizer.initialize_state_v1",
+    "optimizer.jax_execution_v1",
     "optimizer.scoped_updates_v1",
     "optimizer.state_serialization_v1",
 )
@@ -202,6 +206,118 @@ class SgdOptimizer:
             ("step_counter",),
             len(state.parameter_paths),
             metadata={"test_backend": True},
+        )
+
+    def jax_state_descriptor(
+        self, parameter_layout: ParameterTreeLayout
+    ) -> JaxOptimizerStateDescriptor:
+        if not isinstance(parameter_layout, ParameterTreeLayout):
+            raise TypeError("parameter_layout must be ParameterTreeLayout")
+        return JaxOptimizerStateDescriptor(
+            optimizer_id=self.optimizer_id,
+            optimizer_capability="optimizer.jax_execution_v1",
+            optimizer_schema_version="sgd_jax_state.v1",
+            layout_digest=parameter_layout.digest(),
+            state_keypaths=(
+                ("step",),
+                *(
+                    ("per_parameter_steps", *entry.jax_keypath)
+                    for entry in parameter_layout.entries
+                ),
+            ),
+        )
+
+    def initialize_jax_state(
+        self,
+        *,
+        config: OptimizerConfig,
+        parameter_layout: ParameterTreeLayout,
+        optimizer_state: OptimizerState,
+    ) -> Any:
+        """Create the numerical SGD state under the existing optimizer identity."""
+
+        self.validate_config(config)
+        if optimizer_state.optimizer_id != self.optimizer_id:
+            raise OptimizerContractError(
+                "optimizer_jax_state_invalid",
+                "optimizer state does not belong to SGD",
+            )
+        if optimizer_state.parameter_paths != parameter_layout.logical_paths:
+            raise OptimizerContractError(
+                "optimizer_jax_state_invalid",
+                "optimizer state paths do not match the parameter layout",
+            )
+        try:
+            jnp = import_module("jax.numpy")
+        except ImportError as exc:
+            raise OptimizerContractError(
+                "optimizer_jax_capability_missing", "JAX is required for JAX SGD"
+            ) from exc
+        from radjax_student.optimizers.jax import JaxOptimizerState
+
+        return JaxOptimizerState(
+            envelope=optimizer_state,
+            descriptor=self.jax_state_descriptor(parameter_layout),
+            arrays={
+                "step": jnp.asarray(optimizer_state.step, dtype=jnp.int32),
+                "per_parameter_steps": parameter_layout.mapping_tree(
+                    lambda _: jnp.asarray(0, dtype=jnp.int32)
+                ),
+            },
+        )
+
+    def apply_jax_updates(
+        self,
+        *,
+        parameters: Any,
+        gradients: Any,
+        optimizer_array_state: Any,
+        update_mask: Any,
+        config: OptimizerConfig,
+        schedule_values: dict[str, Any],
+    ) -> tuple[Any, Any, dict[str, Any]]:
+        """Pure JAX SGD update; callers supply only a layout-derived mask."""
+
+        self.validate_config(config)
+        try:
+            jax = import_module("jax")
+            jnp = import_module("jax.numpy")
+        except ImportError as exc:
+            raise OptimizerContractError(
+                "optimizer_jax_capability_missing", "JAX is required for JAX SGD"
+            ) from exc
+        learning_rate = schedule_values.get("learning_rate", config.learning_rate)
+        learning_rate = jnp.asarray(learning_rate)
+        gradient_leaves = jax.tree_util.tree_leaves(gradients)
+        gradients_finite = jnp.asarray(True)
+        for gradient in gradient_leaves:
+            gradients_finite = jnp.logical_and(
+                gradients_finite, jnp.all(jnp.isfinite(gradient))
+            )
+        updated_parameters = jax.tree_util.tree_map(
+            lambda parameter, gradient, selected: jnp.where(
+                selected, parameter - learning_rate * gradient, parameter
+            ),
+            parameters,
+            gradients,
+            update_mask,
+        )
+        per_parameter_steps = jax.tree_util.tree_map(
+            lambda step, selected: jnp.where(selected, step + 1, step),
+            optimizer_array_state["per_parameter_steps"],
+            update_mask,
+        )
+        updated_array_state = {
+            "step": optimizer_array_state["step"] + 1,
+            "per_parameter_steps": per_parameter_steps,
+        }
+        return (
+            updated_parameters,
+            updated_array_state,
+            {
+                "learning_rate": learning_rate,
+                "gradients_finite": gradients_finite,
+            },
         )
 
 

@@ -200,6 +200,25 @@ class ParameterTreeLayout:
 
         return build(parameters, ())
 
+    def mapping_tree(self, leaf_factory: Any) -> dict[str, Any]:
+        """Build a mapping-only pytree from the declared keypaths."""
+
+        if not callable(leaf_factory):
+            raise TypeError("leaf_factory must be callable")
+        result: dict[str, Any] = {}
+        for entry in self.entries:
+            branch = result
+            for key in entry.jax_keypath[:-1]:
+                next_branch = branch.setdefault(key, {})
+                if not isinstance(next_branch, dict):
+                    raise ValueError("JAX keypath collides with a layout leaf")
+                branch = next_branch
+            leaf_key = entry.jax_keypath[-1]
+            if leaf_key in branch:
+                raise ValueError("JAX keypath collides with a layout leaf")
+            branch[leaf_key] = leaf_factory(entry)
+        return result
+
     def digest(self) -> str:
         return hashlib.sha256(self.to_json().encode()).hexdigest()
 
@@ -240,3 +259,13 @@ class JaxOptimizerStateDescriptor:
         if len(paths) != len(set(paths)):
             raise ValueError("optimizer state keypaths must be unique")
         object.__setattr__(self, "state_keypaths", tuple(sorted(paths)))
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "schema_version": self.schema_version,
+            "optimizer_id": self.optimizer_id,
+            "optimizer_capability": self.optimizer_capability,
+            "optimizer_schema_version": self.optimizer_schema_version,
+            "layout_digest": self.layout_digest,
+            "state_keypaths": [list(path) for path in self.state_keypaths],
+        }
