@@ -724,3 +724,9 @@
   execution, legacy compatibility, HF preservation, and checkpoint roles are
   behaviorally proven. Source tokens and old pass receipts are not substitutes
   for executing the maintained seams.
+
+## 2026-07-11 - P3.5 accepted audit artifact
+
+- The deterministic architecture inventory records the accepted remediation
+  commit separately from runtime evidence so later verification can reproduce
+  the audited module graph without relying on a mutable working tree.
