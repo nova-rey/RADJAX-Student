@@ -737,3 +737,9 @@
   exactly. A digest of one collection is not replay evidence. Final gate
   sections must exercise malformed inputs and report stable section-specific
   blocker codes rather than accepting an injected failed result as proof.
+
+## 2026-07-12 - P3.5 behavioral-gate audit record
+
+- The accepted audit record is advanced only after the replayed behavioral
+  gate passes its full regression suite, preserving a concrete commit identity
+  for the audited package graph.
