@@ -756,3 +756,10 @@
   contract and validates the declared JAX capability against its execution
   protocol. The parallel `students/` protocol and registry have been removed;
   explicit tiny debugging remains under `radjax_student.debug`.
+
+## 2026-07-12 - P3.11.3 parameter layout and scope routing
+
+- Stable logical paths and JAX mapping keypaths now drive deterministic update
+  masks. Generic JAX execution receives architecture-resolved objective and
+  update selections rather than interpreting plugin regions or accepting a
+  caller-created production mask.

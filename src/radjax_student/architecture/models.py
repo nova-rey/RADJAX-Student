@@ -711,8 +711,20 @@ class ForwardResult:
                 details={"surface_id": surface_id},
             ) from exc
 
-    def surface_for(self, scope: ObjectiveScope) -> Any:
-        """Resolve a typed objective scope to one architecture-owned surface."""
+    def surface_for(self, selection: ResolvedObjectiveSelection | str) -> Any:
+        """Return a surface already resolved by the owning architecture plugin."""
+
+        if isinstance(selection, ResolvedObjectiveSelection):
+            return self.surface(selection.surface_id)
+        if isinstance(selection, str) and selection:
+            return self.surface(selection)
+        raise ArchitectureContractError(
+            "architecture_objective_scope_resolution_failed",
+            "forward surface requires a resolved objective selection or surface ID",
+        )
+
+    def surface_for_legacy_scope(self, scope: ObjectiveScope) -> Any:
+        """Compatibility-only scope adapter retained for pre-P3.11 callers."""
 
         if not isinstance(scope, ObjectiveScope):
             raise ArchitectureContractError(
@@ -726,7 +738,7 @@ class ForwardResult:
             return self.surface(scope.target_id)
         raise ArchitectureContractError(
             "architecture_objective_scope_resolution_failed",
-            "objective scope cannot be resolved to a forward surface",
+            "legacy objective scope cannot be resolved to a forward surface",
             details={"kind": scope.kind},
         )
 

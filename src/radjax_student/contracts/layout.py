@@ -145,6 +145,61 @@ class ParameterTreeLayout:
             entry for entry in self.entries if entry.jax_keypath == tuple(keypath)
         )
 
+    def update_mask(
+        self, parameters: Any, selected_logical_paths: tuple[str, ...]
+    ) -> Any:
+        """Build the only supported mapping-pytree update mask from stable paths.
+
+        The layout is deliberately independent of JAX: it validates a
+        mapping-only tree and returns an identically shaped tree of booleans.
+        The JAX optimizer consumes that result without accepting a caller-made
+        mask as production input.
+        """
+
+        selected = tuple(sorted(set(selected_logical_paths)))
+        unknown = sorted(set(selected) - set(self.logical_paths))
+        if unknown:
+            raise ValueError("selected logical paths are absent from the layout")
+        non_trainable = sorted(
+            entry.logical_path
+            for entry in self.entries
+            if entry.logical_path in selected and not entry.trainable
+        )
+        if non_trainable:
+            raise ValueError("selected logical paths must be trainable")
+
+        entries_by_keypath = {entry.jax_keypath: entry for entry in self.entries}
+        expected_branches = {
+            keypath[:index]
+            for keypath in entries_by_keypath
+            for index in range(len(keypath))
+        }
+
+        def build(node: Any, prefix: tuple[str, ...]) -> Any:
+            entry = entries_by_keypath.get(prefix)
+            if entry is not None:
+                if isinstance(node, Mapping):
+                    raise ValueError("parameter layout leaf is a mapping branch")
+                return entry.logical_path in selected
+            if prefix not in expected_branches or not isinstance(node, Mapping):
+                raise ValueError("parameter tree does not match the declared layout")
+            actual = tuple(sorted(node))
+            expected = tuple(
+                sorted(
+                    {
+                        keypath[len(prefix)]
+                        for keypath in entries_by_keypath
+                        if keypath[: len(prefix)] == prefix
+                        and len(keypath) > len(prefix)
+                    }
+                )
+            )
+            if actual != expected:
+                raise ValueError("parameter tree keys do not match the declared layout")
+            return {name: build(node[name], (*prefix, name)) for name in expected}
+
+        return build(parameters, ())
+
     def digest(self) -> str:
         return hashlib.sha256(self.to_json().encode()).hexdigest()
 

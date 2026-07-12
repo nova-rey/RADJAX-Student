@@ -9,7 +9,12 @@ from typing import Any, Literal, Protocol
 import jax
 import jax.numpy as jnp
 
-from radjax_student.architecture import ForwardResult, JaxArchitectureExecution
+from radjax_student.architecture import (
+    ForwardResult,
+    JaxArchitectureExecution,
+    JaxArchitecturePlugin,
+    ResolvedObjectiveSelection,
+)
 from radjax_student.learning.scopes import ObjectiveScope
 
 
@@ -135,7 +140,62 @@ def build_jax_loss_fn(
         )
         if not isinstance(forward, ForwardResult):
             raise TypeError("JAX architecture execution must return ForwardResult")
-        surface = forward.surface_for(objective_config.objective_scope)
+        surface = forward.surface_for_legacy_scope(objective_config.objective_scope)
+        loss, objective_auxiliary = objective.evaluate(
+            surface,
+            batch.targets,
+            batch.weights,
+            objective_config,
+        )
+        next_carry = (
+            input_carry
+            if forward.updated_architecture_carry is None
+            else forward.updated_architecture_carry
+        )
+        next_carry = jax.tree_util.tree_map(jax.lax.stop_gradient, next_carry)
+        return loss, JaxLossAuxiliary(
+            selected_surface=surface,
+            updated_architecture_carry=next_carry,
+            objective_metrics=dict(objective_auxiliary),
+            architecture_metrics=dict(forward.architecture_metrics),
+        )
+
+    return loss_fn
+
+
+def build_resolved_jax_loss_fn(
+    architecture: JaxArchitecturePlugin,
+    objective: JaxObjective,
+    objective_selection: ResolvedObjectiveSelection,
+):
+    """Build the production loss graph from an architecture-resolved surface."""
+
+    if not isinstance(architecture, JaxArchitecturePlugin):
+        raise TypeError("resolved JAX execution requires JaxArchitecturePlugin")
+    if not isinstance(objective_selection, ResolvedObjectiveSelection):
+        raise TypeError("objective_selection must be ResolvedObjectiveSelection")
+
+    def loss_fn(
+        parameters: Any,
+        architecture_carry: Any,
+        batch: JaxBatch,
+        objective_config: JaxObjectiveConfig,
+        rng_key: Any | None,
+    ):
+        if not isinstance(batch, JaxBatch):
+            raise TypeError("batch must be JaxBatch")
+        input_carry = jax.tree_util.tree_map(jax.lax.stop_gradient, architecture_carry)
+        forward = architecture.apply_jax(
+            parameters,
+            input_carry,
+            batch,
+            objective_scope=objective_selection.scope,
+            training=True,
+            rng_key=rng_key,
+        )
+        if not isinstance(forward, ForwardResult):
+            raise TypeError("JAX architecture execution must return ForwardResult")
+        surface = forward.surface_for(objective_selection)
         loss, objective_auxiliary = objective.evaluate(
             surface,
             batch.targets,
@@ -202,6 +262,7 @@ __all__ = [
     "JaxObjectiveConfig",
     "apply_scoped_gradient_update",
     "build_jax_loss_fn",
+    "build_resolved_jax_loss_fn",
     "build_value_and_grad_fn",
     "validate_finite_loss_and_gradients",
 ]
