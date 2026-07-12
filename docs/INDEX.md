@@ -101,6 +101,8 @@ Start here for Phase 0 foundation context.
 - [P3.11.7 Checkpoint v3 and Optimizer Step Identity](P3_11_7_CHECKPOINT_V3.md):
   optimizer-owned numerical-state validation, deterministic tensor sidecars,
   and continuation checkpoint step consistency.
+- [P3.11.8 Stateful JAX Systems Proof](P3_11_8_STATEFUL_SYSTEMS_PROOF.md):
+  public runtime-to-checkpoint conveyor proof with caller-bound resume.
 - [P3.11.10 Final Adversarial Gate Addition](P3_11_10_FINAL_ADVERSARIAL_GATE.md):
   mandatory checkpoint tamper cases for optimizer identity and step integrity.
 - [P3.5 Architecture Integrity Roadmap](P3_5_ARCHITECTURE_INTEGRITY_ROADMAP.md):

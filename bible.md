@@ -848,3 +848,13 @@
   caller. Custom carry identities require the declared schema and the exact
   digest of the serialized carry pytree descriptor, preventing coherent
   rehashing from bypassing lifecycle ownership.
+
+## 2026-07-12 - P3.11.8 stateful JAX systems proof
+
+- A complete test-only stateful architecture now travels through registry
+  selection, public CPU runtime initialization, runtime-owned key derivation
+  and placement, resolved scopes, the production complete JAX step, generic
+  loop, hooks, reporting, checkpoint v3, caller-bound restore, and resumed
+  execution. Eager and JIT each prove exact same-mode resume equivalence while
+  preserving the explicit non-claims for production architecture quality,
+  Tome training, HF export, scale, performance, and parity.

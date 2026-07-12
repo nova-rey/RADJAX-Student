@@ -1,0 +1,17 @@
+# P3.11.8 Stateful JAX Systems Proof
+
+P3.11.8 proves one test-only stateful linear architecture through the public
+architecture registry, runtime selection, placement, runtime-owned RNG, JAX
+step, optimizer, generic loop, hooks, run report, checkpoint v3, caller-bound
+restore, and continued execution.
+
+The proof trains only `trunk.weight`. `head.bias` and its per-parameter SGD
+counter remain unchanged. It runs a six-step eager experiment and an equivalent
+JIT experiment; each arm saves at step three, and the resume arm restores via
+the lifecycle's caller-bound checkpoint API before continuing.
+
+The committed receipt is
+[P3_11_8_STATEFUL_SYSTEMS_RECEIPT.json](P3_11_8_STATEFUL_SYSTEMS_RECEIPT.json).
+It is systems evidence only. It does not claim a production architecture, Tome
+payload consumption, distillation, HF export, accelerator-scale training,
+performance, or RadLads parity.
