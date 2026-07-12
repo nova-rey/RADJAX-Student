@@ -840,3 +840,11 @@
 - The maintained AST dependency inventory is regenerated against the lifecycle
   closure commit so its accepted source snapshot, module graph, and cycle proof
   identify the exact implementation being validated.
+
+## 2026-07-12 - P3.11.7 caller-bound restore identity
+
+- Checkpoint v3 restore now accepts expected HF, architecture-config,
+  parameter-catalog, architecture-state, and carry identities from the resume
+  caller. Custom carry identities require the declared schema and the exact
+  digest of the serialized carry pytree descriptor, preventing coherent
+  rehashing from bypassing lifecycle ownership.

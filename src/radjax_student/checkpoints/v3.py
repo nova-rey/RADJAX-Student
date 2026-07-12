@@ -34,6 +34,7 @@ from radjax_student.optimizers.protocols import JaxOptimizerBackend
 
 CHECKPOINT_V3_SCHEMA_VERSION = "learning_checkpoint.v3"
 CHECKPOINT_OPTIMIZER_STEP_MISMATCH = "checkpoint_optimizer_step_mismatch"
+ARCHITECTURE_CARRY_SCHEMA_VERSION = "architecture_carry.v1"
 V3_FILES = (
     "parameters.npz",
     "parameters.json",
@@ -166,15 +167,24 @@ def save_learning_checkpoint_v3(
         optimizer_descriptor = write_deterministic_npz(
             temporary / "optimizer_state.npz", checkpoint.optimizer_state.arrays
         )
-        architecture_carry_identity = checkpoint.architecture_carry_descriptor or {
-            "schema_version": "architecture_carry.v1",
-            "state_id": (
-                None
-                if checkpoint.architecture_state is None
-                else checkpoint.architecture_state.state_id
-            ),
-            "pytree_descriptor_digest": descriptor_digest(carry_descriptor),
-        }
+        architecture_carry_identity = (
+            checkpoint.architecture_carry_descriptor
+            if checkpoint.architecture_carry_descriptor is not None
+            else {
+                "schema_version": ARCHITECTURE_CARRY_SCHEMA_VERSION,
+                "state_id": (
+                    None
+                    if checkpoint.architecture_state is None
+                    else checkpoint.architecture_state.state_id
+                ),
+                "pytree_descriptor_digest": descriptor_digest(carry_descriptor),
+            }
+        )
+        _validate_carry_identity(
+            architecture_carry_identity,
+            actual_descriptor=carry_descriptor,
+            architecture_state=checkpoint.architecture_state,
+        )
         descriptor = optimizer_state_descriptor_payload(
             checkpoint.optimizer_state,
             optimizer=optimizer,
@@ -280,6 +290,11 @@ def load_learning_checkpoint_v3(
     optimizer: JaxOptimizerBackend,
     parameter_layout: ParameterTreeLayout,
     runtime_reference: str | None = None,
+    expected_hf_reference: HFPreservationReference | None = None,
+    expected_architecture_config_digest: str | None = None,
+    expected_parameter_catalog_digest: str | None = None,
+    expected_architecture_state_id: str | None = None,
+    expected_architecture_carry_descriptor: Mapping[str, Any] | None = None,
 ) -> JaxLearningCheckpointV3:
     """Validate all v3 identity, integrity, and optimizer-owned invariants."""
 
@@ -426,6 +441,25 @@ def load_learning_checkpoint_v3(
             "checkpoint_architecture_descriptor_missing",
             "architecture carry descriptor is required",
         )
+    parameters = read_deterministic_npz(
+        directory / "parameters.npz", _read_json(directory / "parameters.json")
+    )
+    parameter_layout.validate_materialized_parameters(parameters)
+    carry_payload = _read_json(directory / "architecture_carry.json")
+    carry = read_deterministic_npz(directory / "architecture_carry.npz", carry_payload)
+    architecture_manifest = stored["architecture"]
+    if architecture_manifest["carry_descriptor_digest"] != descriptor_digest(
+        carry_payload
+    ):
+        raise CheckpointValidationError(
+            "checkpoint_architecture_descriptor_mismatch",
+            "architecture carry descriptor digest mismatch",
+        )
+    _validate_carry_identity(
+        architecture_carry_descriptor,
+        actual_descriptor=carry_payload,
+        architecture_state=architecture_state,
+    )
     _validate_lifecycle_identity(
         parameter_layout=parameter_layout,
         architecture_state=architecture_state,
@@ -435,22 +469,18 @@ def load_learning_checkpoint_v3(
         architecture_carry_descriptor=architecture_carry_descriptor,
         manifest=stored,
     )
-    parameters = read_deterministic_npz(
-        directory / "parameters.npz", _read_json(directory / "parameters.json")
+    _validate_expected_lifecycle_identity(
+        hf_reference=hf_reference,
+        architecture_config_digest=architecture_config_digest,
+        parameter_catalog_digest=parameter_catalog_digest,
+        architecture_state=architecture_state,
+        architecture_carry_descriptor=architecture_carry_descriptor,
+        expected_hf_reference=expected_hf_reference,
+        expected_architecture_config_digest=expected_architecture_config_digest,
+        expected_parameter_catalog_digest=expected_parameter_catalog_digest,
+        expected_architecture_state_id=expected_architecture_state_id,
+        expected_architecture_carry_descriptor=expected_architecture_carry_descriptor,
     )
-    parameter_layout.validate_materialized_parameters(parameters)
-    carry = read_deterministic_npz(
-        directory / "architecture_carry.npz",
-        _read_json(directory / "architecture_carry.json"),
-    )
-    architecture_manifest = stored["architecture"]
-    if architecture_manifest["carry_descriptor_digest"] != descriptor_digest(
-        _read_json(directory / "architecture_carry.json")
-    ):
-        raise CheckpointValidationError(
-            "checkpoint_architecture_descriptor_mismatch",
-            "architecture carry descriptor digest mismatch",
-        )
     return JaxLearningCheckpointV3(
         learning_payload["runtime_reference"],
         learning_state,
@@ -713,6 +743,91 @@ def _validate_lifecycle_identity(
                 "checkpoint_architecture_descriptor_hash_mismatch",
                 "architecture carry descriptor identity hash mismatch",
             )
+
+
+def _validate_carry_identity(
+    identity: Mapping[str, Any],
+    *,
+    actual_descriptor: Mapping[str, Any],
+    architecture_state: ArchitectureState | None,
+) -> None:
+    if identity.get("schema_version") != ARCHITECTURE_CARRY_SCHEMA_VERSION:
+        raise CheckpointValidationError(
+            "checkpoint_architecture_descriptor_mismatch",
+            "unsupported architecture carry descriptor schema",
+        )
+    if identity.get("pytree_descriptor_digest") != descriptor_digest(actual_descriptor):
+        raise CheckpointValidationError(
+            "checkpoint_architecture_descriptor_mismatch",
+            "architecture carry identity does not match its pytree descriptor",
+        )
+    if architecture_state is not None and identity.get("state_id") not in (
+        None,
+        architecture_state.state_id,
+    ):
+        raise CheckpointValidationError(
+            "checkpoint_architecture_state_identity_mismatch",
+            "architecture carry descriptor state identity does not match state",
+        )
+
+
+def _validate_expected_lifecycle_identity(
+    *,
+    hf_reference: HFPreservationReference,
+    architecture_config_digest: str,
+    parameter_catalog_digest: str,
+    architecture_state: ArchitectureState | None,
+    architecture_carry_descriptor: Mapping[str, Any],
+    expected_hf_reference: HFPreservationReference | None,
+    expected_architecture_config_digest: str | None,
+    expected_parameter_catalog_digest: str | None,
+    expected_architecture_state_id: str | None,
+    expected_architecture_carry_descriptor: Mapping[str, Any] | None,
+) -> None:
+    if expected_hf_reference is not None and not isinstance(
+        expected_hf_reference, HFPreservationReference
+    ):
+        raise TypeError("expected_hf_reference must be HFPreservationReference")
+    if expected_hf_reference is not None and hf_reference != expected_hf_reference:
+        raise CheckpointValidationError(
+            "checkpoint_hf_identity_mismatch",
+            "checkpoint HF identity does not match the requested resume identity",
+        )
+    if (
+        expected_architecture_config_digest is not None
+        and architecture_config_digest != expected_architecture_config_digest
+    ):
+        raise CheckpointValidationError(
+            "checkpoint_config_identity_mismatch",
+            "checkpoint architecture config identity does not match the "
+            "requested resume identity",
+        )
+    if (
+        expected_parameter_catalog_digest is not None
+        and parameter_catalog_digest != expected_parameter_catalog_digest
+    ):
+        raise CheckpointValidationError(
+            "checkpoint_catalog_identity_mismatch",
+            "checkpoint parameter catalog identity does not match the "
+            "requested resume identity",
+        )
+    if expected_architecture_state_id is not None and (
+        architecture_state is None
+        or architecture_state.state_id != expected_architecture_state_id
+    ):
+        raise CheckpointValidationError(
+            "checkpoint_architecture_state_identity_mismatch",
+            "checkpoint architecture state identity does not match the "
+            "requested resume identity",
+        )
+    if expected_architecture_carry_descriptor is not None and dict(
+        architecture_carry_descriptor
+    ) != dict(expected_architecture_carry_descriptor):
+        raise CheckpointValidationError(
+            "checkpoint_architecture_descriptor_mismatch",
+            "checkpoint architecture carry identity does not match the "
+            "requested resume identity",
+        )
 
 
 def _fsync_tree(directory: Path) -> None:

@@ -18,6 +18,7 @@ from radjax_student.checkpoints import (
     save_learning_checkpoint_v3,
 )
 from radjax_student.checkpoints.npz_codec import (
+    descriptor_digest,
     read_deterministic_npz,
     write_deterministic_npz,
 )
@@ -97,6 +98,17 @@ def _save(tmp_path, state=None):
     return optimizer
 
 
+def _carry_identity(tmp_path, *, digest=None, schema="architecture_carry.v1"):
+    descriptor = write_deterministic_npz(
+        tmp_path / "carry-probe.npz", {"count": np.asarray(2, dtype=np.int32)}
+    )
+    return {
+        "schema_version": schema,
+        "state_id": "architecture-state-1",
+        "pytree_descriptor_digest": digest or descriptor_digest(descriptor),
+    }
+
+
 def _rewrite_manifest(directory, *, update_sidecar=False):
     manifest = json.loads((directory / "manifest.json").read_text())
     optimizer_payload = json.loads((directory / "optimizer_state.json").read_text())
@@ -140,6 +152,122 @@ def test_valid_sgd_state_round_trips_and_records_both_steps(tmp_path):
     assert manifest["optimizer"]["optimizer_numerical_state_schema_version"] == (
         "sgd_jax_state.v1"
     )
+
+
+def test_restore_requires_callers_expected_lifecycle_identity(tmp_path):
+    optimizer = _save(tmp_path)
+    checkpoint = load_learning_checkpoint_v3(
+        tmp_path, optimizer=optimizer, parameter_layout=_layout()
+    )
+    foreign_hf = replace(checkpoint.hf_reference, tokenizer_id="foreign-tokenizer")
+    with pytest.raises(
+        CheckpointValidationError, match="checkpoint_hf_identity_mismatch"
+    ):
+        load_learning_checkpoint_v3(
+            tmp_path,
+            optimizer=optimizer,
+            parameter_layout=_layout(),
+            expected_hf_reference=foreign_hf,
+        )
+    with pytest.raises(
+        CheckpointValidationError, match="checkpoint_config_identity_mismatch"
+    ):
+        load_learning_checkpoint_v3(
+            tmp_path,
+            optimizer=optimizer,
+            parameter_layout=_layout(),
+            expected_architecture_config_digest="foreign-config",
+        )
+    with pytest.raises(
+        CheckpointValidationError, match="checkpoint_catalog_identity_mismatch"
+    ):
+        load_learning_checkpoint_v3(
+            tmp_path,
+            optimizer=optimizer,
+            parameter_layout=_layout(),
+            expected_parameter_catalog_digest="foreign-catalog",
+        )
+
+    assert (
+        load_learning_checkpoint_v3(
+            tmp_path,
+            optimizer=optimizer,
+            parameter_layout=_layout(),
+            expected_hf_reference=checkpoint.hf_reference,
+            expected_architecture_config_digest="architecture-config-digest",
+            expected_parameter_catalog_digest="parameter-catalog-digest",
+            expected_architecture_state_id="architecture-state-1",
+            expected_architecture_carry_descriptor=checkpoint.architecture_carry_descriptor,
+        ).architecture_state.state_id
+        == "architecture-state-1"
+    )
+
+
+def test_custom_carry_identity_must_match_actual_descriptor_at_save(tmp_path):
+    checkpoint = replace(
+        _checkpoint(_state(SgdOptimizer())),
+        architecture_carry_descriptor=_carry_identity(tmp_path, digest="stale"),
+    )
+    with pytest.raises(
+        CheckpointValidationError, match="checkpoint_architecture_descriptor_mismatch"
+    ):
+        save_learning_checkpoint_v3(
+            checkpoint, tmp_path / "checkpoint", optimizer=SgdOptimizer()
+        )
+
+
+def test_custom_carry_identity_schema_is_validated_at_save(tmp_path):
+    checkpoint = replace(
+        _checkpoint(_state(SgdOptimizer())),
+        architecture_carry_descriptor=_carry_identity(
+            tmp_path, schema="architecture_carry.legacy"
+        ),
+    )
+    with pytest.raises(
+        CheckpointValidationError, match="checkpoint_architecture_descriptor_mismatch"
+    ):
+        save_learning_checkpoint_v3(
+            checkpoint, tmp_path / "checkpoint", optimizer=SgdOptimizer()
+        )
+
+
+def test_rehashed_carry_descriptor_cannot_escape_identity_binding(tmp_path):
+    optimizer = _save(tmp_path)
+    carry_descriptor = json.loads((tmp_path / "architecture_carry.json").read_text())
+    carry = read_deterministic_npz(
+        tmp_path / "architecture_carry.npz", carry_descriptor
+    )
+    carry["extra"] = np.asarray(1, dtype=np.int32)
+    new_descriptor = write_deterministic_npz(tmp_path / "architecture_carry.npz", carry)
+    (tmp_path / "architecture_carry.json").write_text(
+        json.dumps(new_descriptor, sort_keys=True, separators=(",", ":")) + "\n"
+    )
+    manifest = json.loads((tmp_path / "manifest.json").read_text())
+    for name in manifest["files"]:
+        data = (tmp_path / name).read_bytes()
+        manifest["hashes"][name] = hashlib.sha256(data).hexdigest()
+        manifest["sizes"][name] = len(data)
+    manifest["architecture"]["carry_descriptor_digest"] = descriptor_digest(
+        new_descriptor
+    )
+    manifest.pop("integrity", None)
+    manifest["integrity"] = {
+        "algorithm": "sha256",
+        "manifest_digest": hashlib.sha256(
+            (
+                json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n"
+            ).encode()
+        ).hexdigest(),
+    }
+    (tmp_path / "manifest.json").write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n"
+    )
+    with pytest.raises(
+        CheckpointValidationError, match="checkpoint_architecture_descriptor_mismatch"
+    ):
+        load_learning_checkpoint_v3(
+            tmp_path, optimizer=optimizer, parameter_layout=_layout()
+        )
 
 
 def test_envelope_step_tamper_fails_save_validation(tmp_path):

@@ -14,3 +14,12 @@ numerical-state schema, envelope step, sidecar digest, and descriptor digest.
 
 The v2 scalar checkpoint remains read-compatible and is not treated as an HF
 distribution checkpoint.
+
+Restore is caller-bound as well as internally integrity-checked. Callers may
+provide the expected HF preservation reference, architecture-config digest,
+parameter-catalog digest, architecture-state ID, and architecture-carry
+identity. A mismatch is rejected before a checkpoint is returned. The carry
+identity must use `architecture_carry.v1` and its
+`pytree_descriptor_digest` must equal the digest of the actual
+`architecture_carry.json` descriptor, including when all sidecar and manifest
+hashes have been recomputed.
