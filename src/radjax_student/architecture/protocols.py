@@ -74,3 +74,8 @@ class JaxArchitectureExecution(Protocol):
         training: bool,
         rng_key: Any | None,
     ) -> ForwardResult: ...
+
+
+@runtime_checkable
+class JaxArchitecturePlugin(ArchitecturePlugin, JaxArchitectureExecution, Protocol):
+    """The only production JAX architecture identity."""

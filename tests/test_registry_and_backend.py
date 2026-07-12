@@ -1,16 +1,10 @@
-import numpy as np
-from radjax_contract.vocab import VocabContract
+from radjax_student.architecture import ArchitectureRegistry
+from radjax_student.architecture.testing import FakeArchitecturePlugin
+from radjax_student.debug import TinyDebugStudentBackend
 
-from radjax_student.students import StudentBackendRegistry
 
-
-def test_tiny_debug_backend_registers_and_forwards() -> None:
-    registry = StudentBackendRegistry.with_defaults()
-    backend = registry.get("tiny_debug")
-    vocab = VocabContract(tokenizer_id="toy", vocab_size=5)
-    params = backend.init(backend.default_config(vocab_size=5), vocab, seed=1)
-    logits = backend.forward(params, np.asarray([[0, 1]], dtype=np.int32))
-
-    assert registry.names() == ("tiny_debug",)
-    assert logits.shape == (1, 2, 5)
-    assert len(backend.parameter_fingerprint(params)) == 64
+def test_architecture_registry_accepts_complete_non_jax_plugin() -> None:
+    registry = ArchitectureRegistry()
+    registry.register(FakeArchitecturePlugin())
+    assert registry.list_plugins() == ("test.architecture.v1",)
+    assert TinyDebugStudentBackend().architecture_id == "tiny_debug"

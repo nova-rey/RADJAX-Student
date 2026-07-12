@@ -749,3 +749,10 @@
 - Shared parameter-layout, HF lifecycle, and JAX optimizer-state descriptors
   live in a dependency-free contract package so new conveyor code does not add
   architecture, learning, optimizer, runtime, or HF lateral dependencies.
+
+## 2026-07-12 - P3.11.2 one architecture identity
+
+- `ArchitectureRegistry` now enforces the complete architecture plugin
+  contract and validates the declared JAX capability against its execution
+  protocol. The parallel `students/` protocol and registry have been removed;
+  explicit tiny debugging remains under `radjax_student.debug`.

@@ -13,9 +13,9 @@ from radjax_contract.testing import production_tome_fixture_path
 from radjax_student.artifacts import targets as target_loading
 from radjax_student.cli import inspect as inspect_command
 from radjax_student.cli.main import main
+from radjax_student.debug import TinyDebugStudentBackend
 from radjax_student.legacy import training as legacy_training
 from radjax_student.reports import ACCEPTED_FIXTURE_DIGEST
-from radjax_student.students.tiny_debug import TinyDebugStudentBackend
 
 
 def test_inspect_human_reports_pipeline_and_honest_failure() -> None:

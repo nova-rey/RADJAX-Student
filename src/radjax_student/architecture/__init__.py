@@ -31,6 +31,7 @@ from radjax_student.architecture.models import (
 from radjax_student.architecture.protocols import (
     ArchitecturePlugin,
     JaxArchitectureExecution,
+    JaxArchitecturePlugin,
 )
 from radjax_student.architecture.registry import ArchitectureRegistry
 
@@ -51,6 +52,7 @@ __all__ = [
     "ArchitectureMetadata",
     "ArchitecturePlugin",
     "JaxArchitectureExecution",
+    "JaxArchitecturePlugin",
     "ArchitectureRegistry",
     "ArchitectureState",
     "BatchValidationResult",

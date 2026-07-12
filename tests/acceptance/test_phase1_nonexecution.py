@@ -10,9 +10,8 @@ from tome_fixtures import write_dense_tome
 
 from radjax_student.artifacts import open_tome_artifact
 from radjax_student.artifacts import targets as target_loading
+from radjax_student.debug import TinyDebugStudentBackend
 from radjax_student.legacy import training as legacy_training
-from radjax_student.students.registry import StudentBackendRegistry
-from radjax_student.students.tiny_debug import TinyDebugStudentBackend
 from radjax_student.validation import infer_run_defaults_from_tome
 
 from .support import REPO_ROOT, canonical_fixture, run_cli
@@ -81,7 +80,6 @@ def test_phase1_commands_do_not_consume_payload_or_execute_runtime(
     monkeypatch.setattr(target_loading, "load_dense_tome_targets", forbidden)
     monkeypatch.setattr(TinyDebugStudentBackend, "__init__", forbidden)
     monkeypatch.setattr(TinyDebugStudentBackend, "init", forbidden)
-    monkeypatch.setattr(StudentBackendRegistry, "with_defaults", forbidden)
     monkeypatch.setattr(legacy_training, "run_tiny_train_step", forbidden)
     monkeypatch.setattr(socket, "create_connection", forbidden)
     monkeypatch.setattr(urllib.request, "urlopen", forbidden)

@@ -10,6 +10,7 @@ from typing import Any, Literal, TypeAlias
 from radjax_student.architecture._json import freeze_mapping, json_value, mapping
 
 ArchitectureErrorCode: TypeAlias = Literal[
+    "architecture_plugin_invalid",
     "architecture_plugin_not_found",
     "architecture_plugin_duplicate",
     "architecture_config_invalid",
@@ -27,6 +28,7 @@ ArchitectureErrorCode: TypeAlias = Literal[
 ]
 
 ARCHITECTURE_ERROR_CODES: tuple[str, ...] = (
+    "architecture_plugin_invalid",
     "architecture_plugin_not_found",
     "architecture_plugin_duplicate",
     "architecture_config_invalid",
