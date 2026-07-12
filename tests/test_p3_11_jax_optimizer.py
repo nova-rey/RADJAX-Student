@@ -166,9 +166,10 @@ def test_optimizer_owns_algorithm_specific_numerical_state_validation():
     class FloatStateOptimizer(SgdOptimizer):
         seen_arrays = None
 
-        def validate_jax_state(self, *, arrays, descriptor):
+        def validate_jax_state(self, *, arrays, descriptor, envelope):
             type(self).seen_arrays = arrays
             assert descriptor.optimizer_schema_version == "sgd_jax_state.v1"
+            assert envelope.step == 0
 
     optimizer = FloatStateOptimizer()
     layout = _layout()

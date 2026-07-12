@@ -98,6 +98,11 @@ Start here for Phase 0 foundation context.
   checkpoint source state, resume equivalence, reporting, and replay evidence.
 - [P3.10 Learning Core Golden Acceptance](P3_10_LEARNING_CORE_GOLDEN_ACCEPTANCE.md):
   final public-API audit of the completed Phase 3 learning core.
+- [P3.11.7 Checkpoint v3 and Optimizer Step Identity](P3_11_7_CHECKPOINT_V3.md):
+  optimizer-owned numerical-state validation, deterministic tensor sidecars,
+  and continuation checkpoint step consistency.
+- [P3.11.10 Final Adversarial Gate Addition](P3_11_10_FINAL_ADVERSARIAL_GATE.md):
+  mandatory checkpoint tamper cases for optimizer identity and step integrity.
 - [P3.5 Architecture Integrity Roadmap](P3_5_ARCHITECTURE_INTEGRITY_ROADMAP.md):
   ordered cleanup checkpoints required before Phase 4.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)

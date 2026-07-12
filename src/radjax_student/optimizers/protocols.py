@@ -54,6 +54,7 @@ class JaxOptimizerExecution(Protocol):
         *,
         arrays: Any,
         descriptor: JaxOptimizerStateDescriptor,
+        envelope: OptimizerState,
     ) -> None: ...
 
     def apply_jax_updates(

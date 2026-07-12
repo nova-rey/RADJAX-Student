@@ -258,7 +258,7 @@ class SgdOptimizer:
             ) from exc
         from radjax_student.optimizers.jax import JaxOptimizerState
 
-        return JaxOptimizerState(
+        state = JaxOptimizerState(
             envelope=optimizer_state,
             descriptor=self.jax_state_descriptor(parameter_layout),
             arrays={
@@ -268,12 +268,19 @@ class SgdOptimizer:
                 ),
             },
         )
+        self.validate_jax_state(
+            arrays=state.arrays,
+            descriptor=state.descriptor,
+            envelope=state.envelope,
+        )
+        return state
 
     def validate_jax_state(
         self,
         *,
         arrays: Any,
         descriptor: JaxOptimizerStateDescriptor,
+        envelope: OptimizerState,
     ) -> None:
         """Validate SGD's own scalar counter representation.
 
@@ -287,6 +294,30 @@ class SgdOptimizer:
             raise OptimizerContractError(
                 "optimizer_jax_state_invalid",
                 "JAX optimizer state descriptor does not belong to SGD",
+            )
+        numerical_step = _jax_mapping_leaves(arrays).get(("step",))
+        if numerical_step is None:
+            raise OptimizerContractError(
+                "optimizer_jax_state_invalid",
+                "SGD numerical optimizer step is missing",
+            )
+        shape = tuple(getattr(numerical_step, "shape", ()))
+        dtype = str(getattr(numerical_step, "dtype", ""))
+        if shape != () or not dtype.startswith(("int", "uint")):
+            raise OptimizerContractError(
+                "optimizer_jax_state_invalid",
+                "SGD optimizer numerical state leaves must be scalar integers",
+                details={"keypath": ["step"], "shape": list(shape), "dtype": dtype},
+            )
+        observed_step = int(numerical_step)
+        if observed_step != envelope.step:
+            raise OptimizerContractError(
+                "optimizer_state_transition_failed",
+                "optimizer envelope and numerical steps disagree",
+                details={
+                    "expected_step": envelope.step,
+                    "observed_step": observed_step,
+                },
             )
         for keypath, leaf in _jax_mapping_leaves(arrays).items():
             shape = tuple(getattr(leaf, "shape", ()))

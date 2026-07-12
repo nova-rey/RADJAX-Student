@@ -1,0 +1,177 @@
+"""Deterministic project-owned ZIP_STORED codec for mapping array pytrees."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import zipfile
+from collections.abc import Mapping
+from io import BytesIO
+from pathlib import Path
+from typing import Any
+
+NPZ_CODEC_VERSION = "radjax_deterministic_npz.v1"
+
+
+def encode_keypath(keypath: tuple[str, ...]) -> str:
+    """Encode mapping keypaths without separator or collision ambiguity."""
+
+    if not keypath or any(not isinstance(part, str) or not part for part in keypath):
+        raise ValueError("keypath must contain nonempty mapping keys")
+    return (
+        "k_"
+        + "_".join(
+            f"{len(part.encode('utf-8')):08x}{part.encode('utf-8').hex()}"
+            for part in keypath
+        )
+        + ".npy"
+    )
+
+
+def decode_member_name(member_name: str) -> tuple[str, ...]:
+    if not isinstance(member_name, str) or not member_name.startswith("k_"):
+        raise ValueError("invalid deterministic NPZ member name")
+    raw = member_name[2:]
+    if not raw.endswith(".npy"):
+        raise ValueError("invalid deterministic NPZ member name")
+    raw = raw[:-4]
+    parts: list[str] = []
+    while raw:
+        if len(raw) < 8:
+            raise ValueError("invalid deterministic NPZ member name")
+        size = int(raw[:8], 16)
+        raw = raw[8:]
+        encoded_size = size * 2
+        if size == 0 or len(raw) < encoded_size:
+            raise ValueError("invalid deterministic NPZ member name")
+        value = bytes.fromhex(raw[:encoded_size]).decode("utf-8")
+        parts.append(value)
+        raw = raw[encoded_size:]
+        if raw:
+            if not raw.startswith("_"):
+                raise ValueError("invalid deterministic NPZ member name")
+            raw = raw[1:]
+    return tuple(parts)
+
+
+def descriptor_digest(descriptor: Mapping[str, Any]) -> str:
+    return hashlib.sha256(_json_bytes(descriptor)).hexdigest()
+
+
+def write_deterministic_npz(path: Path, tree: Mapping[str, Any]) -> dict[str, Any]:
+    """Write canonical little-endian .npy members in a fixed ZIP container."""
+
+    try:
+        import numpy as np
+    except ImportError as exc:  # pragma: no cover - dependency boundary
+        raise RuntimeError("numpy is required for checkpoint tensor payloads") from exc
+
+    leaves = _flatten_mapping(tree)
+    members: dict[str, bytes] = {}
+    descriptors: list[dict[str, Any]] = []
+    for keypath, value in sorted(leaves.items()):
+        member = encode_keypath(keypath)
+        if member in members:
+            raise ValueError("deterministic NPZ keypath encoding collision")
+        array = np.asarray(value)
+        if array.dtype.hasobject:
+            raise TypeError("object dtype and pickle are forbidden in NPZ payloads")
+        if array.dtype.byteorder == ">" or (
+            array.dtype.byteorder == "=" and not np.little_endian
+        ):
+            array = array.astype(array.dtype.newbyteorder("<"), copy=False)
+        buffer = BytesIO()
+        np.lib.format.write_array(buffer, array, allow_pickle=False)
+        members[member] = buffer.getvalue()
+        descriptors.append(
+            {
+                "keypath": list(keypath),
+                "member": member,
+                "shape": list(array.shape),
+                "dtype": str(array.dtype),
+            }
+        )
+    descriptor = {
+        "schema_version": "jax_pytree_payload.v1",
+        "codec": NPZ_CODEC_VERSION,
+        "tree_kind": "mapping_only",
+        "leaves": descriptors,
+    }
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_STORED) as archive:
+        for member in sorted(members):
+            info = zipfile.ZipInfo(member, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_STORED
+            info.create_system = 3
+            info.external_attr = 0o100644 << 16
+            archive.writestr(info, members[member])
+    return descriptor
+
+
+def read_deterministic_npz(path: Path, descriptor: Mapping[str, Any]) -> dict[str, Any]:
+    try:
+        import numpy as np
+    except ImportError as exc:  # pragma: no cover - dependency boundary
+        raise RuntimeError("numpy is required for checkpoint tensor payloads") from exc
+    if descriptor.get("codec") != NPZ_CODEC_VERSION:
+        raise ValueError("unsupported deterministic NPZ codec")
+    expected: dict[tuple[str, ...], tuple[str, tuple[int, ...], str]] = {}
+    for leaf in descriptor.get("leaves", ()):
+        keypath = tuple(leaf["keypath"])
+        member = str(leaf["member"])
+        if keypath in expected or member != encode_keypath(keypath):
+            raise ValueError("invalid or colliding NPZ descriptor")
+        expected[keypath] = (member, tuple(leaf["shape"]), str(leaf["dtype"]))
+    result: dict[str, Any] = {}
+    with zipfile.ZipFile(path, "r") as archive:
+        if set(archive.namelist()) != {item[0] for item in expected.values()}:
+            raise ValueError("NPZ members do not match the canonical descriptor")
+        for keypath, (member, shape, dtype) in expected.items():
+            with archive.open(member, "r") as stream:
+                array = np.lib.format.read_array(stream, allow_pickle=False)
+            if tuple(array.shape) != shape or str(array.dtype) != dtype:
+                raise ValueError("NPZ leaf shape or dtype does not match descriptor")
+            _set_mapping_leaf(result, keypath, array)
+    return result
+
+
+def _flatten_mapping(
+    value: Mapping[str, Any], prefix: tuple[str, ...] = ()
+) -> dict[tuple[str, ...], Any]:
+    if not isinstance(value, Mapping) or not value:
+        raise ValueError("tensor payload trees must be nonempty mappings")
+    result: dict[tuple[str, ...], Any] = {}
+    for key in sorted(value):
+        if not isinstance(key, str) or not key:
+            raise ValueError("tensor payload mapping keys must be nonempty strings")
+        child = value[key]
+        if isinstance(child, Mapping):
+            result.update(_flatten_mapping(child, (*prefix, key)))
+        else:
+            result[(*prefix, key)] = child
+    return result
+
+
+def _set_mapping_leaf(
+    result: dict[str, Any], keypath: tuple[str, ...], value: Any
+) -> None:
+    branch = result
+    for key in keypath[:-1]:
+        branch = branch.setdefault(key, {})
+    if keypath[-1] in branch:
+        raise ValueError("duplicate NPZ descriptor keypath")
+    branch[keypath[-1]] = value
+
+
+def _json_bytes(value: Mapping[str, Any]) -> bytes:
+    return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+
+
+__all__ = [
+    "NPZ_CODEC_VERSION",
+    "decode_member_name",
+    "descriptor_digest",
+    "encode_keypath",
+    "read_deterministic_npz",
+    "write_deterministic_npz",
+]

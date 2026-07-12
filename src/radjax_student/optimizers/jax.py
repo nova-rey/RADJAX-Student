@@ -71,7 +71,11 @@ def validate_jax_optimizer_state(
                 "actual": [list(path) for path in sorted(leaves)],
             },
         )
-    optimizer.validate_jax_state(arrays=state.arrays, descriptor=descriptor)
+    optimizer.validate_jax_state(
+        arrays=state.arrays,
+        descriptor=descriptor,
+        envelope=state.envelope,
+    )
 
 
 def advanced_jax_optimizer_state(

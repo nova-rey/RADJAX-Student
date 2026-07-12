@@ -806,3 +806,13 @@
   `LearningBatch`, rejects foreign runtime key streams, records the complete
   non-secret key-derivation identity, and resets micro-step after each update
   to match the scalar no-accumulation contract.
+
+## 2026-07-12 - P3.11.7 optimizer step identity and checkpoint v3
+
+- The optimizer capability now owns numerical-state structure, dtype, shape,
+  and step-consistency validation. Checkpoint v3 records the optimizer
+  identity, capability and numerical-state schema versions, stable envelope
+  step, sidecar digest, and descriptor digest while deterministic ZIP_STORED
+  sidecars preserve descriptor-defined pytree structure. Envelope-only,
+  numerical-only, sidecar-only, rehashed, identity, and non-SGD tampering are
+  explicit adversarial cases; mismatches are never repaired or normalized.

@@ -12,14 +12,28 @@ from radjax_student.checkpoints.roles import (
     FutureTensorPayloadDescriptor,
     reject_implicit_hf_conversion,
 )
+from radjax_student.checkpoints.v3 import (
+    CHECKPOINT_OPTIMIZER_STEP_MISMATCH,
+    CHECKPOINT_V3_SCHEMA_VERSION,
+    CheckpointValidationError,
+    JaxLearningCheckpointV3,
+    load_learning_checkpoint_v3,
+    save_learning_checkpoint_v3,
+)
 
 __all__ = [
     "CONTINUATION_CHECKPOINT_ROLE",
     "CheckpointPayloadDescriptor",
+    "CHECKPOINT_OPTIMIZER_STEP_MISMATCH",
+    "CHECKPOINT_V3_SCHEMA_VERSION",
+    "CheckpointValidationError",
     "FutureTensorPayloadDescriptor",
     "HF_DISTRIBUTION_CHECKPOINT_ROLE",
     "LearningCheckpoint",
+    "JaxLearningCheckpointV3",
     "load_learning_checkpoint",
     "reject_implicit_hf_conversion",
     "save_learning_checkpoint",
+    "load_learning_checkpoint_v3",
+    "save_learning_checkpoint_v3",
 ]
