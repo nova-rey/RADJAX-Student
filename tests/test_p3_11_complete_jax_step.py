@@ -34,6 +34,9 @@ from radjax_student.learning import (  # noqa: E402
     ObjectiveScope,
     UpdateScope,
 )
+from radjax_student.learning.jax_batch import (  # noqa: E402
+    FiniteJsonJaxBatchMaterializer,
+)
 from radjax_student.learning.jax_core import JaxBatch, JaxObjectiveConfig  # noqa: E402
 from radjax_student.optimizers import (  # noqa: E402
     OptimizerConfig,
@@ -47,6 +50,7 @@ from radjax_student.runtime import (  # noqa: E402
     ExecutionRequest,
     JaxRuntimeBackend,
     RuntimeEnvironment,
+    RuntimeKeys,
 )
 from radjax_student.steps.jax_step import execute_jax_learning_step  # noqa: E402
 
@@ -191,6 +195,20 @@ def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
         "head": {"bias": jnp.asarray((0.0,))},
     }
     context, backend, request = _runtime(mode)
+    learning_batch = LearningBatch(
+        "linear",
+        inputs={"x": [-1.0, 0.0, 1.0]},
+        targets={"y": [[-1.0], [1.0], [3.0]]},
+    )
+
+    class RecordingMaterializer(FiniteJsonJaxBatchMaterializer):
+        received = None
+
+        def materialize(self, batch):
+            type(self).received = batch
+            return super().materialize(batch)
+
+    materializer = RecordingMaterializer()
     execution = execute_jax_learning_step(
         architecture=architecture,
         architecture_config=ArchitectureConfig(architecture.architecture_id),
@@ -205,15 +223,8 @@ def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
         ),
         parameters=parameters,
         architecture_carry={"count": jnp.asarray(0)},
-        batch=JaxBatch(
-            {"x": jnp.asarray((-1.0, 0.0, 1.0))},
-            {"y": jnp.asarray(((-1.0,), (1.0,), (3.0,)))},
-        ),
-        learning_batch=LearningBatch(
-            "linear",
-            inputs={"x": [-1.0, 0.0, 1.0]},
-            targets={"y": [[-1.0], [1.0], [3.0]]},
-        ),
+        learning_batch=learning_batch,
+        batch_materializer=materializer,
         objective_config=JaxObjectiveConfig("linear.mse.v1"),
         parameter_layout=layout,
         runtime_context=context,
@@ -221,6 +232,7 @@ def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
         execution_request=request,
     )
     assert execution.runtime_result.status == "pass"
+    assert materializer.received is learning_batch
     assert (
         execution.runtime_result.output_metadata["input_preparation"][
             "precision_policy"
@@ -233,7 +245,15 @@ def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
         ]
         == "cpu:0"
     )
-    assert execution.runtime_result.output_metadata["rng_bridge"]["stream"] == "dropout"
+    assert execution.runtime_result.output_metadata["rng_bridge"] == {
+        "schema_version": "runtime_jax_key_bridge.v1",
+        "prng_implementation": "threefry2x32",
+        "stream": "dropout",
+        "slot": "dropout",
+        "global_step": 0,
+        "micro_step": 0,
+        "invocation_index": 0,
+    }
     assert "linear.mse.v1" in MeanSquaredError.seen_objective_ids
     assert execution.result.changed_parameter_paths == ("trunk.weight",)
     assert execution.result.unchanged_parameter_paths == ("head.bias",)
@@ -245,3 +265,43 @@ def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
         == 1
     )
     assert int(execution.architecture_carry["count"]) == 1
+    assert execution.learning_state.micro_step == 0
+
+
+def test_runtime_step_rejects_a_key_stream_from_another_runtime_root():
+    architecture = LinearPlugin()
+    layout = _layout()
+    optimizer = SgdOptimizer()
+    optimizer_state = optimizer.initialize_jax_state(
+        config=OptimizerConfig(optimizer.optimizer_id, learning_rate=0.1),
+        parameter_layout=layout,
+        optimizer_state=OptimizerState(optimizer.optimizer_id, layout.logical_paths),
+    )
+    context, backend, request = _runtime("eager")
+    with pytest.raises(ValueError, match="does not belong"):
+        execute_jax_learning_step(
+            architecture=architecture,
+            architecture_config=ArchitectureConfig(architecture.architecture_id),
+            objective=MeanSquaredError(),
+            optimizer=optimizer,
+            optimizer_config=OptimizerConfig(optimizer.optimizer_id, learning_rate=0.1),
+            optimizer_state=optimizer_state,
+            learning_state=LearningState("p311"),
+            parameters={
+                "trunk": {"weight": jnp.asarray((0.0,))},
+                "head": {"bias": jnp.asarray((0.0,))},
+            },
+            architecture_carry={"count": jnp.asarray(0)},
+            learning_batch=LearningBatch(
+                "linear",
+                inputs={"x": [-1.0, 0.0, 1.0]},
+                targets={"y": [[-1.0], [1.0], [3.0]]},
+            ),
+            batch_materializer=FiniteJsonJaxBatchMaterializer(),
+            objective_config=JaxObjectiveConfig("linear.mse.v1"),
+            parameter_layout=layout,
+            runtime_key_stream=RuntimeKeys.from_seed(1).dropout,
+            runtime_context=context,
+            runtime_backend=backend,
+            execution_request=request,
+        )

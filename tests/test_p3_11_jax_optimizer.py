@@ -13,6 +13,7 @@ from radjax_student.contracts import (  # noqa: E402
 )
 from radjax_student.optimizers import (  # noqa: E402
     JaxOptimizerExecution,
+    JaxOptimizerState,
     OptimizerCapabilityProfile,
     OptimizerConfig,
     OptimizerContractError,
@@ -60,6 +61,7 @@ def test_jax_sgd_uses_existing_optimizer_identity_and_layout_descriptor():
     assert isinstance(optimizer, JaxOptimizerExecution)
     validate_jax_optimizer_state(
         state,
+        optimizer=optimizer,
         optimizer_id=optimizer.optimizer_id,
         parameter_layout=layout,
         descriptor=optimizer.jax_state_descriptor(layout),
@@ -127,6 +129,7 @@ def test_jax_sgd_rejects_nonfinite_gradients_and_descriptor_mismatch():
     with pytest.raises(OptimizerContractError, match="layout digest"):
         validate_jax_optimizer_state(
             state,
+            optimizer=optimizer,
             optimizer_id=optimizer.optimizer_id,
             parameter_layout=ParameterTreeLayout(
                 "test.architecture.v1",
@@ -152,6 +155,57 @@ def test_jax_optimizer_rejects_malformed_numerical_state_before_execution():
     with pytest.raises(OptimizerContractError, match="keypaths"):
         validate_jax_optimizer_state(
             malformed,
+            optimizer=optimizer,
+            optimizer_id=optimizer.optimizer_id,
+            parameter_layout=layout,
+            descriptor=optimizer.jax_state_descriptor(layout),
+        )
+
+
+def test_optimizer_owns_algorithm_specific_numerical_state_validation():
+    class FloatStateOptimizer(SgdOptimizer):
+        seen_arrays = None
+
+        def validate_jax_state(self, *, arrays, descriptor):
+            type(self).seen_arrays = arrays
+            assert descriptor.optimizer_schema_version == "sgd_jax_state.v1"
+
+    optimizer = FloatStateOptimizer()
+    layout = _layout()
+    state = _state(optimizer, layout)
+    arrays = {
+        "step": jnp.asarray((0.0, 1.0)),
+        "per_parameter_steps": {
+            "head": {"weight": jnp.asarray((0.0,))},
+            "trunk": {"weight": jnp.asarray((0.0,))},
+        },
+    }
+    non_sgd_shaped_state = JaxOptimizerState(state.envelope, state.descriptor, arrays)
+    validate_jax_optimizer_state(
+        non_sgd_shaped_state,
+        optimizer=optimizer,
+        optimizer_id=optimizer.optimizer_id,
+        parameter_layout=layout,
+        descriptor=optimizer.jax_state_descriptor(layout),
+    )
+    assert optimizer.seen_arrays is arrays
+
+
+def test_sgd_revalidates_updated_numerical_arrays():
+    optimizer = SgdOptimizer()
+    layout = _layout()
+    state = _state(optimizer, layout)
+    malformed_updated_state = advanced_jax_optimizer_state(
+        state,
+        {
+            "step": jnp.asarray(1.0),
+            "per_parameter_steps": state.arrays["per_parameter_steps"],
+        },
+    )
+    with pytest.raises(OptimizerContractError, match="scalar integers"):
+        validate_jax_optimizer_state(
+            malformed_updated_state,
+            optimizer=optimizer,
             optimizer_id=optimizer.optimizer_id,
             parameter_layout=layout,
             descriptor=optimizer.jax_state_descriptor(layout),

@@ -49,6 +49,25 @@ def test_layout_digest_is_order_independent():
     assert first.digest() == second.digest()
 
 
+def test_nested_layout_metadata_is_immutable_and_canonically_serializable():
+    entry = ParameterTreeLayoutEntry(
+        "quantized.weight",
+        ("quantized", "weight"),
+        (2,),
+        "float32",
+        "other",
+        metadata={"quantization": {"scheme": "none"}, "axes": ["output"]},
+    )
+    layout = ParameterTreeLayout("test", (entry,))
+    with pytest.raises(TypeError):
+        entry.metadata["quantization"]["scheme"] = "int8"
+    assert layout.to_dict()["entries"][0]["metadata"] == {
+        "axes": ["output"],
+        "quantization": {"scheme": "none"},
+    }
+    assert layout.digest() == ParameterTreeLayout("test", (entry,)).digest()
+
+
 def test_hf_reference_requires_lifecycle_identity():
     reference = HFPreservationReference(
         "v1", "d", "model", "arch", "token", 4, "special", "layout", "config"

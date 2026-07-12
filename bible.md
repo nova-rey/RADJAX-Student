@@ -795,3 +795,14 @@
   optimizer update inside the runtime function, and reports actual changed
   leaves plus placement, precision, and RNG evidence. Handwritten JAX updates
   remain exclusively under the legacy namespace.
+
+## 2026-07-12 - P3.11.6A follow-up ownership hardening
+
+- Frozen nested parameter-layout metadata is thawed recursively for canonical
+  serialization and stable identity digests. Optimizer array transport now
+  verifies identity and exact keypaths generically while each optimizer owns
+  its numerical-state representation, including post-update validation.
+  Production JAX execution materializes its batch from the validated
+  `LearningBatch`, rejects foreign runtime key streams, records the complete
+  non-secret key-derivation identity, and resets micro-step after each update
+  to match the scalar no-accumulation contract.

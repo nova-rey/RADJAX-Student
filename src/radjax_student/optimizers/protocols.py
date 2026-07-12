@@ -49,6 +49,13 @@ class JaxOptimizerExecution(Protocol):
         optimizer_state: OptimizerState,
     ) -> Any: ...
 
+    def validate_jax_state(
+        self,
+        *,
+        arrays: Any,
+        descriptor: JaxOptimizerStateDescriptor,
+    ) -> None: ...
+
     def apply_jax_updates(
         self,
         *,

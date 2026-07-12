@@ -9,6 +9,7 @@ from typing import Any
 from radjax_student.contracts import JaxOptimizerStateDescriptor, ParameterTreeLayout
 from radjax_student.optimizers.errors import OptimizerContractError
 from radjax_student.optimizers.models import OptimizerState
+from radjax_student.optimizers.protocols import JaxOptimizerBackend
 
 
 @dataclass(frozen=True)
@@ -34,6 +35,7 @@ class JaxOptimizerState:
 def validate_jax_optimizer_state(
     state: JaxOptimizerState,
     *,
+    optimizer: JaxOptimizerBackend,
     optimizer_id: str,
     parameter_layout: ParameterTreeLayout,
     descriptor: JaxOptimizerStateDescriptor,
@@ -69,19 +71,7 @@ def validate_jax_optimizer_state(
                 "actual": [list(path) for path in sorted(leaves)],
             },
         )
-    for keypath, leaf in leaves.items():
-        shape = tuple(getattr(leaf, "shape", ()))
-        dtype = str(getattr(leaf, "dtype", ""))
-        if shape != () or not dtype.startswith(("int", "uint")):
-            raise OptimizerContractError(
-                "optimizer_jax_state_invalid",
-                "SGD optimizer numerical state leaves must be scalar integers",
-                details={
-                    "keypath": list(keypath),
-                    "shape": list(shape),
-                    "dtype": dtype,
-                },
-            )
+    optimizer.validate_jax_state(arrays=state.arrays, descriptor=descriptor)
 
 
 def advanced_jax_optimizer_state(

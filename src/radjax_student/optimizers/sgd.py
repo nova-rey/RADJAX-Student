@@ -269,6 +269,39 @@ class SgdOptimizer:
             },
         )
 
+    def validate_jax_state(
+        self,
+        *,
+        arrays: Any,
+        descriptor: JaxOptimizerStateDescriptor,
+    ) -> None:
+        """Validate SGD's own scalar counter representation.
+
+        Generic learning verifies identity and exact keypaths. This backend owns
+        the algorithm-specific promise that its counters are integer scalars.
+        """
+
+        if descriptor.optimizer_id != self.optimizer_id or (
+            descriptor.optimizer_schema_version != "sgd_jax_state.v1"
+        ):
+            raise OptimizerContractError(
+                "optimizer_jax_state_invalid",
+                "JAX optimizer state descriptor does not belong to SGD",
+            )
+        for keypath, leaf in _jax_mapping_leaves(arrays).items():
+            shape = tuple(getattr(leaf, "shape", ()))
+            dtype = str(getattr(leaf, "dtype", ""))
+            if shape != () or not dtype.startswith(("int", "uint")):
+                raise OptimizerContractError(
+                    "optimizer_jax_state_invalid",
+                    "SGD optimizer numerical state leaves must be scalar integers",
+                    details={
+                        "keypath": list(keypath),
+                        "shape": list(shape),
+                        "dtype": dtype,
+                    },
+                )
+
     def apply_jax_updates(
         self,
         *,
@@ -356,3 +389,19 @@ def _scalar_mapping(value: object, name: str) -> dict[str, float]:
             )
         result[path] = float(scalar)
     return result
+
+
+def _jax_mapping_leaves(
+    value: Any, prefix: tuple[str, ...] = ()
+) -> dict[tuple[str, ...], Any]:
+    if isinstance(value, Mapping):
+        result: dict[tuple[str, ...], Any] = {}
+        for key in sorted(value):
+            if not isinstance(key, str) or not key:
+                raise OptimizerContractError(
+                    "optimizer_jax_state_invalid",
+                    "SGD optimizer numerical state keys must be nonempty strings",
+                )
+            result.update(_jax_mapping_leaves(value[key], (*prefix, key)))
+        return result
+    return {prefix: value}

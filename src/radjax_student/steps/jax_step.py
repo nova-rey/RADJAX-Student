@@ -16,8 +16,8 @@ from radjax_student.learning import (
     LossResult,
     MetricRecord,
 )
+from radjax_student.learning.jax_batch import JaxBatchMaterializer
 from radjax_student.learning.jax_core import (
-    JaxBatch,
     JaxLossAuxiliary,
     JaxObjective,
     JaxObjectiveConfig,
@@ -41,7 +41,11 @@ from radjax_student.runtime import (
     ExecutionResult,
     execute_function,
 )
-from radjax_student.runtime.jax_bridge import derive_jax_key
+from radjax_student.runtime.jax_bridge import (
+    JAX_KEY_BRIDGE_VERSION,
+    JAX_PRNG_IMPLEMENTATION,
+    derive_jax_key,
+)
 from radjax_student.runtime.jax_inputs import prepare_jax_inputs
 from radjax_student.runtime.keys import RuntimeKeys, RuntimeKeyStream
 
@@ -78,8 +82,8 @@ def execute_jax_learning_step(
     architecture_config: ArchitectureConfig,
     parameters: Any,
     architecture_carry: Any,
-    batch: JaxBatch,
     learning_batch: LearningBatch,
+    batch_materializer: JaxBatchMaterializer,
     objective_config: JaxObjectiveConfig,
     parameter_layout: ParameterTreeLayout,
     runtime_key_stream: RuntimeKeyStream | None = None,
@@ -105,11 +109,21 @@ def execute_jax_learning_step(
     validation = architecture.validate_batch(learning_batch, architecture_config)
     if validation.status != "pass":
         raise ValueError("architecture rejected the learning batch")
+    if not isinstance(batch_materializer, JaxBatchMaterializer):
+        raise TypeError("batch_materializer must implement JaxBatchMaterializer")
+    batch = batch_materializer.materialize(learning_batch)
+    from radjax_student.learning.jax_core import JaxBatch
+
     if not isinstance(batch, JaxBatch):
-        raise TypeError("batch must be JaxBatch")
+        raise TypeError("batch_materializer must return JaxBatch")
     stream = (
         runtime_key_stream or RuntimeKeys.from_seed(runtime_context.root_seed).dropout
     )
+    expected_stream = RuntimeKeys.from_seed(runtime_context.root_seed).stream(
+        stream.name
+    )
+    if stream != expected_stream:
+        raise ValueError("runtime key stream does not belong to the runtime context")
     rng_key = derive_jax_key(
         stream,
         global_step=learning_state.global_step,
@@ -128,6 +142,7 @@ def execute_jax_learning_step(
     optimizer_descriptor = optimizer.jax_state_descriptor(parameter_layout)
     validate_jax_optimizer_state(
         optimizer_state,
+        optimizer=optimizer,
         optimizer_id=optimizer_config.optimizer_id,
         parameter_layout=parameter_layout,
         descriptor=optimizer_descriptor,
@@ -204,7 +219,7 @@ def execute_jax_learning_step(
             changed_mask,
             optimizer_metrics,
             global_step + 1,
-            micro_step + 1,
+            micro_step * 0,
             optimizer_step + 1,
         )
 
@@ -225,15 +240,25 @@ def execute_jax_learning_step(
         ),
     )
     if runtime_result.status != "pass" or output is None:
-        raise ValueError("runtime execution failed for complete JAX learning step")
+        blocker = runtime_result.blockers[0] if runtime_result.blockers else None
+        detail = (
+            "" if blocker is None else f": {blocker.message} ({dict(blocker.details)})"
+        )
+        raise ValueError(
+            f"runtime execution failed for complete JAX learning step{detail}"
+        )
     runtime_result = replace(
         runtime_result,
         output_metadata={
             **dict(runtime_result.output_metadata),
             "input_preparation": prepared_inputs.metadata,
             "rng_bridge": {
+                "schema_version": JAX_KEY_BRIDGE_VERSION,
+                "prng_implementation": JAX_PRNG_IMPLEMENTATION,
                 "stream": stream.name,
                 "slot": rng_slot,
+                "global_step": learning_state.global_step,
+                "micro_step": learning_state.micro_step,
                 "invocation_index": rng_invocation_index,
             },
         },
@@ -256,6 +281,13 @@ def execute_jax_learning_step(
     require_finite_jax_gradients(optimizer_metrics)
     updated_optimizer_state = advanced_jax_optimizer_state(
         optimizer_state, updated_optimizer_arrays
+    )
+    validate_jax_optimizer_state(
+        updated_optimizer_state,
+        optimizer=optimizer,
+        optimizer_id=optimizer_config.optimizer_id,
+        parameter_layout=parameter_layout,
+        descriptor=optimizer_descriptor,
     )
     updated_learning_state = replace(
         learning_state,

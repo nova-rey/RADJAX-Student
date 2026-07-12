@@ -38,6 +38,16 @@ def _freeze_json(value: Any) -> Any:
     raise TypeError("metadata must contain JSON-safe values")
 
 
+def _thaw_json(value: Any) -> Any:
+    """Return a canonical JSON value from recursively frozen metadata."""
+
+    if isinstance(value, Mapping):
+        return {str(key): _thaw_json(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_thaw_json(item) for item in value]
+    return value
+
+
 def _keypath(value: tuple[str, ...]) -> tuple[str, ...]:
     result = tuple(value)
     if not result or any(not isinstance(part, str) or not part for part in result):
@@ -113,7 +123,7 @@ class ParameterTreeLayoutEntry:
             "exportable": self.exportable,
             "hf_distribution_key": self.hf_distribution_key,
             "tied_weight_group": self.tied_weight_group,
-            "metadata": dict(self.metadata),
+            "metadata": _thaw_json(self.metadata),
         }
 
 

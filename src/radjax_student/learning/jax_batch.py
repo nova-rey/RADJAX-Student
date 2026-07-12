@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
 from radjax_student.learning.models import LearningBatch
@@ -31,11 +32,9 @@ class FiniteJsonJaxBatchMaterializer:
 
 
 def _arrays(jnp: Any, value: Any) -> Any:
-    if isinstance(value, dict):
+    if isinstance(value, Mapping):
         return {key: _arrays(jnp, item) for key, item in value.items()}
-    if isinstance(value, tuple):
-        return tuple(_arrays(jnp, item) for item in value)
-    if isinstance(value, list):
+    if isinstance(value, (tuple, list)):
         return jnp.asarray(value)
     return jnp.asarray(value)
 

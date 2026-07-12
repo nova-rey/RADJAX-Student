@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "437a0a5227ad3e17f8e8dc1368186a87bce71f25",
+  "accepted_commit": "67e845d3d5c6fb5a2cda53f7088e2ee449a80443",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -560,6 +560,10 @@
       "target": "radjax_student.optimizers.models"
     },
     {
+      "source": "radjax_student.optimizers.jax",
+      "target": "radjax_student.optimizers.protocols"
+    },
+    {
       "source": "radjax_student.optimizers.models",
       "target": "radjax_student.architecture.models"
     },
@@ -862,6 +866,10 @@
     {
       "source": "radjax_student.steps.jax_step",
       "target": "radjax_student.learning"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.learning.jax_batch"
     },
     {
       "source": "radjax_student.steps.jax_step",
@@ -1950,6 +1958,7 @@
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
+        "collections.abc",
         "importlib",
         "radjax_student.learning.jax_core",
         "radjax_student.learning.models",
@@ -2616,12 +2625,14 @@
         "radjax_student.contracts",
         "radjax_student.optimizers.errors",
         "radjax_student.optimizers.models",
+        "radjax_student.optimizers.protocols",
         "typing"
       ],
       "internal_edges": [
         "radjax_student.contracts",
         "radjax_student.optimizers.errors",
-        "radjax_student.optimizers.models"
+        "radjax_student.optimizers.models",
+        "radjax_student.optimizers.protocols"
       ],
       "module": "radjax_student.optimizers.jax",
       "owner": "optimizer_contracts",
@@ -3398,6 +3409,7 @@
         "radjax_student.architecture",
         "radjax_student.contracts",
         "radjax_student.learning",
+        "radjax_student.learning.jax_batch",
         "radjax_student.learning.jax_core",
         "radjax_student.learning.jax_execution",
         "radjax_student.optimizers",
@@ -3412,6 +3424,7 @@
         "radjax_student.architecture",
         "radjax_student.contracts",
         "radjax_student.learning",
+        "radjax_student.learning.jax_batch",
         "radjax_student.learning.jax_core",
         "radjax_student.learning.jax_execution",
         "radjax_student.optimizers",
