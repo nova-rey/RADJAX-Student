@@ -11,9 +11,31 @@ from typing import Any
 
 
 def _stable_path(value: str, label: str) -> str:
-    if not isinstance(value, str) or not value or value.startswith(("/", ".")):
+    if (
+        not isinstance(value, str)
+        or not value
+        or value.startswith(("/", "."))
+        or "//" in value
+        or ".." in value.split("/")
+    ):
         raise ValueError(f"{label} must be a stable relative path")
     return value
+
+
+def _freeze_json(value: Any) -> Any:
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        if value != value or value in (float("inf"), float("-inf")):
+            raise ValueError("metadata must contain finite JSON values")
+        return value
+    if isinstance(value, Mapping):
+        return MappingProxyType(
+            {str(key): _freeze_json(item) for key, item in sorted(value.items())}
+        )
+    if isinstance(value, (tuple, list)):
+        return tuple(_freeze_json(item) for item in value)
+    raise TypeError("metadata must contain JSON-safe values")
 
 
 def _keypath(value: tuple[str, ...]) -> tuple[str, ...]:
@@ -77,9 +99,7 @@ class ParameterTreeLayoutEntry:
             raise TypeError("metadata must be a mapping")
         object.__setattr__(self, "shape", shape)
         object.__setattr__(self, "region_ids", regions)
-        object.__setattr__(
-            self, "metadata", MappingProxyType(dict(sorted(self.metadata.items())))
-        )
+        object.__setattr__(self, "metadata", _freeze_json(self.metadata))
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -199,6 +219,37 @@ class ParameterTreeLayout:
             return {name: build(node[name], (*prefix, name)) for name in expected}
 
         return build(parameters, ())
+
+    def validate_materialized_parameters(self, parameters: Any) -> None:
+        """Validate the real mapping leaves against declared shape and dtype."""
+
+        def check(node: Any, prefix: tuple[str, ...]) -> None:
+            entry = next(
+                (item for item in self.entries if item.jax_keypath == prefix), None
+            )
+            if entry is not None:
+                if isinstance(node, Mapping):
+                    raise ValueError("parameter layout leaf is a mapping branch")
+                shape = tuple(getattr(node, "shape", ()))
+                dtype = str(getattr(node, "dtype", ""))
+                if shape != entry.shape or dtype != entry.dtype:
+                    raise ValueError(
+                        "materialized parameter leaf does not match layout"
+                    )
+                return
+            if not isinstance(node, Mapping):
+                raise ValueError("parameter tree does not match the declared layout")
+            expected = {
+                keypath[len(prefix)]
+                for keypath in (item.jax_keypath for item in self.entries)
+                if keypath[: len(prefix)] == prefix and len(keypath) > len(prefix)
+            }
+            if set(node) != expected:
+                raise ValueError("parameter tree keys do not match the declared layout")
+            for key in expected:
+                check(node[key], (*prefix, key))
+
+        check(parameters, ())
 
     def mapping_tree(self, leaf_factory: Any) -> dict[str, Any]:
         """Build a mapping-only pytree from the declared keypaths."""

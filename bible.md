@@ -784,3 +784,14 @@
   from explicit step, slot, and invocation identity. Complete learning pytrees
   are placed and precision-prepared by runtime policy without leaking device
   selection into architecture or optimizer code.
+
+## 2026-07-12 - P3.11.6A integration repair
+
+- Shared batch, scope, resolved-selection, metric, JSON, and learning-error
+  vocabulary is owned by the neutral contracts package with exact legacy
+  re-exports. The production JAX step now validates batches and numerical
+  optimizer state, derives runtime-owned Threefry keys, places every input
+  pytree through runtime precision policy, executes numeric counters and the
+  optimizer update inside the runtime function, and reports actual changed
+  leaves plus placement, precision, and RNG evidence. Handwritten JAX updates
+  remain exclusively under the legacy namespace.

@@ -8,8 +8,8 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any
 
-from radjax_student.architecture import ParameterCatalog
-from radjax_student.learning import MetricRecord, ResolvedUpdateSelection
+from radjax_student.architecture.models import ParameterCatalog
+from radjax_student.contracts import MetricRecord, ResolvedUpdateSelection
 from radjax_student.optimizers._json import (
     finite_number,
     freeze_mapping,

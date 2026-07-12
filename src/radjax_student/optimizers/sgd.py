@@ -8,8 +8,11 @@ from dataclasses import dataclass
 from importlib import import_module
 from typing import Any
 
-from radjax_student.contracts import JaxOptimizerStateDescriptor, ParameterTreeLayout
-from radjax_student.learning import MetricRecord
+from radjax_student.contracts import (
+    JaxOptimizerStateDescriptor,
+    MetricRecord,
+    ParameterTreeLayout,
+)
 from radjax_student.optimizers.errors import OptimizerContractError, OptimizerIssue
 from radjax_student.optimizers.models import (
     OptimizerCapabilityProfile,
@@ -275,7 +278,7 @@ class SgdOptimizer:
         update_mask: Any,
         config: OptimizerConfig,
         schedule_values: dict[str, Any],
-    ) -> tuple[Any, Any, dict[str, Any]]:
+    ) -> tuple[Any, Any, Any, dict[str, Any]]:
         """Pure JAX SGD update; callers supply only a layout-derived mask."""
 
         self.validate_config(config)
@@ -288,6 +291,9 @@ class SgdOptimizer:
             ) from exc
         learning_rate = schedule_values.get("learning_rate", config.learning_rate)
         learning_rate = jnp.asarray(learning_rate)
+        learning_rate_valid = jnp.logical_and(
+            jnp.all(jnp.isfinite(learning_rate)), jnp.all(learning_rate > 0)
+        )
         gradient_leaves = jax.tree_util.tree_leaves(gradients)
         gradients_finite = jnp.asarray(True)
         for gradient in gradient_leaves:
@@ -302,6 +308,14 @@ class SgdOptimizer:
             gradients,
             update_mask,
         )
+        changed_mask = jax.tree_util.tree_map(
+            lambda parameter, updated, selected: jnp.logical_and(
+                selected, jnp.any(parameter != updated)
+            ),
+            parameters,
+            updated_parameters,
+            update_mask,
+        )
         per_parameter_steps = jax.tree_util.tree_map(
             lambda step, selected: jnp.where(selected, step + 1, step),
             optimizer_array_state["per_parameter_steps"],
@@ -314,8 +328,10 @@ class SgdOptimizer:
         return (
             updated_parameters,
             updated_array_state,
+            changed_mask,
             {
                 "learning_rate": learning_rate,
+                "learning_rate_valid": learning_rate_valid,
                 "gradients_finite": gradients_finite,
             },
         )

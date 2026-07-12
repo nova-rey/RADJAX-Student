@@ -8,6 +8,12 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
+from radjax_student.contracts.batch import LearningBatch  # noqa: F401
+from radjax_student.contracts.metrics import (  # noqa: F401
+    METRIC_AGGREGATIONS,
+    MetricRecord,
+)
+from radjax_student.contracts.scopes import ObjectiveScope, UpdateScope
 from radjax_student.learning._json import (
     finite_number,
     freeze_json_mapping,
@@ -19,7 +25,6 @@ from radjax_student.learning._json import (
     unique_strings,
 )
 from radjax_student.learning.errors import LearningIssue
-from radjax_student.learning.scopes import ObjectiveScope, UpdateScope
 
 LEARNING_STATE_SCHEMA_VERSION = "learning_state.v1"
 CHECKPOINT_POLICY_MODES: tuple[str, ...] = (
@@ -28,7 +33,6 @@ CHECKPOINT_POLICY_MODES: tuple[str, ...] = (
     "on_improvement",
     "manual",
 )
-METRIC_AGGREGATIONS: tuple[str, ...] = ("last", "mean", "sum", "min", "max")
 LEARNING_CLAIMS_NOT_MADE: tuple[str, ...] = (
     "architecture_plugin_not_invoked",
     "gradient_not_computed",
@@ -245,97 +249,6 @@ class LearningState:
                 payload.get("claims_not_made", LEARNING_CLAIMS_NOT_MADE),
                 "claims_not_made",
             ),
-        )
-
-
-@dataclass(frozen=True)
-class LearningBatch:
-    """Generic finite-JSON batch description; P3.1 does not carry array objects."""
-
-    batch_id: str
-    inputs: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
-    targets: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
-    weights: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
-    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
-    objective_scope: ObjectiveScope = ObjectiveScope()
-
-    def __post_init__(self) -> None:
-        nonempty_string(self.batch_id, "batch_id")
-        for name in ("inputs", "targets", "weights", "metadata"):
-            value = getattr(self, name)
-            if not isinstance(value, Mapping):
-                raise TypeError(f"{name} must be a mapping")
-            object.__setattr__(self, name, freeze_json_mapping(value))
-        if not isinstance(self.objective_scope, ObjectiveScope):
-            raise TypeError("objective_scope must be ObjectiveScope")
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "batch_id": self.batch_id,
-            "inputs": json_value(self.inputs),
-            "targets": json_value(self.targets),
-            "weights": json_value(self.weights),
-            "metadata": json_value(self.metadata),
-            "objective_scope": self.objective_scope.to_dict(),
-        }
-
-    @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> LearningBatch:
-        return cls(
-            batch_id=str(payload["batch_id"]),
-            inputs=mapping(payload.get("inputs", {}), "inputs"),
-            targets=mapping(payload.get("targets", {}), "targets"),
-            weights=mapping(payload.get("weights", {}), "weights"),
-            metadata=mapping(payload.get("metadata", {}), "metadata"),
-            objective_scope=ObjectiveScope.from_dict(
-                mapping(payload.get("objective_scope", {}), "objective_scope")
-            ),
-        )
-
-
-@dataclass(frozen=True)
-class MetricRecord:
-    name: str
-    value: float
-    step: int
-    unit: str = "unitless"
-    aggregation: Literal["last", "mean", "sum", "min", "max"] = "last"
-    scope: str = "learning"
-    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
-
-    def __post_init__(self) -> None:
-        nonempty_string(self.name, "name")
-        object.__setattr__(self, "value", finite_number(self.value, "value"))
-        nonnegative_int(self.step, "step")
-        nonempty_string(self.unit, "unit")
-        nonempty_string(self.scope, "scope")
-        if self.aggregation not in METRIC_AGGREGATIONS:
-            raise ValueError("metric aggregation is unsupported")
-        if not isinstance(self.metadata, Mapping):
-            raise TypeError("metric metadata must be a mapping")
-        object.__setattr__(self, "metadata", freeze_json_mapping(self.metadata))
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "name": self.name,
-            "value": self.value,
-            "step": self.step,
-            "unit": self.unit,
-            "aggregation": self.aggregation,
-            "scope": self.scope,
-            "metadata": json_value(self.metadata),
-        }
-
-    @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> MetricRecord:
-        return cls(
-            name=str(payload["name"]),
-            value=payload["value"],
-            step=payload["step"],
-            unit=str(payload.get("unit", "unitless")),
-            aggregation=str(payload.get("aggregation", "last")),
-            scope=str(payload.get("scope", "learning")),
-            metadata=mapping(payload.get("metadata", {}), "metadata"),
         )
 
 

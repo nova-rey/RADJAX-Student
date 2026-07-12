@@ -79,9 +79,14 @@ def _layout() -> ParameterTreeLayout:
 
 
 def _parameters() -> dict[str, dict[str, object]]:
+    class Leaf:
+        def __init__(self, shape):
+            self.shape = shape
+            self.dtype = "float32"
+
     return {
-        "trunk": {"weight": object(), "bias": object()},
-        "head": {"weight": object()},
+        "trunk": {"weight": Leaf((4, 4)), "bias": Leaf((4,))},
+        "head": {"weight": Leaf((4, 4))},
     }
 
 

@@ -21,7 +21,11 @@ from radjax_student.architecture.errors import (
     ArchitectureContractError,
     ArchitectureIssue,
 )
-from radjax_student.learning import LearningBatch, ObjectiveScope
+from radjax_student.contracts import (
+    LearningBatch,
+    ObjectiveScope,
+    ResolvedObjectiveSelection,
+)
 
 ARCHITECTURE_CONFIG_SCHEMA_VERSION = "architecture_config.v1"
 ARCHITECTURE_STATE_SCHEMA_VERSION = "architecture_state.v1"
@@ -783,44 +787,6 @@ class ForwardResult:
                 payload.get("claims_not_made", ARCHITECTURE_CLAIMS_NOT_MADE),
                 "claims_not_made",
             ),
-        )
-
-
-@dataclass(frozen=True)
-class ResolvedObjectiveSelection:
-    scope: ObjectiveScope
-    surface_id: str
-    required_capabilities: tuple[str, ...] = ()
-    metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
-
-    def __post_init__(self) -> None:
-        if not isinstance(self.scope, ObjectiveScope):
-            raise TypeError("scope must be ObjectiveScope")
-        nonempty_string(self.surface_id, "surface_id")
-        object.__setattr__(
-            self,
-            "required_capabilities",
-            strings(self.required_capabilities, "required_capabilities", sort=True),
-        )
-        object.__setattr__(self, "metadata", freeze_mapping(self.metadata))
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "scope": self.scope.to_dict(),
-            "surface_id": self.surface_id,
-            "required_capabilities": list(self.required_capabilities),
-            "metadata": json_value(self.metadata),
-        }
-
-    @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> ResolvedObjectiveSelection:
-        return cls(
-            scope=ObjectiveScope.from_dict(mapping(payload["scope"], "scope")),
-            surface_id=str(payload["surface_id"]),
-            required_capabilities=strings(
-                payload.get("required_capabilities", ()), "required_capabilities"
-            ),
-            metadata=mapping(payload.get("metadata", {}), "metadata"),
         )
 
 

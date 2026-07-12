@@ -381,14 +381,24 @@ class JaxRuntimeBackend:
             "float32",
             "bfloat16",
             "float16",
-            "mixed",
             "automatic",
             "unspecified",
         }:
             raise RuntimeContractError(
                 "runtime_placement_failed", "unsupported execution precision policy"
             )
-        jax_module, device = self._cpu_context(context)
+        try:
+            jax_module, device = self._cpu_context(context)
+        except RuntimeContractError as exc:
+            jax_module = _import_jax()
+            devices = tuple(jax_module.devices())
+            if len(devices) != 1:
+                raise RuntimeContractError(
+                    "runtime_device_selection_failed",
+                    "execution context must identify one selected JAX device",
+                ) from exc
+            device = devices[0]
+            self._cpu_contexts[context.runtime_id] = (jax_module, device)
         array_module = jax_module.numpy
         dtype = {
             "float32": array_module.float32,

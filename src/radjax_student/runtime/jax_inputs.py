@@ -37,7 +37,6 @@ def prepare_jax_inputs(
         "float32",
         "bfloat16",
         "float16",
-        "mixed",
         "automatic",
         "unspecified",
     }:

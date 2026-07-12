@@ -6,10 +6,29 @@ from radjax_student.contracts.layout import (
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
 )
+from radjax_student.contracts.metrics import METRIC_AGGREGATIONS, MetricRecord
+from radjax_student.contracts.objective import ResolvedObjectiveSelection
+from radjax_student.contracts.shared import (
+    LearningBatch,
+    ObjectiveScope,
+    ObjectiveScopeKind,
+    ResolvedUpdateSelection,
+    UpdateScope,
+    UpdateScopeKind,
+)
 
 __all__ = [
     "HFPreservationReference",
     "JaxOptimizerStateDescriptor",
+    "LearningBatch",
+    "MetricRecord",
+    "METRIC_AGGREGATIONS",
+    "ObjectiveScope",
+    "ObjectiveScopeKind",
     "ParameterTreeLayout",
     "ParameterTreeLayoutEntry",
+    "ResolvedUpdateSelection",
+    "ResolvedObjectiveSelection",
+    "UpdateScope",
+    "UpdateScopeKind",
 ]

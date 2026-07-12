@@ -75,3 +75,25 @@ def test_registry_accepts_full_jax_architecture_plugin():
     registry = ArchitectureRegistry()
     registry.register(FullJax())
     assert registry.get("test.architecture.v1") is not None
+
+
+def test_registry_rejects_capability_identity_mismatch():
+    @dataclass(frozen=True)
+    class WrongId(FakeArchitecturePlugin):
+        def capability_profile(self):
+            return ArchitectureCapabilityProfile(
+                "wrong.id", self.architecture_version, ()
+            )
+
+    with pytest.raises(ArchitectureContractError, match="identity"):
+        ArchitectureRegistry().register(WrongId())
+
+
+def test_registry_rejects_capability_version_mismatch():
+    @dataclass(frozen=True)
+    class WrongVersion(FakeArchitecturePlugin):
+        def capability_profile(self):
+            return ArchitectureCapabilityProfile(self.architecture_id, 2, ())
+
+    with pytest.raises(ArchitectureContractError, match="identity"):
+        ArchitectureRegistry().register(WrongVersion())

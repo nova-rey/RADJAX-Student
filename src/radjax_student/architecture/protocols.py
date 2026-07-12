@@ -16,7 +16,7 @@ from radjax_student.architecture.models import (
     ParameterCatalog,
     ResolvedObjectiveSelection,
 )
-from radjax_student.learning import (
+from radjax_student.contracts import (
     LearningBatch,
     ObjectiveScope,
     ResolvedUpdateSelection,

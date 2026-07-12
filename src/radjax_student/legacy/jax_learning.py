@@ -13,7 +13,6 @@ from radjax_student.learning.jax_core import (
     JaxLossAuxiliary,
     JaxObjective,
     JaxObjectiveConfig,
-    apply_scoped_gradient_update,
     build_jax_loss_fn,
     build_value_and_grad_fn,
     validate_finite_loss_and_gradients,
@@ -25,6 +24,34 @@ from radjax_student.runtime import (
     ExecutionResult,
     execute_function,
 )
+
+
+def apply_scoped_gradient_update(
+    parameters: Any,
+    gradients: Any,
+    selection_mask: Any,
+    learning_rate: float,
+) -> Any:
+    """Pre-P3.11 handwritten update retained only for legacy evidence."""
+
+    if learning_rate <= 0:
+        raise ValueError("learning_rate must be positive")
+    from importlib import import_module
+
+    jax = import_module("jax")
+    structure = jax.tree_util.tree_structure(parameters)
+    if structure != jax.tree_util.tree_structure(
+        gradients
+    ) or structure != jax.tree_util.tree_structure(selection_mask):
+        raise ValueError("legacy update pytrees must share structure")
+    return jax.tree_util.tree_map(
+        lambda parameter, gradient, selected: (
+            parameter - learning_rate * gradient if selected else parameter
+        ),
+        parameters,
+        gradients,
+        selection_mask,
+    )
 
 
 @dataclass(frozen=True)
@@ -92,4 +119,8 @@ def execute_legacy_jax_learning_step(
     )
 
 
-__all__ = ["LegacyJaxLearningStepExecution", "execute_legacy_jax_learning_step"]
+__all__ = [
+    "LegacyJaxLearningStepExecution",
+    "apply_scoped_gradient_update",
+    "execute_legacy_jax_learning_step",
+]

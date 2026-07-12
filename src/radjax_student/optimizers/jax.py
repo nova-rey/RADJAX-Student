@@ -59,6 +59,29 @@ def validate_jax_optimizer_state(
             "optimizer_jax_state_invalid",
             "optimizer state layout digest does not match parameters",
         )
+    leaves = _mapping_leaves(state.arrays)
+    if set(leaves) != set(descriptor.state_keypaths):
+        raise OptimizerContractError(
+            "optimizer_jax_state_invalid",
+            "optimizer numerical state keypaths do not match descriptor",
+            details={
+                "expected": [list(path) for path in descriptor.state_keypaths],
+                "actual": [list(path) for path in sorted(leaves)],
+            },
+        )
+    for keypath, leaf in leaves.items():
+        shape = tuple(getattr(leaf, "shape", ()))
+        dtype = str(getattr(leaf, "dtype", ""))
+        if shape != () or not dtype.startswith(("int", "uint")):
+            raise OptimizerContractError(
+                "optimizer_jax_state_invalid",
+                "SGD optimizer numerical state leaves must be scalar integers",
+                details={
+                    "keypath": list(keypath),
+                    "shape": list(shape),
+                    "dtype": dtype,
+                },
+            )
 
 
 def advanced_jax_optimizer_state(
@@ -90,6 +113,31 @@ def require_finite_jax_gradients(metrics: Mapping[str, Any]) -> None:
         raise OptimizerContractError(
             "optimizer_gradient_nonfinite", "JAX gradients must be finite"
         )
+    if not bool(metrics.get("learning_rate_valid")):
+        raise OptimizerContractError(
+            "optimizer_update_failed", "JAX learning rate must be finite and positive"
+        )
+
+
+def _mapping_leaves(
+    value: Any, prefix: tuple[str, ...] = ()
+) -> dict[tuple[str, ...], Any]:
+    if isinstance(value, Mapping):
+        if not value:
+            raise OptimizerContractError(
+                "optimizer_jax_state_invalid",
+                "optimizer numerical state mappings cannot be empty",
+            )
+        result: dict[tuple[str, ...], Any] = {}
+        for key in sorted(value):
+            if not isinstance(key, str) or not key:
+                raise OptimizerContractError(
+                    "optimizer_jax_state_invalid",
+                    "optimizer numerical state keys must be nonempty strings",
+                )
+            result.update(_mapping_leaves(value[key], (*prefix, key)))
+        return result
+    return {prefix: value}
 
 
 __all__ = [

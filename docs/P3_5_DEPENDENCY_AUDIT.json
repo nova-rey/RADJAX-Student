@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "0f4cb6b2da020acc5f4269769d3ce05ea9c66050",
+  "accepted_commit": "437a0a5227ad3e17f8e8dc1368186a87bce71f25",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -33,7 +33,7 @@
     },
     {
       "source": "radjax_student.architecture.models",
-      "target": "radjax_student.learning"
+      "target": "radjax_student.contracts"
     },
     {
       "source": "radjax_student.architecture.protocols",
@@ -41,11 +41,15 @@
     },
     {
       "source": "radjax_student.architecture.protocols",
-      "target": "radjax_student.learning"
+      "target": "radjax_student.contracts"
     },
     {
       "source": "radjax_student.architecture.registry",
       "target": "radjax_student.architecture.errors"
+    },
+    {
+      "source": "radjax_student.architecture.registry",
+      "target": "radjax_student.architecture.models"
     },
     {
       "source": "radjax_student.architecture.registry",
@@ -61,7 +65,7 @@
     },
     {
       "source": "radjax_student.architecture.testing",
-      "target": "radjax_student.learning"
+      "target": "radjax_student.contracts"
     },
     {
       "source": "radjax_student.artifacts",
@@ -152,6 +156,66 @@
       "target": "radjax_student.legacy.training"
     },
     {
+      "source": "radjax_student.contracts",
+      "target": "radjax_student.contracts.hf"
+    },
+    {
+      "source": "radjax_student.contracts",
+      "target": "radjax_student.contracts.layout"
+    },
+    {
+      "source": "radjax_student.contracts",
+      "target": "radjax_student.contracts.metrics"
+    },
+    {
+      "source": "radjax_student.contracts",
+      "target": "radjax_student.contracts.objective"
+    },
+    {
+      "source": "radjax_student.contracts",
+      "target": "radjax_student.contracts.shared"
+    },
+    {
+      "source": "radjax_student.contracts.batch",
+      "target": "radjax_student.contracts._json"
+    },
+    {
+      "source": "radjax_student.contracts.batch",
+      "target": "radjax_student.contracts.scopes"
+    },
+    {
+      "source": "radjax_student.contracts.errors",
+      "target": "radjax_student.contracts._json"
+    },
+    {
+      "source": "radjax_student.contracts.objective",
+      "target": "radjax_student.contracts._json"
+    },
+    {
+      "source": "radjax_student.contracts.objective",
+      "target": "radjax_student.contracts.scopes"
+    },
+    {
+      "source": "radjax_student.contracts.scopes",
+      "target": "radjax_student.contracts._json"
+    },
+    {
+      "source": "radjax_student.contracts.scopes",
+      "target": "radjax_student.contracts.errors"
+    },
+    {
+      "source": "radjax_student.contracts.shared",
+      "target": "radjax_student.contracts.batch"
+    },
+    {
+      "source": "radjax_student.contracts.shared",
+      "target": "radjax_student.contracts.metrics"
+    },
+    {
+      "source": "radjax_student.contracts.shared",
+      "target": "radjax_student.contracts.scopes"
+    },
+    {
       "source": "radjax_student.debug",
       "target": "radjax_student.debug.tiny_debug"
     },
@@ -161,7 +225,7 @@
     },
     {
       "source": "radjax_student.hf.contracts",
-      "target": "radjax_student.architecture"
+      "target": "radjax_student.architecture.models"
     },
     {
       "source": "radjax_student.learning",
@@ -196,8 +260,12 @@
       "target": "radjax_student.learning.telemetry"
     },
     {
+      "source": "radjax_student.learning._json",
+      "target": "radjax_student.contracts._json"
+    },
+    {
       "source": "radjax_student.learning.errors",
-      "target": "radjax_student.learning._json"
+      "target": "radjax_student.contracts.errors"
     },
     {
       "source": "radjax_student.learning.hooks",
@@ -212,12 +280,36 @@
       "target": "radjax_student.learning.models"
     },
     {
+      "source": "radjax_student.learning.jax_batch",
+      "target": "radjax_student.learning.models"
+    },
+    {
       "source": "radjax_student.learning.jax_core",
       "target": "radjax_student.architecture"
     },
     {
       "source": "radjax_student.learning.jax_core",
-      "target": "radjax_student.learning.scopes"
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.learning.jax_execution",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.learning.jax_execution",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.learning.models",
+      "target": "radjax_student.contracts.batch"
+    },
+    {
+      "source": "radjax_student.learning.models",
+      "target": "radjax_student.contracts.metrics"
+    },
+    {
+      "source": "radjax_student.learning.models",
+      "target": "radjax_student.contracts.scopes"
     },
     {
       "source": "radjax_student.learning.models",
@@ -226,10 +318,6 @@
     {
       "source": "radjax_student.learning.models",
       "target": "radjax_student.learning.errors"
-    },
-    {
-      "source": "radjax_student.learning.models",
-      "target": "radjax_student.learning.scopes"
     },
     {
       "source": "radjax_student.learning.objectives",
@@ -341,11 +429,7 @@
     },
     {
       "source": "radjax_student.learning.scopes",
-      "target": "radjax_student.learning._json"
-    },
-    {
-      "source": "radjax_student.learning.scopes",
-      "target": "radjax_student.learning.errors"
+      "target": "radjax_student.contracts.scopes"
     },
     {
       "source": "radjax_student.learning.synthetic_smoke",
@@ -396,6 +480,18 @@
       "target": "radjax_student.legacy.scalar_learning"
     },
     {
+      "source": "radjax_student.legacy.jax_learning",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.legacy.jax_learning",
+      "target": "radjax_student.learning.jax_core"
+    },
+    {
+      "source": "radjax_student.legacy.jax_learning",
+      "target": "radjax_student.runtime"
+    },
+    {
       "source": "radjax_student.legacy.scalar_learning",
       "target": "radjax_student.architecture"
     },
@@ -429,6 +525,10 @@
     },
     {
       "source": "radjax_student.optimizers",
+      "target": "radjax_student.optimizers.jax"
+    },
+    {
+      "source": "radjax_student.optimizers",
       "target": "radjax_student.optimizers.models"
     },
     {
@@ -448,12 +548,24 @@
       "target": "radjax_student.optimizers._json"
     },
     {
-      "source": "radjax_student.optimizers.models",
-      "target": "radjax_student.architecture"
+      "source": "radjax_student.optimizers.jax",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.optimizers.jax",
+      "target": "radjax_student.optimizers.errors"
+    },
+    {
+      "source": "radjax_student.optimizers.jax",
+      "target": "radjax_student.optimizers.models"
     },
     {
       "source": "radjax_student.optimizers.models",
-      "target": "radjax_student.learning"
+      "target": "radjax_student.architecture.models"
+    },
+    {
+      "source": "radjax_student.optimizers.models",
+      "target": "radjax_student.contracts"
     },
     {
       "source": "radjax_student.optimizers.models",
@@ -465,6 +577,10 @@
     },
     {
       "source": "radjax_student.optimizers.protocols",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.optimizers.protocols",
       "target": "radjax_student.optimizers.models"
     },
     {
@@ -473,11 +589,15 @@
     },
     {
       "source": "radjax_student.optimizers.registry",
+      "target": "radjax_student.optimizers.models"
+    },
+    {
+      "source": "radjax_student.optimizers.registry",
       "target": "radjax_student.optimizers.protocols"
     },
     {
       "source": "radjax_student.optimizers.sgd",
-      "target": "radjax_student.learning"
+      "target": "radjax_student.contracts"
     },
     {
       "source": "radjax_student.optimizers.sgd",
@@ -602,6 +722,10 @@
     {
       "source": "radjax_student.runtime.inspection",
       "target": "radjax_student.runtime.models"
+    },
+    {
+      "source": "radjax_student.runtime.jax_bridge",
+      "target": "radjax_student.runtime.keys"
     },
     {
       "source": "radjax_student.runtime.models",
@@ -733,11 +857,39 @@
     },
     {
       "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.learning"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
       "target": "radjax_student.learning.jax_core"
     },
     {
       "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.learning.jax_execution"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.optimizers"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
       "target": "radjax_student.runtime"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.runtime.jax_bridge"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.runtime.jax_inputs"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.runtime.keys"
     },
     {
       "source": "radjax_student.steps.loop",
@@ -758,30 +910,6 @@
     {
       "source": "radjax_student.steps.single",
       "target": "radjax_student.legacy.scalar_learning"
-    },
-    {
-      "source": "radjax_student.students",
-      "target": "radjax_student.students.base"
-    },
-    {
-      "source": "radjax_student.students",
-      "target": "radjax_student.students.registry"
-    },
-    {
-      "source": "radjax_student.students.registry",
-      "target": "radjax_student.students.base"
-    },
-    {
-      "source": "radjax_student.students.registry",
-      "target": "radjax_student.students.tiny_debug.backend"
-    },
-    {
-      "source": "radjax_student.students.tiny_debug",
-      "target": "radjax_student.students.tiny_debug.backend"
-    },
-    {
-      "source": "radjax_student.students.tiny_debug.backend",
-      "target": "radjax_student.debug.tiny_debug"
     },
     {
       "source": "radjax_student.training.distill",
@@ -865,7 +993,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 92,
+  "module_count": 103,
   "modules": [
     {
       "classification": "core",
@@ -919,6 +1047,7 @@
         "ForwardResult",
         "IntermediateSurfaceDescriptor",
         "JaxArchitectureExecution",
+        "JaxArchitecturePlugin",
         "NamedRegion",
         "PARAMETER_CATALOG_SCHEMA_VERSION",
         "ParameterCatalog",
@@ -975,14 +1104,14 @@
         "json",
         "radjax_student.architecture._json",
         "radjax_student.architecture.errors",
-        "radjax_student.learning",
+        "radjax_student.contracts",
         "types",
         "typing"
       ],
       "internal_edges": [
         "radjax_student.architecture._json",
         "radjax_student.architecture.errors",
-        "radjax_student.learning"
+        "radjax_student.contracts"
       ],
       "module": "radjax_student.architecture.models",
       "owner": "architecture_plugin",
@@ -996,12 +1125,12 @@
       "imports": [
         "__future__",
         "radjax_student.architecture.models",
-        "radjax_student.learning",
+        "radjax_student.contracts",
         "typing"
       ],
       "internal_edges": [
         "radjax_student.architecture.models",
-        "radjax_student.learning"
+        "radjax_student.contracts"
       ],
       "module": "radjax_student.architecture.protocols",
       "owner": "architecture_plugin",
@@ -1016,10 +1145,12 @@
         "__future__",
         "dataclasses",
         "radjax_student.architecture.errors",
+        "radjax_student.architecture.models",
         "radjax_student.architecture.protocols"
       ],
       "internal_edges": [
         "radjax_student.architecture.errors",
+        "radjax_student.architecture.models",
         "radjax_student.architecture.protocols"
       ],
       "module": "radjax_student.architecture.registry",
@@ -1037,12 +1168,12 @@
         "dataclasses",
         "radjax_student.architecture.errors",
         "radjax_student.architecture.models",
-        "radjax_student.learning"
+        "radjax_student.contracts"
       ],
       "internal_edges": [
         "radjax_student.architecture.errors",
         "radjax_student.architecture.models",
-        "radjax_student.learning"
+        "radjax_student.contracts"
       ],
       "module": "radjax_student.architecture.testing",
       "owner": "architecture_plugin",
@@ -1359,6 +1490,231 @@
       "public_exports": []
     },
     {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "radjax_student.contracts.hf",
+        "radjax_student.contracts.layout",
+        "radjax_student.contracts.metrics",
+        "radjax_student.contracts.objective",
+        "radjax_student.contracts.shared"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts.hf",
+        "radjax_student.contracts.layout",
+        "radjax_student.contracts.metrics",
+        "radjax_student.contracts.objective",
+        "radjax_student.contracts.shared"
+      ],
+      "module": "radjax_student.contracts",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/__init__.py",
+      "public_exports": [
+        "HFPreservationReference",
+        "JaxOptimizerStateDescriptor",
+        "LearningBatch",
+        "METRIC_AGGREGATIONS",
+        "MetricRecord",
+        "ObjectiveScope",
+        "ObjectiveScopeKind",
+        "ParameterTreeLayout",
+        "ParameterTreeLayoutEntry",
+        "ResolvedObjectiveSelection",
+        "ResolvedUpdateSelection",
+        "UpdateScope",
+        "UpdateScopeKind"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "math",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.contracts._json",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/_json.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "radjax_student.contracts._json",
+        "radjax_student.contracts.scopes",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts._json",
+        "radjax_student.contracts.scopes"
+      ],
+      "module": "radjax_student.contracts.batch",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/batch.py",
+      "public_exports": [
+        "LearningBatch"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "radjax_student.contracts._json",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts._json"
+      ],
+      "module": "radjax_student.contracts.errors",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/errors.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.contracts.hf",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/hf.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.contracts.layout",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/layout.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "math",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.contracts.metrics",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/metrics.py",
+      "public_exports": [
+        "METRIC_AGGREGATIONS",
+        "MetricRecord"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "radjax_student.contracts._json",
+        "radjax_student.contracts.scopes",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts._json",
+        "radjax_student.contracts.scopes"
+      ],
+      "module": "radjax_student.contracts.objective",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/objective.py",
+      "public_exports": [
+        "ResolvedObjectiveSelection"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "radjax_student.contracts._json",
+        "radjax_student.contracts.errors",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts._json",
+        "radjax_student.contracts.errors"
+      ],
+      "module": "radjax_student.contracts.scopes",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/scopes.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "radjax_student.contracts.batch",
+        "radjax_student.contracts.metrics",
+        "radjax_student.contracts.scopes"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts.batch",
+        "radjax_student.contracts.metrics",
+        "radjax_student.contracts.scopes"
+      ],
+      "module": "radjax_student.contracts.shared",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/contracts/shared.py",
+      "public_exports": [
+        "LearningBatch",
+        "MetricRecord",
+        "ObjectiveScope",
+        "ObjectiveScopeKind",
+        "ResolvedUpdateSelection",
+        "UpdateScope",
+        "UpdateScopeKind"
+      ]
+    },
+    {
       "classification": "smoke_debug",
       "forbidden_imports": [],
       "has_dynamic_exports": false,
@@ -1422,13 +1778,13 @@
         "dataclasses",
         "json",
         "math",
-        "radjax_student.architecture",
+        "radjax_student.architecture.models",
         "re",
         "types",
         "typing"
       ],
       "internal_edges": [
-        "radjax_student.architecture"
+        "radjax_student.architecture.models"
       ],
       "module": "radjax_student.hf.contracts",
       "owner": "hugging_face_integration",
@@ -1534,13 +1890,11 @@
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
-        "__future__",
-        "collections.abc",
-        "math",
-        "types",
-        "typing"
+        "radjax_student.contracts._json"
       ],
-      "internal_edges": [],
+      "internal_edges": [
+        "radjax_student.contracts._json"
+      ],
       "module": "radjax_student.learning._json",
       "owner": "learning_contracts",
       "path": "src/radjax_student/learning/_json.py",
@@ -1551,20 +1905,20 @@
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
-        "__future__",
-        "collections.abc",
-        "dataclasses",
-        "radjax_student.learning._json",
-        "types",
-        "typing"
+        "radjax_student.contracts.errors"
       ],
       "internal_edges": [
-        "radjax_student.learning._json"
+        "radjax_student.contracts.errors"
       ],
       "module": "radjax_student.learning.errors",
       "owner": "learning_contracts",
       "path": "src/radjax_student/learning/errors.py",
-      "public_exports": []
+      "public_exports": [
+        "LEARNING_ERROR_CODES",
+        "LearningContractError",
+        "LearningErrorCode",
+        "LearningIssue"
+      ]
     },
     {
       "classification": "core",
@@ -1592,6 +1946,28 @@
     },
     {
       "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "importlib",
+        "radjax_student.learning.jax_core",
+        "radjax_student.learning.models",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.learning.models"
+      ],
+      "module": "radjax_student.learning.jax_batch",
+      "owner": "learning_contracts",
+      "path": "src/radjax_student/learning/jax_batch.py",
+      "public_exports": [
+        "FiniteJsonJaxBatchMaterializer",
+        "JaxBatchMaterializer"
+      ]
+    },
+    {
+      "classification": "core",
       "forbidden_imports": [
         "jax",
         "jax.numpy"
@@ -1604,12 +1980,12 @@
         "jax",
         "jax.numpy",
         "radjax_student.architecture",
-        "radjax_student.learning.scopes",
+        "radjax_student.contracts",
         "typing"
       ],
       "internal_edges": [
         "radjax_student.architecture",
-        "radjax_student.learning.scopes"
+        "radjax_student.contracts"
       ],
       "module": "radjax_student.learning.jax_core",
       "owner": "learning_contracts",
@@ -1619,10 +1995,33 @@
         "JaxLossAuxiliary",
         "JaxObjective",
         "JaxObjectiveConfig",
-        "apply_scoped_gradient_update",
         "build_jax_loss_fn",
+        "build_resolved_jax_loss_fn",
         "build_value_and_grad_fn",
         "validate_finite_loss_and_gradients"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "radjax_student.architecture",
+        "radjax_student.contracts",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture",
+        "radjax_student.contracts"
+      ],
+      "module": "radjax_student.learning.jax_execution",
+      "owner": "learning_contracts",
+      "path": "src/radjax_student/learning/jax_execution.py",
+      "public_exports": [
+        "JaxExecutionPlan",
+        "prepare_jax_execution_plan"
       ]
     },
     {
@@ -1634,16 +2033,20 @@
         "collections.abc",
         "dataclasses",
         "json",
+        "radjax_student.contracts.batch",
+        "radjax_student.contracts.metrics",
+        "radjax_student.contracts.scopes",
         "radjax_student.learning._json",
         "radjax_student.learning.errors",
-        "radjax_student.learning.scopes",
         "types",
         "typing"
       ],
       "internal_edges": [
+        "radjax_student.contracts.batch",
+        "radjax_student.contracts.metrics",
+        "radjax_student.contracts.scopes",
         "radjax_student.learning._json",
-        "radjax_student.learning.errors",
-        "radjax_student.learning.scopes"
+        "radjax_student.learning.errors"
       ],
       "module": "radjax_student.learning.models",
       "owner": "learning_contracts",
@@ -1874,22 +2277,23 @@
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
-        "__future__",
-        "collections.abc",
-        "dataclasses",
-        "radjax_student.learning._json",
-        "radjax_student.learning.errors",
-        "types",
-        "typing"
+        "radjax_student.contracts.scopes"
       ],
       "internal_edges": [
-        "radjax_student.learning._json",
-        "radjax_student.learning.errors"
+        "radjax_student.contracts.scopes"
       ],
       "module": "radjax_student.learning.scopes",
       "owner": "learning_contracts",
       "path": "src/radjax_student/learning/scopes.py",
-      "public_exports": []
+      "public_exports": [
+        "OBJECTIVE_SCOPE_KINDS",
+        "ObjectiveScope",
+        "ObjectiveScopeKind",
+        "ResolvedUpdateSelection",
+        "UPDATE_SCOPE_KINDS",
+        "UpdateScope",
+        "UpdateScopeKind"
+      ]
     },
     {
       "classification": "smoke_debug",
@@ -1973,6 +2377,35 @@
         "LegacyScalarStepExecution",
         "legacy_scalar_learning_step",
         "run_legacy_learning_loop"
+      ]
+    },
+    {
+      "classification": "deprecated",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "importlib",
+        "radjax_student.architecture",
+        "radjax_student.learning.jax_core",
+        "radjax_student.runtime",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture",
+        "radjax_student.learning.jax_core",
+        "radjax_student.runtime"
+      ],
+      "module": "radjax_student.legacy.jax_learning",
+      "owner": "legacy_compatibility",
+      "path": "src/radjax_student/legacy/jax_learning.py",
+      "public_exports": [
+        "LegacyJaxLearningStepExecution",
+        "apply_scoped_gradient_update",
+        "execute_legacy_jax_learning_step"
       ]
     },
     {
@@ -2084,6 +2517,7 @@
       "has_dynamic_exports": false,
       "imports": [
         "radjax_student.optimizers.errors",
+        "radjax_student.optimizers.jax",
         "radjax_student.optimizers.models",
         "radjax_student.optimizers.protocols",
         "radjax_student.optimizers.registry",
@@ -2091,6 +2525,7 @@
       ],
       "internal_edges": [
         "radjax_student.optimizers.errors",
+        "radjax_student.optimizers.jax",
         "radjax_student.optimizers.models",
         "radjax_student.optimizers.protocols",
         "radjax_student.optimizers.registry",
@@ -2102,6 +2537,9 @@
       "public_exports": [
         "GRADIENT_CLIP_MODES",
         "GradientTree",
+        "JaxOptimizerBackend",
+        "JaxOptimizerExecution",
+        "JaxOptimizerState",
         "OPTIMIZER_CLAIMS_NOT_MADE",
         "OPTIMIZER_CONFIG_SCHEMA_VERSION",
         "OPTIMIZER_ERROR_CODES",
@@ -2124,7 +2562,10 @@
         "SGD_OPTIMIZER_ID",
         "SgdOptimizer",
         "WEIGHT_DECAY_MODES",
-        "canonical_optimizer_json"
+        "advanced_jax_optimizer_state",
+        "canonical_optimizer_json",
+        "require_finite_jax_gradients",
+        "validate_jax_optimizer_state"
       ]
     },
     {
@@ -2172,17 +2613,45 @@
         "__future__",
         "collections.abc",
         "dataclasses",
+        "radjax_student.contracts",
+        "radjax_student.optimizers.errors",
+        "radjax_student.optimizers.models",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts",
+        "radjax_student.optimizers.errors",
+        "radjax_student.optimizers.models"
+      ],
+      "module": "radjax_student.optimizers.jax",
+      "owner": "optimizer_contracts",
+      "path": "src/radjax_student/optimizers/jax.py",
+      "public_exports": [
+        "JaxOptimizerState",
+        "advanced_jax_optimizer_state",
+        "require_finite_jax_gradients",
+        "validate_jax_optimizer_state"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
         "json",
-        "radjax_student.architecture",
-        "radjax_student.learning",
+        "radjax_student.architecture.models",
+        "radjax_student.contracts",
         "radjax_student.optimizers._json",
         "radjax_student.optimizers.errors",
         "types",
         "typing"
       ],
       "internal_edges": [
-        "radjax_student.architecture",
-        "radjax_student.learning",
+        "radjax_student.architecture.models",
+        "radjax_student.contracts",
         "radjax_student.optimizers._json",
         "radjax_student.optimizers.errors"
       ],
@@ -2197,10 +2666,12 @@
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
+        "radjax_student.contracts",
         "radjax_student.optimizers.models",
         "typing"
       ],
       "internal_edges": [
+        "radjax_student.contracts",
         "radjax_student.optimizers.models"
       ],
       "module": "radjax_student.optimizers.protocols",
@@ -2216,10 +2687,12 @@
         "__future__",
         "dataclasses",
         "radjax_student.optimizers.errors",
+        "radjax_student.optimizers.models",
         "radjax_student.optimizers.protocols"
       ],
       "internal_edges": [
         "radjax_student.optimizers.errors",
+        "radjax_student.optimizers.models",
         "radjax_student.optimizers.protocols"
       ],
       "module": "radjax_student.optimizers.registry",
@@ -2235,13 +2708,16 @@
         "__future__",
         "collections.abc",
         "dataclasses",
+        "importlib",
         "math",
-        "radjax_student.learning",
+        "radjax_student.contracts",
         "radjax_student.optimizers.errors",
-        "radjax_student.optimizers.models"
+        "radjax_student.optimizers.jax",
+        "radjax_student.optimizers.models",
+        "typing"
       ],
       "internal_edges": [
-        "radjax_student.learning",
+        "radjax_student.contracts",
         "radjax_student.optimizers.errors",
         "radjax_student.optimizers.models"
       ],
@@ -2595,6 +3071,47 @@
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
+        "importlib",
+        "radjax_student.runtime.keys",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.runtime.keys"
+      ],
+      "module": "radjax_student.runtime.jax_bridge",
+      "owner": "runtime_execution",
+      "path": "src/radjax_student/runtime/jax_bridge.py",
+      "public_exports": [
+        "JAX_KEY_BRIDGE_VERSION",
+        "JAX_PRNG_IMPLEMENTATION",
+        "derive_jax_key"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.runtime.jax_inputs",
+      "owner": "runtime_execution",
+      "path": "src/radjax_student/runtime/jax_inputs.py",
+      "public_exports": [
+        "JaxPytreePlacer",
+        "PreparedJaxInputs",
+        "prepare_jax_inputs"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
         "collections.abc",
         "dataclasses",
         "hashlib",
@@ -2879,15 +3396,29 @@
         "collections.abc",
         "dataclasses",
         "radjax_student.architecture",
+        "radjax_student.contracts",
+        "radjax_student.learning",
         "radjax_student.learning.jax_core",
+        "radjax_student.learning.jax_execution",
+        "radjax_student.optimizers",
         "radjax_student.runtime",
+        "radjax_student.runtime.jax_bridge",
+        "radjax_student.runtime.jax_inputs",
+        "radjax_student.runtime.keys",
         "types",
         "typing"
       ],
       "internal_edges": [
         "radjax_student.architecture",
+        "radjax_student.contracts",
+        "radjax_student.learning",
         "radjax_student.learning.jax_core",
-        "radjax_student.runtime"
+        "radjax_student.learning.jax_execution",
+        "radjax_student.optimizers",
+        "radjax_student.runtime",
+        "radjax_student.runtime.jax_bridge",
+        "radjax_student.runtime.jax_inputs",
+        "radjax_student.runtime.keys"
       ],
       "module": "radjax_student.steps.jax_step",
       "owner": "learning_execution",
@@ -2943,98 +3474,6 @@
         "ScalarObjective",
         "SingleStepExecution",
         "learning_step"
-      ]
-    },
-    {
-      "classification": "deprecated",
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "radjax_student.students.base",
-        "radjax_student.students.registry",
-        "warnings"
-      ],
-      "internal_edges": [
-        "radjax_student.students.base",
-        "radjax_student.students.registry"
-      ],
-      "module": "radjax_student.students",
-      "owner": "legacy_architecture_compatibility",
-      "path": "src/radjax_student/students/__init__.py",
-      "public_exports": [
-        "StudentBackend",
-        "StudentBackendRegistry"
-      ]
-    },
-    {
-      "classification": "deprecated",
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "__future__",
-        "numpy",
-        "radjax_contract.vocab",
-        "typing"
-      ],
-      "internal_edges": [],
-      "module": "radjax_student.students.base",
-      "owner": "legacy_architecture_compatibility",
-      "path": "src/radjax_student/students/base.py",
-      "public_exports": []
-    },
-    {
-      "classification": "deprecated",
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "__future__",
-        "dataclasses",
-        "radjax_student.students.base",
-        "radjax_student.students.tiny_debug.backend",
-        "warnings"
-      ],
-      "internal_edges": [
-        "radjax_student.students.base",
-        "radjax_student.students.tiny_debug.backend"
-      ],
-      "module": "radjax_student.students.registry",
-      "owner": "legacy_architecture_compatibility",
-      "path": "src/radjax_student/students/registry.py",
-      "public_exports": []
-    },
-    {
-      "classification": "deprecated",
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "radjax_student.students.tiny_debug.backend"
-      ],
-      "internal_edges": [
-        "radjax_student.students.tiny_debug.backend"
-      ],
-      "module": "radjax_student.students.tiny_debug",
-      "owner": "legacy_architecture_compatibility",
-      "path": "src/radjax_student/students/tiny_debug/__init__.py",
-      "public_exports": [
-        "TinyDebugStudentBackend"
-      ]
-    },
-    {
-      "classification": "deprecated",
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "radjax_student.debug.tiny_debug",
-        "warnings"
-      ],
-      "internal_edges": [
-        "radjax_student.debug.tiny_debug"
-      ],
-      "module": "radjax_student.students.tiny_debug.backend",
-      "owner": "legacy_architecture_compatibility",
-      "path": "src/radjax_student/students/tiny_debug/backend.py",
-      "public_exports": [
-        "TinyDebugStudentBackend"
       ]
     },
     {

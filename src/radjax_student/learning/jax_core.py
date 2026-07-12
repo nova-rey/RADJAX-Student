@@ -13,9 +13,8 @@ from radjax_student.architecture import (
     ForwardResult,
     JaxArchitectureExecution,
     JaxArchitecturePlugin,
-    ResolvedObjectiveSelection,
 )
-from radjax_student.learning.scopes import ObjectiveScope
+from radjax_student.contracts import ObjectiveScope, ResolvedObjectiveSelection
 
 
 @jax.tree_util.register_pytree_node_class
@@ -231,36 +230,11 @@ def validate_finite_loss_and_gradients(loss: Any, gradients: Any) -> None:
         raise ValueError("JAX gradients must be finite")
 
 
-def apply_scoped_gradient_update(
-    parameters: Any,
-    gradients: Any,
-    selection_mask: Any,
-    learning_rate: float,
-) -> Any:
-    """Apply a pure pytree update using a same-structure boolean mask."""
-    if learning_rate <= 0:
-        raise ValueError("learning_rate must be positive")
-    parameter_tree = jax.tree_util.tree_structure(parameters)
-    if parameter_tree != jax.tree_util.tree_structure(gradients):
-        raise ValueError("parameters and gradients must share a pytree structure")
-    if parameter_tree != jax.tree_util.tree_structure(selection_mask):
-        raise ValueError("selection mask must share the parameter pytree structure")
-    return jax.tree_util.tree_map(
-        lambda parameter, gradient, selected: (
-            parameter - learning_rate * gradient if selected else parameter
-        ),
-        parameters,
-        gradients,
-        selection_mask,
-    )
-
-
 __all__ = [
     "JaxBatch",
     "JaxLossAuxiliary",
     "JaxObjective",
     "JaxObjectiveConfig",
-    "apply_scoped_gradient_update",
     "build_jax_loss_fn",
     "build_resolved_jax_loss_fn",
     "build_value_and_grad_fn",

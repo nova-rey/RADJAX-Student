@@ -105,3 +105,13 @@ def test_runtime_places_complete_input_pytrees_with_one_precision_policy():
             batch={},
             precision_policy="float8",
         )
+    with pytest.raises(ValueError, match="precision"):
+        prepare_jax_inputs(
+            backend=backend,
+            context=context,
+            parameters={},
+            architecture_carry={},
+            optimizer_state={},
+            batch={},
+            precision_policy="mixed",
+        )

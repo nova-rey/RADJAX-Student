@@ -13,6 +13,7 @@ from radjax_student.architecture import (  # noqa: E402
     ArchitectureCapabilityProfile,
     ArchitectureConfig,
     ArchitectureMetadata,
+    BatchValidationResult,
     ForwardResult,
     IntermediateSurfaceDescriptor,
     NamedRegion,
@@ -28,11 +29,12 @@ from radjax_student.contracts import (  # noqa: E402
     ParameterTreeLayoutEntry,
 )
 from radjax_student.learning import (  # noqa: E402
+    LearningBatch,
     LearningState,
     ObjectiveScope,
     UpdateScope,
 )
-from radjax_student.learning.jax_core import JaxBatch  # noqa: E402
+from radjax_student.learning.jax_core import JaxBatch, JaxObjectiveConfig  # noqa: E402
 from radjax_student.optimizers import (  # noqa: E402
     OptimizerConfig,
     OptimizerState,
@@ -52,6 +54,10 @@ pytestmark = pytest.mark.jax
 
 
 class LinearPlugin(FakeArchitecturePlugin):
+    def validate_batch(self, batch, config):
+        self.validate_config(config)
+        return BatchValidationResult("pass")
+
     def capability_profile(self) -> ArchitectureCapabilityProfile:
         return ArchitectureCapabilityProfile(
             self.architecture_id,
@@ -113,8 +119,11 @@ class LinearPlugin(FakeArchitecturePlugin):
 
 
 class MeanSquaredError:
+    seen_objective_ids = []
+
     def evaluate(self, surface, targets, weights, objective_config):
-        del weights, objective_config
+        del weights
+        self.seen_objective_ids.append(objective_config.objective_id)
         loss = jnp.mean((surface - targets["y"]) ** 2)
         return loss, {"mse": loss}
 
@@ -152,6 +161,11 @@ def _runtime(mode: str):
         capabilities=backend.capability_profile(),
         root_seed=0,
         runtime_id="p311-step",
+        metadata={
+            "selected_device_id": "cpu:0",
+            "placement_policy": "single_device",
+            "precision_policy": "float32",
+        },
     )
     request = ExecutionRequest(
         request_id=f"p311-step-{mode}",
@@ -195,13 +209,32 @@ def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
             {"x": jnp.asarray((-1.0, 0.0, 1.0))},
             {"y": jnp.asarray(((-1.0,), (1.0,), (3.0,)))},
         ),
+        learning_batch=LearningBatch(
+            "linear",
+            inputs={"x": [-1.0, 0.0, 1.0]},
+            targets={"y": [[-1.0], [1.0], [3.0]]},
+        ),
+        objective_config=JaxObjectiveConfig("linear.mse.v1"),
         parameter_layout=layout,
-        rng_key=None,
         runtime_context=context,
         runtime_backend=backend,
         execution_request=request,
     )
     assert execution.runtime_result.status == "pass"
+    assert (
+        execution.runtime_result.output_metadata["input_preparation"][
+            "precision_policy"
+        ]
+        == "float32"
+    )
+    assert (
+        execution.runtime_result.output_metadata["input_preparation"][
+            "selected_device_id"
+        ]
+        == "cpu:0"
+    )
+    assert execution.runtime_result.output_metadata["rng_bridge"]["stream"] == "dropout"
+    assert "linear.mse.v1" in MeanSquaredError.seen_objective_ids
     assert execution.result.changed_parameter_paths == ("trunk.weight",)
     assert execution.result.unchanged_parameter_paths == ("head.bias",)
     assert float(execution.parameters["trunk"]["weight"][0]) != 0.0

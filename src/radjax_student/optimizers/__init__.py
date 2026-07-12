@@ -31,7 +31,11 @@ from radjax_student.optimizers.models import (
     ParameterUpdate,
     canonical_optimizer_json,
 )
-from radjax_student.optimizers.protocols import JaxOptimizerExecution, OptimizerBackend
+from radjax_student.optimizers.protocols import (
+    JaxOptimizerBackend,
+    JaxOptimizerExecution,
+    OptimizerBackend,
+)
 from radjax_student.optimizers.registry import OptimizerRegistry
 from radjax_student.optimizers.sgd import SGD_OPTIMIZER_ID, SgdOptimizer
 
@@ -46,6 +50,7 @@ __all__ = [
     "WEIGHT_DECAY_MODES",
     "GradientTree",
     "JaxOptimizerExecution",
+    "JaxOptimizerBackend",
     "JaxOptimizerState",
     "OptimizerBackend",
     "OptimizerCapabilityProfile",

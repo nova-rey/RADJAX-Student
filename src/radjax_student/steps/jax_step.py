@@ -10,6 +10,7 @@ from typing import Any
 from radjax_student.architecture import ArchitectureConfig, JaxArchitecturePlugin
 from radjax_student.contracts import ParameterTreeLayout
 from radjax_student.learning import (
+    LearningBatch,
     LearningState,
     LearningStepResult,
     LossResult,
@@ -26,7 +27,7 @@ from radjax_student.learning.jax_core import (
 )
 from radjax_student.learning.jax_execution import prepare_jax_execution_plan
 from radjax_student.optimizers import (
-    JaxOptimizerExecution,
+    JaxOptimizerBackend,
     JaxOptimizerState,
     OptimizerConfig,
     advanced_jax_optimizer_state,
@@ -40,6 +41,9 @@ from radjax_student.runtime import (
     ExecutionResult,
     execute_function,
 )
+from radjax_student.runtime.jax_bridge import derive_jax_key
+from radjax_student.runtime.jax_inputs import prepare_jax_inputs
+from radjax_student.runtime.keys import RuntimeKeys, RuntimeKeyStream
 
 
 @dataclass(frozen=True)
@@ -67,7 +71,7 @@ def execute_jax_learning_step(
     *,
     architecture: JaxArchitecturePlugin,
     objective: JaxObjective,
-    optimizer: JaxOptimizerExecution,
+    optimizer: JaxOptimizerBackend,
     optimizer_config: OptimizerConfig,
     optimizer_state: JaxOptimizerState,
     learning_state: LearningState,
@@ -75,26 +79,44 @@ def execute_jax_learning_step(
     parameters: Any,
     architecture_carry: Any,
     batch: JaxBatch,
+    learning_batch: LearningBatch,
+    objective_config: JaxObjectiveConfig,
     parameter_layout: ParameterTreeLayout,
-    rng_key: Any | None,
+    runtime_key_stream: RuntimeKeyStream | None = None,
+    rng_slot: str = "dropout",
+    rng_invocation_index: int = 0,
     runtime_context: ExecutionContext,
     runtime_backend: ExecutionBackend,
     execution_request: ExecutionRequest,
+    precision_policy: str | None = None,
     schedule_values: Mapping[str, Any] | None = None,
 ) -> JaxLearningStepExecution:
     """Run one full JAX update through runtime preparation, dispatch, and receipt."""
 
     if not isinstance(architecture, JaxArchitecturePlugin):
         raise TypeError("JAX learning requires a complete JaxArchitecturePlugin")
-    if not isinstance(optimizer, JaxOptimizerExecution):
-        raise TypeError("JAX learning requires an optimizer JAX capability")
+    if not isinstance(optimizer, JaxOptimizerBackend):
+        raise TypeError("JAX learning requires a complete JaxOptimizerBackend")
     if not isinstance(optimizer_state, JaxOptimizerState):
         raise TypeError("optimizer_state must be JaxOptimizerState")
     if not isinstance(learning_state, LearningState):
         raise TypeError("learning_state must be LearningState")
     architecture.validate_config(architecture_config)
+    validation = architecture.validate_batch(learning_batch, architecture_config)
+    if validation.status != "pass":
+        raise ValueError("architecture rejected the learning batch")
     if not isinstance(batch, JaxBatch):
         raise TypeError("batch must be JaxBatch")
+    stream = (
+        runtime_key_stream or RuntimeKeys.from_seed(runtime_context.root_seed).dropout
+    )
+    rng_key = derive_jax_key(
+        stream,
+        global_step=learning_state.global_step,
+        micro_step=learning_state.micro_step,
+        slot=rng_slot,
+        invocation_index=rng_invocation_index,
+    )
     values = {} if schedule_values is None else dict(schedule_values)
     plan = prepare_jax_execution_plan(
         architecture=architecture,
@@ -110,9 +132,33 @@ def execute_jax_learning_step(
         parameter_layout=parameter_layout,
         descriptor=optimizer_descriptor,
     )
-    objective_config = JaxObjectiveConfig(
-        objective_id="resolved_objective",
-        objective_scope=plan.objective_selection.scope,
+    resolved_precision = precision_policy or architecture_config.dtype_intent
+    if resolved_precision == "unspecified":
+        resolved_precision = str(
+            runtime_context.metadata.get("precision_policy", "automatic")
+        )
+    if (
+        architecture_config.dtype_intent
+        not in {
+            "unspecified",
+            resolved_precision,
+        }
+        and resolved_precision != "automatic"
+    ):
+        raise ValueError("runtime precision conflicts with architecture dtype intent")
+    prepared_inputs = prepare_jax_inputs(
+        backend=runtime_backend,
+        context=runtime_context,
+        parameters=parameters,
+        architecture_carry=architecture_carry,
+        optimizer_state=optimizer_state.arrays,
+        batch=batch,
+        precision_policy=resolved_precision,
+    )
+    effective_objective_config = JaxObjectiveConfig(
+        objective_config.objective_id,
+        plan.objective_selection.scope,
+        objective_config.reduction,
     )
     value_and_grad = build_value_and_grad_fn(
         build_resolved_jax_loss_fn(architecture, objective, plan.objective_selection)
@@ -124,24 +170,30 @@ def execute_jax_learning_step(
         current_optimizer_arrays: Any,
         current_batch: JaxBatch,
         current_rng_key: Any | None,
+        global_step: Any,
+        micro_step: Any,
+        optimizer_step: Any,
     ):
         (loss_and_auxiliary, gradients) = value_and_grad(
             current_parameters,
             current_carry,
             current_batch,
-            objective_config,
+            effective_objective_config,
             current_rng_key,
         )
         loss, auxiliary = loss_and_auxiliary
-        updated_parameters, updated_optimizer_arrays, optimizer_metrics = (
-            optimizer.apply_jax_updates(
-                parameters=current_parameters,
-                gradients=gradients,
-                optimizer_array_state=current_optimizer_arrays,
-                update_mask=plan.update_mask,
-                config=optimizer_config,
-                schedule_values=values,
-            )
+        (
+            updated_parameters,
+            updated_optimizer_arrays,
+            changed_mask,
+            optimizer_metrics,
+        ) = optimizer.apply_jax_updates(
+            parameters=current_parameters,
+            gradients=gradients,
+            optimizer_array_state=current_optimizer_arrays,
+            update_mask=plan.update_mask,
+            config=optimizer_config,
+            schedule_values=values,
         )
         return (
             loss,
@@ -149,7 +201,11 @@ def execute_jax_learning_step(
             gradients,
             updated_parameters,
             updated_optimizer_arrays,
+            changed_mask,
             optimizer_metrics,
+            global_step + 1,
+            micro_step + 1,
+            optimizer_step + 1,
         )
 
     output, runtime_result = execute_function(
@@ -158,22 +214,41 @@ def execute_jax_learning_step(
         request=execution_request,
         backend=runtime_backend,
         args=(
-            parameters,
-            architecture_carry,
-            optimizer_state.arrays,
-            batch,
+            prepared_inputs.parameters,
+            prepared_inputs.architecture_carry,
+            prepared_inputs.optimizer_state,
+            prepared_inputs.batch,
             rng_key,
+            learning_state.global_step,
+            learning_state.micro_step,
+            learning_state.optimizer_step,
         ),
     )
     if runtime_result.status != "pass" or output is None:
         raise ValueError("runtime execution failed for complete JAX learning step")
+    runtime_result = replace(
+        runtime_result,
+        output_metadata={
+            **dict(runtime_result.output_metadata),
+            "input_preparation": prepared_inputs.metadata,
+            "rng_bridge": {
+                "stream": stream.name,
+                "slot": rng_slot,
+                "invocation_index": rng_invocation_index,
+            },
+        },
+    )
     (
         loss,
         auxiliary,
         gradients,
         updated_parameters,
         updated_optimizer_arrays,
+        changed_mask,
         optimizer_metrics,
+        next_global_step,
+        next_micro_step,
+        next_optimizer_step,
     ) = output
     if not isinstance(auxiliary, JaxLossAuxiliary):
         raise TypeError("JAX loss must return JaxLossAuxiliary")
@@ -184,12 +259,14 @@ def execute_jax_learning_step(
     )
     updated_learning_state = replace(
         learning_state,
-        global_step=learning_state.global_step + 1,
-        micro_step=learning_state.micro_step + 1,
-        optimizer_step=learning_state.optimizer_step + 1,
+        global_step=int(next_global_step),
+        micro_step=int(next_micro_step),
+        optimizer_step=int(next_optimizer_step),
     )
-    changed = tuple(sorted(plan.update_selection.selected_parameter_paths))
-    unchanged = tuple(sorted(plan.update_selection.excluded_parameter_paths))
+    changed = _paths_for_mask(parameter_layout, changed_mask, True)
+    unchanged = tuple(
+        path for path in parameter_layout.logical_paths if path not in set(changed)
+    )
     metric_values = {
         **_finite_metric_values(auxiliary.objective_metrics),
         **_finite_metric_values(auxiliary.architecture_metrics),
@@ -236,6 +313,19 @@ def _finite_metric_values(values: Mapping[str, Any]) -> dict[str, float]:
             raise ValueError("JAX metric values must be finite")
         result[str(name)] = scalar
     return result
+
+
+def _paths_for_mask(
+    layout: ParameterTreeLayout, mask: Any, expected: bool
+) -> tuple[str, ...]:
+    result = []
+    for entry in layout.entries:
+        value = mask
+        for key in entry.jax_keypath:
+            value = value[key]
+        if bool(value) is expected:
+            result.append(entry.logical_path)
+    return tuple(sorted(result))
 
 
 __all__ = ["JaxLearningStepExecution", "execute_jax_learning_step"]

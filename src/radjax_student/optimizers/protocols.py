@@ -58,4 +58,9 @@ class JaxOptimizerExecution(Protocol):
         update_mask: Any,
         config: OptimizerConfig,
         schedule_values: dict[str, Any],
-    ) -> tuple[Any, Any, dict[str, Any]]: ...
+    ) -> tuple[Any, Any, Any, dict[str, Any]]: ...
+
+
+@runtime_checkable
+class JaxOptimizerBackend(OptimizerBackend, JaxOptimizerExecution, Protocol):
+    """The only production JAX optimizer identity."""

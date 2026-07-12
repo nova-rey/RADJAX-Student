@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any
 
-from radjax_student.architecture import ArchitectureConfig, ParameterCatalog
+from radjax_student.architecture.models import ArchitectureConfig, ParameterCatalog
 
 HF_DESCRIPTOR_SCHEMA_VERSION = "hf_compatibility_descriptor.v1"
 _RUNTIME_NAME_TOKENS = {

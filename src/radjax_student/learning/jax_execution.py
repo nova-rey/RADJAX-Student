@@ -8,11 +8,11 @@ from typing import Any
 from radjax_student.architecture import (
     ArchitectureContractError,
     JaxArchitecturePlugin,
-    ResolvedObjectiveSelection,
 )
-from radjax_student.contracts import ParameterTreeLayout
-from radjax_student.learning.scopes import (
+from radjax_student.contracts import (
     ObjectiveScope,
+    ParameterTreeLayout,
+    ResolvedObjectiveSelection,
     ResolvedUpdateSelection,
     UpdateScope,
 )
@@ -60,6 +60,7 @@ def prepare_jax_execution_plan(
                 "layout_paths": list(parameter_layout.logical_paths),
             },
         )
+    parameter_layout.validate_materialized_parameters(parameters)
     for entry in parameter_layout.entries:
         descriptor = catalog.get(entry.logical_path)
         if (

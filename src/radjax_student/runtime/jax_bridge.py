@@ -11,6 +11,8 @@ from radjax_student.runtime.keys import (
     jax_key_words,
 )
 
+JAX_PRNG_IMPLEMENTATION = "threefry2x32"
+
 
 def derive_jax_key(
     stream: RuntimeKeyStream,
@@ -34,7 +36,7 @@ def derive_jax_key(
         ),
         dtype=jnp.uint32,
     )
-    return jax.random.wrap_key_data(words)
+    return jax.random.wrap_key_data(words, impl=JAX_PRNG_IMPLEMENTATION)
 
 
-__all__ = ["JAX_KEY_BRIDGE_VERSION", "derive_jax_key"]
+__all__ = ["JAX_KEY_BRIDGE_VERSION", "JAX_PRNG_IMPLEMENTATION", "derive_jax_key"]

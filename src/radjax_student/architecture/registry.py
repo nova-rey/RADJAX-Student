@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from radjax_student.architecture.errors import ArchitectureContractError
+from radjax_student.architecture.models import ArchitectureCapabilityProfile
 from radjax_student.architecture.protocols import (
     ArchitecturePlugin,
     JaxArchitectureExecution,
@@ -36,6 +37,26 @@ class ArchitectureRegistry:
                 details={"architecture_id": architecture_id},
             )
         capability = plugin.capability_profile()
+        if not isinstance(capability, ArchitectureCapabilityProfile):
+            raise ArchitectureContractError(
+                "architecture_capability_missing",
+                "architecture plugin must return ArchitectureCapabilityProfile",
+                details={"architecture_id": architecture_id},
+            )
+        if (
+            capability.architecture_id != architecture_id
+            or capability.version != plugin.architecture_version
+        ):
+            raise ArchitectureContractError(
+                "architecture_capability_missing",
+                "architecture plugin identity must match its capability profile",
+                details={
+                    "architecture_id": architecture_id,
+                    "architecture_version": plugin.architecture_version,
+                    "profile_architecture_id": capability.architecture_id,
+                    "profile_version": capability.version,
+                },
+            )
         declares_jax = capability.supports("architecture.jax_execution_v1")
         implements_jax = isinstance(plugin, JaxArchitectureExecution)
         if declares_jax != implements_jax:
