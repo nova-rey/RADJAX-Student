@@ -103,6 +103,8 @@ Start here for Phase 0 foundation context.
   and continuation checkpoint step consistency.
 - [P3.11.8 Stateful JAX Systems Proof](P3_11_8_STATEFUL_SYSTEMS_PROOF.md):
   public runtime-to-checkpoint conveyor proof with caller-bound resume.
+- [P3.11.9 Deterministic Replay Evidence](P3_11_9_DETERMINISTIC_REPLAY.md):
+  independently replayed stateful conveyor evidence and a read-only gate.
 - [P3.11.10 Final Adversarial Gate Addition](P3_11_10_FINAL_ADVERSARIAL_GATE.md):
   mandatory checkpoint tamper cases for optimizer identity and step integrity.
 - [P3.5 Architecture Integrity Roadmap](P3_5_ARCHITECTURE_INTEGRITY_ROADMAP.md):
@@ -162,4 +164,15 @@ or ordinary module descriptions.
 Phase 1 is complete under the maintained P1.10 acceptance gate. Phase 2 Student
 Runtime is complete under the P2.10 runtime acceptance gate. Phase 3 is closed
 under the P3.10 learning-core gate. P3.5 architecture integrity is complete
-under the P3.5.10 receipt; Phase 4 may begin from this boundary.
+under the P3.5.10 receipt; the historical P3.5 boundary preceded the later
+P3.11 integration closure.
+
+## Current Integration Status
+
+The preceding historical P3.5 statement is superseded for current planning.
+
+P3.11.1-P3.11.9 accepted
+
+P3.11.10 next and unstarted
+
+Phase 4 blocked

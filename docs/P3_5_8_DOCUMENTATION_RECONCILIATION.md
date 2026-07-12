@@ -29,5 +29,13 @@ Continuation checkpoint v2 stores scalar parameter mappings; an HF distribution
 checkpoint remains a separate future contract.
 
 Phase 3.5 is complete. The deprecated `students/` compatibility package is
-architecturally dead and may be removed at P4.1; Phase 4 may now proceed without
-importing it.
+architecturally dead and may be removed at P4.1; later P3.11 integration work
+supersedes the historical Phase 4 scheduling statement.
+
+## Current Integration Status
+
+P3.11.1-P3.11.9 accepted
+
+P3.11.10 next and unstarted
+
+Phase 4 blocked

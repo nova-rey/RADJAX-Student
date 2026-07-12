@@ -18,6 +18,14 @@ not claim production architecture training, Tome payload consumption,
 behavioral distillation, HF export, model quality, or accelerator-scale
 training.
 
-The committed receipt currently passes all thirteen flags. Phase 4 is
-unblocked for the first production architecture implementation, and it must
-not import the deprecated `students/` compatibility package.
+The committed receipt currently passes all thirteen flags. That historical
+P3.5 result does not bypass the later P3.11 integration closure, and no Phase
+4 code may import the deprecated `students/` compatibility package.
+
+## Current Integration Status
+
+P3.11.1-P3.11.9 accepted
+
+P3.11.10 next and unstarted
+
+Phase 4 blocked

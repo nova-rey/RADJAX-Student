@@ -23,3 +23,11 @@ identity must use `architecture_carry.v1` and its
 `pytree_descriptor_digest` must equal the digest of the actual
 `architecture_carry.json` descriptor, including when all sidecar and manifest
 hashes have been recomputed.
+
+## Current Integration Status
+
+P3.11.1-P3.11.9 accepted
+
+P3.11.10 next and unstarted
+
+Phase 4 blocked

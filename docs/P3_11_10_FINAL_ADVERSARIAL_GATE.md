@@ -11,3 +11,13 @@ The accepted blocker vocabulary includes
 observed integer steps; raw array contents are never reported. The gate also
 checks that v3 generic code delegates numerical step interpretation to the
 registered optimizer capability and contains no SGD-specific keypath lookup.
+
+## Current Integration Status
+
+This document records the intended P3.11.10 gate scope; the gate has not begun.
+
+P3.11.1-P3.11.9 accepted
+
+P3.11.10 next and unstarted
+
+Phase 4 blocked

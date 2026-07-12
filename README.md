@@ -125,6 +125,14 @@ whole-student and partial update masking while keeping excluded parameter values
 and per-parameter state unchanged. It is not an Optax integration or a learning
 loop.
 
+## Current Integration Status
+
+P3.11.1-P3.11.9 accepted
+
+P3.11.10 next and unstarted
+
+Phase 4 blocked
+
 P3.4 establishes the [Generic Batch and Objective Contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
 behavior-neutral batch metadata, objective request/result models, and explicit
 weighting policies. Future Tome adapters populate these models rather than

@@ -1,5 +1,13 @@
 # RADJAX Phase 3 Roadmap - Generic Learning Core
 
+## Current Integration Status
+
+P3.11.1-P3.11.9 accepted
+
+P3.11.10 next and unstarted
+
+Phase 4 blocked
+
 **Status:** Locked  
 **Phase:** 3 - Generic Learning Core  
 **Depends on:** Phase 2 - Student Runtime complete

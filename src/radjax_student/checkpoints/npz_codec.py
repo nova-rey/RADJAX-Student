@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import struct
 import zipfile
 from collections.abc import Mapping
-from io import BytesIO
 from pathlib import Path
 from typing import Any
 
@@ -58,6 +58,35 @@ def descriptor_digest(descriptor: Mapping[str, Any]) -> str:
     return hashlib.sha256(_json_bytes(descriptor)).hexdigest()
 
 
+def mapping_pytree_digest(tree: Mapping[str, Any]) -> str:
+    """Return an in-memory identity for a canonical mapping-only pytree.
+
+    The checkpoint writer and replay evidence use this exact encoder.  It
+    includes descriptor identity *and* canonical array bytes, so it detects
+    value changes without creating a temporary sidecar.
+    """
+
+    try:
+        import numpy as np
+    except ImportError as exc:  # pragma: no cover - dependency boundary
+        raise RuntimeError("numpy is required for checkpoint tensor payloads") from exc
+
+    digest = hashlib.sha256()
+    for keypath, value in sorted(_flatten_mapping(tree).items()):
+        array = _canonical_array(np.asarray(value), np)
+        member = encode_keypath(keypath)
+        descriptor = _leaf_descriptor(keypath, member, array)
+        descriptor_bytes = _json_bytes(descriptor)
+        # Replay identity intentionally hashes only canonical logical bytes,
+        # not an implementation-selected .npy header version.
+        array_bytes = array.tobytes(order="C")
+        digest.update(len(descriptor_bytes).to_bytes(8, "big"))
+        digest.update(descriptor_bytes)
+        digest.update(len(array_bytes).to_bytes(8, "big"))
+        digest.update(array_bytes)
+    return digest.hexdigest()
+
+
 def write_deterministic_npz(path: Path, tree: Mapping[str, Any]) -> dict[str, Any]:
     """Write canonical little-endian .npy members in a fixed ZIP container."""
 
@@ -84,9 +113,7 @@ def write_deterministic_npz(path: Path, tree: Mapping[str, Any]) -> dict[str, An
             array = array.astype(array.dtype.newbyteorder("<"), copy=False)
         if array.ndim:
             array = np.ascontiguousarray(array)
-        buffer = BytesIO()
-        np.lib.format.write_array(buffer, array, allow_pickle=False)
-        members[member] = buffer.getvalue()
+        members[member] = _canonical_npy_bytes(array)
         descriptors.append(_leaf_descriptor(keypath, member, array))
     descriptor = _descriptor(descriptors)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -179,6 +206,35 @@ def _canonical_array(array: Any, np: Any) -> Any:
     return np.ascontiguousarray(array) if array.ndim else array
 
 
+def _canonical_npy_bytes(array: Any) -> bytes:
+    """Encode a v1 ``.npy`` member without NumPy-version-dependent headers."""
+
+    shape = _npy_shape(array.shape)
+    header = (
+        "{'descr': "
+        + repr(array.dtype.str)
+        + ", 'fortran_order': False, 'shape': "
+        + shape
+        + ", }"
+    )
+    # NPY v1.0 aligns the complete preamble and ASCII header to 16 bytes.
+    preamble_size = 10
+    padding = (-((preamble_size + len(header) + 1) % 16)) % 16
+    header_bytes = (header + (" " * padding) + "\n").encode("latin1")
+    if len(header_bytes) > 0xFFFF:
+        raise ValueError("canonical NPY header exceeds v1.0 size limit")
+    prefix = b"\x93NUMPY\x01\x00" + struct.pack("<H", len(header_bytes))
+    return prefix + header_bytes + array.tobytes(order="C")
+
+
+def _npy_shape(shape: tuple[int, ...]) -> str:
+    if not shape:
+        return "()"
+    if len(shape) == 1:
+        return f"({shape[0]},)"
+    return "(" + ", ".join(str(value) for value in shape) + ")"
+
+
 def _leaf_descriptor(
     keypath: tuple[str, ...], member: str, array: Any
 ) -> dict[str, Any]:
@@ -220,6 +276,7 @@ __all__ = [
     "describe_mapping_pytree",
     "descriptor_digest",
     "encode_keypath",
+    "mapping_pytree_digest",
     "read_deterministic_npz",
     "write_deterministic_npz",
 ]

@@ -25,3 +25,11 @@ array data.
 It is systems evidence only. It does not claim a production architecture, Tome
 payload consumption, distillation, HF export, accelerator-scale training,
 performance, or RadLads parity.
+
+## Current Integration Status
+
+P3.11.1-P3.11.9 accepted
+
+P3.11.10 next and unstarted
+
+Phase 4 blocked

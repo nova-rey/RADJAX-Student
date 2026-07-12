@@ -106,6 +106,9 @@ Implement the first architecture plugin:
 
 This phase validates the plugin system, not RWKV itself.
 
+> **Current integration status:** P3.11.1-P3.11.9 accepted. P3.11.10 next and unstarted.
+> Phase 4 blocked pending that final adversarial gate.
+
 # Phase 5 - Behavior Compilation
 
 **Question:** Can teacher behavior become a student model?

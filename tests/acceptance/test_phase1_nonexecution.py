@@ -33,6 +33,7 @@ def test_default_source_has_no_optional_or_producer_imports() -> None:
         if path.relative_to(source_root).as_posix() in {
             "learning/jax_core.py",
             "learning/p3_5_acceptance.py",
+            "validation/p3_11_9_replay/runner_jax.py",
         }:
             continue
         source = path.read_text(encoding="utf-8")

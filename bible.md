@@ -869,3 +869,59 @@
   carry and optimizer arrays, hook and metric retention, logical update paths,
   lifecycle identity, and runtime receipt metadata. Real apply-only and
   JAX-methods-only boundary objects plus the legacy JAX adapter are rejected.
+
+## 2026-07-12 - P3.11.9 deterministic replay evidence
+
+- The validation-owned replay gate now executes independent eager and JIT
+  stateful-conveyor replays through the public runtime, loop, checkpoint, and
+  caller-bound restore path. Canonical evidence records typed state digests,
+  metrics, hooks, scopes, RNG and runtime receipts without raw arrays or keys;
+  the committed artifact is emitted only after generic verification passes.
+- P3.11.1-P3.11.9 are accepted. P3.11.10 remains next and unstarted, and Phase
+  4 remains blocked.
+
+## 2026-07-12 - P3.11.9 base-install collection isolation
+
+- The JAX replay test module now skips before importing its JAX-only runner in
+  base environments. Passive replay contracts remain importable without JAX,
+  and the dedicated JAX job remains the only CI matrix that collects or runs
+  the real replay conveyor.
+
+## 2026-07-12 - P3.11.9 canonical tensor identity
+
+- Replay pytree identity now hashes canonical little-endian contiguous logical
+  array bytes plus descriptors, rather than a NumPy-selected `.npy` header.
+  This keeps evidence identity independent of incidental codec-header choices
+  while checkpoint persistence retains its own deterministic sidecar contract.
+
+## 2026-07-12 - P3.11.9 replay mismatch diagnostics
+
+- The read-only replay gate now emits only the first canonical field identity
+  mismatch when a recorded artifact differs. This makes cross-environment
+  determinism failures actionable without exposing array or checkpoint payloads.
+
+## 2026-07-12 - P3.11.9 canonical checkpoint sidecars
+
+- Replay exposed a platform-sensitive checkpoint manifest digest. Deterministic
+  NPZ members now use the project-owned fixed NPY v1.0 header encoder, so
+  manifests hash canonical payload bytes rather than NumPy-version-selected
+  headers.
+
+## 2026-07-12 - P3.11.9 portable stateful fixture
+
+- The validation-only replay fixture now uses a dyadic single-element
+  regression and learning rate. It still executes the full public conveyor but
+  avoids backend-dependent reduction and fused-arithmetic rounding in the
+  committed cross-environment evidence.
+
+## 2026-07-12 - P3.11.9 replay environment
+
+- The dedicated `test-jax` environment pins JAX 0.4.38. The replay artifact
+  explicitly makes no cross-version bitwise claim, so its CI reproduction must
+  not silently substitute a newer PRNG or compiler implementation.
+
+## 2026-07-12 - P3.11.9 read-only gate
+
+- The subprocess proving `--check-recorded` is repository-read-only disables
+  bytecode-cache generation, so it detects maintained source and artifact
+  writes without confusing interpreter caches for evidence writes.

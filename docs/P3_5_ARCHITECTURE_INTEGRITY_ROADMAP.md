@@ -27,5 +27,14 @@ P3.5.9  Regression and import-purity closure              COMPLETE
 P3.5.10 Final architecture-integrity golden gate          COMPLETE
 ```
 
-P3.5.10A remediated the final evidence gaps. Phase 4 is unblocked, but it may
-not import the deprecated `students/` compatibility package.
+P3.5.10A remediated the final evidence gaps. That historical closure does not
+override the current P3.11 integration closure; no Phase 4 code may import the
+deprecated `students/` compatibility package.
+
+## Current Integration Status
+
+P3.11.1-P3.11.9 accepted
+
+P3.11.10 next and unstarted
+
+Phase 4 blocked

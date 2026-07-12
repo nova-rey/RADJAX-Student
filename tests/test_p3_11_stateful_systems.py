@@ -88,6 +88,9 @@ from radjax_student.validation.p3_11_8_systems_receipt import (  # noqa: E402
     StatefulSystemsProofResult,
     build_stateful_systems_receipt,
 )
+from radjax_student.validation.p3_11_9_replay.runner_jax import (  # noqa: E402
+    execute_stateful_replays,
+)
 
 pytestmark = pytest.mark.jax
 
@@ -651,6 +654,12 @@ def _execute_stateful_systems_proof(tmp_path):
 def test_stateful_conveyor_resume_and_execution_modes(tmp_path):
     proof = _execute_stateful_systems_proof(tmp_path)
     assert all(proof.assertions.values())
+
+
+def test_p3118_and_p3119_share_the_public_stateful_conveyor(tmp_path):
+    replay = execute_stateful_replays(tmp_path / "p3119")
+    assert replay.modes["eager"]["replay_a"].resumed.restore_used_caller_identity
+    assert replay.modes["jit"]["replay_a"].uninterrupted.final_parameter_digest
 
 
 def test_stateful_system_proof_rejects_real_boundary_violations(tmp_path):
