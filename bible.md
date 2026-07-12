@@ -743,3 +743,9 @@
 - The accepted audit record is advanced only after the replayed behavioral
   gate passes its full regression suite, preserving a concrete commit identity
   for the audited package graph.
+
+## 2026-07-12 - P3.11.1 neutral contracts
+
+- Shared parameter-layout, HF lifecycle, and JAX optimizer-state descriptors
+  live in a dependency-free contract package so new conveyor code does not add
+  architecture, learning, optimizer, runtime, or HF lateral dependencies.
