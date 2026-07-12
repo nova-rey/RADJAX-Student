@@ -18,7 +18,7 @@ The locked order is:
 P3.5.1  Repository boundary and dependency audit       AUDIT ONLY
 P3.5.2  Forward-result objective contract               COMPLETE
 P3.5.3  Pure JAX learning through runtime               COMPLETE
-P3.5.4  Architecture namespace consolidation             IN PROGRESS
+P3.5.4  Architecture namespace consolidation             COMPLETE
 P3.5.5  Legacy and debug isolation                       COMPLETE
 P3.5.6  Hugging Face preservation contract               COMPLETE
 P3.5.7  Checkpoint ownership and migration               COMPLETE
@@ -27,4 +27,5 @@ P3.5.9  Regression and import-purity closure              COMPLETE
 P3.5.10 Final architecture-integrity golden gate          COMPLETE
 ```
 
-No Phase 4 implementation may begin until P3.5.10 passes.
+P3.5.10A remediated the final evidence gaps. Phase 4 is unblocked, but it may
+not import the deprecated `students/` compatibility package.

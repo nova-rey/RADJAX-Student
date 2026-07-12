@@ -7,10 +7,16 @@ from radjax_student.checkpoints.learning import (
     load_learning_checkpoint,
     save_learning_checkpoint,
 )
-from radjax_student.checkpoints.roles import reject_implicit_hf_conversion
+from radjax_student.checkpoints.roles import (
+    CheckpointPayloadDescriptor,
+    FutureTensorPayloadDescriptor,
+    reject_implicit_hf_conversion,
+)
 
 __all__ = [
     "CONTINUATION_CHECKPOINT_ROLE",
+    "CheckpointPayloadDescriptor",
+    "FutureTensorPayloadDescriptor",
     "HF_DISTRIBUTION_CHECKPOINT_ROLE",
     "LearningCheckpoint",
     "load_learning_checkpoint",

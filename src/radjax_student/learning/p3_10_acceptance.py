@@ -41,6 +41,7 @@ from radjax_student.learning.synthetic_smoke import (
     P39SyntheticLearningReceipt,
     run_p3_9_synthetic_learning_smoke,
 )
+from radjax_student.legacy.scalar_learning import legacy_scalar_learning_step
 from radjax_student.optimizers import (
     GradientTree,
     OptimizerConfig,
@@ -55,7 +56,6 @@ from radjax_student.steps.loop import (
     SyntheticBatchSource,
     run_learning_loop,
 )
-from radjax_student.steps.single import learning_step
 
 ArchitectureCapabilityProfile = _architecture.ArchitectureCapabilityProfile
 ArchitectureConfig = _architecture.ArchitectureConfig
@@ -1118,11 +1118,14 @@ def _audit_replay(deps: P310AcceptanceDependencies) -> bool:
 
 
 def _default_dependencies() -> P310AcceptanceDependencies:
+    def run_legacy_loop(**kwargs: Any):
+        return run_learning_loop(step_executor=legacy_scalar_learning_step, **kwargs)
+
     return P310AcceptanceDependencies(
         architecture_factory=_GoldenArchitecture,
         optimizer_factory=SgdOptimizer,
-        single_step_fn=learning_step,
-        run_loop_fn=run_learning_loop,
+        single_step_fn=legacy_scalar_learning_step,
+        run_loop_fn=run_legacy_loop,
         checkpoint_save_fn=save_learning_checkpoint,
         checkpoint_load_fn=load_learning_checkpoint,
         observability_acceptance_fn=run_p3_8_observability_acceptance,

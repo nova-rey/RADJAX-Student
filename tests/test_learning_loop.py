@@ -1,6 +1,7 @@
 from radjax_student.architecture import ArchitectureConfig
 from radjax_student.architecture.testing import FakeArchitecturePlugin
 from radjax_student.learning import LearningBatch, LearningState
+from radjax_student.legacy.scalar_learning import legacy_scalar_learning_step
 from radjax_student.optimizers import (
     OptimizerConfig,
     OptimizerInitRequest,
@@ -47,6 +48,7 @@ def test_loop_stops_exactly_and_restores_source_position():
         parameters={"head.weight": 0.0, "trunk.bias": 0.0, "trunk.weight": 0.0},
         objective=LinearObjective(),
         batch_source=source,
+        step_executor=legacy_scalar_learning_step,
     )
     assert (
         result.stop_reason == "max_steps"

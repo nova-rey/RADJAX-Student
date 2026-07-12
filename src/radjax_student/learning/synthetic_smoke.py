@@ -31,6 +31,7 @@ from radjax_student.learning.scopes import (
     ResolvedUpdateSelection,
     UpdateScope,
 )
+from radjax_student.legacy.scalar_learning import legacy_scalar_learning_step
 from radjax_student.optimizers import (
     OptimizerConfig,
     OptimizerInitRequest,
@@ -256,9 +257,13 @@ class P39SyntheticLearningReceipt:
         return json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))
 
 
+def _run_legacy_loop(**kwargs: Any) -> LearningLoopResult:
+    return run_learning_loop(step_executor=legacy_scalar_learning_step, **kwargs)
+
+
 @dataclass(frozen=True)
 class P39SmokeDependencies:
-    run_loop_fn: Callable[..., LearningLoopResult] = run_learning_loop
+    run_loop_fn: Callable[..., LearningLoopResult] = _run_legacy_loop
     checkpoint_write_fn: Callable[[LearningCheckpoint, Path], LearningCheckpoint] = (
         save_learning_checkpoint
     )

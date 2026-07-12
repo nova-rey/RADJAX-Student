@@ -780,6 +780,7 @@ def _run_loop(
     starting_global_step: int = 0,
     batch_source=None,
 ):
+    from radjax_student.legacy.scalar_learning import legacy_scalar_learning_step
     from radjax_student.optimizers import (
         OptimizerConfig,
         OptimizerInitRequest,
@@ -826,6 +827,7 @@ def _run_loop(
         batch_source=SyntheticBatchSource((_batch(),) * 4)
         if batch_source is None
         else batch_source,
+        step_executor=legacy_scalar_learning_step,
         checkpoint=checkpoint,
         hooks=hooks,
         hook_policy=HookPolicy() if hook_policy is None else hook_policy,

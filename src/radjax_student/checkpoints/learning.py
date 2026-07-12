@@ -12,12 +12,15 @@ from types import MappingProxyType
 from typing import Any
 
 from radjax_student.architecture import ArchitectureState
+from radjax_student.checkpoints.roles import (
+    CONTINUATION_CHECKPOINT_ROLE,
+    HF_DISTRIBUTION_CHECKPOINT_ROLE,
+    CheckpointPayloadDescriptor,
+)
 from radjax_student.learning import LearningState
 from radjax_student.optimizers import OptimizerState
 
 CHECKPOINT_SCHEMA_VERSION = "learning_checkpoint.v2"
-CONTINUATION_CHECKPOINT_ROLE = "radjax_continuation"
-HF_DISTRIBUTION_CHECKPOINT_ROLE = "hf_distribution"
 CHECKPOINT_FILES = (
     "architecture.json",
     "learning.json",
@@ -33,18 +36,12 @@ _OWNERSHIP = {
     "source.json": "batch_source",
 }
 _PAYLOAD_DESCRIPTORS = {
-    "architecture.json": {
-        "owner": "architecture",
-        "codec": "json",
-        "kind": "pytree_reference",
-    },
-    "learning.json": {"owner": "learning", "codec": "json", "kind": "state"},
-    "optimizer.json": {"owner": "optimizer", "codec": "json", "kind": "state"},
-    "source.json": {
-        "owner": "batch_source",
-        "codec": "json",
-        "kind": "source_state",
-    },
+    "architecture.json": CheckpointPayloadDescriptor(
+        "architecture", "json", "scalar_parameter_mapping"
+    ),
+    "learning.json": CheckpointPayloadDescriptor("learning", "json", "state"),
+    "optimizer.json": CheckpointPayloadDescriptor("optimizer", "json", "state"),
+    "source.json": CheckpointPayloadDescriptor("batch_source", "json", "source_state"),
 }
 
 
@@ -127,7 +124,10 @@ def save_learning_checkpoint(
         "hashes": hashes,
         "sizes": sizes,
         "ownership": _OWNERSHIP,
-        "payload_descriptors": _PAYLOAD_DESCRIPTORS,
+        "payload_descriptors": {
+            name: descriptor.to_dict()
+            for name, descriptor in _PAYLOAD_DESCRIPTORS.items()
+        },
     }
     integrity = {"algorithm": "sha256", "manifest_digest": _digest(_encode(manifest))}
     for name, payload in payloads.items():
@@ -235,7 +235,10 @@ def _validate_manifest(manifest: Mapping[str, Any]) -> None:
     if manifest.get("ownership") != _OWNERSHIP:
         raise ValueError("checkpoint manifest ownership is invalid")
     descriptors = manifest.get("payload_descriptors")
-    if descriptors is not None and descriptors != _PAYLOAD_DESCRIPTORS:
+    expected_descriptors = {
+        name: descriptor.to_dict() for name, descriptor in _PAYLOAD_DESCRIPTORS.items()
+    }
+    if descriptors is not None and descriptors != expected_descriptors:
         raise ValueError("checkpoint payload descriptors are invalid")
     if manifest.get("checkpoint_role", CONTINUATION_CHECKPOINT_ROLE) != (
         CONTINUATION_CHECKPOINT_ROLE

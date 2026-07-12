@@ -10,6 +10,7 @@ from radjax_student.learning import (
     LearningState,
     MetricRecord,
 )
+from radjax_student.legacy.scalar_learning import legacy_scalar_learning_step
 from radjax_student.optimizers import (
     OptimizerConfig,
     OptimizerInitRequest,
@@ -23,6 +24,11 @@ from radjax_student.steps import (
 from tests.test_single_learning_step import LinearObjective
 
 DEFAULT_POLICY = HookPolicy()
+
+
+def failing_step_executor(**kwargs):
+    del kwargs
+    raise RuntimeError()
 
 
 @dataclass
@@ -101,6 +107,7 @@ def build(
     starting_global_step=0,
     emit_run_report=False,
     source_length=3,
+    step_executor=legacy_scalar_learning_step,
 ):
     arch = FakeArchitecturePlugin()
     cat = arch.describe_parameters()
@@ -134,6 +141,7 @@ def build(
         parameters={"head.weight": 0.0, "trunk.bias": 0.0, "trunk.weight": 0.0},
         objective=LinearObjective(),
         batch_source=batch_source or SyntheticBatchSource((batch,) * source_length),
+        step_executor=step_executor,
         checkpoint=checkpoint,
         hooks=hooks,
         hook_policy=policy,
@@ -165,21 +173,13 @@ def test_source_exhaustion_emits_loop_end():
     assert build((h,), steps=4).hook_events[-1] == "loop_end"
 
 
-def test_learning_step_exception_emits_failure(monkeypatch):
-    monkeypatch.setattr(
-        "radjax_student.steps.loop.learning_step",
-        lambda **k: (_ for _ in ()).throw(RuntimeError()),
-    )
+def test_learning_step_exception_emits_failure():
     h = RecordingHook()
-    assert build((h,)).hook_events[-1] == "failure"
+    assert build((h,), step_executor=failing_step_executor).hook_events[-1] == "failure"
 
 
-def test_learning_step_exception_does_not_emit_step_end(monkeypatch):
-    monkeypatch.setattr(
-        "radjax_student.steps.loop.learning_step",
-        lambda **k: (_ for _ in ()).throw(RuntimeError()),
-    )
-    assert "step_end" not in build().hook_events
+def test_learning_step_exception_does_not_emit_step_end():
+    assert "step_end" not in build(step_executor=failing_step_executor).hook_events
 
 
 def test_checkpoint_exception_emits_failure():
@@ -201,13 +201,9 @@ def test_checkpoint_exception_does_not_emit_checkpoint():
     )
 
 
-def test_failure_context_contains_stage_and_exception_type(monkeypatch):
-    monkeypatch.setattr(
-        "radjax_student.steps.loop.learning_step",
-        lambda **k: (_ for _ in ()).throw(RuntimeError()),
-    )
+def test_failure_context_contains_stage_and_exception_type():
     h = RecordingHook()
-    build((h,))
+    build((h,), step_executor=failing_step_executor)
     assert (
         h.events[-1][3]["failure_stage"] == "learning_step"
         and h.events[-1][3]["exception_type"] == "RuntimeError"
@@ -277,12 +273,10 @@ def test_hook_warning_appears_in_loop_warnings():
     assert "hook.warning" in [w.code for w in build((h,)).warnings]
 
 
-def test_learning_step_core_reason_survives_failure_hook_blocker(monkeypatch):
-    monkeypatch.setattr(
-        "radjax_student.steps.loop.learning_step",
-        lambda **k: (_ for _ in ()).throw(RuntimeError()),
+def test_learning_step_core_reason_survives_failure_hook_blocker():
+    r = build(
+        (FailingHook(event_to_fail="failure"),), step_executor=failing_step_executor
     )
-    r = build((FailingHook(event_to_fail="failure"),))
     assert r.stop_reason == "learning_step_failure" and r.hook_blockers
 
 
@@ -311,12 +305,12 @@ def test_loop_start_fail_fast_consumes_no_batch():
     assert result.status == "fail" and source.next_calls == 0 and source.position == 0
 
 
-def test_step_start_fail_fast_does_not_call_learning_step(monkeypatch):
+def test_step_start_fail_fast_does_not_call_learning_step():
     calls = []
-    monkeypatch.setattr(
-        "radjax_student.steps.loop.learning_step", lambda **k: calls.append(k) or None
+    result = build(
+        (FailingHook(event_to_fail="step_start"),),
+        step_executor=lambda **k: calls.append(k) or None,
     )
-    result = build((FailingHook(event_to_fail="step_start"),))
     assert (
         result.stop_reason == "hook_failure"
         and calls == []
@@ -348,23 +342,23 @@ def test_disable_hook_runs_once_then_remains_disabled():
     )
 
 
-def test_failure_hook_blocker_code_preserved(monkeypatch):
-    monkeypatch.setattr(
-        "radjax_student.steps.loop.learning_step",
-        lambda **k: (_ for _ in ()).throw(RuntimeError()),
-    )
+def test_failure_hook_blocker_code_preserved():
     assert [
-        x.code for x in build((FailingHook(event_to_fail="failure"),)).hook_blockers
+        x.code
+        for x in build(
+            (FailingHook(event_to_fail="failure"),),
+            step_executor=failing_step_executor,
+        ).hook_blockers
     ] == ["learning_hook_failed"]
 
 
-def test_failure_hook_warning_preserved(monkeypatch):
-    monkeypatch.setattr(
-        "radjax_student.steps.loop.learning_step",
-        lambda **k: (_ for _ in ()).throw(RuntimeError()),
-    )
+def test_failure_hook_warning_preserved():
     assert "hook_test" in [
-        x.code for x in build((FailingHook(event_to_fail="failure"),)).warnings
+        x.code
+        for x in build(
+            (FailingHook(event_to_fail="failure"),),
+            step_executor=failing_step_executor,
+        ).warnings
     ]
 
 

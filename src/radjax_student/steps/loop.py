@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from radjax_student.architecture import ArchitectureConfig, ArchitecturePlugin
 from radjax_student.learning import (
@@ -20,11 +20,6 @@ from radjax_student.learning.hooks import (
     dispatch_hooks,
 )
 from radjax_student.optimizers import OptimizerBackend, OptimizerConfig, OptimizerState
-from radjax_student.steps.single import (
-    ScalarObjective,
-    SingleStepExecution,
-    learning_step,
-)
 
 DEFAULT_HOOK_POLICY = HookPolicy()
 
@@ -38,6 +33,17 @@ class BatchSource(Protocol):
     def next_batch(self) -> LearningBatch | None: ...
     def state_dict(self) -> Mapping[str, object]: ...
     def load_state_dict(self, state: Mapping[str, object]) -> None: ...
+
+
+class LearningStepExecutionProtocol(Protocol):
+    result: Any
+    learning_state: LearningState
+    optimizer_state: Any
+    parameters: Any
+
+
+class LearningStepExecutor(Protocol):
+    def __call__(self, **kwargs: Any) -> LearningStepExecutionProtocol: ...
 
 
 @dataclass(frozen=True)
@@ -65,7 +71,7 @@ class LearningLoopConfig:
 @dataclass(frozen=True)
 class LearningLoopResult:
     status: str
-    final_execution: SingleStepExecution | None
+    final_execution: LearningStepExecutionProtocol | None
     steps_completed: int
     global_step: int
     batches_consumed: int
@@ -87,14 +93,15 @@ def _run_learning_loop(
     optimizer_config: OptimizerConfig,
     optimizer_state: OptimizerState,
     learning_state: LearningState,
-    parameters: Mapping[str, float],
-    objective: ScalarObjective,
+    parameters: Any,
+    objective: Any,
     batch_source: BatchSource,
-    checkpoint: Callable[[SingleStepExecution], str] | None = None,
+    step_executor: LearningStepExecutor,
+    checkpoint: Callable[[LearningStepExecutionProtocol], str] | None = None,
     hooks: tuple[LearningHook, ...] = (),
     hook_policy: HookPolicy = DEFAULT_HOOK_POLICY,
 ) -> LearningLoopResult:
-    execution: SingleStepExecution | None = None
+    execution: LearningStepExecutionProtocol | None = None
     steps_completed = 0
     batches_consumed = 0
     metrics: list[MetricRecord] = []
@@ -190,7 +197,7 @@ def _run_learning_loop(
                 dispatched.blockers,
             )
         try:
-            execution = learning_step(
+            execution = step_executor(
                 batch=batch,
                 architecture=architecture,
                 architecture_config=architecture_config,
@@ -314,10 +321,11 @@ def run_learning_loop(
     optimizer_config: OptimizerConfig,
     optimizer_state: OptimizerState,
     learning_state: LearningState,
-    parameters: Mapping[str, float],
-    objective: ScalarObjective,
+    parameters: Any,
+    objective: Any,
     batch_source: BatchSource,
-    checkpoint: Callable[[SingleStepExecution], str] | None = None,
+    step_executor: LearningStepExecutor,
+    checkpoint: Callable[[LearningStepExecutionProtocol], str] | None = None,
     hooks: tuple[LearningHook, ...] = (),
     hook_policy: HookPolicy = DEFAULT_HOOK_POLICY,
     emit_run_report: bool = False,
@@ -335,6 +343,7 @@ def run_learning_loop(
         parameters=parameters,
         objective=objective,
         batch_source=batch_source,
+        step_executor=step_executor,
         checkpoint=checkpoint,
         hooks=hooks,
         hook_policy=hook_policy,

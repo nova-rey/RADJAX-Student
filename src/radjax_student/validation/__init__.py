@@ -4,6 +4,7 @@ This package is reserved for compatibility and readiness checks that decide
 whether this runtime can consume a valid Contract artifact.
 """
 
+from radjax_student.validation.architecture_audit import build_architecture_audit
 from radjax_student.validation.compatibility import (
     evaluate_student_compatibility,
     evaluate_tome_path_compatibility,
@@ -53,6 +54,7 @@ __all__ = [
     "evaluate_student_compatibility",
     "evaluate_tome_path_compatibility",
     "available_profile_ids",
+    "build_architecture_audit",
     "declaration_test_only_profile",
     "infer_run_defaults",
     "infer_run_defaults_from_tome",

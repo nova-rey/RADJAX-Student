@@ -52,6 +52,7 @@ def test_jax_isolated_to_explicit_adapter_source():
         if path.relative_to(SOURCE_ROOT).as_posix() in {
             "learning/jax_core.py",
             "learning/p3_5_acceptance.py",
+            "steps/jax_step.py",
         }:
             continue
         assert "import jax" not in source

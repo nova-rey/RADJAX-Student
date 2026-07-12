@@ -5,12 +5,12 @@ from dataclasses import dataclass
 from radjax_student.architecture import ArchitectureConfig
 from radjax_student.architecture.testing import FakeArchitecturePlugin
 from radjax_student.learning import LearningBatch, LearningState, UpdateScope
+from radjax_student.legacy.scalar_learning import legacy_scalar_learning_step
 from radjax_student.optimizers import (
     OptimizerConfig,
     OptimizerInitRequest,
     SgdOptimizer,
 )
-from radjax_student.steps import learning_step
 
 
 @dataclass(frozen=True)
@@ -47,7 +47,7 @@ def _run(scope: UpdateScope | None = None):
     optimizer_state = optimizer.initialize_state(
         OptimizerInitRequest(optimizer_config, catalog, selection)
     ).optimizer_state
-    return learning_step(
+    return legacy_scalar_learning_step(
         batch=batch,
         architecture=architecture,
         architecture_config=config,

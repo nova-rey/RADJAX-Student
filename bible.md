@@ -717,3 +717,10 @@
 - The deprecated training shim is formatted under the repository-wide Ruff
   gate; both base Python matrix jobs and the dedicated JAX job now exercise the
   same published tree.
+
+## 2026-07-11 - P3.5.10A architecture-integrity remediation
+
+- Phase 3.5 closes only when architecture carry, objective surfaces, JAX
+  execution, legacy compatibility, HF preservation, and checkpoint roles are
+  behaviorally proven. Source tokens and old pass receipts are not substitutes
+  for executing the maintained seams.

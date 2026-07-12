@@ -642,7 +642,10 @@ class ForwardResult:
     surface_values: Mapping[str, Any] = field(
         default_factory=lambda: MappingProxyType({}), repr=False, compare=False
     )
-    updated_runtime_state: Any = field(default=None, repr=False, compare=False)
+    updated_architecture_carry: Any = field(default=None, repr=False, compare=False)
+    architecture_metrics: Mapping[str, Any] = field(
+        default_factory=lambda: MappingProxyType({}), repr=False, compare=False
+    )
     output_metadata: Mapping[str, Any] = field(
         default_factory=lambda: MappingProxyType({})
     )
@@ -671,6 +674,17 @@ class ForwardResult:
         object.__setattr__(
             self, "surface_values", MappingProxyType(dict(self.surface_values))
         )
+        if not isinstance(self.architecture_metrics, Mapping):
+            raise TypeError("architecture_metrics must be a mapping")
+        if any(
+            not isinstance(key, str) or not key for key in self.architecture_metrics
+        ):
+            raise TypeError("architecture_metrics keys must be nonempty strings")
+        object.__setattr__(
+            self,
+            "architecture_metrics",
+            MappingProxyType(dict(self.architecture_metrics)),
+        )
         object.__setattr__(
             self, "output_metadata", freeze_mapping(self.output_metadata)
         )
@@ -697,11 +711,33 @@ class ForwardResult:
                 details={"surface_id": surface_id},
             ) from exc
 
+    def surface_for(self, scope: ObjectiveScope) -> Any:
+        """Resolve a typed objective scope to one architecture-owned surface."""
+
+        if not isinstance(scope, ObjectiveScope):
+            raise ArchitectureContractError(
+                "architecture_objective_scope_resolution_failed",
+                "objective scope must be an ObjectiveScope",
+            )
+        if scope.kind in {"final_output", "whole_student"}:
+            return self.surface("final_output")
+        if scope.kind in {"intermediate_surface", "named_region", "plugin_defined"}:
+            assert scope.target_id is not None
+            return self.surface(scope.target_id)
+        raise ArchitectureContractError(
+            "architecture_objective_scope_resolution_failed",
+            "objective scope cannot be resolved to a forward surface",
+            details={"kind": scope.kind},
+        )
+
     def to_dict(self) -> dict[str, Any]:
         return {
             "outputs_present": self.outputs is not None,
             "intermediate_surfaces": list(self.intermediate_surfaces),
             "surface_ids": sorted(self.surface_values),
+            "updated_architecture_carry_present": self.updated_architecture_carry
+            is not None,
+            "architecture_metric_names": sorted(self.architecture_metrics),
             "updated_architecture_state": None
             if self.updated_architecture_state is None
             else self.updated_architecture_state.to_dict(),

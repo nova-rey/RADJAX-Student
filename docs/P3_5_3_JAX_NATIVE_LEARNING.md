@@ -4,12 +4,13 @@ P3.5.3 adds the optional `radjax_student.learning.jax_core` module. Importing
 the base package, architecture contracts, or standard learning contracts does
 not import JAX.
 
-The pure loss composition accepts parameters, functional architecture state,
+The pure loss composition accepts parameters, functional architecture carry,
 a `JaxBatch` pytree, static `JaxObjectiveConfig` metadata, and an explicit RNG
 key. Architecture execution returns the shared `ForwardResult`; objectives
-consume its selected surface and never receive parameters. Updated runtime
-state is returned through auxiliary output and is not mutated or differentiated
-at the batch boundary.
+consume its selected surface and never receive parameters. Updated architecture
+carry is returned through typed auxiliary output and is not mutated or
+differentiated at the batch boundary. Runtime state remains runtime execution
+identity and policy, not recurrent model carry.
 
 `build_value_and_grad_fn()` uses `jax.value_and_grad`. It does not select a
 device or compile. Eager/JIT selection is sent through the accepted Phase 2

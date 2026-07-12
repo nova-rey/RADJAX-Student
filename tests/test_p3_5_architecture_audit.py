@@ -3,7 +3,11 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from scripts.audit_architecture import SCHEMA, build_audit
+from radjax_student.validation.architecture_audit import (
+    SCHEMA,
+    build_architecture_audit,
+    find_dependency_cycles,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 AUDIT_PATH = REPO_ROOT / "docs" / "P3_5_DEPENDENCY_AUDIT.json"
@@ -11,11 +15,14 @@ AUDIT_PATH = REPO_ROOT / "docs" / "P3_5_DEPENDENCY_AUDIT.json"
 
 def test_p3_5_audit_artifact_is_deterministic():
     recorded = json.loads(AUDIT_PATH.read_text(encoding="utf-8"))
-    assert recorded == build_audit(REPO_ROOT)
+    assert recorded == build_architecture_audit(
+        REPO_ROOT, accepted_commit=recorded["accepted_commit"]
+    )
+    assert len(recorded["accepted_commit"]) == 40
 
 
 def test_p3_5_audit_schema_and_module_inventory_are_complete():
-    audit = build_audit(REPO_ROOT)
+    audit = build_architecture_audit(REPO_ROOT)
     source_paths = {
         str(path.relative_to(REPO_ROOT))
         for path in (REPO_ROOT / "src" / "radjax_student").rglob("*.py")
@@ -31,10 +38,20 @@ def test_p3_5_audit_schema_and_module_inventory_are_complete():
 
 
 def test_p3_5_audit_records_current_architecture_blockers():
-    codes = {item["code"] for item in build_audit(REPO_ROOT)["blockers"]}
+    codes = {item["code"] for item in build_architecture_audit(REPO_ROOT)["blockers"]}
 
     assert {
         "objective_receives_raw_parameters",
         "forward_result_discarded",
     }.isdisjoint(codes)
     assert "root_exports_transitional_students" not in codes
+
+
+def test_p3_5_audit_cycle_reporting_is_deterministic():
+    records = (
+        {"module": "radjax_student.alpha", "internal_edges": ["radjax_student.beta"]},
+        {"module": "radjax_student.beta", "internal_edges": ["radjax_student.alpha"]},
+    )
+    assert find_dependency_cycles(records) == [
+        ["radjax_student.alpha", "radjax_student.beta"]
+    ]

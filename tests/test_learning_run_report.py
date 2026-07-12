@@ -21,6 +21,7 @@ from radjax_student.learning import (
     build_learning_run_report,
 )
 from radjax_student.learning.run_report import CLAIMS, NON_CLAIMS, LearningRunReport
+from radjax_student.legacy.scalar_learning import legacy_scalar_learning_step
 from radjax_student.optimizers import (
     OptimizerConfig,
     OptimizerInitRequest,
@@ -148,6 +149,7 @@ def run_loop(
         parameters={"head.weight": 0.0, "trunk.bias": 0.0, "trunk.weight": 0.0},
         objective=LinearObjective(),
         batch_source=SyntheticBatchSource((batch,) * source_length),
+        step_executor=legacy_scalar_learning_step,
         checkpoint=checkpoint,
         hooks=hooks,
         emit_run_report=emit_run_report,

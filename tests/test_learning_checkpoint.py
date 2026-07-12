@@ -98,7 +98,7 @@ def test_v2_checkpoint_includes_source_component_and_manifest_ownership(tmp_path
     assert saved.role == CONTINUATION_CHECKPOINT_ROLE
     assert manifest["checkpoint_role"] == CONTINUATION_CHECKPOINT_ROLE
     assert manifest["payload_descriptors"]["architecture.json"]["kind"] == (
-        "pytree_reference"
+        "scalar_parameter_mapping"
     )
 
 

@@ -7,15 +7,29 @@ Transformers, safetensors, a runtime backend, or an architecture plugin.
 from __future__ import annotations
 
 import json
+import math
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any
 
-from radjax_student.architecture import ArchitectureConfig
+from radjax_student.architecture import ArchitectureConfig, ParameterCatalog
 
 HF_DESCRIPTOR_SCHEMA_VERSION = "hf_compatibility_descriptor.v1"
-_RUNTIME_NAME_TOKENS = ("device", "shard", "mesh", "fused", "buffer_layout")
+_RUNTIME_NAME_TOKENS = {
+    "buffer",
+    "device",
+    "fused",
+    "host",
+    "kernel",
+    "mesh",
+    "partition",
+    "process",
+    "process_index",
+    "replica",
+    "shard",
+}
 
 
 class HFCompatibilityError(ValueError):
@@ -23,7 +37,28 @@ class HFCompatibilityError(ValueError):
 
 
 def _freeze(value: Mapping[str, Any]) -> Mapping[str, Any]:
-    return MappingProxyType(dict(value))
+    if not isinstance(value, Mapping):
+        raise HFCompatibilityError("metadata must be a mapping")
+    frozen: dict[str, Any] = {}
+    for key, item in value.items():
+        if not isinstance(key, str):
+            raise HFCompatibilityError("metadata keys must be strings")
+        frozen[key] = _freeze_value(item)
+    return MappingProxyType(dict(sorted(frozen.items())))
+
+
+def _freeze_value(value: Any) -> Any:
+    if value is None or isinstance(value, (str, bool, int)):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise HFCompatibilityError("metadata values must be finite")
+        return value
+    if isinstance(value, Mapping):
+        return _freeze(value)
+    if isinstance(value, (list, tuple)):
+        return tuple(_freeze_value(item) for item in value)
+    raise HFCompatibilityError("metadata must be finite JSON-safe values")
 
 
 def _json(value: Any) -> Any:
@@ -37,8 +72,13 @@ def _json(value: Any) -> Any:
 def _validate_logical_name(name: str, label: str) -> None:
     if not isinstance(name, str) or not name:
         raise HFCompatibilityError(f"{label} must be a non-empty string")
-    lowered = name.lower()
-    if any(token in lowered for token in _RUNTIME_NAME_TOKENS):
+    tokens = {
+        token
+        for segment in re.split(r"[./:_-]+", name.lower())
+        for token in segment.split("_")
+        if token
+    }
+    if tokens & _RUNTIME_NAME_TOKENS:
         raise HFCompatibilityError(f"{label} must be runtime-layout independent")
 
 
@@ -57,9 +97,13 @@ class HFParameterMapping:
         _validate_logical_name(self.jax_pytree_path, "jax_pytree_path")
         _validate_logical_name(self.hf_distribution_key, "hf_distribution_key")
         if not self.shape or any(
-            not isinstance(item, int) or item < 0 for item in self.shape
+            not isinstance(item, int) or item <= 0 for item in self.shape
         ):
-            raise HFCompatibilityError("shape must contain non-negative integers")
+            raise HFCompatibilityError("shape dimensions must be positive integers")
+        if not isinstance(self.tied_weight_group, (str, type(None))):
+            raise HFCompatibilityError("tied_weight_group must be a string or None")
+        if self.tied_weight_group == "":
+            raise HFCompatibilityError("tied_weight_group must be nonempty when set")
         if not isinstance(self.dtype, str) or not self.dtype:
             raise HFCompatibilityError("dtype must be a non-empty string")
         object.__setattr__(self, "metadata", _freeze(self.metadata))
@@ -118,16 +162,25 @@ class HFCompatibilityDescriptor:
         if not isinstance(self.vocab_size, int) or self.vocab_size <= 0:
             raise HFCompatibilityError("vocab_size must be positive")
         if any(
-            not isinstance(key, str) or not isinstance(value, int) or value < 0
+            not isinstance(key, str)
+            or not key
+            or isinstance(value, bool)
+            or not isinstance(value, int)
+            or not 0 <= value < self.vocab_size
             for key, value in self.special_token_ids.items()
         ):
-            raise HFCompatibilityError(
-                "special token IDs must be non-negative integers"
-            )
+            raise HFCompatibilityError("special token IDs must be in the vocabulary")
+        if len(set(self.special_token_ids.values())) != len(self.special_token_ids):
+            raise HFCompatibilityError("duplicate special token IDs require aliases")
         mappings = tuple(self.parameter_mappings)
-        logical = [item.logical_path for item in mappings]
-        if len(logical) != len(set(logical)):
-            raise HFCompatibilityError("logical parameter paths must be unique")
+        if not mappings or any(
+            not isinstance(item, HFParameterMapping) for item in mappings
+        ):
+            raise HFCompatibilityError("parameter mappings must be nonempty mappings")
+        for field_name in ("logical_path", "jax_pytree_path", "hf_distribution_key"):
+            values = [getattr(item, field_name) for item in mappings]
+            if len(values) != len(set(values)):
+                raise HFCompatibilityError(f"{field_name} values must be unique")
         object.__setattr__(self, "special_token_ids", _freeze(self.special_token_ids))
         object.__setattr__(self, "parameter_mappings", mappings)
         object.__setattr__(
@@ -144,6 +197,7 @@ class HFCompatibilityDescriptor:
     def from_architecture(
         cls,
         config: ArchitectureConfig,
+        parameter_catalog: ParameterCatalog,
         *,
         model_type: str,
         tokenizer_id: str,
@@ -160,7 +214,7 @@ class HFCompatibilityDescriptor:
         }
         if config.vocab_size is None:
             raise HFCompatibilityError("architecture config must declare vocab_size")
-        return cls(
+        descriptor = cls(
             model_type=model_type,
             architecture_id=config.architecture_id,
             tokenizer_id=tokenizer_id,
@@ -170,8 +224,12 @@ class HFCompatibilityDescriptor:
             architecture_projection=projection,
             architecture_state_metadata=architecture_state_metadata or {},
         )
+        descriptor.validate_against(config, parameter_catalog)
+        return descriptor
 
-    def validate_against(self, config: ArchitectureConfig) -> None:
+    def validate_against(
+        self, config: ArchitectureConfig, parameter_catalog: ParameterCatalog
+    ) -> None:
         expected = {
             "architecture_id": config.architecture_id,
             "model_config": _json(config.model_config),
@@ -184,6 +242,19 @@ class HFCompatibilityDescriptor:
             raise HFCompatibilityError(
                 "HF descriptor conflicts with architecture configuration"
             )
+        if parameter_catalog.architecture_id != config.architecture_id:
+            raise HFCompatibilityError("parameter catalog conflicts with architecture")
+        mappings = {item.logical_path: item for item in self.parameter_mappings}
+        if set(mappings) != set(parameter_catalog.paths):
+            raise HFCompatibilityError(
+                "HF mappings must exactly cover parameter catalog"
+            )
+        for descriptor in parameter_catalog.parameters:
+            mapping = mappings[descriptor.path]
+            if mapping.shape != descriptor.shape:
+                raise HFCompatibilityError("HF mapping shape conflicts with catalog")
+            if mapping.dtype != descriptor.dtype:
+                raise HFCompatibilityError("HF mapping dtype conflicts with catalog")
 
     def to_dict(self) -> dict[str, Any]:
         known = {
