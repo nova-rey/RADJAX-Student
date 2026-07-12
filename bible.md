@@ -823,3 +823,14 @@
   the dedicated JAX matrix. Base CI remains JAX-free while checkpoint
   serialization and optimizer-owned step-consistency evidence run where the
   required execution dependency is installed.
+
+## 2026-07-12 - P3.11.7 lifecycle and atomic checkpoint closure
+
+- Checkpoint v3 now validates and fsyncs a complete temporary sibling before
+  atomically renaming it into place, refuses to mutate an existing destination,
+  persists architecture carry descriptors and HF/config/catalog identity, and
+  binds optimizer envelope paths to the canonical parameter layout.
+- Architecture initialization now returns carry, layout, and HF preservation
+  identity. Parameter-layout metadata and deterministic NPZ reads reject
+  mutable or noncanonical representations, with byte-identical repeated-write
+  coverage kept in the base test matrix.

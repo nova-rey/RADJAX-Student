@@ -161,6 +161,16 @@ def test_batch_validation_and_passive_init_forward_models() -> None:
 
     assert initialized.to_dict()["parameters_present"] is True
     assert "parameters" not in initialized.to_dict()
+    assert initialized.architecture_carry == {
+        "state": "test.architecture.v1:initial-carry"
+    }
+    assert initialized.parameter_layout is not None
+    assert (
+        initialized.parameter_layout.logical_paths
+        == initialized.parameter_catalog.paths
+    )
+    assert initialized.hf_reference is not None
+    assert initialized.hf_reference.architecture_id == plugin.architecture_id
     assert forward.to_dict()["outputs_present"] is True
     assert "outputs" not in forward.to_dict()
     assert ArchitectureInitResult.from_dict(initialized.to_dict()) == initialized

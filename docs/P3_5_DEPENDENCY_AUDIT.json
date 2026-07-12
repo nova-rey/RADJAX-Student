@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "43d88e8fd4cd75eeb1e89c1c15f8f93140042098",
+  "accepted_commit": "5bcbd7c9702280618473f57293df9ec45c4ba436",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -110,6 +110,10 @@
     {
       "source": "radjax_student.checkpoints.learning",
       "target": "radjax_student.optimizers"
+    },
+    {
+      "source": "radjax_student.checkpoints.v3",
+      "target": "radjax_student.architecture.models"
     },
     {
       "source": "radjax_student.checkpoints.v3",
@@ -1202,6 +1206,8 @@
         "__future__",
         "collections.abc",
         "dataclasses",
+        "hashlib",
+        "json",
         "radjax_student.architecture.errors",
         "radjax_student.architecture.models",
         "radjax_student.contracts"
@@ -1456,17 +1462,22 @@
         "dataclasses",
         "hashlib",
         "json",
+        "os",
         "pathlib",
+        "radjax_student.architecture.models",
         "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning.models",
         "radjax_student.optimizers.jax",
         "radjax_student.optimizers.models",
         "radjax_student.optimizers.protocols",
+        "shutil",
+        "tempfile",
         "types",
         "typing"
       ],
       "internal_edges": [
+        "radjax_student.architecture.models",
         "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning.models",
@@ -1706,6 +1717,7 @@
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
+        "collections.abc",
         "dataclasses"
       ],
       "internal_edges": [],

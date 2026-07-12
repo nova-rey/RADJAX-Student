@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -27,8 +29,11 @@ from radjax_student.architecture.models import (
     ResolvedObjectiveSelection,
 )
 from radjax_student.contracts import (
+    HFPreservationReference,
     LearningBatch,
     ObjectiveScope,
+    ParameterTreeLayout,
+    ParameterTreeLayoutEntry,
     ResolvedUpdateSelection,
     UpdateScope,
 )
@@ -167,6 +172,61 @@ class FakeArchitecturePlugin:
     ) -> ArchitectureInitResult:
         self.validate_config(request.config)
         catalog = self.describe_parameters()
+        layout = ParameterTreeLayout(
+            architecture_id=self.architecture_id,
+            entries=tuple(
+                ParameterTreeLayoutEntry(
+                    logical_path=descriptor.path,
+                    jax_keypath=tuple(descriptor.path.split(".")),
+                    shape=descriptor.shape,
+                    dtype=descriptor.dtype,
+                    role=descriptor.role,
+                    region_ids=descriptor.region_ids,
+                    trainable=descriptor.trainable_by_default,
+                    exportable=True,
+                    hf_distribution_key=f"model.{descriptor.path}",
+                )
+                for descriptor in catalog.parameters
+            ),
+        )
+        config_digest = hashlib.sha256(
+            (
+                json.dumps(
+                    request.config.to_dict(), sort_keys=True, separators=(",", ":")
+                )
+                + "\n"
+            ).encode()
+        ).hexdigest()
+        catalog_digest = hashlib.sha256(
+            (
+                json.dumps(catalog.to_dict(), sort_keys=True, separators=(",", ":"))
+                + "\n"
+            ).encode()
+        ).hexdigest()
+        hf_reference = HFPreservationReference(
+            descriptor_schema_version="hf_preservation_reference.v1",
+            descriptor_digest=hashlib.sha256(
+                (
+                    json.dumps(
+                        {
+                            "architecture_id": self.architecture_id,
+                            "parameter_layout_digest": layout.digest(),
+                            "parameter_catalog_digest": catalog_digest,
+                        },
+                        sort_keys=True,
+                        separators=(",", ":"),
+                    )
+                    + "\n"
+                ).encode()
+            ).hexdigest(),
+            model_type="radjax_test_architecture",
+            architecture_id=self.architecture_id,
+            tokenizer_id="test-tokenizer",
+            vocabulary_size=request.config.vocab_size or 1,
+            special_token_digest="test-special-token-digest",
+            parameter_layout_digest=layout.digest(),
+            architecture_config_digest=config_digest,
+        )
         return ArchitectureInitResult(
             parameter_catalog=catalog,
             architecture_state=ArchitectureState(
@@ -174,6 +234,9 @@ class FakeArchitecturePlugin:
                 metadata={"runtime_keys_reference": request.runtime_keys_reference},
             ),
             parameters=TestParameterTree(catalog.paths),
+            architecture_carry={"state": f"{self.architecture_id}:initial-carry"},
+            parameter_layout=layout,
+            hf_reference=hf_reference,
             warnings=(
                 ArchitectureIssue(
                     code="architecture_plugin_test_double",

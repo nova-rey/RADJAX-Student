@@ -51,6 +51,15 @@ def validate_jax_optimizer_state(
             "optimizer_jax_state_invalid",
             "optimizer state belongs to a different optimizer",
         )
+    if state.envelope.parameter_paths != parameter_layout.logical_paths:
+        raise OptimizerContractError(
+            "optimizer_state_parameter_mismatch",
+            "optimizer envelope parameter paths do not match parameter layout",
+            details={
+                "expected": list(parameter_layout.logical_paths),
+                "observed": list(state.envelope.parameter_paths),
+            },
+        )
     if state.descriptor != descriptor:
         raise OptimizerContractError(
             "optimizer_jax_state_invalid",

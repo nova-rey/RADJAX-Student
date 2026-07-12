@@ -126,6 +126,22 @@ class ParameterTreeLayoutEntry:
             "metadata": _thaw_json(self.metadata),
         }
 
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> ParameterTreeLayoutEntry:
+        return cls(
+            logical_path=str(payload["logical_path"]),
+            jax_keypath=tuple(payload["jax_keypath"]),
+            shape=tuple(payload["shape"]),
+            dtype=str(payload["dtype"]),
+            role=str(payload["role"]),
+            region_ids=tuple(payload.get("region_ids", ())),
+            trainable=bool(payload.get("trainable", True)),
+            exportable=bool(payload.get("exportable", False)),
+            hf_distribution_key=payload.get("hf_distribution_key"),
+            tied_weight_group=payload.get("tied_weight_group"),
+            metadata=payload.get("metadata", {}),
+        )
+
 
 @dataclass(frozen=True)
 class ParameterTreeLayout:
@@ -289,6 +305,18 @@ class ParameterTreeLayout:
             "architecture_id": self.architecture_id,
             "entries": [entry.to_dict() for entry in self.entries],
         }
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, Any]) -> ParameterTreeLayout:
+        return cls(
+            architecture_id=str(payload["architecture_id"]),
+            entries=tuple(
+                ParameterTreeLayoutEntry.from_dict(item) for item in payload["entries"]
+            ),
+            schema_version=str(
+                payload.get("schema_version", "parameter_tree_layout.v1")
+            ),
+        )
 
     def to_json(self) -> str:
         return json.dumps(self.to_dict(), sort_keys=True, separators=(",", ":"))

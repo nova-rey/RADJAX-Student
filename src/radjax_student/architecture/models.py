@@ -22,8 +22,10 @@ from radjax_student.architecture.errors import (
     ArchitectureIssue,
 )
 from radjax_student.contracts import (
+    HFPreservationReference,
     LearningBatch,
     ObjectiveScope,
+    ParameterTreeLayout,
     ResolvedObjectiveSelection,
 )
 
@@ -522,6 +524,9 @@ class ArchitectureInitResult:
     parameter_catalog: ParameterCatalog
     architecture_state: ArchitectureState | None = None
     parameters: Any = field(default=None, repr=False, compare=False)
+    architecture_carry: Any = field(default=None, repr=False, compare=False)
+    parameter_layout: ParameterTreeLayout | None = None
+    hf_reference: HFPreservationReference | None = None
     warnings: tuple[ArchitectureIssue, ...] = ()
     claims_not_made: tuple[str, ...] = ARCHITECTURE_CLAIMS_NOT_MADE
 
@@ -533,6 +538,18 @@ class ArchitectureInitResult:
         ):
             raise TypeError(
                 "architecture_state must be ArchitectureState when specified"
+            )
+        if self.parameter_layout is not None and not isinstance(
+            self.parameter_layout, ParameterTreeLayout
+        ):
+            raise TypeError(
+                "parameter_layout must be ParameterTreeLayout when specified"
+            )
+        if self.hf_reference is not None and not isinstance(
+            self.hf_reference, HFPreservationReference
+        ):
+            raise TypeError(
+                "hf_reference must be HFPreservationReference when specified"
             )
         warnings = tuple(self.warnings)
         if any(not isinstance(item, ArchitectureIssue) for item in warnings):
@@ -549,6 +566,13 @@ class ArchitectureInitResult:
             if self.architecture_state is None
             else self.architecture_state.to_dict(),
             "parameters_present": self.parameters is not None,
+            "architecture_carry_present": self.architecture_carry is not None,
+            "parameter_layout": None
+            if self.parameter_layout is None
+            else self.parameter_layout.to_dict(),
+            "hf_reference": None
+            if self.hf_reference is None
+            else self.hf_reference.to_dict(),
             "warnings": [item.to_dict() for item in self.warnings],
             "claims_not_made": list(self.claims_not_made),
         }
@@ -556,6 +580,8 @@ class ArchitectureInitResult:
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> ArchitectureInitResult:
         raw_state = payload.get("architecture_state")
+        raw_hf_reference = payload.get("hf_reference")
+        raw_layout = payload.get("parameter_layout")
         return cls(
             parameter_catalog=ParameterCatalog.from_dict(
                 mapping(payload["parameter_catalog"], "parameter_catalog")
@@ -565,6 +591,20 @@ class ArchitectureInitResult:
                 if raw_state is None
                 else ArchitectureState.from_dict(
                     mapping(raw_state, "architecture_state")
+                )
+            ),
+            parameter_layout=(
+                None
+                if raw_layout is None
+                else ParameterTreeLayout.from_dict(
+                    mapping(raw_layout, "parameter_layout")
+                )
+            ),
+            hf_reference=(
+                None
+                if raw_hf_reference is None
+                else HFPreservationReference.from_dict(
+                    mapping(raw_hf_reference, "hf_reference")
                 )
             ),
             warnings=tuple(

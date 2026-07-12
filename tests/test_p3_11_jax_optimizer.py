@@ -126,7 +126,7 @@ def test_jax_sgd_rejects_nonfinite_gradients_and_descriptor_mismatch():
     )
     with pytest.raises(OptimizerContractError, match="finite"):
         require_finite_jax_gradients(metrics)
-    with pytest.raises(OptimizerContractError, match="layout digest"):
+    with pytest.raises(OptimizerContractError, match="parameter paths"):
         validate_jax_optimizer_state(
             state,
             optimizer=optimizer,

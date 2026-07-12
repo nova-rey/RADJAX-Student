@@ -76,10 +76,14 @@ def write_deterministic_npz(path: Path, tree: Mapping[str, Any]) -> dict[str, An
         array = np.asarray(value)
         if array.dtype.hasobject:
             raise TypeError("object dtype and pickle are forbidden in NPZ payloads")
+        if array.dtype.fields is not None:
+            raise TypeError("structured dtypes are not supported in NPZ payloads")
         if array.dtype.byteorder == ">" or (
             array.dtype.byteorder == "=" and not np.little_endian
         ):
             array = array.astype(array.dtype.newbyteorder("<"), copy=False)
+        if array.ndim:
+            array = np.ascontiguousarray(array)
         buffer = BytesIO()
         np.lib.format.write_array(buffer, array, allow_pickle=False)
         members[member] = buffer.getvalue()
@@ -129,6 +133,8 @@ def read_deterministic_npz(path: Path, descriptor: Mapping[str, Any]) -> dict[st
         for keypath, (member, shape, dtype) in expected.items():
             with archive.open(member, "r") as stream:
                 array = np.lib.format.read_array(stream, allow_pickle=False)
+            if array.dtype.hasobject or array.dtype.fields is not None:
+                raise ValueError("object and structured dtypes are not supported")
             if tuple(array.shape) != shape or str(array.dtype) != dtype:
                 raise ValueError("NPZ leaf shape or dtype does not match descriptor")
             _set_mapping_leaf(result, keypath, array)

@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from radjax_student.architecture import ArchitectureState
 from radjax_student.checkpoints import (
     CheckpointValidationError,
     JaxLearningCheckpointV3,
@@ -21,6 +22,7 @@ from radjax_student.checkpoints.npz_codec import (
     write_deterministic_npz,
 )
 from radjax_student.contracts import (
+    HFPreservationReference,
     JaxOptimizerStateDescriptor,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
@@ -35,8 +37,6 @@ from radjax_student.optimizers import (
     advanced_jax_optimizer_state,
     validate_jax_optimizer_state,
 )
-
-pytestmark = pytest.mark.jax
 
 
 def _layout() -> ParameterTreeLayout:
@@ -61,6 +61,8 @@ def _state(optimizer: SgdOptimizer, step: int = 2) -> JaxOptimizerState:
 
 
 def _checkpoint(state: JaxOptimizerState) -> JaxLearningCheckpointV3:
+    layout = _layout()
+    config_digest = "architecture-config-digest"
     return JaxLearningCheckpointV3(
         "runtime-1",
         LearningState(
@@ -69,7 +71,21 @@ def _checkpoint(state: JaxOptimizerState) -> JaxLearningCheckpointV3:
         state,
         {"w": np.asarray((1.0,), dtype=np.float32)},
         {"count": np.asarray(state.envelope.step, dtype=np.int32)},
-        _layout(),
+        layout,
+        ArchitectureState("architecture-state-1"),
+        HFPreservationReference(
+            "hf_descriptor.v1",
+            "hf-descriptor-digest",
+            "test-model",
+            layout.architecture_id,
+            "tokenizer-test",
+            8,
+            "special-token-digest",
+            layout.digest(),
+            config_digest,
+        ),
+        config_digest,
+        "parameter-catalog-digest",
     )
 
 
@@ -156,6 +172,22 @@ def test_numerical_step_tamper_fails_save_validation(tmp_path):
         )
 
 
+def test_optimizer_parameter_paths_mismatch_fails_save_validation(tmp_path):
+    optimizer = SgdOptimizer()
+    tampered = replace(
+        _state(optimizer),
+        envelope=replace(
+            _state(optimizer).envelope, parameter_paths=("foreign.weight",)
+        ),
+    )
+    with pytest.raises(
+        CheckpointValidationError, match="checkpoint_optimizer_parameter_paths_mismatch"
+    ):
+        save_learning_checkpoint_v3(
+            _checkpoint(tampered), tmp_path, optimizer=optimizer
+        )
+
+
 def test_npz_only_edit_is_rejected_by_manifest_integrity(tmp_path):
     optimizer = _save(tmp_path)
     descriptor = json.loads((tmp_path / "optimizer_state.json").read_text())[
@@ -187,6 +219,64 @@ def test_rehashed_npz_edit_is_rejected_by_optimizer_consistency(tmp_path):
         )
 
 
+def test_rehashed_envelope_parameter_paths_are_rejected_on_restore(tmp_path):
+    optimizer = _save(tmp_path)
+    optimizer_payload = json.loads((tmp_path / "optimizer_state.json").read_text())
+    optimizer_payload["envelope"]["parameter_paths"] = ["foreign.weight"]
+    (tmp_path / "optimizer_state.json").write_text(
+        json.dumps(optimizer_payload, sort_keys=True, separators=(",", ":")) + "\n"
+    )
+    _rewrite_manifest(tmp_path)
+    with pytest.raises(
+        CheckpointValidationError, match="checkpoint_optimizer_parameter_paths_mismatch"
+    ):
+        load_learning_checkpoint_v3(
+            tmp_path, optimizer=optimizer, parameter_layout=_layout()
+        )
+
+
+def test_v3_write_is_atomic_and_does_not_mutate_existing_destination(tmp_path):
+    optimizer = _save(tmp_path / "checkpoint")
+    destination = tmp_path / "checkpoint"
+    before = {
+        path.name: path.read_bytes() for path in destination.iterdir() if path.is_file()
+    }
+    with pytest.raises(CheckpointValidationError, match="existing checkpoint"):
+        save_learning_checkpoint_v3(
+            _checkpoint(_state(optimizer)), destination, optimizer=optimizer
+        )
+    after = {
+        path.name: path.read_bytes() for path in destination.iterdir() if path.is_file()
+    }
+    assert before == after
+    assert not tuple(tmp_path.glob(".checkpoint.tmp-*"))
+
+
+def test_v3_repeated_writes_are_byte_identical(tmp_path):
+    optimizer = SgdOptimizer()
+    save_learning_checkpoint_v3(
+        _checkpoint(_state(optimizer)), tmp_path / "one", optimizer=optimizer
+    )
+    save_learning_checkpoint_v3(
+        _checkpoint(_state(optimizer)), tmp_path / "two", optimizer=optimizer
+    )
+    assert all(
+        (tmp_path / "one" / name).read_bytes() == (tmp_path / "two" / name).read_bytes()
+        for name in (
+            "parameters.npz",
+            "parameters.json",
+            "architecture_carry.npz",
+            "architecture_carry.json",
+            "optimizer_state.npz",
+            "optimizer_state.json",
+            "learning.json",
+            "layout.json",
+            "manifest.json",
+        )
+    )
+
+
+@pytest.mark.jax
 def test_restored_state_advances_both_step_identities_together(tmp_path):
     optimizer = _save(tmp_path)
     restored = load_learning_checkpoint_v3(
@@ -211,6 +301,7 @@ def test_restored_state_advances_both_step_identities_together(tmp_path):
     assert advanced.envelope.step == int(advanced.arrays["step"]) == 3
 
 
+@pytest.mark.jax
 def test_uninterrupted_and_resumed_runs_match_both_optimizer_step_identities(tmp_path):
     optimizer = _save(tmp_path)
     resumed = load_learning_checkpoint_v3(

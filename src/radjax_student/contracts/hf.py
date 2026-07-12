@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 
@@ -47,3 +48,17 @@ class HFPreservationReference:
             "parameter_layout_digest": self.parameter_layout_digest,
             "architecture_config_digest": self.architecture_config_digest,
         }
+
+    @classmethod
+    def from_dict(cls, payload: Mapping[str, object]) -> HFPreservationReference:
+        return cls(
+            descriptor_schema_version=str(payload["descriptor_schema_version"]),
+            descriptor_digest=str(payload["descriptor_digest"]),
+            model_type=str(payload["model_type"]),
+            architecture_id=str(payload["architecture_id"]),
+            tokenizer_id=str(payload["tokenizer_id"]),
+            vocabulary_size=int(payload["vocabulary_size"]),
+            special_token_digest=str(payload["special_token_digest"]),
+            parameter_layout_digest=str(payload["parameter_layout_digest"]),
+            architecture_config_digest=str(payload["architecture_config_digest"]),
+        )
