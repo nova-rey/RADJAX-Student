@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "65fecc035f3f72b724369a927914aec52ab93364",
+  "accepted_commit": "65cea8c1ec9f575fb5ec2d3aa095ddf897150e95",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -1769,6 +1769,7 @@
       "imports": [
         "__future__",
         "argparse",
+        "ast",
         "collections.abc",
         "dataclasses",
         "hashlib",
@@ -1787,10 +1788,12 @@
         "radjax_student.learning",
         "radjax_student.learning.errors",
         "radjax_student.learning.jax_core",
+        "radjax_student.optimizers",
         "radjax_student.steps",
         "radjax_student.validation.architecture_audit",
         "subprocess",
         "sys",
+        "tempfile",
         "types",
         "typing"
       ],

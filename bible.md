@@ -730,3 +730,10 @@
 - The deterministic architecture inventory records the accepted remediation
   commit separately from runtime evidence so later verification can reproduce
   the audited module graph without relying on a mutable working tree.
+
+## 2026-07-12 - P3.5 gate replay and behavioral evidence correction
+
+- Deterministic replay means two complete P3.5 evidence collections compare
+  exactly. A digest of one collection is not replay evidence. Final gate
+  sections must exercise malformed inputs and report stable section-specific
+  blocker codes rather than accepting an injected failed result as proof.

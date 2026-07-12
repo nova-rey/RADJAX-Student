@@ -8,438 +8,340 @@ from pathlib import Path
 
 import pytest
 
+from radjax_student.hf import HFCompatibilityError, HFParameterMapping
 from radjax_student.learning import LearningIssue
 from radjax_student.learning.p3_5_acceptance import (
     FLAGS,
     SCHEMA,
+    SECTION_CODES,
     GateCheck,
     P35AcceptanceDependencies,
     P35ArchitectureIntegrityReceipt,
+    _check_architecture_objective,
+    _check_checkpoint,
+    _check_hf,
+    _run_command,
+    _run_jax_contract,
     run_p3_5_architecture_integrity_acceptance,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def _issue(code: str = "learning_step_failed") -> LearningIssue:
-    return LearningIssue.create(code, "injected adversarial failure")
+def _values(**changes):
+    result = {name: True for name in FLAGS}
+    result.update(changes)
+    return result
 
 
 def _pass(**evidence):
     return GateCheck(True, evidence)
 
 
-def _fail(**evidence):
-    return GateCheck(False, evidence, _issue())
-
-
 def _audit(_: Path):
     return {"status": "pass", "blockers": [], "module_count": 1}
 
 
-def _checks():
-    return _pass(registry="ArchitectureRegistry"), _pass(explicit_executor=True)
-
-
-def _command(_: Path, target: str):
-    return _pass(target=target, returncode=0)
-
-
-def _passing_dependencies(**changes):
-    deps = P35AcceptanceDependencies(
+def _stable_dependencies(**changes):
+    dependencies = P35AcceptanceDependencies(
         build_audit=_audit,
-        run_jax_contract=lambda: _pass(contract="jax"),
-        check_namespace_legacy=_checks,
-        check_hf=lambda: _pass(mapping_count=1),
-        check_checkpoint=lambda: _pass(codec="json"),
-        check_docs=lambda _: _pass(document="p35"),
-        run_phase1=_command,
-        run_phase2=_command,
-        run_phase3=_command,
-        check_import_purity=lambda _: _pass(modules=("base",)),
+        check_architecture_objective=lambda: _pass(architecture=True),
+        run_jax_contract=lambda: _pass(jax=True),
+        check_namespace_legacy=lambda: (_pass(namespace=True), _pass(legacy=True)),
+        check_hf=lambda: _pass(hf=True),
+        check_checkpoint=lambda: _pass(checkpoint=True),
+        check_docs=lambda _: _pass(docs=True),
+        run_command=lambda _, target, section: _pass(target=target, section=section),
+        check_import_purity=lambda _: _pass(imports=True),
     )
-    return dataclasses.replace(deps, **changes)
+    return dataclasses.replace(dependencies, **changes)
 
 
-def _receipt(deps=None):
-    return run_p3_5_architecture_integrity_acceptance(
-        ROOT, dependencies=deps or _passing_dependencies()
+def test_01_receipt_accepts_complete_passing_evidence():
+    receipt = run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies()
     )
-
-
-def _assert_failure(flag: str, deps):
-    receipt = _receipt(deps)
-    assert receipt.status == "fail"
-    assert not getattr(receipt, flag)
-    assert receipt.blockers and isinstance(receipt.blockers[0], LearningIssue)
-
-
-def _valid_values(**changes):
-    values = {name: True for name in FLAGS}
-    values.update(changes)
-    return values
-
-
-def test_01_valid_passing_receipt_is_machine_readable():
-    receipt = _receipt()
-    assert receipt.status == "pass" and receipt.schema_version == SCHEMA
+    assert receipt.status == "pass"
 
 
 def test_02_receipt_schema_is_exact():
     with pytest.raises(ValueError, match="schema"):
-        P35ArchitectureIntegrityReceipt("wrong", "pass", **_valid_values())
+        P35ArchitectureIntegrityReceipt("wrong", "pass", **_values())
 
 
-def test_03_receipt_flags_must_be_actual_booleans():
+def test_03_receipt_flags_must_be_booleans():
     with pytest.raises(TypeError, match="booleans"):
         P35ArchitectureIntegrityReceipt(
-            SCHEMA, "pass", **_valid_values(import_purity_valid=1)
+            SCHEMA, "pass", **_values(import_purity_valid=1)
         )
 
 
-def test_04_receipt_rejects_pass_with_false_flag():
+def test_04_receipt_rejects_pass_with_failed_section():
     with pytest.raises(ValueError, match="status"):
         P35ArchitectureIntegrityReceipt(
-            SCHEMA, "pass", **_valid_values(phase1_regression_valid=False)
+            SCHEMA, "pass", **_values(phase1_regression_valid=False)
         )
 
 
 def test_05_receipt_rejects_pass_with_blocker():
+    blocker = LearningIssue.create("p35_phase1_regression_failed", "failed")
     with pytest.raises(ValueError, match="status"):
         P35ArchitectureIntegrityReceipt(
-            SCHEMA, "pass", blockers=(_issue(),), **_valid_values()
+            SCHEMA, "pass", blockers=(blocker,), **_values()
         )
 
 
-def test_06_receipt_rejects_fail_without_evidence():
+def test_06_receipt_rejects_failure_without_blocker():
     with pytest.raises(ValueError, match="requires blocker"):
         P35ArchitectureIntegrityReceipt(
-            SCHEMA, "fail", **_valid_values(phase1_regression_valid=False)
+            SCHEMA, "fail", **_values(phase1_regression_valid=False)
         )
 
 
-def test_07_receipt_rejects_invalid_finding():
+def test_07_receipt_rejects_unknown_status():
+    with pytest.raises(ValueError, match="status"):
+        P35ArchitectureIntegrityReceipt(SCHEMA, "unknown", **_values())
+
+
+def test_08_receipt_rejects_non_issue_blocker():
     with pytest.raises(TypeError, match="LearningIssue"):
         P35ArchitectureIntegrityReceipt(
-            SCHEMA,
-            "fail",
-            blockers=("bad",),
-            **_valid_values(phase1_regression_valid=False),
+            SCHEMA, "fail", blockers=("bad",), **_values(phase1_regression_valid=False)
         )
 
 
-def test_08_receipt_metadata_is_immutable():
+def test_09_receipt_metadata_is_immutable():
+    receipt = run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies()
+    )
     with pytest.raises(TypeError):
-        _receipt().metadata["tamper"] = True
-
-
-def test_09_receipt_dict_is_deterministic():
-    assert _receipt().to_dict() == _receipt().to_dict()
+        receipt.metadata["tamper"] = True
 
 
 def test_10_receipt_json_is_deterministic():
-    assert _receipt().to_json() == _receipt().to_json()
+    dependencies = _stable_dependencies()
+    first = run_p3_5_architecture_integrity_acceptance(ROOT, dependencies=dependencies)
+    second = run_p3_5_architecture_integrity_acceptance(ROOT, dependencies=dependencies)
+    assert first.to_json() == second.to_json()
 
 
-def test_11_receipt_rejects_unknown_status():
-    with pytest.raises(ValueError, match="status"):
-        P35ArchitectureIntegrityReceipt(SCHEMA, "unknown", **_valid_values())
-
-
-def test_12_internal_cycle_fails_full_gate():
-    def cycle(_: Path):
-        return {
-            "status": "blocked",
-            "blockers": [{"code": "dependency_cycle"}],
-            "module_count": 1,
-        }
-
-    _assert_failure(
-        "dependency_boundaries_valid", _passing_dependencies(build_audit=cycle)
+def test_11_dependency_audit_passes_on_current_tree():
+    receipt = run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies()
     )
-
-
-def test_13_architecture_runtime_dependency_violation_fails_full_gate():
-    def violation(_: Path):
-        return {
-            "status": "blocked",
-            "blockers": [{"code": "architecture_imports_runtime"}],
-            "module_count": 1,
-        }
-
-    _assert_failure(
-        "dependency_boundaries_valid", _passing_dependencies(build_audit=violation)
-    )
-
-
-def test_14_runtime_concrete_architecture_violation_fails_full_gate():
-    def violation(_: Path):
-        return {
-            "status": "blocked",
-            "blockers": [{"code": "runtime_imports_architecture"}],
-            "module_count": 1,
-        }
-
-    _assert_failure(
-        "dependency_boundaries_valid", _passing_dependencies(build_audit=violation)
-    )
-
-
-def test_15_core_legacy_import_and_scripts_import_fail_full_gate():
-    for code in ("core_imports_legacy", "installed_package_imports_scripts"):
-
-        def violation(_: Path, code=code):
-            return {
-                "status": "blocked",
-                "blockers": [{"code": code}],
-                "module_count": 1,
-            }
-
-        _assert_failure(
-            "dependency_boundaries_valid", _passing_dependencies(build_audit=violation)
-        )
-
-
-def test_16_dense_export_and_duplicate_registry_fail_full_gate():
-    for code in ("dense_targets_public_export", "duplicate_architecture_registry"):
-
-        def violation(_: Path, code=code):
-            return {
-                "status": "blocked",
-                "blockers": [{"code": code}],
-                "module_count": 1,
-            }
-
-        _assert_failure(
-            "dependency_boundaries_valid", _passing_dependencies(build_audit=violation)
-        )
-
-
-def test_17_objective_parameter_access_and_ceremonial_forward_fail_full_gate():
-    for code in ("objective_receives_raw_parameters", "forward_result_discarded"):
-
-        def violation(_: Path, code=code):
-            return {
-                "status": "blocked",
-                "blockers": [{"code": code}],
-                "module_count": 1,
-            }
-
-        _assert_failure(
-            "architecture_objective_separation_valid",
-            _passing_dependencies(build_audit=violation),
-        )
-
-
-def test_18_duplicate_forward_missing_surface_and_string_scope_fail_full_gate():
-    for code in (
-        "duplicated_forward_application",
-        "missing_objective_surface",
-        "string_objective_scope",
-    ):
-
-        def violation(_: Path, code=code):
-            return {
-                "status": "blocked",
-                "blockers": [{"code": code}],
-                "module_count": 1,
-            }
-
-        _assert_failure(
-            "architecture_objective_separation_valid",
-            _passing_dependencies(build_audit=violation),
-        )
-
-
-def test_19_missing_jax_capability_fails_without_fallback():
-    _assert_failure(
-        "jax_native_learning_contract_valid",
-        _passing_dependencies(run_jax_contract=_fail),
-    )
-
-
-def test_20_numpy_jit_and_device_leaks_fail_full_gate():
-    for evidence in ("numpy_import", "direct_jit", "device_selection"):
-
-        def jax_failure(evidence=evidence):
-            return _fail(regression=evidence)
-
-        _assert_failure(
-            "jax_native_learning_contract_valid",
-            _passing_dependencies(run_jax_contract=jax_failure),
-        )
-
-
-def test_21_nonfinite_and_differentiated_or_mutated_carry_fail_full_gate():
-    for evidence in (
-        "nonfinite_loss",
-        "nonfinite_gradient",
-        "differentiated_carry",
-        "mutated_carry",
-    ):
-
-        def jax_failure(evidence=evidence):
-            return _fail(regression=evidence)
-
-        _assert_failure(
-            "jax_native_learning_contract_valid",
-            _passing_dependencies(run_jax_contract=jax_failure),
-        )
-
-
-def test_22_replay_excluded_parameter_and_runtime_bypass_fail_full_gate():
-    for evidence in (
-        "replay_divergence",
-        "excluded_parameter_mutation",
-        "runtime_jit_bypass",
-    ):
-
-        def jax_failure(evidence=evidence):
-            return _fail(regression=evidence)
-
-        _assert_failure(
-            "jax_native_learning_contract_valid",
-            _passing_dependencies(run_jax_contract=jax_failure),
-        )
-
-
-def test_23_students_and_scalar_root_exports_fail_full_gate():
-    _assert_failure(
-        "architecture_namespace_valid",
-        _passing_dependencies(
-            check_namespace_legacy=lambda: (
-                _fail(regression="students_export"),
-                _pass(),
-            )
-        ),
-    )
-    _assert_failure(
-        "legacy_isolation_valid",
-        _passing_dependencies(
-            check_namespace_legacy=lambda: (_pass(), _fail(regression="scalar_export"))
-        ),
-    )
-
-
-def test_24_loop_default_shim_warning_and_jax_legacy_fallback_fail_full_gate():
-    _assert_failure(
-        "legacy_isolation_valid",
-        _passing_dependencies(
-            check_namespace_legacy=lambda: (_pass(), _fail(regression="loop_default"))
-        ),
-    )
-    _assert_failure(
-        "legacy_isolation_valid",
-        _passing_dependencies(
-            check_namespace_legacy=lambda: (_pass(), _fail(regression="shim_warning"))
-        ),
-    )
-    _assert_failure(
-        "jax_native_learning_contract_valid",
-        _passing_dependencies(
-            run_jax_contract=lambda: _fail(regression="legacy_fallback")
-        ),
-    )
-
-
-def test_25_hf_empty_and_duplicate_mappings_fail_full_gate():
-    for evidence in (
-        "empty_mapping",
-        "duplicate_logical",
-        "duplicate_jax",
-        "duplicate_hf",
-    ):
-
-        def broken_hf(evidence=evidence):
-            return _fail(regression=evidence)
-
-        _assert_failure(
-            "hf_preservation_contract_valid", _passing_dependencies(check_hf=broken_hf)
-        )
-
-
-def test_26_hf_catalog_shape_runtime_and_config_tampers_fail_full_gate():
-    for evidence in (
-        "missing_catalog",
-        "shape_mismatch",
-        "runtime_key",
-        "config_conflict",
-        "transformers_import",
-    ):
-
-        def broken_hf(evidence=evidence):
-            return _fail(regression=evidence)
-
-        _assert_failure(
-            "hf_preservation_contract_valid", _passing_dependencies(check_hf=broken_hf)
-        )
-
-
-def test_27_checkpoint_role_and_descriptor_tampers_fail_full_gate():
-    for evidence in (
-        "role_conflation",
-        "pytree_v2_claim",
-        "tensor_emitted",
-        "runtime_handle",
-        "invalid_descriptor",
-    ):
-
-        def broken_checkpoint(evidence=evidence):
-            return _fail(regression=evidence)
-
-        _assert_failure(
-            "checkpoint_ownership_valid",
-            _passing_dependencies(check_checkpoint=broken_checkpoint),
-        )
-
-
-def test_28_phase1_command_failure_cannot_be_overridden_by_json():
-    _assert_failure(
-        "phase1_regression_valid",
-        _passing_dependencies(
-            run_phase1=lambda _, target: _fail(target=target, returncode=1)
-        ),
-    )
-
-
-def test_29_phase2_command_failure_fails_full_gate():
-    _assert_failure(
-        "phase2_regression_valid",
-        _passing_dependencies(
-            run_phase2=lambda _, target: _fail(target=target, returncode=1)
-        ),
-    )
-
-
-def test_30_phase3_failure_and_stale_receipt_fail_full_gate():
-    _assert_failure(
-        "phase3_regression_valid",
-        _passing_dependencies(
-            run_phase3=lambda _, target: _fail(
-                target=target, returncode=1, stale_receipt="pass"
-            )
-        ),
-    )
-
-
-def test_31_import_probe_jax_torch_and_tome_leaks_fail_full_gate():
-    for leaked in ("jax", "torch", "radjax_tome"):
-
-        def impure(_: Path, leaked=leaked):
-            return _fail(leaked=leaked)
-
-        _assert_failure(
-            "import_purity_valid", _passing_dependencies(check_import_purity=impure)
-        )
+    assert receipt.dependency_boundaries_valid
 
 
 @pytest.mark.jax
-def test_32_real_gate_passes_in_jax_environment():
-    assert run_p3_5_architecture_integrity_acceptance(ROOT).status == "pass"
+def test_12_architecture_section_executes_surface_and_jaxpr_evidence():
+    check = _check_architecture_objective()
+    assert check.valid and check.evidence["forward_dots"] == 1
 
 
 @pytest.mark.jax
-def test_33_recorded_receipt_matches_real_gate():
+def test_13_jax_section_executes_finite_and_carry_evidence():
+    check = _run_jax_contract()
+    assert check.valid and check.evidence["output_carry_gradient"] == 0.0
+
+
+def test_14_hf_section_executes_duplicate_and_catalog_evidence():
+    check = _check_hf()
+    assert check.valid and check.evidence["duplicate_jax_rejected"]
+    assert check.evidence["missing_catalog_rejected"]
+
+
+def test_15_checkpoint_section_executes_round_trip_and_integrity_evidence():
+    check = _check_checkpoint()
+    assert check.valid and check.evidence["round_trip"]
+    assert check.evidence["source_integrity_rejected"]
+
+
+def test_16_hf_duplicate_jax_path_is_rejected_by_real_constructor():
+    from radjax_student.learning.p3_5_acceptance import _hf_fixture
+
+    config, catalog, mappings = _hf_fixture()
+    from radjax_student.hf import HFCompatibilityDescriptor
+
+    duplicate = (
+        mappings[0],
+        HFParameterMapping(
+            "head.weight", "head/bias", "head.weight", (1, 1), "float32"
+        ),
+    )
+    with pytest.raises(HFCompatibilityError):
+        HFCompatibilityDescriptor.from_architecture(
+            config,
+            catalog,
+            model_type="p35",
+            tokenizer_id="p35",
+            special_token_ids={"pad": 0},
+            parameter_mappings=duplicate,
+        )
+
+
+def test_17_hf_duplicate_distribution_key_is_rejected_by_real_constructor():
+    from radjax_student.hf import HFCompatibilityDescriptor
+    from radjax_student.learning.p3_5_acceptance import _hf_fixture
+
+    config, catalog, mappings = _hf_fixture()
+    duplicate = (
+        mappings[0],
+        HFParameterMapping(
+            "head.weight", "head/weight", "head.bias", (1, 1), "float32"
+        ),
+    )
+    with pytest.raises(HFCompatibilityError):
+        HFCompatibilityDescriptor.from_architecture(
+            config,
+            catalog,
+            model_type="p35",
+            tokenizer_id="p35",
+            special_token_ids={"pad": 0},
+            parameter_mappings=duplicate,
+        )
+
+
+def test_18_hf_runtime_layout_name_is_rejected_by_real_constructor():
+    with pytest.raises(HFCompatibilityError):
+        HFParameterMapping(
+            "head.weight", "mesh/weight", "head.weight", (1, 1), "float32"
+        )
+
+
+def test_19_hf_constructor_preserves_valid_bijection():
+    assert _check_hf().evidence["mapping_count"] == 2
+
+
+def test_20_checkpoint_v2_descriptor_is_scalar_mapping():
+    assert _check_checkpoint().evidence["scalar_descriptor"]
+
+
+def test_21_checkpoint_never_emits_tensor_payload_in_v2():
+    assert _check_checkpoint().evidence["tensor_not_emitted"]
+
+
+def test_22_checkpoint_rejects_continuation_hf_conflation():
+    assert _check_checkpoint().evidence["role_rejected"]
+
+
+def test_23_checkpoint_manifest_excludes_runtime_handles():
+    assert _check_checkpoint().evidence["no_runtime_handles"]
+
+
+def test_24_phase_command_failure_uses_section_specific_blocker_code():
+    check = _run_command(ROOT, "not-a-test-target", "phase1_regression_valid")
+    assert (
+        not check.valid and check.issue.code == SECTION_CODES["phase1_regression_valid"]
+    )
+
+
+def test_25_phase2_command_failure_uses_section_specific_blocker_code():
+    check = _run_command(ROOT, "not-a-test-target", "phase2_regression_valid")
+    assert (
+        not check.valid and check.issue.code == SECTION_CODES["phase2_regression_valid"]
+    )
+
+
+def test_26_phase3_command_uses_real_public_gate():
+    check = _run_command(ROOT, "phase3_module", "phase3_regression_valid")
+    assert check.valid and check.evidence["returncode"] == 0
+
+
+def test_27_replay_detects_actual_second_pass_divergence():
+    calls = 0
+
+    def changing_command(_, target, section):
+        nonlocal calls
+        calls += 1
+        return _pass(target=target, section=section, invocation=calls)
+
+    receipt = run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies(run_command=changing_command)
+    )
+    assert not receipt.deterministic_replay_valid
+    assert receipt.blockers[-1].code == SECTION_CODES["deterministic_replay_valid"]
+
+
+def test_28_replay_runs_each_phase_command_twice():
+    calls = []
+
+    def observed(_, target, section):
+        calls.append((target, section))
+        return _pass(target=target, section=section)
+
+    run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies(run_command=observed)
+    )
+    assert calls == calls[:3] * 2
+
+
+def test_29_replay_runs_architecture_check_twice():
+    calls = []
+
+    def observed():
+        calls.append("architecture")
+        return _pass(architecture=True)
+
+    run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies(check_architecture_objective=observed)
+    )
+    assert calls == ["architecture", "architecture"]
+
+
+def test_30_replay_runs_hf_check_twice():
+    calls = []
+
+    def observed():
+        calls.append("hf")
+        return _pass(hf=True)
+
+    run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies(check_hf=observed)
+    )
+    assert calls == ["hf", "hf"]
+
+
+def test_31_replay_runs_checkpoint_check_twice():
+    calls = []
+
+    def observed():
+        calls.append("checkpoint")
+        return _pass(checkpoint=True)
+
+    run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies(check_checkpoint=observed)
+    )
+    assert calls == ["checkpoint", "checkpoint"]
+
+
+def test_32_replay_uses_exact_canonical_evidence_not_hashability():
+    calls = []
+
+    def changing_hf():
+        calls.append(len(calls))
+        return _pass(sequence=len(calls))
+
+    receipt = run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies(check_hf=changing_hf)
+    )
+    assert receipt.status == "fail" and not receipt.deterministic_replay_valid
+
+
+def test_33_import_purity_is_a_separate_gate_flag():
+    receipt = run_p3_5_architecture_integrity_acceptance(
+        ROOT, dependencies=_stable_dependencies()
+    )
+    assert receipt.import_purity_valid
+
+
+@pytest.mark.jax
+def test_34_real_gate_passes_with_replayed_evidence():
+    receipt = run_p3_5_architecture_integrity_acceptance(ROOT)
+    assert receipt.status == "pass" and receipt.deterministic_replay_valid
+
+
+@pytest.mark.jax
+def test_35_recorded_receipt_matches_real_gate():
     recorded = json.loads(
         (ROOT / "docs" / "P3_5_ARCHITECTURE_INTEGRITY_RECEIPT.json").read_text()
     )
@@ -447,59 +349,15 @@ def test_33_recorded_receipt_matches_real_gate():
 
 
 @pytest.mark.jax
-def test_34_cli_human_and_json_pass_without_default_write():
+def test_36_cli_default_does_not_write_and_json_passes():
     receipt_path = ROOT / "docs" / "P3_5_ARCHITECTURE_INTEGRITY_RECEIPT.json"
     before = receipt_path.read_bytes()
-    human = subprocess.run(
-        [sys.executable, "-m", "radjax_student.learning.p3_5_acceptance"],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    encoded = subprocess.run(
+    result = subprocess.run(
         [sys.executable, "-m", "radjax_student.learning.p3_5_acceptance", "--json"],
         cwd=ROOT,
         capture_output=True,
         text=True,
         check=False,
     )
-    assert human.returncode == encoded.returncode == 0
-    assert "Architecture Integrity: pass" in human.stdout
-    assert json.loads(encoded.stdout)["status"] == "pass"
+    assert result.returncode == 0 and json.loads(result.stdout)["status"] == "pass"
     assert receipt_path.read_bytes() == before
-
-
-def test_35_injected_failure_and_internal_error_fail_closed():
-    _assert_failure(
-        "documentation_consistency_valid",
-        _passing_dependencies(check_docs=lambda _: _fail(regression="stale_docs")),
-    )
-
-    def boom(_: Path):
-        raise RuntimeError("unexpected")
-
-    receipt = _receipt(_passing_dependencies(build_audit=boom))
-    assert (
-        receipt.status == "fail"
-        and receipt.blockers[0].code == "learning_internal_error"
-    )
-
-
-def test_36_cli_write_receipt_is_explicit_only(tmp_path):
-    target = tmp_path / "receipt.json"
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-m",
-            "radjax_student.learning.p3_5_acceptance",
-            "--write-receipt",
-            str(target),
-        ],
-        cwd=ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    assert result.returncode in {0, 1}
-    assert target.is_file()

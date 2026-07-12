@@ -7,6 +7,12 @@ dependency direction, architecture/objective separation, the pure JAX path,
 namespace and legacy isolation, HF and checkpoint preservation, documentation,
 all prior phase receipts, import purity, and deterministic replay.
 
+Every final-gate collection executes the complete evidence set twice and
+compares canonical section evidence. The replay flag is false when either pass
+differs. Section failures use stable `p35_*` blocker codes. Architecture/JAX,
+HF, and checkpoint sections exercise their own negative cases rather than
+trusting a focused-test receipt or a pre-failed injected result.
+
 The gate is evidence for architecture and contract integrity only. It does
 not claim production architecture training, Tome payload consumption,
 behavioral distillation, HF export, model quality, or accelerator-scale

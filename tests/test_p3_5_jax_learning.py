@@ -208,17 +208,16 @@ def test_jax_input_carry_is_stop_gradient_isolated():
 
 
 def test_jax_output_carry_is_stop_gradient_isolated():
-    _, _, batch, parameters, carry, config, value_and_grad = _loss_and_grad()
-    (_, auxiliary), _ = value_and_grad(parameters, carry, batch, config, None)
-    assert (
-        float(
-            jax.grad(lambda value: value)(
-                auxiliary.updated_architecture_carry["counter"]
-            )
-        )
-        == 1.0
-    )
-    assert float(auxiliary.updated_architecture_carry["counter"]) == 1.0
+    architecture, objective, batch, parameters, _, config, _ = _loss_and_grad()
+    loss_fn = build_jax_loss_fn(architecture, objective)
+
+    def carry_out(input_carry):
+        return loss_fn(parameters, {"counter": input_carry}, batch, config, None)[
+            1
+        ].updated_architecture_carry["counter"]
+
+    assert float(carry_out(jnp.asarray(0.0))) == 1.0
+    assert float(jax.grad(carry_out)(jnp.asarray(0.0))) == 0.0
 
 
 def test_jax_functional_carry_transition():
