@@ -834,3 +834,9 @@
   identity. Parameter-layout metadata and deterministic NPZ reads reject
   mutable or noncanonical representations, with byte-identical repeated-write
   coverage kept in the base test matrix.
+
+## 2026-07-12 - P3.11.7 accepted dependency snapshot
+
+- The maintained AST dependency inventory is regenerated against the lifecycle
+  closure commit so its accepted source snapshot, module graph, and cycle proof
+  identify the exact implementation being validated.
