@@ -36,6 +36,8 @@ from radjax_student.optimizers import (
     validate_jax_optimizer_state,
 )
 
+pytestmark = pytest.mark.jax
+
 
 def _layout() -> ParameterTreeLayout:
     return ParameterTreeLayout(

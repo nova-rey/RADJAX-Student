@@ -816,3 +816,10 @@
   sidecars preserve descriptor-defined pytree structure. Envelope-only,
   numerical-only, sidecar-only, rehashed, identity, and non-SGD tampering are
   explicit adversarial cases; mismatches are never repaired or normalized.
+
+## 2026-07-12 - P3.11.7 checkpoint test-matrix correction
+
+- v3 tests that execute the JAX optimizer capability are explicitly marked for
+  the dedicated JAX matrix. Base CI remains JAX-free while checkpoint
+  serialization and optimizer-owned step-consistency evidence run where the
+  required execution dependency is installed.
