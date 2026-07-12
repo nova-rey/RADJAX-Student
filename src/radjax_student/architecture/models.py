@@ -525,6 +525,7 @@ class ArchitectureInitResult:
     architecture_state: ArchitectureState | None = None
     parameters: Any = field(default=None, repr=False, compare=False)
     architecture_carry: Any = field(default=None, repr=False, compare=False)
+    architecture_carry_descriptor: Mapping[str, Any] | None = None
     parameter_layout: ParameterTreeLayout | None = None
     hf_reference: HFPreservationReference | None = None
     warnings: tuple[ArchitectureIssue, ...] = ()
@@ -551,6 +552,16 @@ class ArchitectureInitResult:
             raise TypeError(
                 "hf_reference must be HFPreservationReference when specified"
             )
+        if self.architecture_carry_descriptor is not None and not isinstance(
+            self.architecture_carry_descriptor, Mapping
+        ):
+            raise TypeError("architecture_carry_descriptor must be a mapping")
+        if self.architecture_carry_descriptor is not None:
+            object.__setattr__(
+                self,
+                "architecture_carry_descriptor",
+                freeze_mapping(self.architecture_carry_descriptor),
+            )
         warnings = tuple(self.warnings)
         if any(not isinstance(item, ArchitectureIssue) for item in warnings):
             raise TypeError("warnings must contain ArchitectureIssue values")
@@ -567,6 +578,9 @@ class ArchitectureInitResult:
             else self.architecture_state.to_dict(),
             "parameters_present": self.parameters is not None,
             "architecture_carry_present": self.architecture_carry is not None,
+            "architecture_carry_descriptor": None
+            if self.architecture_carry_descriptor is None
+            else json_value(self.architecture_carry_descriptor),
             "parameter_layout": None
             if self.parameter_layout is None
             else self.parameter_layout.to_dict(),
@@ -582,6 +596,7 @@ class ArchitectureInitResult:
         raw_state = payload.get("architecture_state")
         raw_hf_reference = payload.get("hf_reference")
         raw_layout = payload.get("parameter_layout")
+        raw_carry_descriptor = payload.get("architecture_carry_descriptor")
         return cls(
             parameter_catalog=ParameterCatalog.from_dict(
                 mapping(payload["parameter_catalog"], "parameter_catalog")
@@ -606,6 +621,11 @@ class ArchitectureInitResult:
                 else HFPreservationReference.from_dict(
                     mapping(raw_hf_reference, "hf_reference")
                 )
+            ),
+            architecture_carry_descriptor=(
+                None
+                if raw_carry_descriptor is None
+                else mapping(raw_carry_descriptor, "architecture_carry_descriptor")
             ),
             warnings=tuple(
                 ArchitectureIssue.from_dict(mapping(item, "warning"))

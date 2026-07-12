@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "08f5b2310733cf16764b4eea89cf7cf0c1799a26",
+  "accepted_commit": "fe72b098a94f4667a5a7ab98031291ce7359db34",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -897,6 +897,10 @@
     },
     {
       "source": "radjax_student.steps.jax_loop",
+      "target": "radjax_student.checkpoints.npz_codec"
+    },
+    {
+      "source": "radjax_student.steps.jax_loop",
       "target": "radjax_student.contracts"
     },
     {
@@ -1069,7 +1073,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 106,
+  "module_count": 107,
   "modules": [
     {
       "classification": "core",
@@ -1458,6 +1462,7 @@
       "public_exports": [
         "NPZ_CODEC_VERSION",
         "decode_member_name",
+        "describe_mapping_pytree",
         "descriptor_digest",
         "encode_keypath",
         "read_deterministic_npz",
@@ -3566,6 +3571,7 @@
         "json",
         "radjax_student.architecture",
         "radjax_student.checkpoints",
+        "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning",
         "radjax_student.learning.jax_batch",
@@ -3579,6 +3585,7 @@
       "internal_edges": [
         "radjax_student.architecture",
         "radjax_student.checkpoints",
+        "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning",
         "radjax_student.learning.jax_batch",
@@ -3850,6 +3857,31 @@
       "owner": "compatibility_validation",
       "path": "src/radjax_student/validation/default_models.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_11_8_systems_receipt",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_8_systems_receipt.py",
+      "public_exports": [
+        "NON_CLAIMS",
+        "REQUIRED_FLAGS",
+        "SCHEMA_VERSION",
+        "StatefulSystemsProofResult",
+        "build_stateful_systems_receipt"
+      ]
     },
     {
       "classification": "core",

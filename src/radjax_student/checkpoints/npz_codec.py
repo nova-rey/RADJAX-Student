@@ -87,20 +87,8 @@ def write_deterministic_npz(path: Path, tree: Mapping[str, Any]) -> dict[str, An
         buffer = BytesIO()
         np.lib.format.write_array(buffer, array, allow_pickle=False)
         members[member] = buffer.getvalue()
-        descriptors.append(
-            {
-                "keypath": list(keypath),
-                "member": member,
-                "shape": list(array.shape),
-                "dtype": str(array.dtype),
-            }
-        )
-    descriptor = {
-        "schema_version": "jax_pytree_payload.v1",
-        "codec": NPZ_CODEC_VERSION,
-        "tree_kind": "mapping_only",
-        "leaves": descriptors,
-    }
+        descriptors.append(_leaf_descriptor(keypath, member, array))
+    descriptor = _descriptor(descriptors)
     path.parent.mkdir(parents=True, exist_ok=True)
     with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_STORED) as archive:
         for member in sorted(members):
@@ -110,6 +98,27 @@ def write_deterministic_npz(path: Path, tree: Mapping[str, Any]) -> dict[str, An
             info.external_attr = 0o100644 << 16
             archive.writestr(info, members[member])
     return descriptor
+
+
+def describe_mapping_pytree(tree: Mapping[str, Any]) -> dict[str, Any]:
+    """Describe the canonical mapping-pytree identity without writing a sidecar.
+
+    Architectures can declare a carry identity during initialization before a
+    continuation checkpoint exists. The descriptor is identical to the one
+    produced by :func:`write_deterministic_npz`; only the byte container is
+    deferred to checkpoint ownership.
+    """
+
+    try:
+        import numpy as np
+    except ImportError as exc:  # pragma: no cover - dependency boundary
+        raise RuntimeError("numpy is required for checkpoint tensor payloads") from exc
+
+    descriptors: list[dict[str, Any]] = []
+    for keypath, value in sorted(_flatten_mapping(tree).items()):
+        array = _canonical_array(np.asarray(value), np)
+        descriptors.append(_leaf_descriptor(keypath, encode_keypath(keypath), array))
+    return _descriptor(descriptors)
 
 
 def read_deterministic_npz(path: Path, descriptor: Mapping[str, Any]) -> dict[str, Any]:
@@ -158,6 +167,38 @@ def _flatten_mapping(
     return result
 
 
+def _canonical_array(array: Any, np: Any) -> Any:
+    if array.dtype.hasobject:
+        raise TypeError("object dtype and pickle are forbidden in NPZ payloads")
+    if array.dtype.fields is not None:
+        raise TypeError("structured dtypes are not supported in NPZ payloads")
+    if array.dtype.byteorder == ">" or (
+        array.dtype.byteorder == "=" and not np.little_endian
+    ):
+        array = array.astype(array.dtype.newbyteorder("<"), copy=False)
+    return np.ascontiguousarray(array) if array.ndim else array
+
+
+def _leaf_descriptor(
+    keypath: tuple[str, ...], member: str, array: Any
+) -> dict[str, Any]:
+    return {
+        "keypath": list(keypath),
+        "member": member,
+        "shape": list(array.shape),
+        "dtype": str(array.dtype),
+    }
+
+
+def _descriptor(leaves: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "schema_version": "jax_pytree_payload.v1",
+        "codec": NPZ_CODEC_VERSION,
+        "tree_kind": "mapping_only",
+        "leaves": leaves,
+    }
+
+
 def _set_mapping_leaf(
     result: dict[str, Any], keypath: tuple[str, ...], value: Any
 ) -> None:
@@ -176,6 +217,7 @@ def _json_bytes(value: Mapping[str, Any]) -> bytes:
 __all__ = [
     "NPZ_CODEC_VERSION",
     "decode_member_name",
+    "describe_mapping_pytree",
     "descriptor_digest",
     "encode_keypath",
     "read_deterministic_npz",

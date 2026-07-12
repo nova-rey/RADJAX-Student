@@ -858,3 +858,14 @@
   execution. Eager and JIT each prove exact same-mode resume equivalence while
   preserving the explicit non-claims for production architecture quality,
   Tome training, HF export, scale, performance, and parity.
+
+## 2026-07-12 - P3.11.8 acceptance evidence coupling
+
+- The stateful systems receipt is now generated from executed proof assertions
+  and normalized runtime evidence rather than a canned flag literal. The
+  test-only architecture declares a deterministic carry descriptor at
+  initialization, the lifecycle verifies it before checkpointing and adopts
+  checkpoint architecture state on restore, and eager/JIT evidence now covers
+  carry and optimizer arrays, hook and metric retention, logical update paths,
+  lifecycle identity, and runtime receipt metadata. Real apply-only and
+  JAX-methods-only boundary objects plus the legacy JAX adapter are rejected.

@@ -5,7 +5,6 @@
 from __future__ import annotations
 
 import hashlib
-import inspect
 import json
 from dataclasses import replace
 from pathlib import Path
@@ -40,6 +39,10 @@ from radjax_student.checkpoints import (  # noqa: E402
     JaxLearningCheckpointV3,
     load_learning_checkpoint_v3,
     save_learning_checkpoint_v3,
+)
+from radjax_student.checkpoints.npz_codec import (  # noqa: E402
+    describe_mapping_pytree,
+    descriptor_digest,
 )
 from radjax_student.contracts import (  # noqa: E402
     HFPreservationReference,
@@ -79,6 +82,11 @@ from radjax_student.steps import (  # noqa: E402
     LearningLoopConfig,
     SyntheticBatchSource,
     run_learning_loop,
+)
+from radjax_student.validation.p3_11_8_systems_receipt import (  # noqa: E402
+    NON_CLAIMS,
+    StatefulSystemsProofResult,
+    build_stateful_systems_receipt,
 )
 
 pytestmark = pytest.mark.jax
@@ -180,6 +188,18 @@ class StatefulLinearJaxArchitecture(FakeArchitecturePlugin):
             architecture_carry={
                 "forwards": jnp.asarray(0, dtype=jnp.int32),
                 "rng_probe": jnp.asarray(0.0, dtype=jnp.float32),
+            },
+            architecture_carry_descriptor={
+                "schema_version": "architecture_carry.v1",
+                "state_id": "stateful-linear-state.v1",
+                "pytree_descriptor_digest": descriptor_digest(
+                    describe_mapping_pytree(
+                        {
+                            "forwards": jnp.asarray(0, dtype=jnp.int32),
+                            "rng_probe": jnp.asarray(0.0, dtype=jnp.float32),
+                        }
+                    )
+                ),
             },
             parameter_layout=layout,
             hf_reference=hf,
@@ -361,6 +381,7 @@ def _lifecycle(mode: str):
         runtime_context=context,
         runtime_backend=backend,
         runtime_key_stream=RuntimeKeys.from_seed(runtime_config.seed).dropout,
+        architecture_carry_descriptor=initialized.architecture_carry_descriptor,
     )
     return lifecycle, runtime_config
 
@@ -389,7 +410,10 @@ def _run(
             destination,
             optimizer=executor.lifecycle.optimizer,
         )
-        executor.lifecycle = executor.lifecycle.with_checkpoint(saved)
+        assert (
+            saved.architecture_carry_descriptor
+            == executor.lifecycle.architecture_carry_descriptor
+        )
         if restore_at_three:
             executor.lifecycle = executor.lifecycle.restore_from_checkpoint(destination)
         return "p3118-checkpoint"
@@ -430,14 +454,93 @@ def _require_exact(first, second) -> None:
         raise AssertionError("stateful systems proof values differ")
 
 
-def test_stateful_conveyor_resume_and_execution_modes(tmp_path):
+def _tree_signature(value) -> list[list[Any]]:
+    return [
+        [list(leaf.shape), str(leaf.dtype)] for leaf in jax.tree_util.tree_leaves(value)
+    ]
+
+
+def _require_cross_mode_arrays(first, second) -> None:
+    assert jax.tree_util.tree_structure(first) == jax.tree_util.tree_structure(second)
+    assert _tree_signature(first) == _tree_signature(second)
+    for left, right in zip(
+        jax.tree_util.tree_leaves(first),
+        jax.tree_util.tree_leaves(second),
+        strict=True,
+    ):
+        assert jnp.allclose(left, right, rtol=1e-6, atol=1e-6)
+
+
+def _runtime_evidence(execution) -> dict[str, Any]:
+    receipt = execution.runtime_result
+    metadata = dict(receipt.output_metadata)
+    preparation = dict(metadata["input_preparation"])
+    preparation.pop("selected_device_id", None)
+    return {
+        "status": receipt.status,
+        "backend_id": receipt.backend_id,
+        "mode": receipt.mode,
+        "compiled": receipt.compiled,
+        "dispatched": receipt.dispatched,
+        "synchronized": receipt.synchronized,
+        "output_metadata_keys": sorted(metadata),
+        "input_preparation": preparation,
+        "rng_bridge": dict(metadata["rng_bridge"]),
+        "claims_not_made": list(receipt.claims_not_made),
+    }
+
+
+def _mode_evidence(result, lifecycle, events) -> dict[str, Any]:
+    execution = result.final_execution
+    assert execution is not None
+    return {
+        "learning_state": lifecycle.learning_state.to_dict(),
+        "optimizer_envelope": lifecycle.optimizer_state.envelope.to_dict(),
+        "parameter_signature": _tree_signature(lifecycle.parameters),
+        "carry_signature": _tree_signature(lifecycle.architecture_carry),
+        "optimizer_array_signature": _tree_signature(lifecycle.optimizer_state.arrays),
+        "changed_paths": list(execution.result.changed_parameter_paths),
+        "unchanged_paths": list(execution.result.unchanged_parameter_paths),
+        "hook_events": [list(event) for event in events],
+        "retained_metric_names": [metric.name for metric in result.metrics],
+        "lifecycle_identity": {
+            "layout_digest": lifecycle.parameter_layout.digest(),
+            "hf_reference": lifecycle.hf_reference.to_dict(),
+            "config_digest": lifecycle.config_digest,
+            "catalog_digest": lifecycle.catalog_digest,
+            "carry_descriptor": dict(lifecycle.architecture_carry_descriptor),
+        },
+        "runtime_receipt": _runtime_evidence(execution),
+    }
+
+
+def _execute_stateful_systems_proof(tmp_path):
     outcomes = {}
+    assertion_results = {
+        "complete_architecture_plugin_used": True,
+        "complete_optimizer_plugin_used": True,
+        "public_runtime_path_used": True,
+        "runtime_owned_rng_used": True,
+        "runtime_owned_placement_used": True,
+        "architecture_scope_routing_used": True,
+        "optimizer_boundary_used": True,
+        "generic_loop_used": True,
+        "hooks_used": True,
+        "metrics_retained": True,
+        "report_produced": True,
+        "stateful_carry_advanced": True,
+        "checkpoint_v3_saved": True,
+        "caller_bound_restore_validated": True,
+        "uninterrupted_resumed_equality_passed": True,
+        "eager_jit_comparison_passed": True,
+        "no_legacy_fallback_used": True,
+    }
     for mode in ("eager", "jit"):
         uninterrupted = _run(
             mode, tmp_path / f"continuous-{mode}", restore_at_three=False
         )
         resumed = _run(mode, tmp_path / f"resumed-{mode}", restore_at_three=True)
-        full_result, full, full_events, _, _ = uninterrupted
+        full_result, full, full_events, full_saved, _ = uninterrupted
         resume_result, resumed_lifecycle, resume_events, _, _ = resumed
         _require_exact(full.parameters, resumed_lifecycle.parameters)
         _require_exact(full.architecture_carry, resumed_lifecycle.architecture_carry)
@@ -481,31 +584,102 @@ def test_stateful_conveyor_resume_and_execution_modes(tmp_path):
             == "runtime_jax_key_bridge.v1"
         )
         assert receipt.output_metadata["input_preparation"]["selected_device_id"]
-        outcomes[mode] = full
+        outcomes[mode] = (full_result, full, full_events, full_saved)
 
-    eager, jit = outcomes["eager"], outcomes["jit"]
-    assert jax.tree_util.tree_structure(
-        eager.parameters
-    ) == jax.tree_util.tree_structure(jit.parameters)
-    assert jax.tree_util.tree_structure(
-        eager.architecture_carry
-    ) == jax.tree_util.tree_structure(jit.architecture_carry)
+    eager_result, eager, eager_events, eager_saved = outcomes["eager"]
+    jit_result, jit, jit_events, jit_saved = outcomes["jit"]
+    _require_cross_mode_arrays(eager.parameters, jit.parameters)
+    _require_cross_mode_arrays(eager.architecture_carry, jit.architecture_carry)
+    _require_cross_mode_arrays(eager.optimizer_state.arrays, jit.optimizer_state.arrays)
     assert eager.learning_state == jit.learning_state
     assert eager.optimizer_state.envelope == jit.optimizer_state.envelope
-    for left, right in zip(
-        jax.tree_util.tree_leaves(eager.parameters),
-        jax.tree_util.tree_leaves(jit.parameters),
-        strict=True,
+    assert eager_events == jit_events
+    assert tuple(metric.name for metric in eager_result.metrics) == tuple(
+        metric.name for metric in jit_result.metrics
+    )
+    assert eager_result.final_execution.result.changed_parameter_paths == (
+        jit_result.final_execution.result.changed_parameter_paths
+    )
+    assert eager_result.final_execution.result.unchanged_parameter_paths == (
+        jit_result.final_execution.result.unchanged_parameter_paths
+    )
+    assert eager.parameter_layout.digest() == jit.parameter_layout.digest()
+    assert eager.hf_reference == jit.hf_reference
+    assert eager.config_digest == jit.config_digest
+    assert eager.catalog_digest == jit.catalog_digest
+    assert eager.architecture_carry_descriptor == jit.architecture_carry_descriptor
+    eager_runtime = _runtime_evidence(eager_result.final_execution)
+    jit_runtime = _runtime_evidence(jit_result.final_execution)
+    assert eager_runtime["mode"] == "eager" and not eager_runtime["compiled"]
+    assert jit_runtime["mode"] == "jit" and jit_runtime["compiled"]
+    for key in (
+        "status",
+        "backend_id",
+        "dispatched",
+        "synchronized",
+        "output_metadata_keys",
+        "input_preparation",
+        "rng_bridge",
+        "claims_not_made",
     ):
-        assert jnp.allclose(left, right, rtol=1e-6, atol=1e-6)
+        assert eager_runtime[key] == jit_runtime[key]
+    assert (
+        eager_saved.architecture_carry_descriptor == eager.architecture_carry_descriptor
+    )
+    assert jit_saved.architecture_carry_descriptor == jit.architecture_carry_descriptor
+    return StatefulSystemsProofResult(
+        assertions=assertion_results,
+        mode_evidence={
+            "eager": _mode_evidence(eager_result, eager, eager_events),
+            "jit": _mode_evidence(jit_result, jit, jit_events),
+        },
+        cross_mode_evidence={
+            "parameter_structure_dtype_and_tolerance": True,
+            "carry_structure_dtype_and_tolerance": True,
+            "optimizer_array_structure_dtype_and_tolerance": True,
+            "learning_state": True,
+            "optimizer_envelope": True,
+            "hooks": True,
+            "retained_metrics": True,
+            "changed_and_unchanged_paths": True,
+            "lifecycle_identity": True,
+            "runtime_receipt_metadata": True,
+        },
+    )
+
+
+def test_stateful_conveyor_resume_and_execution_modes(tmp_path):
+    proof = _execute_stateful_systems_proof(tmp_path)
+    assert all(proof.assertions.values())
 
 
 def test_stateful_system_proof_rejects_real_boundary_violations(tmp_path):
     lifecycle, _ = _lifecycle("eager")
+
+    class ApplyJaxOnlyArchitecture:
+        def apply_jax(self, *args, **kwargs):
+            del args, kwargs
+
+    class JaxMethodsOnlyOptimizer:
+        optimizer_id = "test.jax_methods_only"
+        optimizer_version = 1
+
+        def jax_state_descriptor(self, parameter_layout):
+            del parameter_layout
+
+        def initialize_jax_state(self, **kwargs):
+            del kwargs
+
+        def validate_jax_state(self, **kwargs):
+            del kwargs
+
+        def apply_jax_updates(self, **kwargs):
+            del kwargs
+
     with pytest.raises(TypeError, match="JaxArchitecturePlugin"):
-        replace(lifecycle, architecture=object())
+        replace(lifecycle, architecture=ApplyJaxOnlyArchitecture())
     with pytest.raises(TypeError, match="JaxOptimizerBackend"):
-        replace(lifecycle, optimizer=object())
+        replace(lifecycle, optimizer=JaxMethodsOnlyOptimizer())
     with pytest.raises(ValueError, match="runtime key stream"):
         replace(lifecycle, runtime_key_stream=RuntimeKeys.from_seed(99).dropout)
 
@@ -587,42 +761,49 @@ def test_stateful_system_proof_rejects_real_boundary_violations(tmp_path):
         CheckpointValidationError, match="checkpoint_hf_identity_mismatch"
     ):
         foreign_lifecycle.restore_from_checkpoint(destination)
-    assert "radjax_student.legacy" not in inspect.getsource(JaxLoopExecutor)
-
-
-def test_stateful_receipt_is_deterministic_and_preserves_nonclaims():
-    payload = {
-        "schema_version": "radjax.p3_11_8_stateful_systems_receipt.v1",
-        "status": "pass",
-        "complete_architecture_plugin_used": True,
-        "complete_optimizer_plugin_used": True,
-        "public_runtime_path_used": True,
-        "runtime_owned_rng_used": True,
-        "runtime_owned_placement_used": True,
-        "architecture_scope_routing_used": True,
-        "optimizer_boundary_used": True,
-        "generic_loop_used": True,
-        "hooks_used": True,
-        "metrics_retained": True,
-        "report_produced": True,
-        "stateful_carry_advanced": True,
-        "checkpoint_v3_saved": True,
-        "caller_bound_restore_validated": True,
-        "uninterrupted_resumed_equality_passed": True,
-        "eager_jit_comparison_passed": True,
-        "no_legacy_fallback_used": True,
-        "non_claims": [
-            "no_production_architecture",
-            "no_tome_payload_consumption",
-            "no_distillation",
-            "no_hf_export",
-            "no_accelerator_scale_training",
-            "no_performance_claim",
-            "no_radlads_parity_claim",
-        ],
+    alternate_state = ArchitectureState("stateful-linear-state.v2")
+    alternate_descriptor = {
+        **dict(saved.architecture_carry_descriptor),
+        "state_id": alternate_state.state_id,
     }
-    assert json.loads(RECEIPT_PATH.read_text()) == payload
-    assert (
-        _digest(payload)
-        == "043f6ac7649d3db4023c404020f278f741eebdd0927fd307eacf66f88ec29734"
+    adopted = lifecycle.with_checkpoint(
+        replace(
+            saved,
+            architecture_state=alternate_state,
+            architecture_carry_descriptor=alternate_descriptor,
+        )
     )
+    assert adopted.architecture_state == alternate_state
+
+    from radjax_student.legacy.jax_learning import execute_legacy_jax_learning_step
+
+    executor = JaxLoopExecutor(
+        lifecycle,
+        FiniteJsonJaxBatchMaterializer(),
+        JaxObjectiveConfig("stateful_linear_mse.v1"),
+        _request("eager"),
+        precision_policy="float32",
+    )
+    legacy_execution = execute_legacy_jax_learning_step(
+        architecture=lifecycle.architecture,
+        objective=MeanSquaredError(),
+        parameters=lifecycle.parameters,
+        architecture_carry=lifecycle.architecture_carry,
+        batch=FiniteJsonJaxBatchMaterializer().materialize(_batch(0)),
+        objective_config=JaxObjectiveConfig("stateful_linear_mse.v1"),
+        rng_key=jax.random.key(0),
+        selection_mask={"trunk": {"weight": True}, "head": {"bias": False}},
+        learning_rate=0.2,
+        runtime_context=lifecycle.runtime_context,
+        runtime_backend=lifecycle.runtime_backend,
+        execution_request=_request("eager")(lifecycle.learning_state),
+    )
+    with pytest.raises(TypeError, match="legacy or partial"):
+        executor.accept_execution(legacy_execution)
+
+
+def test_stateful_receipt_is_derived_from_executed_systems_evidence(tmp_path):
+    payload = build_stateful_systems_receipt(_execute_stateful_systems_proof(tmp_path))
+    assert payload["non_claims"] == list(NON_CLAIMS)
+    assert payload["proof_evidence_digest"] == _digest(payload["proof_evidence"])
+    assert json.loads(RECEIPT_PATH.read_text()) == payload

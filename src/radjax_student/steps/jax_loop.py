@@ -19,6 +19,10 @@ from radjax_student.checkpoints import (
     JaxLearningCheckpointV3,
     load_learning_checkpoint_v3,
 )
+from radjax_student.checkpoints.npz_codec import (
+    describe_mapping_pytree,
+    descriptor_digest,
+)
 from radjax_student.contracts import HFPreservationReference, ParameterTreeLayout
 from radjax_student.learning import LearningBatch, LearningState
 from radjax_student.learning.jax_batch import JaxBatchMaterializer
@@ -122,14 +126,32 @@ class JaxLearningLifecycle:
             raise TypeError("runtime_key_stream must be RuntimeKeyStream")
         if self.runtime_key_stream.root_seed != self.runtime_context.root_seed:
             raise ValueError("runtime key stream does not belong to the runtime")
-        if self.architecture_carry_descriptor is not None:
-            if not isinstance(self.architecture_carry_descriptor, Mapping):
-                raise TypeError("architecture_carry_descriptor must be a mapping")
-            object.__setattr__(
-                self,
-                "architecture_carry_descriptor",
-                MappingProxyType(dict(self.architecture_carry_descriptor)),
+        if not isinstance(self.architecture_carry_descriptor, Mapping):
+            raise TypeError(
+                "architecture_carry_descriptor must be supplied by initialization"
             )
+        carry_identity = dict(self.architecture_carry_descriptor)
+        expected_descriptor_digest = descriptor_digest(
+            describe_mapping_pytree(self.architecture_carry)
+        )
+        if carry_identity.get("pytree_descriptor_digest") != expected_descriptor_digest:
+            raise ValueError(
+                "architecture carry descriptor does not match initialized carry"
+            )
+        if self.architecture_state is not None and carry_identity.get(
+            "state_id"
+        ) not in (
+            None,
+            self.architecture_state.state_id,
+        ):
+            raise ValueError(
+                "architecture carry descriptor state does not match lifecycle"
+            )
+        object.__setattr__(
+            self,
+            "architecture_carry_descriptor",
+            MappingProxyType(carry_identity),
+        )
 
     @property
     def config_digest(self) -> str:
@@ -181,6 +203,7 @@ class JaxLearningLifecycle:
             optimizer_state=checkpoint.optimizer_state,
             parameters=checkpoint.parameters,
             architecture_carry=checkpoint.architecture_carry,
+            architecture_state=checkpoint.architecture_state,
             architecture_carry_descriptor=checkpoint.architecture_carry_descriptor,
         )
 
@@ -269,6 +292,16 @@ class JaxLoopExecutor:
             precision_policy=self.precision_policy,
             schedule_values=self.schedule_values,
         )
+        return self.accept_execution(execution)
+
+    def accept_execution(
+        self, execution: JaxLearningStepExecution
+    ) -> JaxLearningStepExecution:
+        """Accept only complete production JAX executions into this lifecycle."""
+
+        if not isinstance(execution, JaxLearningStepExecution):
+            raise TypeError("JAX lifecycle rejects legacy or partial step executions")
+        lifecycle = self.lifecycle
         self.lifecycle = replace(
             lifecycle,
             learning_state=execution.learning_state,

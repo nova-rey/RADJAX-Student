@@ -168,7 +168,7 @@ def save_learning_checkpoint_v3(
             temporary / "optimizer_state.npz", checkpoint.optimizer_state.arrays
         )
         architecture_carry_identity = (
-            checkpoint.architecture_carry_descriptor
+            dict(checkpoint.architecture_carry_descriptor)
             if checkpoint.architecture_carry_descriptor is not None
             else {
                 "schema_version": ARCHITECTURE_CARRY_SCHEMA_VERSION,
