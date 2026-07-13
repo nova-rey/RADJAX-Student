@@ -7,6 +7,7 @@ from typing import Any
 
 from radjax_student.validation.p3_11_9_replay.canonical import canonical_digest
 from radjax_student.validation.p3_11_9_replay.models import (
+    CrossModeComparisonEvidence,
     ReplayArmEvidence,
     ReplayBlocker,
     ReplayRunEvidence,
@@ -120,26 +121,52 @@ def _compare_arms(
 
 def _verify_cross_mode(proof: StatefulReplayProof) -> list[ReplayBlocker]:
     evidence = proof.cross_mode
-    required = {
-        "structure_equal",
-        "dtype_shape_equal",
-        "integer_values_equal",
-        "floating_values_within_tolerance",
-        "lifecycle_identity_equal",
-        "hook_metric_paths_equal",
-        "rng_identity_equal",
-        "runtime_structure_equal",
-    }
-    if set(evidence) != required or not all(evidence.values()):
-        return [
-            ReplayBlocker(
-                "replay_runtime_identity_mismatch",
-                "cross_mode",
-                canonical_digest({"required": sorted(required)}),
-                canonical_digest(dict(evidence)),
-            )
-        ]
+    if proof.executed_cross_mode is not None and evidence != proof.executed_cross_mode:
+        return _cross_mode_difference(proof.executed_cross_mode, evidence)
+    codes = (
+        ("structure_equal", "replay_cross_mode_structure_mismatch"),
+        ("keypaths_equal", "replay_cross_mode_keypath_mismatch"),
+        ("leaf_count_equal", "replay_cross_mode_structure_mismatch"),
+        ("dtype_shape_equal", "replay_cross_mode_dtype_shape_mismatch"),
+        ("integer_values_equal", "replay_cross_mode_integer_mismatch"),
+        ("floating_values_within_tolerance", "replay_cross_mode_float_mismatch"),
+        ("learning_state_equal", "replay_learning_state_mismatch"),
+        ("optimizer_envelope_equal", "replay_optimizer_state_mismatch"),
+        ("lifecycle_identity_equal", "replay_cross_mode_lifecycle_mismatch"),
+        ("hook_sequence_equal", "replay_cross_mode_hook_mismatch"),
+        ("metric_names_equal", "replay_cross_mode_metric_mismatch"),
+        ("metric_values_within_tolerance", "replay_cross_mode_metric_mismatch"),
+        ("logical_paths_equal", "replay_cross_mode_path_mismatch"),
+        ("rng_identity_equal", "replay_cross_mode_rng_mismatch"),
+        ("runtime_structure_equal", "replay_cross_mode_runtime_mismatch"),
+    )
+    for field, code in codes:
+        if not getattr(evidence, field):
+            return [
+                ReplayBlocker(
+                    code,
+                    f"cross_mode.{field}",
+                    canonical_digest({"value": True}),
+                    canonical_digest({"value": False}),
+                )
+            ]
     return []
+
+
+def _cross_mode_difference(
+    expected: CrossModeComparisonEvidence, observed: CrossModeComparisonEvidence
+) -> list[ReplayBlocker]:
+    field, expected_value, observed_value = _first_difference(
+        expected.to_dict(), observed.to_dict(), "cross_mode"
+    )
+    return [
+        ReplayBlocker(
+            "replay_cross_mode_runtime_mismatch",
+            field,
+            canonical_digest({"value": expected_value}),
+            canonical_digest({"value": observed_value}),
+        )
+    ]
 
 
 def _difference_blockers(

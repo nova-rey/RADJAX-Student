@@ -5,23 +5,41 @@ runner is imported only by the command entry point.
 """
 
 from radjax_student.validation.p3_11_9_replay.models import (
+    ArchitectureCarryIdentityEvidence,
+    CrossModeComparisonEvidence,
+    ExperimentIdentityEvidence,
+    HFPreservationEvidence,
+    OptimizerConfigEvidence,
     ReplayArmEvidence,
     ReplayBlocker,
     ReplayModeEvidence,
     ReplayRunEvidence,
     ReplayStepEvidence,
     ReplayVerificationResult,
+    RngEvidence,
+    RuntimeEvidence,
     StatefulReplayProof,
     StatefulReplayReceipt,
+    ToleranceEvidence,
+    VerifierEvidence,
 )
 
 __all__ = [
     "ReplayArmEvidence",
+    "ArchitectureCarryIdentityEvidence",
+    "CrossModeComparisonEvidence",
+    "ExperimentIdentityEvidence",
+    "HFPreservationEvidence",
+    "OptimizerConfigEvidence",
     "ReplayBlocker",
     "ReplayModeEvidence",
     "ReplayRunEvidence",
     "ReplayStepEvidence",
     "ReplayVerificationResult",
+    "RngEvidence",
+    "RuntimeEvidence",
     "StatefulReplayProof",
     "StatefulReplayReceipt",
+    "ToleranceEvidence",
+    "VerifierEvidence",
 ]

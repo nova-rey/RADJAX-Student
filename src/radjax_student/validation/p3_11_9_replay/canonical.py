@@ -29,6 +29,24 @@ def finite_float_hex(value: Any) -> str:
     return result.hex()
 
 
+def parse_finite_float_hex(value: Any, *, positive: bool = False) -> float:
+    """Decode one canonical finite ``float.hex`` representation."""
+
+    if not isinstance(value, str):
+        raise ReplayCanonicalError("replay scalar must use canonical float hex")
+    try:
+        result = float.fromhex(value)
+    except ValueError as exc:
+        raise ReplayCanonicalError(
+            "replay scalar must use canonical float hex"
+        ) from exc
+    if not math.isfinite(result) or result.hex() != value:
+        raise ReplayCanonicalError("replay scalar must use canonical finite float hex")
+    if positive and result <= 0:
+        raise ReplayCanonicalError("replay tolerance must be positive")
+    return result
+
+
 def canonical_json_bytes(value: Any) -> bytes:
     """Encode an already JSON-safe value with one stable representation."""
 
@@ -81,5 +99,6 @@ __all__ = [
     "canonical_metric_mapping",
     "finite_float_hex",
     "mapping_pytree_digest",
+    "parse_finite_float_hex",
     "parse_canonical_json",
 ]

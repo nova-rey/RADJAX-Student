@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "d220f8ef346e3019d18d63f5b8e1cedae909aeef",
+  "accepted_commit": "ed4fc8f29df80dd2c6e662f9511011da584e7189",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -3994,14 +3994,23 @@
       "owner": "compatibility_validation",
       "path": "src/radjax_student/validation/p3_11_9_replay/__init__.py",
       "public_exports": [
+        "ArchitectureCarryIdentityEvidence",
+        "CrossModeComparisonEvidence",
+        "ExperimentIdentityEvidence",
+        "HFPreservationEvidence",
+        "OptimizerConfigEvidence",
         "ReplayArmEvidence",
         "ReplayBlocker",
         "ReplayModeEvidence",
         "ReplayRunEvidence",
         "ReplayStepEvidence",
         "ReplayVerificationResult",
+        "RngEvidence",
+        "RuntimeEvidence",
         "StatefulReplayProof",
-        "StatefulReplayReceipt"
+        "StatefulReplayReceipt",
+        "ToleranceEvidence",
+        "VerifierEvidence"
       ]
     },
     {
@@ -4074,7 +4083,8 @@
         "canonical_metric_mapping",
         "finite_float_hex",
         "mapping_pytree_digest",
-        "parse_canonical_json"
+        "parse_canonical_json",
+        "parse_finite_float_hex"
       ]
     },
     {
@@ -4107,6 +4117,7 @@
         "__future__",
         "collections.abc",
         "dataclasses",
+        "math",
         "radjax_student.validation.p3_11_9_replay.canonical",
         "types",
         "typing"
@@ -4118,6 +4129,11 @@
       "owner": "compatibility_validation",
       "path": "src/radjax_student/validation/p3_11_9_replay/models.py",
       "public_exports": [
+        "ArchitectureCarryIdentityEvidence",
+        "CrossModeComparisonEvidence",
+        "ExperimentIdentityEvidence",
+        "HFPreservationEvidence",
+        "OptimizerConfigEvidence",
         "REPLAY_SCHEMA_VERSION",
         "ReplayArmEvidence",
         "ReplayBlocker",
@@ -4125,8 +4141,12 @@
         "ReplayRunEvidence",
         "ReplayStepEvidence",
         "ReplayVerificationResult",
+        "RngEvidence",
+        "RuntimeEvidence",
         "StatefulReplayProof",
-        "StatefulReplayReceipt"
+        "StatefulReplayReceipt",
+        "ToleranceEvidence",
+        "VerifierEvidence"
       ]
     },
     {
@@ -4138,6 +4158,8 @@
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
+        "collections.abc",
+        "dataclasses",
         "jax",
         "jax.numpy",
         "pathlib",

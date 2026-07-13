@@ -8,15 +8,17 @@ The replay runner never substitutes a smaller training implementation.
 Same-mode uninterrupted/resumed and replay-A/replay-B evidence is bitwise
 exact. Across eager and JIT, tree structure, shapes, dtypes, counters,
 lifecycle identity, paths, hooks, metrics, RNG coordinates, and normalized
-runtime receipt structure are exact; finite floating values use
-`rtol=1e-6` and `atol=1e-6`.
+runtime receipt structure are executed comparisons. Integer and Boolean leaves
+are exact; finite floating leaves and metrics use `rtol=1e-6` and `atol=1e-6`.
+The recorded nested lifecycle, runtime, RNG, tolerance, cross-mode, and
+verifier objects are exact-schema, canonical evidence contracts.
 
 The committed artifact is
 [P3_11_9_REPLAY_EVIDENCE.json](P3_11_9_REPLAY_EVIDENCE.json), schema
 `radjax.p3_11_9_replay_evidence.v1`. Its canonical artifact identity is
-`8492513e63578c60d711420ac70149dc14e8eb2ed3a8fec702e3d740193a281c` and
+`4378ac5438f43c0a59a61765482155e82d650ffa3daf28388665a1be65b91eeb` and
 its executed evidence digest is
-`4a96633db2f08e3daa6af182181b18baa5967bafe35ba46ed2a1d74c38d0f926`.
+`faa8d31ff1a56a9f22bb0c738fde7f4cce2bb0c3b3fd8cb1a35b6c04f9dccbe4`.
 Run the read-only gate with:
 
 ```bash

@@ -925,3 +925,11 @@
 - The subprocess proving `--check-recorded` is repository-read-only disables
   bytecode-cache generation, so it detects maintained source and artifact
   writes without confusing interpreter caches for evidence writes.
+
+## 2026-07-12 - P3.11.9A cross-mode and evidence strictness
+
+- Cross-mode receipt fields now derive from retained eager/JIT execution values:
+  parameter, carry, and optimizer pytrees; counters; metrics; hooks; lifecycle
+  identity; paths; RNG coordinates; and normalized runtime receipts. The replay
+  contracts now strictly decode every maintained nested identity, runtime, RNG,
+  tolerance, comparison, and verifier object before accepting recorded evidence.
