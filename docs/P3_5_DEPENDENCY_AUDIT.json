@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "8a3d48fdd9f65150d9da3dbdd0aab2764a126fc5",
+  "accepted_commit": "e207a4203f3fd8ab5b8928013e8318782bce3725",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -1093,11 +1093,11 @@
     },
     {
       "source": "radjax_student.validation.p3_11_10_gate.gate",
-      "target": "radjax_student.validation.p3_11_10_gate.adversaries"
+      "target": "radjax_student.validation.p3_11_10_gate.documentation"
     },
     {
       "source": "radjax_student.validation.p3_11_10_gate.gate",
-      "target": "radjax_student.validation.p3_11_10_gate.documentation"
+      "target": "radjax_student.validation.p3_11_10_gate.implementations"
     },
     {
       "source": "radjax_student.validation.p3_11_10_gate.gate",
@@ -1109,6 +1109,54 @@
     },
     {
       "source": "radjax_student.validation.p3_11_10_gate.gate",
+      "target": "radjax_student.validation.p3_11_9_replay.canonical"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.gate",
+      "target": "radjax_student.validation.p3_11_9_replay.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.checkpoints"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.learning"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.optimizers"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.runtime"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.validation.architecture_audit"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.validation.p3_11_10_gate.inventory"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.validation.p3_11_10_gate.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
+      "target": "radjax_student.validation.p3_11_9_replay.canonical"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations",
       "target": "radjax_student.validation.p3_11_9_replay.models"
     },
     {
@@ -1245,7 +1293,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 123,
+  "module_count": 124,
   "modules": [
     {
       "classification": "core",
@@ -4150,18 +4198,20 @@
         "collections.abc",
         "hashlib",
         "pathlib",
-        "radjax_student.validation.p3_11_10_gate.adversaries",
         "radjax_student.validation.p3_11_10_gate.documentation",
+        "radjax_student.validation.p3_11_10_gate.implementations",
         "radjax_student.validation.p3_11_10_gate.inventory",
         "radjax_student.validation.p3_11_10_gate.models",
-        "radjax_student.validation.p3_11_10_gate.runner_jax",
-        "radjax_student.validation.p3_11_9_replay.models"
+        "radjax_student.validation.p3_11_9_replay.canonical",
+        "radjax_student.validation.p3_11_9_replay.models",
+        "tempfile"
       ],
       "internal_edges": [
-        "radjax_student.validation.p3_11_10_gate.adversaries",
         "radjax_student.validation.p3_11_10_gate.documentation",
+        "radjax_student.validation.p3_11_10_gate.implementations",
         "radjax_student.validation.p3_11_10_gate.inventory",
         "radjax_student.validation.p3_11_10_gate.models",
+        "radjax_student.validation.p3_11_9_replay.canonical",
         "radjax_student.validation.p3_11_9_replay.models"
       ],
       "module": "radjax_student.validation.p3_11_10_gate.gate",
@@ -4174,6 +4224,57 @@
         "execute_case",
         "execute_gate",
         "validate_inventory"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "functools",
+        "hashlib",
+        "pathlib",
+        "radjax_student.architecture",
+        "radjax_student.checkpoints",
+        "radjax_student.contracts",
+        "radjax_student.learning",
+        "radjax_student.optimizers",
+        "radjax_student.runtime",
+        "radjax_student.runtime.jax_bridge",
+        "radjax_student.steps.jax_loop",
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p3_11_10_gate.inventory",
+        "radjax_student.validation.p3_11_10_gate.models",
+        "radjax_student.validation.p3_11_9_replay.canonical",
+        "radjax_student.validation.p3_11_9_replay.models",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture",
+        "radjax_student.checkpoints",
+        "radjax_student.contracts",
+        "radjax_student.learning",
+        "radjax_student.optimizers",
+        "radjax_student.runtime",
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p3_11_10_gate.inventory",
+        "radjax_student.validation.p3_11_10_gate.models",
+        "radjax_student.validation.p3_11_9_replay.canonical",
+        "radjax_student.validation.p3_11_9_replay.models"
+      ],
+      "module": "radjax_student.validation.p3_11_10_gate.implementations",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_10_gate/implementations.py",
+      "public_exports": [
+        "BoundaryTrace",
+        "CASE_IMPLEMENTATIONS",
+        "GateCaseImplementation",
+        "GateExecutionContext",
+        "PreparedGateCase",
+        "validate_implementations"
       ]
     },
     {
@@ -4217,6 +4318,7 @@
       "owner": "compatibility_validation",
       "path": "src/radjax_student/validation/p3_11_10_gate/models.py",
       "public_exports": [
+        "ExpectedFailureIdentity",
         "FinalAdversarialGateProof",
         "FinalAdversarialGateReceipt",
         "GATE_SCHEMA",
@@ -4224,7 +4326,9 @@
         "GateBlocker",
         "GateCaseDefinition",
         "GateCaseResult",
-        "GateSectionResult"
+        "GateMutationEvidence",
+        "GateSectionResult",
+        "ObservedFailure"
       ]
     },
     {
