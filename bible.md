@@ -943,3 +943,12 @@
 - Closure status is deliberately local evidence only. Remote base/JAX CI stays
   outside the canonical receipt and remains an explicit condition before Phase
   4 begins.
+
+## 2026-07-16 - P3.11.10A observed-failure integrity correction
+
+- The original inventory and receipt scaffolding remain historical evidence,
+  but the final gate now dispatches through an exact case-ID implementation
+  registry. Every A-K case carries case-bound mutation evidence, an independent
+  observed failure identity, repeated public-boundary execution, and a
+  generated implementation audit. Expected failure metadata is never copied
+  into observed failure evidence.

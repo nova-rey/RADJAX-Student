@@ -95,27 +95,108 @@ def _thaw(value: Any) -> Any:
 
 
 @dataclass(frozen=True)
-class GateBlocker:
+class ExpectedFailureIdentity:
+    """Inventory-owned expectation; never constructed from an observation."""
+
     code: str
     boundary: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "code", _string(self.code, "expected failure code"))
+        object.__setattr__(
+            self, "boundary", _string(self.boundary, "expected failure boundary")
+        )
+
+    def to_dict(self) -> dict[str, str]:
+        return {"code": self.code, "boundary": self.boundary}
+
+
+@dataclass(frozen=True)
+class ObservedFailure:
+    """Actual public-boundary failure, normalized after invocation only."""
+
+    code: str
+    boundary: str
+    exception_type: str
+    phase: str
+    message_digest: str
     details: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "code", _string(self.code, "blocker code"))
         object.__setattr__(self, "boundary", _string(self.boundary, "boundary"))
+        object.__setattr__(
+            self, "exception_type", _string(self.exception_type, "exception_type")
+        )
+        object.__setattr__(self, "phase", _string(self.phase, "failure phase"))
+        _digest(self.message_digest, "failure message_digest")
         object.__setattr__(self, "details", _freeze(self.details, "blocker details"))
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "code": self.code,
             "boundary": self.boundary,
+            "exception_type": self.exception_type,
+            "phase": self.phase,
+            "message_digest": self.message_digest,
             "details": _thaw(self.details),
         }
 
     @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> GateBlocker:
-        _strict(payload, {"code", "boundary", "details"}, "gate blocker")
-        return cls(payload["code"], payload["boundary"], payload["details"])
+    def from_dict(cls, payload: Mapping[str, Any]) -> ObservedFailure:
+        _strict(
+            payload,
+            {
+                "code",
+                "boundary",
+                "exception_type",
+                "phase",
+                "message_digest",
+                "details",
+            },
+            "observed failure",
+        )
+        return cls(**dict(payload))
+
+
+# Kept as a compatibility import while recorded receipts move to ObservedFailure.
+GateBlocker = ObservedFailure
+
+
+@dataclass(frozen=True)
+class GateMutationEvidence:
+    case_id: str
+    mutation_kind: str
+    intended_boundary: str
+    baseline_digest: str
+    mutated_input_digest: str
+    descriptor: str
+    execution_class: str
+
+    def __post_init__(self) -> None:
+        for name in ("case_id", "mutation_kind", "intended_boundary", "descriptor"):
+            object.__setattr__(self, name, _string(getattr(self, name), name))
+        _digest(self.baseline_digest, "baseline_digest")
+        _digest(self.mutated_input_digest, "mutated_input_digest")
+        if self.baseline_digest == self.mutated_input_digest:
+            raise ReplayCanonicalError("gate mutation did not alter its input identity")
+        if self.execution_class not in _EXECUTION_CLASSES:
+            raise ReplayCanonicalError("unsupported mutation execution class")
+
+    @property
+    def identity(self) -> str:
+        return canonical_digest(self.to_dict())
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "case_id": self.case_id,
+            "mutation_kind": self.mutation_kind,
+            "intended_boundary": self.intended_boundary,
+            "baseline_digest": self.baseline_digest,
+            "mutated_input_digest": self.mutated_input_digest,
+            "descriptor": self.descriptor,
+            "execution_class": self.execution_class,
+        }
 
 
 @dataclass(frozen=True)
@@ -149,6 +230,12 @@ class GateCaseDefinition:
     @property
     def identity(self) -> str:
         return canonical_digest(self.to_dict())
+
+    @property
+    def expected_failure_identity(self) -> ExpectedFailureIdentity | None:
+        if self.expected_failure is None:
+            return None
+        return ExpectedFailureIdentity(self.expected_failure, self.boundary)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -184,12 +271,17 @@ class GateCaseResult:
     definition: GateCaseDefinition
     execution_class: str
     observed_outcome: Literal["pass", "reject"]
-    observed_failure: GateBlocker | None
+    observed_failure: ObservedFailure | None
     intended_boundary_reached: bool
     repeated_first_failure: bool
     input_digest: str
     output_digest: str
     non_claims: tuple[str, ...] = ()
+    mutation: GateMutationEvidence | None = None
+    implementation_identity: str = ""
+    classification: str = ""
+    trace_digest: str = ""
+    repetition_digest: str = ""
 
     def __post_init__(self) -> None:
         if self.execution_class != self.definition.execution_class:
@@ -199,7 +291,7 @@ class GateCaseResult:
         if self.observed_outcome == "pass" and self.observed_failure is not None:
             raise ReplayCanonicalError("passing case cannot carry a blocker")
         if self.observed_outcome == "reject" and not isinstance(
-            self.observed_failure, GateBlocker
+            self.observed_failure, ObservedFailure
         ):
             raise ReplayCanonicalError("rejected case requires a blocker")
         object.__setattr__(
@@ -214,6 +306,28 @@ class GateCaseResult:
         )
         _digest(self.input_digest, "input_digest")
         _digest(self.output_digest, "output_digest")
+        if (
+            self.mutation is not None
+            and self.mutation.case_id != self.definition.case_id
+        ):
+            raise ReplayCanonicalError("case mutation belongs to a different case")
+        if self.implementation_identity:
+            _digest(self.implementation_identity, "implementation_identity")
+        if self.trace_digest:
+            _digest(self.trace_digest, "trace_digest")
+        if self.repetition_digest:
+            _digest(self.repetition_digest, "repetition_digest")
+        if self.classification and self.classification not in {
+            "expected_pass",
+            "expected_rejection",
+            "unexpected_pass",
+            "unexpected_failure",
+            "wrong_failure",
+            "wrong_boundary",
+            "nondeterministic_failure",
+            "mutation_not_applied",
+        }:
+            raise ReplayCanonicalError("unknown gate result classification")
         object.__setattr__(self, "non_claims", _strings(self.non_claims, "non_claims"))
 
     @property
@@ -229,6 +343,7 @@ class GateCaseResult:
             and blocker.boundary == self.definition.boundary
             and self.intended_boundary_reached
             and self.repeated_first_failure
+            and (not self.classification or self.classification == "expected_rejection")
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -244,6 +359,11 @@ class GateCaseResult:
             "repeated_first_failure": self.repeated_first_failure,
             "input_digest": self.input_digest,
             "output_digest": self.output_digest,
+            "mutation": None if self.mutation is None else self.mutation.to_dict(),
+            "implementation_identity": self.implementation_identity,
+            "classification": self.classification,
+            "trace_digest": self.trace_digest,
+            "repetition_digest": self.repetition_digest,
             "result_digest": canonical_digest(
                 {
                     "definition": self.definition.to_dict(),
@@ -253,6 +373,13 @@ class GateCaseResult:
                     else self.observed_failure.to_dict(),
                     "input_digest": self.input_digest,
                     "output_digest": self.output_digest,
+                    "mutation": None
+                    if self.mutation is None
+                    else self.mutation.to_dict(),
+                    "implementation_identity": self.implementation_identity,
+                    "classification": self.classification,
+                    "trace_digest": self.trace_digest,
+                    "repetition_digest": self.repetition_digest,
                 }
             ),
             "non_claims": list(self.non_claims),
@@ -272,6 +399,11 @@ class GateCaseResult:
                 "repeated_first_failure",
                 "input_digest",
                 "output_digest",
+                "mutation",
+                "implementation_identity",
+                "classification",
+                "trace_digest",
+                "repetition_digest",
                 "result_digest",
                 "non_claims",
             },
@@ -282,7 +414,7 @@ class GateCaseResult:
         if payload["definition_digest"] != definition.identity:
             raise ReplayCanonicalError("gate case definition digest mismatch")
         observed = payload["observed_failure"]
-        blocker = None if observed is None else GateBlocker.from_dict(observed)
+        blocker = None if observed is None else ObservedFailure.from_dict(observed)
         result = cls(
             definition=definition,
             execution_class=payload["execution_class"],
@@ -293,6 +425,15 @@ class GateCaseResult:
             input_digest=payload["input_digest"],
             output_digest=payload["output_digest"],
             non_claims=payload["non_claims"],
+            mutation=(
+                None
+                if payload["mutation"] is None
+                else GateMutationEvidence(**dict(payload["mutation"]))
+            ),
+            implementation_identity=payload["implementation_identity"],
+            classification=payload["classification"],
+            trace_digest=payload["trace_digest"],
+            repetition_digest=payload["repetition_digest"],
         )
         expected = result.to_dict()["result_digest"]
         _digest(payload["result_digest"], "result_digest")
@@ -417,15 +558,49 @@ class FinalAdversarialGateReceipt:
             case.definition.expected_outcome == "pass" for case in case_models
         )
         adversarial = len(case_models) - positive
-        unexpected_pass = sum(
-            case.definition.expected_outcome == "reject"
-            and case.observed_outcome == "pass"
-            for case in case_models
-        )
-        unexpected_failure = (
-            sum(not case.passed for case in case_models) - unexpected_pass
+        classifications = {
+            name: sum(case.classification == name for case in case_models)
+            for name in (
+                "expected_pass",
+                "expected_rejection",
+                "unexpected_pass",
+                "unexpected_failure",
+                "wrong_failure",
+                "wrong_boundary",
+                "nondeterministic_failure",
+                "mutation_not_applied",
+            )
+        }
+        unexpected_pass = classifications["unexpected_pass"]
+        unexpected_failure = len(case_models) - (
+            classifications["expected_pass"] + classifications["expected_rejection"]
         )
         status = "pass" if not unexpected_pass and not unexpected_failure else "fail"
+        implementation_audit = [
+            {
+                "case_id": case.definition.case_id,
+                "implementation_identity": case.implementation_identity,
+                "mutation_kind": None
+                if case.mutation is None
+                else case.mutation.mutation_kind,
+                "baseline_digest": None
+                if case.mutation is None
+                else case.mutation.baseline_digest,
+                "mutation_digest": None
+                if case.mutation is None
+                else case.mutation.mutated_input_digest,
+                "expected_boundary": case.definition.boundary,
+                "observed_boundary": None
+                if case.observed_failure is None
+                else case.observed_failure.boundary,
+                "expected_failure_code": case.definition.expected_failure,
+                "observed_failure_code": None
+                if case.observed_failure is None
+                else case.observed_failure.code,
+                "classification": case.classification,
+            }
+            for case in case_models
+        ]
         payload = {
             "schema_version": GATE_SCHEMA,
             "gate_version": GATE_VERSION,
@@ -437,6 +612,9 @@ class FinalAdversarialGateReceipt:
             "adversarial_case_count": adversarial,
             "unexpected_pass_count": unexpected_pass,
             "unexpected_failure_count": unexpected_failure,
+            "classification_counts": classifications,
+            "implementation_audit": implementation_audit,
+            "implementation_audit_digest": canonical_digest(implementation_audit),
             "p3_11_9_replay_evidence_digest": self.proof.replay_evidence_digest,
             "dependency_audit_digest": self.proof.dependency_audit_digest,
             "documentation_consistency_digest": self.proof.documentation_consistency_digest,
@@ -465,6 +643,9 @@ class FinalAdversarialGateReceipt:
             "adversarial_case_count",
             "unexpected_pass_count",
             "unexpected_failure_count",
+            "classification_counts",
+            "implementation_audit",
+            "implementation_audit_digest",
             "p3_11_9_replay_evidence_digest",
             "dependency_audit_digest",
             "documentation_consistency_digest",
@@ -494,6 +675,7 @@ class FinalAdversarialGateReceipt:
             "dependency_audit_digest",
             "documentation_consistency_digest",
             "gate_evidence_digest",
+            "implementation_audit_digest",
         ):
             _digest(payload[field_name], field_name)
         _strings(payload["ordered_case_ids"], "ordered_case_ids")
@@ -519,13 +701,24 @@ class FinalAdversarialGateReceipt:
             case.definition.expected_outcome == "pass" for case in case_models
         )
         adversarial = len(case_models) - positive
-        unexpected_pass = sum(
-            case.definition.expected_outcome == "reject"
-            and case.observed_outcome == "pass"
-            for case in case_models
-        )
-        unexpected_failure = (
-            sum(not case.passed for case in case_models) - unexpected_pass
+        classifications = {
+            name: sum(case.classification == name for case in case_models)
+            for name in (
+                "expected_pass",
+                "expected_rejection",
+                "unexpected_pass",
+                "unexpected_failure",
+                "wrong_failure",
+                "wrong_boundary",
+                "nondeterministic_failure",
+                "mutation_not_applied",
+            )
+        }
+        if payload["classification_counts"] != classifications:
+            raise ReplayCanonicalError("final receipt classification counts mismatch")
+        unexpected_pass = classifications["unexpected_pass"]
+        unexpected_failure = len(case_models) - (
+            classifications["expected_pass"] + classifications["expected_rejection"]
         )
         if (
             payload["positive_control_count"],
@@ -543,6 +736,35 @@ class FinalAdversarialGateReceipt:
             raise ReplayCanonicalError(
                 "final receipt status does not match case evidence"
             )
+        expected_audit = [
+            {
+                "case_id": case.definition.case_id,
+                "implementation_identity": case.implementation_identity,
+                "mutation_kind": None
+                if case.mutation is None
+                else case.mutation.mutation_kind,
+                "baseline_digest": None
+                if case.mutation is None
+                else case.mutation.baseline_digest,
+                "mutation_digest": None
+                if case.mutation is None
+                else case.mutation.mutated_input_digest,
+                "expected_boundary": case.definition.boundary,
+                "observed_boundary": None
+                if case.observed_failure is None
+                else case.observed_failure.boundary,
+                "expected_failure_code": case.definition.expected_failure,
+                "observed_failure_code": None
+                if case.observed_failure is None
+                else case.observed_failure.code,
+                "classification": case.classification,
+            }
+            for case in case_models
+        ]
+        if payload["implementation_audit"] != expected_audit or payload[
+            "implementation_audit_digest"
+        ] != canonical_digest(expected_audit):
+            raise ReplayCanonicalError("final receipt implementation audit mismatch")
         expected_decision = (
             "local_closure_accepted"
             if expected_status == "pass"
@@ -575,8 +797,11 @@ __all__ = [
     "FinalAdversarialGateReceipt",
     "GATE_SCHEMA",
     "GATE_VERSION",
+    "ExpectedFailureIdentity",
     "GateBlocker",
     "GateCaseDefinition",
     "GateCaseResult",
+    "GateMutationEvidence",
     "GateSectionResult",
+    "ObservedFailure",
 ]

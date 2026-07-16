@@ -25,7 +25,7 @@ def _cases(
                 execution_class,
                 "pass",
                 None,
-                f"{section.lower()}_public_boundary",
+                _BOUNDARIES[section],
                 slug.replace("_", " "),
             )
         )
@@ -37,12 +37,50 @@ def _cases(
                 section,
                 execution_class,
                 "reject",
-                "p3110_" + case_id.replace(".", "_").replace("-", "_"),
-                f"{section.lower()}_public_boundary",
+                _expected_failure(section, slug),
+                _BOUNDARIES[section],
                 slug.replace("_", " "),
             )
         )
     return tuple(values)
+
+
+_BOUNDARIES = {
+    "A": "registry_validation",
+    "B": "parameter_layout_validation",
+    "C": "learning_batch_validation",
+    "D": "runtime_rng_validation",
+    "E": "optimizer_registry_validation",
+    "F": "loop_executor_validation",
+    "G": "checkpoint_restore_validation",
+    "H": "resume_replay_validation",
+    "I": "replay_schema_validation",
+    "J": "dependency_audit_validation",
+    "K": "documentation_validation",
+}
+
+
+def _expected_failure(section: str, slug: str) -> str:
+    """Expected identities are inventory data, not copied into observations."""
+
+    if section == "A":
+        return (
+            "optimizer_config_invalid"
+            if slug.startswith("optimizer_")
+            else "architecture_plugin_invalid"
+        )
+    return {
+        "B": "type_error",
+        "C": "type_error",
+        "D": "value_error",
+        "E": "optimizer_config_invalid",
+        "F": "type_error",
+        "G": "checkpoint_component_unreadable",
+        "H": "replay_canonical_error",
+        "I": "replay_canonical_error",
+        "J": "dependency_audit_rejected",
+        "K": "documentation_validation_rejected",
+    }[section]
 
 
 _SECTION_CASES = {
