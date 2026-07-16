@@ -54,6 +54,7 @@ def test_jax_isolated_to_explicit_adapter_source():
             "learning/p3_5_acceptance.py",
             "steps/jax_step.py",
             "validation/p3_11_9_replay/runner_jax.py",
+            "validation/p3_11_10_gate/runner_jax.py",
         }:
             continue
         assert "import jax" not in source

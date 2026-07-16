@@ -933,3 +933,13 @@
   identity; paths; RNG coordinates; and normalized runtime receipts. The replay
   contracts now strictly decode every maintained nested identity, runtime, RNG,
   tolerance, comparison, and verifier object before accepting recorded evidence.
+
+## 2026-07-16 - P3.11.10 final adversarial closure
+
+- The final closure gate has one ordered, maintained A-K inventory shared by
+  pytest and the public CLI. Each result carries definition, input, expected
+  failure, observed boundary failure, and normalized result identities; a
+  receipt cannot omit, reorder, or replace those executed cases with counts.
+- Closure status is deliberately local evidence only. Remote base/JAX CI stays
+  outside the canonical receipt and remains an explicit condition before Phase
+  4 begins.

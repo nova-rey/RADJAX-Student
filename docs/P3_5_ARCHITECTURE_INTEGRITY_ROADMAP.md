@@ -33,8 +33,15 @@ deprecated `students/` compatibility package.
 
 ## Current Integration Status
 
-P3.11.1-P3.11.9 accepted
+P3.11.1-P3.11.10 locally accepted
 
-P3.11.10 next and unstarted
+P3.11 integration closure complete
 
-Phase 4 blocked
+Phase 4 next and unstarted
+
+Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+
+The closure makes no production architecture claim, no Tome payload consumption,
+no distillation, no Hugging Face export, no accelerator-scale training, no
+multi-device proof, no cross-hardware bitwise replay claim, no cross-version
+bitwise replay claim, no performance claim, and no RadLads parity claim.

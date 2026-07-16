@@ -15,9 +15,13 @@ class DocumentationCheck:
 
 
 _CURRENT_MARKERS = (
-    "P3.11.1-P3.11.9 accepted",
-    "P3.11.10 next and unstarted",
-    "Phase 4 blocked",
+    "P3.11.1-P3.11.10 locally accepted",
+    "P3.11 integration closure complete",
+    "Phase 4 next and unstarted",
+    (
+        "Phase 4 requires successful required remote base/JAX CI or an explicit "
+        "repository-owner waiver"
+    ),
 )
 _ALLOWLIST = (
     "README.md",
@@ -29,6 +33,7 @@ _ALLOWLIST = (
     "docs/P3_11_8_STATEFUL_SYSTEMS_PROOF.md",
     "docs/P3_11_9_DETERMINISTIC_REPLAY.md",
     "docs/P3_11_10_FINAL_ADVERSARIAL_GATE.md",
+    "docs/P3_11_INTEGRATION_CLOSURE.md",
     "docs/P3_5_ARCHITECTURE_INTEGRITY_ROADMAP.md",
     "docs/P3_5_10_FINAL_ARCHITECTURE_INTEGRITY_GATE.md",
 )
@@ -49,7 +54,7 @@ def check_documentation(
         content = path.read_text(encoding="utf-8")
         if not all(marker in content for marker in _CURRENT_MARKERS):
             errors.append(f"status_markers:{relative}")
-        if "Phase 4 unblocked" in content or "P3.11.10 complete" in content:
+        if "Phase 4 unblocked" in content or "Phase 4 already begun" in content:
             errors.append(f"stale_status:{relative}")
         if "remote CI passed" in content:
             errors.append(f"unsupported_remote_ci_claim:{relative}")

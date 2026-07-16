@@ -14,10 +14,23 @@ registered optimizer capability and contains no SGD-specific keypath lookup.
 
 ## Current Integration Status
 
-This document records the intended P3.11.10 gate scope; the gate has not begun.
+This document records the final P3.11.10 adversarial acceptance scope and the
+generated closure receipt.
 
-P3.11.1-P3.11.9 accepted
+The generated receipt is
+[`P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json`](P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json),
+schema `radjax.p3_11_10_final_adversarial_gate.v1`, with final gate evidence
+digest `b3224b82947075e237b143ebba6596f0cecbaac51c25e08e94d3d25855c46713`.
 
-P3.11.10 next and unstarted
+P3.11.1-P3.11.10 locally accepted
 
-Phase 4 blocked
+P3.11 integration closure complete
+
+Phase 4 next and unstarted
+
+Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+
+The closure makes no production architecture claim, no Tome payload consumption,
+no distillation, no Hugging Face export, no accelerator-scale training, no
+multi-device proof, no cross-hardware bitwise replay claim, no cross-version
+bitwise replay claim, no performance claim, and no RadLads parity claim.

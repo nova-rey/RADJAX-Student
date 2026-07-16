@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "ed4fc8f29df80dd2c6e662f9511011da584e7189",
+  "accepted_commit": "8a3d48fdd9f65150d9da3dbdd0aab2764a126fc5",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -1044,6 +1044,82 @@
       "target": "radjax_student.validation.default_models"
     },
     {
+      "source": "radjax_student.validation.p3_11_10_gate",
+      "target": "radjax_student.validation.p3_11_10_gate.inventory"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate",
+      "target": "radjax_student.validation.p3_11_10_gate.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.__main__",
+      "target": "radjax_student.validation.p3_11_10_gate.gate"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.__main__",
+      "target": "radjax_student.validation.p3_11_10_gate.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.adversaries",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.adversaries",
+      "target": "radjax_student.checkpoints"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.adversaries",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.adversaries",
+      "target": "radjax_student.learning"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.adversaries",
+      "target": "radjax_student.validation.architecture_audit"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.adversaries",
+      "target": "radjax_student.validation.p3_11_9_replay.canonical"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.adversaries",
+      "target": "radjax_student.validation.p3_11_9_replay.documentation"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.documentation",
+      "target": "radjax_student.validation.p3_11_9_replay.canonical"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.gate",
+      "target": "radjax_student.validation.p3_11_10_gate.adversaries"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.gate",
+      "target": "radjax_student.validation.p3_11_10_gate.documentation"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.gate",
+      "target": "radjax_student.validation.p3_11_10_gate.inventory"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.gate",
+      "target": "radjax_student.validation.p3_11_10_gate.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.gate",
+      "target": "radjax_student.validation.p3_11_9_replay.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.inventory",
+      "target": "radjax_student.validation.p3_11_10_gate.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.models",
+      "target": "radjax_student.validation.p3_11_9_replay.canonical"
+    },
+    {
       "source": "radjax_student.validation.p3_11_9_replay",
       "target": "radjax_student.validation.p3_11_9_replay.models"
     },
@@ -1169,7 +1245,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 115,
+  "module_count": 123,
   "modules": [
     {
       "classification": "core",
@@ -3954,6 +4030,225 @@
       "owner": "compatibility_validation",
       "path": "src/radjax_student/validation/default_models.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "radjax_student.validation.p3_11_10_gate.inventory",
+        "radjax_student.validation.p3_11_10_gate.models"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p3_11_10_gate.inventory",
+        "radjax_student.validation.p3_11_10_gate.models"
+      ],
+      "module": "radjax_student.validation.p3_11_10_gate",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_10_gate/__init__.py",
+      "public_exports": [
+        "CASES",
+        "FinalAdversarialGateReceipt",
+        "GateBlocker",
+        "GateCaseDefinition",
+        "GateCaseResult",
+        "SECTIONS"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "argparse",
+        "os",
+        "pathlib",
+        "radjax_student.validation.p3_11_10_gate.gate",
+        "radjax_student.validation.p3_11_10_gate.models",
+        "subprocess",
+        "sys"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p3_11_10_gate.gate",
+        "radjax_student.validation.p3_11_10_gate.models"
+      ],
+      "module": "radjax_student.validation.p3_11_10_gate.__main__",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_10_gate/__main__.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "ast",
+        "hashlib",
+        "json",
+        "pathlib",
+        "radjax_student.architecture",
+        "radjax_student.checkpoints",
+        "radjax_student.contracts",
+        "radjax_student.learning",
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p3_11_9_replay.canonical",
+        "radjax_student.validation.p3_11_9_replay.documentation",
+        "tempfile",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture",
+        "radjax_student.checkpoints",
+        "radjax_student.contracts",
+        "radjax_student.learning",
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p3_11_9_replay.canonical",
+        "radjax_student.validation.p3_11_9_replay.documentation"
+      ],
+      "module": "radjax_student.validation.p3_11_10_gate.adversaries",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_10_gate/adversaries.py",
+      "public_exports": [
+        "base_positive",
+        "exception_identity",
+        "normalized_input",
+        "normalized_output",
+        "run_base_adversary"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "pathlib",
+        "radjax_student.validation.p3_11_9_replay.canonical"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p3_11_9_replay.canonical"
+      ],
+      "module": "radjax_student.validation.p3_11_10_gate.documentation",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_10_gate/documentation.py",
+      "public_exports": [
+        "DocumentationClosureCheck",
+        "check_closure_documentation",
+        "maintained_paths"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections",
+        "collections.abc",
+        "hashlib",
+        "pathlib",
+        "radjax_student.validation.p3_11_10_gate.adversaries",
+        "radjax_student.validation.p3_11_10_gate.documentation",
+        "radjax_student.validation.p3_11_10_gate.inventory",
+        "radjax_student.validation.p3_11_10_gate.models",
+        "radjax_student.validation.p3_11_10_gate.runner_jax",
+        "radjax_student.validation.p3_11_9_replay.models"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p3_11_10_gate.adversaries",
+        "radjax_student.validation.p3_11_10_gate.documentation",
+        "radjax_student.validation.p3_11_10_gate.inventory",
+        "radjax_student.validation.p3_11_10_gate.models",
+        "radjax_student.validation.p3_11_9_replay.models"
+      ],
+      "module": "radjax_student.validation.p3_11_10_gate.gate",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_10_gate/gate.py",
+      "public_exports": [
+        "GateInventoryError",
+        "NON_CLAIMS",
+        "build_receipt",
+        "execute_case",
+        "execute_gate",
+        "validate_inventory"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "radjax_student.validation.p3_11_10_gate.models"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p3_11_10_gate.models"
+      ],
+      "module": "radjax_student.validation.p3_11_10_gate.inventory",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_10_gate/inventory.py",
+      "public_exports": [
+        "CASES",
+        "CASE_BY_ID",
+        "SECTIONS",
+        "expected_case_ids"
+      ]
+    },
+    {
+      "classification": "core",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "radjax_student.validation.p3_11_10_gate.inventory",
+        "radjax_student.validation.p3_11_9_replay.canonical",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p3_11_9_replay.canonical"
+      ],
+      "module": "radjax_student.validation.p3_11_10_gate.models",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_10_gate/models.py",
+      "public_exports": [
+        "FinalAdversarialGateProof",
+        "FinalAdversarialGateReceipt",
+        "GATE_SCHEMA",
+        "GATE_VERSION",
+        "GateBlocker",
+        "GateCaseDefinition",
+        "GateCaseResult",
+        "GateSectionResult"
+      ]
+    },
+    {
+      "classification": "optional_integration",
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "pathlib",
+        "radjax_student.runtime",
+        "radjax_student.runtime.jax_bridge",
+        "radjax_student.validation.p3_11_9_replay.artifact",
+        "radjax_student.validation.p3_11_9_replay.runner_jax",
+        "tempfile",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_11_10_gate.runner_jax",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_11_10_gate/runner_jax.py",
+      "public_exports": [
+        "execute_adversary",
+        "execute_positive"
+      ]
     },
     {
       "classification": "core",

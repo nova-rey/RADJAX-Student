@@ -22,6 +22,7 @@ _JAX_EXCEPTIONS = {
     "radjax_student.learning.p3_5_acceptance",
     "radjax_student.steps.jax_step",
     "radjax_student.validation.p3_11_9_replay.runner_jax",
+    "radjax_student.validation.p3_11_10_gate.runner_jax",
 }
 _COMPATIBILITY_MODULES = {
     "radjax_student.learning.p3_5_acceptance",
@@ -38,6 +39,7 @@ _CLASSIFICATIONS = {
     "learning.p3_5_acceptance": "transitional",
     "learning.synthetic_smoke": "smoke_debug",
     "validation.p3_11_9_replay.runner_jax": "optional_integration",
+    "validation.p3_11_10_gate.runner_jax": "optional_integration",
     "losses": "research",
     "losses.dense_kl": "smoke_debug",
     "losses.sparse_topk": "research",
