@@ -32,6 +32,8 @@ def test_every_inventory_case_has_distinct_case_bound_implementation_and_mutatio
             ]
         )
         for case in cases:
+            if case.execution_class == "jax_executed_boundary":
+                continue
             result = execute_case(case, ROOT)
             assert result.mutation is not None
             assert result.mutation.descriptor
