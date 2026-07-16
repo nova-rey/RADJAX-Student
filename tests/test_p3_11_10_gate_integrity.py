@@ -18,6 +18,7 @@ from radjax_student.validation.p3_11_10_gate.inventory import CASES, SECTIONS
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.mark.jax
 def test_every_inventory_case_has_distinct_case_bound_implementation_and_mutation():
     registry = validate_implementations()
     assert tuple(registry) == tuple(case.case_id for case in CASES)
@@ -32,8 +33,6 @@ def test_every_inventory_case_has_distinct_case_bound_implementation_and_mutatio
             ]
         )
         for case in cases:
-            if case.execution_class == "jax_executed_boundary":
-                continue
             result = execute_case(case, ROOT)
             assert result.mutation is not None
             assert result.mutation.descriptor
@@ -41,6 +40,7 @@ def test_every_inventory_case_has_distinct_case_bound_implementation_and_mutatio
                 result.mutation.baseline_digest != result.mutation.mutated_input_digest
             )
             assert result.implementation_identity == registry[case.case_id].identity
+            assert result.classification in {"expected_pass", "expected_rejection"}
 
 
 def test_registry_rejects_missing_and_undeclared_implementations(

@@ -52,6 +52,12 @@ class DocumentationClosureCheck:
         return canonical_digest({"ok": self.ok, "errors": list(self.errors)})
 
 
+class DocumentationClosureError(ValueError):
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        super().__init__(message)
+
+
 def check_closure_documentation(repository_root: Path) -> DocumentationClosureCheck:
     errors: list[str] = []
     for relative in _ALLOWLIST:
@@ -76,8 +82,19 @@ def maintained_paths() -> tuple[str, ...]:
     return _ALLOWLIST
 
 
+def require_closure_documentation(check: DocumentationClosureCheck) -> None:
+    """Turn a real closure audit result into a stable public rejection."""
+
+    if not check.ok:
+        first = check.errors[0] if check.errors else "documentation_validation_rejected"
+        code = first.split(":", 1)[0]
+        raise DocumentationClosureError(code, "documentation closure validation failed")
+
+
 __all__ = [
     "DocumentationClosureCheck",
+    "DocumentationClosureError",
     "check_closure_documentation",
     "maintained_paths",
+    "require_closure_documentation",
 ]

@@ -952,3 +952,16 @@
   observed failure identity, repeated public-boundary execution, and a
   generated implementation audit. Expected failure metadata is never copied
   into observed failure evidence.
+
+## 2026-07-16 - P3.11.10B literal-case dispatch correction
+
+- The P3.11.10 gate now composes section-owned case-ID implementations rather
+  than dispatching by execution class. Boundary probes capture actual callable
+  entry, exception, return, and post-call sentinel state; observations derive
+  their code from the public exception or a centrally declared, boundary-scoped
+  adapter that has no case expectation input.
+- Each recorded result binds normalized public-input baseline and mutation
+  digests, a mutation delta, implementation identity, observed boundary, and
+  repeated-run evidence. The final receipt's implementation audit records the
+  corresponding per-case identities for the full A-K inventory. Local closure
+  remains distinct from the required remote base/JAX CI condition.

@@ -69,6 +69,14 @@ _OWNERS = {
 }
 
 
+class ArchitectureAuditError(ValueError):
+    """Stable public rejection for a blocked dependency audit."""
+
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        super().__init__(message)
+
+
 def _module_name(path: Path, source_root: Path) -> str:
     parts = path.relative_to(source_root).with_suffix("").parts
     if parts[-1] == "__init__":
@@ -360,12 +368,29 @@ def build_architecture_audit(
 
 build_audit = build_architecture_audit
 
+
+def require_clean_architecture_audit(audit: Mapping[str, Any]) -> None:
+    """Reject a real audit result without consumers inventing failure codes."""
+
+    if audit.get("status") != "pass":
+        blockers = audit.get("blockers", ())
+        first = blockers[0] if isinstance(blockers, list) and blockers else {}
+        code = (
+            str(first.get("code", "dependency_audit_blocked"))
+            if isinstance(first, Mapping)
+            else "dependency_audit_blocked"
+        )
+        raise ArchitectureAuditError(code, "dependency audit contains blockers")
+
+
 __all__ = [
     "SCHEMA",
     "build_architecture_audit",
     "build_audit",
+    "ArchitectureAuditError",
     "classify_module",
     "collect_module_record",
     "find_architecture_blockers",
     "find_dependency_cycles",
+    "require_clean_architecture_audit",
 ]

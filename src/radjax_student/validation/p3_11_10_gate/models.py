@@ -172,6 +172,9 @@ class GateMutationEvidence:
     mutated_input_digest: str
     descriptor: str
     execution_class: str
+    canonical_path: str = ""
+    operation: str = ""
+    delta_digest: str = ""
 
     def __post_init__(self) -> None:
         for name in ("case_id", "mutation_kind", "intended_boundary", "descriptor"):
@@ -182,6 +185,18 @@ class GateMutationEvidence:
             raise ReplayCanonicalError("gate mutation did not alter its input identity")
         if self.execution_class not in _EXECUTION_CLASSES:
             raise ReplayCanonicalError("unsupported mutation execution class")
+        object.__setattr__(
+            self,
+            "canonical_path",
+            _string(self.canonical_path or self.mutation_kind, "canonical_path"),
+        )
+        object.__setattr__(
+            self,
+            "operation",
+            _string(self.operation or self.mutation_kind, "operation"),
+        )
+        if self.delta_digest:
+            _digest(self.delta_digest, "delta_digest")
 
     @property
     def identity(self) -> str:
@@ -196,6 +211,9 @@ class GateMutationEvidence:
             "mutated_input_digest": self.mutated_input_digest,
             "descriptor": self.descriptor,
             "execution_class": self.execution_class,
+            "canonical_path": self.canonical_path,
+            "operation": self.operation,
+            "delta_digest": self.delta_digest,
         }
 
 
@@ -589,6 +607,15 @@ class FinalAdversarialGateReceipt:
                 "mutation_digest": None
                 if case.mutation is None
                 else case.mutation.mutated_input_digest,
+                "mutation_delta_digest": None
+                if case.mutation is None
+                else case.mutation.delta_digest,
+                "mutation_canonical_path": None
+                if case.mutation is None
+                else case.mutation.canonical_path,
+                "mutation_operation": None
+                if case.mutation is None
+                else case.mutation.operation,
                 "expected_boundary": case.definition.boundary,
                 "observed_boundary": None
                 if case.observed_failure is None
@@ -749,6 +776,15 @@ class FinalAdversarialGateReceipt:
                 "mutation_digest": None
                 if case.mutation is None
                 else case.mutation.mutated_input_digest,
+                "mutation_delta_digest": None
+                if case.mutation is None
+                else case.mutation.delta_digest,
+                "mutation_canonical_path": None
+                if case.mutation is None
+                else case.mutation.canonical_path,
+                "mutation_operation": None
+                if case.mutation is None
+                else case.mutation.operation,
                 "expected_boundary": case.definition.boundary,
                 "observed_boundary": None
                 if case.observed_failure is None

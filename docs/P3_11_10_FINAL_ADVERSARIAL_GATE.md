@@ -20,7 +20,7 @@ generated closure receipt.
 The generated receipt is
 [`P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json`](P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json),
 schema `radjax.p3_11_10_final_adversarial_gate.v1`, with final gate evidence
-digest `91b986ff2eebaaffd067e1804ae7ac27e1ac15fc74ac90286a8de7ac2e736e46`.
+digest `8eda354e8c11709a16f58f9389020e1dd0c259a033f4e41aa3f3f19f3dcdf1f8`.
 
 P3.11.1-P3.11.10 locally accepted
 
@@ -35,7 +35,9 @@ no distillation, no Hugging Face export, no accelerator-scale training, no
 multi-device proof, no cross-hardware bitwise replay claim, no cross-version
 bitwise replay claim, no performance claim, and no RadLads parity claim.
 
-P3.11.10A replaced the initial class-level adversaries with an exact case-ID
-implementation registry. The receipt includes a generated implementation audit
-for all 241 A-K cases: implementation and mutation identities, observed public
-failure identities, boundaries, and final classifications.
+P3.11.10B replaced the rejected class-level adversaries with section-owned,
+exact case-ID implementations. The receipt includes a generated implementation
+audit for all 241 A-K cases: implementation identity, normalized public-input
+mutation identity, actual observed failure identity, probed boundary, repeated
+execution evidence, and final classification. Expected failure metadata is not
+available to observation adapters.

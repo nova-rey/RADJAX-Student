@@ -70,16 +70,16 @@ def _expected_failure(section: str, slug: str) -> str:
             else "architecture_plugin_invalid"
         )
     return {
-        "B": "type_error",
-        "C": "type_error",
-        "D": "value_error",
+        "B": "TypeError",
+        "C": "TypeError",
+        "D": "ValueError",
         "E": "optimizer_config_invalid",
-        "F": "type_error",
+        "F": "TypeError",
         "G": "checkpoint_component_unreadable",
         "H": "replay_canonical_error",
         "I": "replay_canonical_error",
-        "J": "dependency_audit_rejected",
-        "K": "documentation_validation_rejected",
+        "J": "forbidden_import",
+        "K": "unsupported_claim",
     }[section]
 
 
