@@ -20,8 +20,6 @@ from radjax_student.contracts import ParameterTreeLayout
 from radjax_student.learning import LearningBatch
 from radjax_student.optimizers import OptimizerRegistry
 from radjax_student.runtime import RuntimeKeys
-from radjax_student.runtime.jax_bridge import derive_jax_key
-from radjax_student.steps.jax_loop import JaxLoopExecutor
 from radjax_student.validation.architecture_audit import build_architecture_audit
 from radjax_student.validation.p3_11_9_replay.canonical import (
     ReplayCanonicalError,
@@ -207,6 +205,8 @@ def _invoke_runtime(
     _prepared: PreparedGateCase, context: GateExecutionContext, token: str
 ) -> None:
     context.trace.emit("intended_boundary_entered", "runtime_rng_validation")
+    from radjax_student.runtime.jax_bridge import derive_jax_key
+
     derive_jax_key(
         RuntimeKeys.from_seed(17).dropout,
         global_step=0,
@@ -227,6 +227,8 @@ def _invoke_loop(
     _prepared: PreparedGateCase, context: GateExecutionContext, token: str
 ) -> None:
     context.trace.emit("intended_boundary_entered", "loop_executor_validation")
+    from radjax_student.steps.jax_loop import JaxLoopExecutor
+
     JaxLoopExecutor(None, None, None, None)  # type: ignore[arg-type]
 
 
