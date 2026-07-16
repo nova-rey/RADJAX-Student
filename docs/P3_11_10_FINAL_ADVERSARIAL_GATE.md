@@ -20,7 +20,7 @@ generated closure receipt.
 The generated receipt is
 [`P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json`](P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json),
 schema `radjax.p3_11_10_final_adversarial_gate.v1`, with final gate evidence
-digest `e29a1e571749652fb1e22035a081eb2b107f5ad165105ed93e0e605fb9f7209e`.
+digest `4d4e4dde5c2b44bc58a1a9fc05f1262a1e787353e66d433af75f2276f3a6bc94`.
 
 P3.11.1-P3.11.10 locally accepted
 

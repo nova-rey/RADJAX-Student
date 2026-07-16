@@ -980,3 +980,10 @@
   local closure evidence can be emitted.
 - This is local integration evidence only. Phase 4 remains next and unstarted
   pending successful required remote base/JAX CI or a repository-owner waiver.
+
+## 2026-07-16 - P3.11.10C metadata snapshot
+
+- The generated dependency audit now records implementation commit
+  `a66baa6d48de05c8ac22758c4ee74e793b0dee53`; the closure receipt was
+  regenerated from that audit without changing gate behavior, inventory, or
+  experiment evidence.
