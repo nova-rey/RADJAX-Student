@@ -106,8 +106,9 @@ Implement the first architecture plugin:
 
 This phase validates the plugin system, not RWKV itself.
 
-> **Current integration status:** P3.11.1-P3.11.9 accepted. P3.11.10 next and unstarted.
-> Phase 4 blocked pending that final adversarial gate.
+> **Current integration status:** P3.11.1-P3.11.10 locally accepted; the
+> integration closure is complete. Phase 4 is next and unstarted, and still
+> requires successful required remote base/JAX CI or an explicit repository-owner waiver.
 
 # Phase 5 - Behavior Compilation
 

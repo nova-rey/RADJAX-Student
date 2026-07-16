@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import io
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -37,3 +39,31 @@ def test_same_payload_written_twice_is_byte_identical(tmp_path: Path):
     second = write_deterministic_npz(tmp_path / "two.npz", tree)
     assert first == second
     assert (tmp_path / "one.npz").read_bytes() == (tmp_path / "two.npz").read_bytes()
+
+
+def test_reader_rejects_a_real_fortran_order_member(tmp_path: Path):
+    path = tmp_path / "canonical.npz"
+    descriptor = write_deterministic_npz(
+        path,
+        {"weights": np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)},
+    )
+    member = descriptor["leaves"][0]["member"]
+    with zipfile.ZipFile(path, "r") as archive:
+        members = {name: archive.read(name) for name in archive.namelist()}
+    raw = io.BytesIO()
+    np.lib.format.write_array(
+        raw,
+        np.asfortranarray(np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)),
+        version=(1, 0),
+        allow_pickle=False,
+    )
+    members[member] = raw.getvalue()
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_STORED) as archive:
+        for name in sorted(members):
+            info = zipfile.ZipInfo(name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_STORED
+            info.create_system = 3
+            info.external_attr = 0o100644 << 16
+            archive.writestr(info, members[name])
+    with pytest.raises(ValueError, match="not canonical"):
+        read_deterministic_npz(path, descriptor)

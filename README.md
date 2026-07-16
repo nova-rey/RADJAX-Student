@@ -127,11 +127,13 @@ loop.
 
 ## Current Integration Status
 
-P3.11.1-P3.11.9 accepted
+P3.11.1-P3.11.10 locally accepted
 
-P3.11.10 next and unstarted
+P3.11 integration closure complete
 
-Phase 4 blocked
+Phase 4 next and unstarted
+
+Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
 
 P3.4 establishes the [Generic Batch and Objective Contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
 behavior-neutral batch metadata, objective request/result models, and explicit
@@ -245,15 +247,10 @@ codebase. The normative Phase 0 docs are:
 - [P3.6 Model and Optimizer Checkpoint Contract](docs/P3_6_MODEL_AND_OPTIMIZER_CHECKPOINT_CONTRACT.md)
 - [P3.7 Generic Learning Loop](docs/P3_7_GENERIC_LEARNING_LOOP.md)
 
-## Current Integration Status
+## Closure Scope
 
-P3.11.1-P3.11.10 locally accepted
-
-P3.11 integration closure complete
-
-Phase 4 next and unstarted
-
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+The current integration status above is local evidence only. Required remote
+base/JAX CI remains an external Phase 4 prerequisite.
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

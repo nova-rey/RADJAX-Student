@@ -297,6 +297,8 @@ class GateCaseResult:
     non_claims: tuple[str, ...] = ()
     mutation: GateMutationEvidence | None = None
     implementation_identity: str = ""
+    public_callable_identity: str = ""
+    observed_source_type: str = ""
     classification: str = ""
     trace_digest: str = ""
     repetition_digest: str = ""
@@ -331,6 +333,10 @@ class GateCaseResult:
             raise ReplayCanonicalError("case mutation belongs to a different case")
         if self.implementation_identity:
             _digest(self.implementation_identity, "implementation_identity")
+        if self.public_callable_identity:
+            _digest(self.public_callable_identity, "public_callable_identity")
+        if self.observed_source_type:
+            _string(self.observed_source_type, "observed_source_type")
         if self.trace_digest:
             _digest(self.trace_digest, "trace_digest")
         if self.repetition_digest:
@@ -379,6 +385,8 @@ class GateCaseResult:
             "output_digest": self.output_digest,
             "mutation": None if self.mutation is None else self.mutation.to_dict(),
             "implementation_identity": self.implementation_identity,
+            "public_callable_identity": self.public_callable_identity,
+            "observed_source_type": self.observed_source_type,
             "classification": self.classification,
             "trace_digest": self.trace_digest,
             "repetition_digest": self.repetition_digest,
@@ -395,6 +403,8 @@ class GateCaseResult:
                     if self.mutation is None
                     else self.mutation.to_dict(),
                     "implementation_identity": self.implementation_identity,
+                    "public_callable_identity": self.public_callable_identity,
+                    "observed_source_type": self.observed_source_type,
                     "classification": self.classification,
                     "trace_digest": self.trace_digest,
                     "repetition_digest": self.repetition_digest,
@@ -419,6 +429,8 @@ class GateCaseResult:
                 "output_digest",
                 "mutation",
                 "implementation_identity",
+                "public_callable_identity",
+                "observed_source_type",
                 "classification",
                 "trace_digest",
                 "repetition_digest",
@@ -449,6 +461,8 @@ class GateCaseResult:
                 else GateMutationEvidence(**dict(payload["mutation"]))
             ),
             implementation_identity=payload["implementation_identity"],
+            public_callable_identity=payload["public_callable_identity"],
+            observed_source_type=payload["observed_source_type"],
             classification=payload["classification"],
             trace_digest=payload["trace_digest"],
             repetition_digest=payload["repetition_digest"],
@@ -513,6 +527,143 @@ class GateSectionResult:
         ] != len(cases):
             raise ReplayCanonicalError("gate section counts are inconsistent")
         return cls(payload["section_id"], expected, cases)
+
+
+_IMPLEMENTATION_AUDIT_FIELDS = {
+    "case_id",
+    "implementation_identity",
+    "public_callable_identity",
+    "mutation_kind",
+    "baseline_digest",
+    "mutated_input_digest",
+    "mutation_digest",
+    "mutation_delta_digest",
+    "mutation_canonical_path",
+    "mutation_operation",
+    "expected_boundary",
+    "observed_boundary",
+    "expected_failure_code",
+    "observed_failure_code",
+    "observed_source_type",
+    "trace_digest",
+    "repetition_digest",
+    "classification",
+}
+
+
+def _implementation_audit_from_cases(
+    cases: tuple[GateCaseResult, ...],
+) -> list[dict[str, Any]]:
+    """Build the complete per-case audit from typed executed results only."""
+
+    records: list[dict[str, Any]] = []
+    for case in cases:
+        mutation = case.mutation
+        if mutation is None:
+            raise ReplayCanonicalError("gate case implementation audit lacks mutation")
+        records.append(
+            {
+                "case_id": case.definition.case_id,
+                "implementation_identity": case.implementation_identity,
+                "public_callable_identity": case.public_callable_identity,
+                "mutation_kind": mutation.mutation_kind,
+                "baseline_digest": mutation.baseline_digest,
+                "mutated_input_digest": mutation.mutated_input_digest,
+                # Retained as the original compact audit name for compatibility.
+                # The explicit field above makes clear that this is the digest
+                # of the real mutated public input, not metadata about it.
+                "mutation_digest": mutation.mutated_input_digest,
+                "mutation_delta_digest": mutation.delta_digest,
+                "mutation_canonical_path": mutation.canonical_path,
+                "mutation_operation": mutation.operation,
+                "expected_boundary": case.definition.boundary,
+                "observed_boundary": None
+                if case.observed_failure is None
+                else case.observed_failure.boundary,
+                "expected_failure_code": case.definition.expected_failure,
+                "observed_failure_code": None
+                if case.observed_failure is None
+                else case.observed_failure.code,
+                "observed_source_type": case.observed_source_type,
+                "trace_digest": case.trace_digest,
+                "repetition_digest": case.repetition_digest,
+                "classification": case.classification,
+            }
+        )
+    return records
+
+
+def _validate_implementation_audit(
+    records: Any,
+    cases: tuple[GateCaseResult, ...],
+) -> None:
+    """Validate the immutable audit independently of aggregate counts."""
+
+    if not isinstance(records, list) or len(records) != len(cases):
+        raise ReplayCanonicalError("final receipt implementation audit count mismatch")
+    expected_records = _implementation_audit_from_cases(cases)
+    concrete_experiments: set[tuple[str, str, str, str]] = set()
+    behavior_and_mutation: set[tuple[str, str]] = set()
+    mutated_input_digests: set[str] = set()
+    for received, expected in zip(records, expected_records, strict=True):
+        if not isinstance(received, Mapping):
+            raise ReplayCanonicalError(
+                "final receipt implementation audit record invalid"
+            )
+        _strict(received, _IMPLEMENTATION_AUDIT_FIELDS, "implementation audit")
+        if received != expected:
+            raise ReplayCanonicalError(
+                "final receipt implementation audit evidence mismatch"
+            )
+        for name in (
+            "implementation_identity",
+            "public_callable_identity",
+            "baseline_digest",
+            "mutated_input_digest",
+            "mutation_digest",
+            "mutation_delta_digest",
+            "trace_digest",
+            "repetition_digest",
+        ):
+            _digest(received[name], name)
+        for name in (
+            "case_id",
+            "mutation_kind",
+            "mutation_canonical_path",
+            "mutation_operation",
+            "expected_boundary",
+            "classification",
+        ):
+            _string(received[name], name)
+        if received["mutation_digest"] != received["mutated_input_digest"]:
+            raise ReplayCanonicalError(
+                "final receipt mutation digest does not bind mutated public input"
+            )
+        if received["baseline_digest"] == received["mutated_input_digest"]:
+            raise ReplayCanonicalError(
+                "final receipt mutation did not change public input"
+            )
+        if received["mutated_input_digest"] in mutated_input_digests:
+            raise ReplayCanonicalError("final receipt has duplicate mutation input")
+        mutated_input_digests.add(received["mutated_input_digest"])
+        concrete = (
+            received["public_callable_identity"],
+            received["mutation_canonical_path"],
+            received["baseline_digest"],
+            received["mutated_input_digest"],
+        )
+        if concrete in concrete_experiments:
+            raise ReplayCanonicalError("final receipt has duplicate public experiment")
+        concrete_experiments.add(concrete)
+        behavior = (
+            received["implementation_identity"],
+            received["mutation_delta_digest"],
+        )
+        if behavior in behavior_and_mutation:
+            raise ReplayCanonicalError(
+                "final receipt has duplicate implementation mutation"
+            )
+        behavior_and_mutation.add(behavior)
 
 
 @dataclass(frozen=True)
@@ -594,40 +745,7 @@ class FinalAdversarialGateReceipt:
             classifications["expected_pass"] + classifications["expected_rejection"]
         )
         status = "pass" if not unexpected_pass and not unexpected_failure else "fail"
-        implementation_audit = [
-            {
-                "case_id": case.definition.case_id,
-                "implementation_identity": case.implementation_identity,
-                "mutation_kind": None
-                if case.mutation is None
-                else case.mutation.mutation_kind,
-                "baseline_digest": None
-                if case.mutation is None
-                else case.mutation.baseline_digest,
-                "mutation_digest": None
-                if case.mutation is None
-                else case.mutation.mutated_input_digest,
-                "mutation_delta_digest": None
-                if case.mutation is None
-                else case.mutation.delta_digest,
-                "mutation_canonical_path": None
-                if case.mutation is None
-                else case.mutation.canonical_path,
-                "mutation_operation": None
-                if case.mutation is None
-                else case.mutation.operation,
-                "expected_boundary": case.definition.boundary,
-                "observed_boundary": None
-                if case.observed_failure is None
-                else case.observed_failure.boundary,
-                "expected_failure_code": case.definition.expected_failure,
-                "observed_failure_code": None
-                if case.observed_failure is None
-                else case.observed_failure.code,
-                "classification": case.classification,
-            }
-            for case in case_models
-        ]
+        implementation_audit = _implementation_audit_from_cases(tuple(case_models))
         payload = {
             "schema_version": GATE_SCHEMA,
             "gate_version": GATE_VERSION,
@@ -763,43 +881,10 @@ class FinalAdversarialGateReceipt:
             raise ReplayCanonicalError(
                 "final receipt status does not match case evidence"
             )
-        expected_audit = [
-            {
-                "case_id": case.definition.case_id,
-                "implementation_identity": case.implementation_identity,
-                "mutation_kind": None
-                if case.mutation is None
-                else case.mutation.mutation_kind,
-                "baseline_digest": None
-                if case.mutation is None
-                else case.mutation.baseline_digest,
-                "mutation_digest": None
-                if case.mutation is None
-                else case.mutation.mutated_input_digest,
-                "mutation_delta_digest": None
-                if case.mutation is None
-                else case.mutation.delta_digest,
-                "mutation_canonical_path": None
-                if case.mutation is None
-                else case.mutation.canonical_path,
-                "mutation_operation": None
-                if case.mutation is None
-                else case.mutation.operation,
-                "expected_boundary": case.definition.boundary,
-                "observed_boundary": None
-                if case.observed_failure is None
-                else case.observed_failure.boundary,
-                "expected_failure_code": case.definition.expected_failure,
-                "observed_failure_code": None
-                if case.observed_failure is None
-                else case.observed_failure.code,
-                "classification": case.classification,
-            }
-            for case in case_models
-        ]
-        if payload["implementation_audit"] != expected_audit or payload[
-            "implementation_audit_digest"
-        ] != canonical_digest(expected_audit):
+        _validate_implementation_audit(payload["implementation_audit"], case_models)
+        if payload["implementation_audit_digest"] != canonical_digest(
+            payload["implementation_audit"]
+        ):
             raise ReplayCanonicalError("final receipt implementation audit mismatch")
         expected_decision = (
             "local_closure_accepted"

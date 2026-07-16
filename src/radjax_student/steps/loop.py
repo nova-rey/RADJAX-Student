@@ -11,6 +11,7 @@ from radjax_student.learning import (
     LearningBatch,
     LearningIssue,
     LearningState,
+    LearningStepResult,
     MetricRecord,
 )
 from radjax_student.learning.hooks import (
@@ -22,6 +23,64 @@ from radjax_student.learning.hooks import (
 from radjax_student.optimizers import OptimizerBackend, OptimizerConfig, OptimizerState
 
 DEFAULT_HOOK_POLICY = HookPolicy()
+
+
+class LearningLoopBoundaryError(ValueError):
+    """Stable failure when a completed generic-loop result is not successful."""
+
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        super().__init__(f"{code}: {message}")
+
+
+def validate_learning_step_execution(
+    execution: LearningStepExecutionProtocol,
+    *,
+    previous_learning_state: LearningState,
+    previous_optimizer_state: Any,
+) -> None:
+    """Validate the backend-neutral transition before generic loop adoption.
+
+    The loop deliberately does not interpret optimizer arrays or model carry,
+    but it must reject an executor that claims a completed update without the
+    corresponding immutable learning and optimizer envelope transition.
+    """
+
+    if not isinstance(getattr(execution, "result", None), LearningStepResult):
+        raise LearningLoopBoundaryError(
+            "learning_step_result_invalid", "step executor did not return an execution"
+        )
+    if not isinstance(getattr(execution, "learning_state", None), LearningState):
+        raise LearningLoopBoundaryError(
+            "learning_state_invalid", "step execution lacks LearningState"
+        )
+    state = execution.learning_state
+    if state.global_step != previous_learning_state.global_step + 1:
+        raise LearningLoopBoundaryError(
+            "learning_global_step_invalid", "completed step did not advance global step"
+        )
+    if state.optimizer_step != previous_learning_state.optimizer_step + 1:
+        raise LearningLoopBoundaryError(
+            "learning_optimizer_step_invalid",
+            "completed step did not advance optimizer step",
+        )
+    if state.micro_step != 0:
+        raise LearningLoopBoundaryError(
+            "learning_micro_step_invalid",
+            "micro step must reset when accumulation is unsupported",
+        )
+    optimizer = getattr(execution, "optimizer_state", None)
+    envelope = getattr(optimizer, "envelope", optimizer)
+    previous_envelope = getattr(
+        previous_optimizer_state, "envelope", previous_optimizer_state
+    )
+    if hasattr(envelope, "step") and hasattr(previous_envelope, "step"):
+        if envelope.step != previous_envelope.step + 1:
+            raise LearningLoopBoundaryError(
+                "learning_optimizer_envelope_invalid",
+                "completed step did not advance optimizer envelope",
+            )
+
 
 if TYPE_CHECKING:
     from radjax_student.learning.run_report import LearningRunReport
@@ -208,6 +267,11 @@ def _run_learning_loop(
                 parameters=parameters,
                 objective=objective,
             )
+            validate_learning_step_execution(
+                execution,
+                previous_learning_state=learning_state,
+                previous_optimizer_state=optimizer_state,
+            )
         except Exception as exc:
             failure_dispatch = observe(
                 "failure",
@@ -223,7 +287,7 @@ def _run_learning_loop(
                 steps_completed,
                 learning_state.global_step,
                 batches_consumed,
-                "learning_step_failure",
+                str(getattr(exc, "code", "learning_step_failure")),
                 tuple(metrics[-config.metric_history_limit :]),
                 tuple(checkpoints),
                 tuple(warnings),
@@ -354,9 +418,14 @@ def run_learning_loop(
 
     from radjax_student.learning.run_report import build_learning_run_report
 
-    report_state = (
-        result.final_execution.learning_state
+    candidate_report_state = (
+        getattr(result.final_execution, "learning_state", None)
         if result.final_execution is not None
+        else None
+    )
+    report_state = (
+        candidate_report_state
+        if isinstance(candidate_report_state, LearningState)
         else learning_state
     )
     try:
@@ -369,6 +438,19 @@ def run_learning_loop(
     except (TypeError, ValueError):
         return result
     return replace(result, report=report)
+
+
+def require_successful_learning_loop(result: LearningLoopResult) -> LearningLoopResult:
+    """Turn a real terminal loop result into a public failure when required."""
+
+    if not isinstance(result, LearningLoopResult):
+        raise TypeError("learning loop result is required")
+    if result.status != "pass" or result.stop_reason != "max_steps":
+        raise LearningLoopBoundaryError(
+            f"learning_loop_{result.stop_reason}",
+            "generic learning loop did not complete successfully",
+        )
+    return result
 
 
 @dataclass

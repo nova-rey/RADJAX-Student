@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
@@ -28,6 +30,7 @@ class FiniteJsonJaxBatchMaterializer:
             inputs=_arrays(jnp, batch.inputs),
             targets=_arrays(jnp, batch.targets),
             weights=_arrays(jnp, batch.weights),
+            source_batch_digest=_batch_digest(batch),
         )
 
 
@@ -39,4 +42,24 @@ def _arrays(jnp: Any, value: Any) -> Any:
     return jnp.asarray(value)
 
 
-__all__ = ["FiniteJsonJaxBatchMaterializer", "JaxBatchMaterializer"]
+def _batch_digest(batch: LearningBatch) -> str:
+    return hashlib.sha256(
+        (
+            json.dumps(batch.to_dict(), sort_keys=True, separators=(",", ":")) + "\n"
+        ).encode("utf-8")
+    ).hexdigest()
+
+
+def learning_batch_digest(batch: LearningBatch) -> str:
+    """Canonical source identity used to bind materialized JAX values."""
+
+    if not isinstance(batch, LearningBatch):
+        raise TypeError("batch must be LearningBatch")
+    return _batch_digest(batch)
+
+
+__all__ = [
+    "FiniteJsonJaxBatchMaterializer",
+    "JaxBatchMaterializer",
+    "learning_batch_digest",
+]

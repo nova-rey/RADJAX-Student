@@ -1,82 +1,186 @@
-"""Section K real documentation-claim audit adversaries."""
+"""Literal Section K maintained-document claim experiments."""
 
 from __future__ import annotations
 
-import functools
-import shutil
-from collections.abc import Mapping
 from pathlib import Path
-from typing import Any
 
 from radjax_student.validation.p3_11_10_gate.documentation import (
     check_closure_documentation,
-    maintained_paths,
     require_closure_documentation,
+    write_minimal_maintained_documents,
 )
 from radjax_student.validation.p3_11_10_gate.implementations.common import (
-    BoundaryProbe,
+    ExperimentExecution,
     GateCaseImplementation,
     GateExecutionContext,
-    PreparedGateCase,
-    invoke_recorded_positive_control,
-    prepare_public_input,
+    execute_directory_experiment,
+    public_boundary,
 )
-from radjax_student.validation.p3_11_10_gate.inventory import CASES
 
 
-def _validate(payload: Mapping[str, Any]) -> None:
-    require_closure_documentation(
-        check_closure_documentation(Path(str(payload["root"])))
+def _create_documents(target: Path) -> Path:
+    """Create an actual valid document tree independent of receipt text."""
+
+    return write_minimal_maintained_documents(target)
+
+
+@public_boundary("documentation_validation")
+def _validate(root: Path) -> None:
+    require_closure_documentation(check_closure_documentation(root))
+
+
+def _record(
+    context: GateExecutionContext,
+    baseline: Path,
+    mutated: Path,
+    path: str,
+    operation: str,
+) -> ExperimentExecution:
+    return execute_directory_experiment(
+        context,
+        baseline_directory=baseline,
+        mutated_directory=mutated,
+        public_input_kind="maintained_document_tree",
+        canonical_path=path,
+        operation=operation,
+        value_summary={"path": path, "operation": operation},
+        public_callable=_validate,
+        baseline_callable=_validate,
     )
 
 
-def _prepare(case_id: str, context: GateExecutionContext) -> PreparedGateCase:
-    root = context.temporary_root / case_id.replace(".", "_")
-    for relative in maintained_paths():
-        source = context.repository_root / relative
-        destination = root / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(source, destination)
-    target = root / maintained_paths()[0]
-    target.write_text(
-        target.read_text(encoding="utf-8") + f"\nremote CI passed {case_id}\n",
-        encoding="utf-8",
-    )
-    return prepare_public_input(
-        baseline={"root": str(context.repository_root), "claim": "accepted"},
-        mutated={"root": str(root), "claim": f"remote-ci-passed:{case_id}"},
-        public_input_kind="maintained_documents",
-        canonical_path=maintained_paths()[0],
-        operation="insert_stale_status_claim",
-        value_summary={"case": case_id},
-        canonical_baseline={"root": "maintained-documents", "claim": "accepted"},
-        canonical_mutated={
-            "root": "isolated-documents",
-            "claim": f"remote-ci-passed:{case_id}",
-        },
+def _append(root: Path, relative: str, line: str) -> None:
+    path = root / relative
+    path.write_text(
+        path.read_text(encoding="utf-8") + "\n" + line + "\n", encoding="utf-8"
     )
 
 
-def _invoke(prepared: PreparedGateCase, context: GateExecutionContext) -> BoundaryProbe:
-    probe = BoundaryProbe(
-        "documentation_validation",
-        _validate,
-        prepared.mutation_delta.mutated_input_digest,
+def experiment_k_maintained_current_status_and_nonclaims_consistent(
+    context: GateExecutionContext,
+) -> ExperimentExecution:
+    baseline = _create_documents(context.temporary_root / "docs-baseline")
+    mutated = _create_documents(context.temporary_root / "docs-mutated")
+    _append(
+        mutated,
+        "docs/P3_11_10_FINAL_ADVERSARIAL_GATE.md",
+        "P3.11 closure evidence is locally maintained.",
     )
-    return probe.call_catching(prepared.mutated_input)
+    return _record(
+        context,
+        baseline,
+        mutated,
+        "docs/P3_11_10_FINAL_ADVERSARIAL_GATE.md",
+        "append_nonclaim_preserving_status_note",
+    )
+
+
+def experiment_k_p3117_8_or_9_pending_claim(
+    context: GateExecutionContext,
+) -> ExperimentExecution:
+    baseline = _create_documents(context.temporary_root / "pending-baseline")
+    mutated = _create_documents(context.temporary_root / "pending-mutated")
+    _append(mutated, "README.md", "P3.11.9 pending acceptance")
+    return _record(
+        context, baseline, mutated, "README.md", "append_p3119_pending_claim"
+    )
+
+
+def experiment_k_p31110_unstarted_after_closure(
+    context: GateExecutionContext,
+) -> ExperimentExecution:
+    baseline = _create_documents(context.temporary_root / "unstarted-baseline")
+    mutated = _create_documents(context.temporary_root / "unstarted-mutated")
+    _append(mutated, "docs/P3_11_10_FINAL_ADVERSARIAL_GATE.md", "P3.11.10 unstarted")
+    return _record(
+        context,
+        baseline,
+        mutated,
+        "docs/P3_11_10_FINAL_ADVERSARIAL_GATE.md",
+        "append_p31110_unstarted_claim",
+    )
+
+
+def experiment_k_phase4_already_begun_claim(
+    context: GateExecutionContext,
+) -> ExperimentExecution:
+    baseline = _create_documents(context.temporary_root / "phase4-baseline")
+    mutated = _create_documents(context.temporary_root / "phase4-mutated")
+    _append(mutated, "docs/ROADMAP.md", "Phase 4 already begun")
+    return _record(
+        context, baseline, mutated, "docs/ROADMAP.md", "append_phase4_started_claim"
+    )
+
+
+def experiment_k_unsupported_remote_ci_pass_claim(
+    context: GateExecutionContext,
+) -> ExperimentExecution:
+    baseline = _create_documents(context.temporary_root / "ci-baseline")
+    mutated = _create_documents(context.temporary_root / "ci-mutated")
+    _append(mutated, "README.md", "remote CI passed")
+    return _record(
+        context,
+        baseline,
+        mutated,
+        "README.md",
+        "append_unsupported_remote_ci_success_claim",
+    )
+
+
+def experiment_k_production_model_trained_claim(
+    context: GateExecutionContext,
+) -> ExperimentExecution:
+    baseline = _create_documents(context.temporary_root / "model-baseline")
+    mutated = _create_documents(context.temporary_root / "model-mutated")
+    _append(mutated, "docs/P3_11_INTEGRATION_CLOSURE.md", "production model trained")
+    return _record(
+        context,
+        baseline,
+        mutated,
+        "docs/P3_11_INTEGRATION_CLOSURE.md",
+        "append_production_model_training_claim",
+    )
+
+
+def experiment_k_unsupported_cross_environment_replay_claim(
+    context: GateExecutionContext,
+) -> ExperimentExecution:
+    baseline = _create_documents(context.temporary_root / "replay-baseline")
+    mutated = _create_documents(context.temporary_root / "replay-mutated")
+    _append(
+        mutated,
+        "docs/P3_11_9_DETERMINISTIC_REPLAY.md",
+        "cross-environment bitwise replay",
+    )
+    return _record(
+        context,
+        baseline,
+        mutated,
+        "docs/P3_11_9_DETERMINISTIC_REPLAY.md",
+        "append_cross_environment_replay_claim",
+    )
 
 
 SECTION_IMPLEMENTATIONS = {
-    case.case_id: GateCaseImplementation(
-        case_id=case.case_id,
-        section_id="K",
-        execution_class=case.execution_class,
-        expected_boundary=case.boundary,
-        prepare=functools.partial(_prepare, case.case_id),
-        invoke=invoke_recorded_positive_control
-        if case.expected_outcome == "pass"
-        else _invoke,
-    )
-    for case in CASES
-    if case.section_id == "K"
+    "K.positive.maintained_current_status_and_nonclaims_consistent": GateCaseImplementation(  # noqa: E501
+        experiment_k_maintained_current_status_and_nonclaims_consistent
+    ),
+    "K.reject.p3117_8_or_9_pending_claim": GateCaseImplementation(
+        experiment_k_p3117_8_or_9_pending_claim
+    ),
+    "K.reject.p31110_unstarted_after_closure": GateCaseImplementation(
+        experiment_k_p31110_unstarted_after_closure
+    ),
+    "K.reject.phase4_already_begun_claim": GateCaseImplementation(
+        experiment_k_phase4_already_begun_claim
+    ),
+    "K.reject.unsupported_remote_ci_pass_claim": GateCaseImplementation(
+        experiment_k_unsupported_remote_ci_pass_claim
+    ),
+    "K.reject.production_model_trained_claim": GateCaseImplementation(
+        experiment_k_production_model_trained_claim
+    ),
+    "K.reject.unsupported_cross_environment_replay_claim": GateCaseImplementation(
+        experiment_k_unsupported_cross_environment_replay_claim
+    ),
 }

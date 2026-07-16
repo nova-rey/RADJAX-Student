@@ -965,3 +965,18 @@
   repeated-run evidence. The final receipt's implementation audit records the
   corresponding per-case identities for the full A-K inventory. Local closure
   remains distinct from the required remote base/JAX CI condition.
+
+## 2026-07-16 - P3.11.10C literal adversary execution
+
+- The final gate now binds all 241 inventory entries to individual literal
+  experiment functions. Each experiment changes a distinct real public input,
+  invokes its declared public boundary twice from fresh state, and records only
+  the failure identity emitted by that boundary or a message-scoped public
+  exception adapter.
+- The receipt validates a full per-case implementation audit, including
+  registered implementation identity, callable identity, baseline and mutated
+  input digests, mutation delta, trace, observed boundary, and repetition
+  evidence. Duplicate mutation inputs or relabeled behavior copies fail before
+  local closure evidence can be emitted.
+- This is local integration evidence only. Phase 4 remains next and unstarted
+  pending successful required remote base/JAX CI or a repository-owner waiver.

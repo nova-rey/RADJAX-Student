@@ -40,6 +40,16 @@ _NON_CLAIMS = (
     "no performance claim",
     "no RadLads parity claim",
 )
+_PROHIBITED_CLAIMS = {
+    "P3.11.7 pending": "p311_status_pending_claim",
+    "P3.11.8 pending": "p311_status_pending_claim",
+    "P3.11.9 pending": "p311_status_pending_claim",
+    "P3.11.10 unstarted": "p31110_unstarted_claim",
+    "remote CI passed": "unsupported_remote_ci_claim",
+    "Phase 4 already begun": "phase4_started_claim",
+    "production model trained": "production_model_claim",
+    "cross-environment bitwise replay": "cross_environment_replay_claim",
+}
 
 
 @dataclass(frozen=True)
@@ -73,13 +83,39 @@ def check_closure_documentation(repository_root: Path) -> DocumentationClosureCh
         for claim in _NON_CLAIMS:
             if claim not in normalized:
                 errors.append(f"non_claim:{relative}:{claim}")
-        if "remote CI passed" in text or "Phase 4 already begun" in text:
-            errors.append(f"unsupported_claim:{relative}")
+        for phrase, code in _PROHIBITED_CLAIMS.items():
+            if phrase in text:
+                errors.append(f"{code}:{relative}")
     return DocumentationClosureCheck(not errors, tuple(sorted(errors)))
 
 
 def maintained_paths() -> tuple[str, ...]:
     return _ALLOWLIST
+
+
+def write_minimal_maintained_documents(repository_root: Path) -> Path:
+    """Create a valid, isolated maintained-document tree for an audit.
+
+    Section K experiments exercise the real documentation validator over real
+    files.  They deliberately use this stable fixture rather than copies of
+    the repository documents: the recorded closure receipt is itself named by
+    several maintained documents, and copying that self-referential digest
+    would make a documentation mutation alter the receipt it is proving.
+    """
+
+    body = "\n".join(
+        (
+            "# Maintained RADJAX status",
+            *_MARKERS,
+            *_NON_CLAIMS,
+            "",
+        )
+    )
+    for relative in _ALLOWLIST:
+        destination = repository_root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(body, encoding="utf-8")
+    return repository_root
 
 
 def require_closure_documentation(check: DocumentationClosureCheck) -> None:
@@ -97,4 +133,5 @@ __all__ = [
     "check_closure_documentation",
     "maintained_paths",
     "require_closure_documentation",
+    "write_minimal_maintained_documents",
 ]

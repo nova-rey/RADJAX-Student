@@ -1,4 +1,4 @@
-# P3.11.10 Final Adversarial Gate Addition
+# P3.11.10 Final Adversarial Gate
 
 The final adversarial gate includes optimizer step identity as a mandatory
 checkpoint condition. It exercises envelope-only tampering, numerical-step
@@ -20,7 +20,7 @@ generated closure receipt.
 The generated receipt is
 [`P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json`](P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json),
 schema `radjax.p3_11_10_final_adversarial_gate.v1`, with final gate evidence
-digest `8eda354e8c11709a16f58f9389020e1dd0c259a033f4e41aa3f3f19f3dcdf1f8`.
+digest `e29a1e571749652fb1e22035a081eb2b107f5ad165105ed93e0e605fb9f7209e`.
 
 P3.11.1-P3.11.10 locally accepted
 
@@ -35,9 +35,12 @@ no distillation, no Hugging Face export, no accelerator-scale training, no
 multi-device proof, no cross-hardware bitwise replay claim, no cross-version
 bitwise replay claim, no performance claim, and no RadLads parity claim.
 
-P3.11.10B replaced the rejected class-level adversaries with section-owned,
-exact case-ID implementations. The receipt includes a generated implementation
-audit for all 241 A-K cases: implementation identity, normalized public-input
-mutation identity, actual observed failure identity, probed boundary, repeated
-execution evidence, and final classification. Expected failure metadata is not
-available to observation adapters.
+The rejected P3.11.10 and P3.11.10A attempts remain historical records. Their
+inventory and receipt scaffolding were retained, while P3.11.10B/C replaced the
+ceremonial dispatch with 241 literal A-K experiments. Every function changes a
+distinct public input, invokes its declared public boundary, and repeats the
+same first observed failure from fresh state. The generated implementation audit
+records the function-bound identity, mutation delta, public callable, boundary
+trace, observed source type, and final classification. Observation adapters
+receive only the actual boundary probe and exception, never expected-failure
+metadata.

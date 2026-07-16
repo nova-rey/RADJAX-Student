@@ -25,14 +25,14 @@ class JaxBatch:
     inputs: Any
     targets: Any
     weights: Any = None
+    source_batch_digest: str | None = None
 
     def tree_flatten(self):
-        return (self.inputs, self.targets, self.weights), None
+        return (self.inputs, self.targets, self.weights), self.source_batch_digest
 
     @classmethod
     def tree_unflatten(cls, aux_data, children):
-        del aux_data
-        return cls(*children)
+        return cls(*children, source_batch_digest=aux_data)
 
 
 @jax.tree_util.register_pytree_node_class

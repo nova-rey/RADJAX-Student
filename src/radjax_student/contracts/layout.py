@@ -30,8 +30,10 @@ def _freeze_json(value: Any) -> Any:
             raise ValueError("metadata must contain finite JSON values")
         return value
     if isinstance(value, Mapping):
+        if any(not isinstance(key, str) or not key for key in value):
+            raise ValueError("metadata mapping keys must be nonempty strings")
         return MappingProxyType(
-            {str(key): _freeze_json(item) for key, item in sorted(value.items())}
+            {key: _freeze_json(item) for key, item in sorted(value.items())}
         )
     if isinstance(value, (tuple, list)):
         return tuple(_freeze_json(item) for item in value)

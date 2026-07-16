@@ -105,8 +105,9 @@ Start here for Phase 0 foundation context.
   public runtime-to-checkpoint conveyor proof with caller-bound resume.
 - [P3.11.9 Deterministic Replay Evidence](P3_11_9_DETERMINISTIC_REPLAY.md):
   independently replayed stateful conveyor evidence and a read-only gate.
-- [P3.11.10 Final Adversarial Gate Addition](P3_11_10_FINAL_ADVERSARIAL_GATE.md):
-  mandatory checkpoint tamper cases for optimizer identity and step integrity.
+- [P3.11.10 Final Adversarial Gate](P3_11_10_FINAL_ADVERSARIAL_GATE.md):
+  241 literal public-boundary experiments, an immutable implementation audit,
+  and the local integration-closure receipt.
 - [P3.5 Architecture Integrity Roadmap](P3_5_ARCHITECTURE_INTEGRITY_ROADMAP.md):
   ordered cleanup checkpoints required before Phase 4.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)

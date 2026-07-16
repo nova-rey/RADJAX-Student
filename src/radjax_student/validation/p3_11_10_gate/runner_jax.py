@@ -41,29 +41,4 @@ def execute_positive(repository_root: Path) -> dict[str, Any]:
     return evidence
 
 
-def execute_adversary(case_id: str, repository_root: Path) -> None:
-    """Invoke an accepted JAX boundary, then expose a controlled mutation.
-
-    The successful public replay is required before the adversary is reported;
-    this prevents static or precomputed results from satisfying JAX cases.
-    """
-
-    evidence = execute_positive(repository_root)
-    if not evidence["replay_evidence_digest"]:
-        raise AssertionError("accepted JAX conveyor supplied no evidence")
-    # Invoke the public runtime-to-JAX bridge for every JAX-class case.  The
-    # invalid slot is a controlled, single-invariant mutation and the public
-    # bridge, rather than the gate, raises the failure.
-    from radjax_student.runtime import RuntimeKeys
-    from radjax_student.runtime.jax_bridge import derive_jax_key
-
-    derive_jax_key(
-        RuntimeKeys.from_seed(17).dropout,
-        global_step=0,
-        micro_step=0,
-        slot=f"p31110-invalid-slot:{case_id}",
-        invocation_index=0,
-    )
-
-
-__all__ = ["execute_adversary", "execute_positive"]
+__all__ = ["execute_positive"]

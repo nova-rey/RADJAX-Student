@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import struct
 import zipfile
@@ -168,11 +169,16 @@ def read_deterministic_npz(path: Path, descriptor: Mapping[str, Any]) -> dict[st
             raise ValueError("NPZ members do not match the canonical descriptor")
         for keypath, (member, shape, dtype) in expected.items():
             with archive.open(member, "r") as stream:
-                array = np.lib.format.read_array(stream, allow_pickle=False)
+                member_bytes = stream.read()
+            array = np.lib.format.read_array(
+                io.BytesIO(member_bytes), allow_pickle=False
+            )
             if array.dtype.hasobject or array.dtype.fields is not None:
                 raise ValueError("object and structured dtypes are not supported")
             if tuple(array.shape) != shape or str(array.dtype) != dtype:
                 raise ValueError("NPZ leaf shape or dtype does not match descriptor")
+            if member_bytes != _canonical_npy_bytes(_canonical_array(array, np)):
+                raise ValueError("NPZ member bytes are not canonical")
             _set_mapping_leaf(result, keypath, array)
     return result
 

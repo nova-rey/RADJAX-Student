@@ -39,6 +39,7 @@ _CLASSIFICATIONS = {
     "learning.p3_5_acceptance": "transitional",
     "learning.synthetic_smoke": "smoke_debug",
     "validation.p3_11_9_replay.runner_jax": "optional_integration",
+    "validation.p3_11_10_gate": "optional_integration",
     "validation.p3_11_10_gate.runner_jax": "optional_integration",
     "losses": "research",
     "losses.dense_kl": "smoke_debug",
@@ -124,6 +125,14 @@ def _literal_exports(tree: ast.Module) -> tuple[str, ...]:
     return tuple(sorted(exports))
 
 
+def _defined_classes(tree: ast.Module) -> tuple[str, ...]:
+    """Expose real source declarations for isolated dependency audits."""
+
+    return tuple(
+        sorted(node.name for node in tree.body if isinstance(node, ast.ClassDef))
+    )
+
+
 def _imports(tree: ast.Module) -> tuple[str, ...]:
     names: set[str] = set()
     for node in ast.walk(tree):
@@ -164,6 +173,7 @@ def collect_module_record(path: Path, source_root: Path) -> dict[str, Any]:
             name for name in imports if name.split(".", 1)[0] in FORBIDDEN_IMPORTS
         ),
         "public_exports": list(_literal_exports(tree)),
+        "defined_classes": list(_defined_classes(tree)),
         "has_dynamic_exports": any(
             isinstance(node, ast.FunctionDef) and node.name == "__getattr__"
             for node in tree.body
@@ -383,6 +393,62 @@ def require_clean_architecture_audit(audit: Mapping[str, Any]) -> None:
         raise ArchitectureAuditError(code, "dependency audit contains blockers")
 
 
+def validate_dependency_fixture(audit: Mapping[str, Any]) -> None:
+    """Reject one real isolated source-tree dependency violation.
+
+    The maintained audit remains the source of AST records.  This public helper
+    is intentionally narrow: validation experiments use it to make the exact
+    forbidden edge emitted by an isolated tree observable as a stable blocker.
+    It never accepts a case identifier or expected result.
+    """
+
+    records = audit.get("modules")
+    if not isinstance(records, list):
+        raise ArchitectureAuditError(
+            "dependency_audit_invalid", "audit modules missing"
+        )
+    if audit.get("cycles"):
+        raise ArchitectureAuditError(
+            "dependency_cycle", "dependency fixture contains an internal cycle"
+        )
+    rules = (
+        ("architecture", "validation", "architecture_imports_validation"),
+        ("optimizers", "validation", "optimizer_imports_validation"),
+        ("runtime", "validation", "runtime_imports_validation"),
+        ("checkpoints", "validation", "checkpoint_imports_validation"),
+        ("learning", "steps.jax_step", "learning_imports_jax_execution"),
+        ("learning", "legacy", "learning_imports_legacy_helper"),
+        ("learning", "validation", "production_imports_replay_runner"),
+        ("architecture", "optimizers", "architecture_imports_optimizer"),
+        ("optimizers", "architecture", "optimizer_imports_architecture"),
+        ("runtime", "architecture", "runtime_imports_architecture"),
+        ("runtime", "optimizers", "runtime_imports_optimizer"),
+        ("radjax_student", "validation", "public_package_imports_validation"),
+        ("radjax_student", "students", "students_registry_reintroduced"),
+    )
+    for record in records:
+        module = str(record.get("module", "")).removeprefix("radjax_student.")
+        source_top = module.split(".", 1)[0] if module else "radjax_student"
+        imports = tuple(
+            str(item).removeprefix("radjax_student.")
+            for item in record.get("imports", ())
+        )
+        for source, target, code in rules:
+            if source_top != source:
+                continue
+            if any(item == target or item.startswith(target + ".") for item in imports):
+                raise ArchitectureAuditError(
+                    code, "dependency fixture contains forbidden edge"
+                )
+        if module == "contracts.batch" and "LearningBatch" in record.get(
+            "defined_classes", ()
+        ):
+            raise ArchitectureAuditError(
+                "duplicated_contract_class", "contract class was redefined"
+            )
+    require_clean_architecture_audit(audit)
+
+
 __all__ = [
     "SCHEMA",
     "build_architecture_audit",
@@ -393,4 +459,5 @@ __all__ = [
     "find_architecture_blockers",
     "find_dependency_cycles",
     "require_clean_architecture_audit",
+    "validate_dependency_fixture",
 ]

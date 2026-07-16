@@ -18,6 +18,7 @@ from radjax_student.learning import (
 )
 from radjax_student.learning.jax_batch import JaxBatchMaterializer
 from radjax_student.learning.jax_core import (
+    JaxBatch,
     JaxLossAuxiliary,
     JaxObjective,
     JaxObjectiveConfig,
@@ -45,9 +46,123 @@ from radjax_student.runtime.jax_bridge import (
     JAX_KEY_BRIDGE_VERSION,
     JAX_PRNG_IMPLEMENTATION,
     derive_jax_key,
+    validate_runtime_jax_key_request,
 )
 from radjax_student.runtime.jax_inputs import prepare_jax_inputs
 from radjax_student.runtime.keys import RuntimeKeys, RuntimeKeyStream
+
+
+class JaxUpdateEvidenceError(ValueError):
+    """Stable public rejection for post-update logical-path evidence."""
+
+    def __init__(self, code: str, message: str) -> None:
+        self.code = code
+        super().__init__(f"{code}: {message}")
+
+
+class JaxBatchBindingError(ValueError):
+    """Stable public failure when a materialized batch is not its source batch."""
+
+    code = "jax_batch_source_mismatch"
+
+
+def validate_jax_update_evidence(
+    *,
+    before_parameters: Mapping[str, Any],
+    after_parameters: Mapping[str, Any],
+    parameter_layout: ParameterTreeLayout,
+    selected_paths: tuple[str, ...],
+    changed_paths: tuple[str, ...],
+    unchanged_paths: tuple[str, ...],
+    optimizer_before: Mapping[str, Any] | None = None,
+    optimizer_after: Mapping[str, Any] | None = None,
+) -> None:
+    """Bind reported logical paths to actual parameter/state transitions.
+
+    The optimizer owns numerical-state meaning, but this boundary verifies that
+    an update report neither claims movement where no selected parameter moved
+    nor hides movement in an excluded logical parameter or its supplied
+    per-parameter optimizer-state view.
+    """
+
+    from importlib import import_module
+
+    jnp = import_module("jax.numpy")
+    parameter_layout.validate_materialized_parameters(before_parameters)
+    parameter_layout.validate_materialized_parameters(after_parameters)
+    selected = set(selected_paths)
+    changed = set(changed_paths)
+    unchanged = set(unchanged_paths)
+    all_paths = set(parameter_layout.logical_paths)
+    if selected - all_paths:
+        raise JaxUpdateEvidenceError(
+            "jax_update_selection_unknown_path", "selected paths are not in the layout"
+        )
+    if changed & unchanged:
+        raise JaxUpdateEvidenceError(
+            "jax_update_paths_overlap", "changed and unchanged path reports overlap"
+        )
+    if changed | unchanged != all_paths:
+        raise JaxUpdateEvidenceError(
+            "jax_update_paths_incomplete", "update report does not cover the layout"
+        )
+    for entry in parameter_layout.entries:
+        before = _mapping_leaf(before_parameters, entry.jax_keypath)
+        after = _mapping_leaf(after_parameters, entry.jax_keypath)
+        moved = not bool(jnp.array_equal(jnp.asarray(before), jnp.asarray(after)))
+        if entry.logical_path not in selected and moved:
+            raise JaxUpdateEvidenceError(
+                "jax_update_excluded_parameter_changed",
+                "an excluded parameter changed during the update",
+            )
+        if entry.logical_path in changed and not moved:
+            raise JaxUpdateEvidenceError(
+                "jax_update_changed_path_false",
+                "a reported changed parameter is byte-identical",
+            )
+        if entry.logical_path in unchanged and moved:
+            raise JaxUpdateEvidenceError(
+                "jax_update_unchanged_path_false",
+                "a reported unchanged parameter changed",
+            )
+    if optimizer_before is None or optimizer_after is None:
+        return
+    for path in set(optimizer_before) & set(optimizer_after):
+        state_moved = not bool(
+            jnp.array_equal(
+                jnp.asarray(optimizer_before[path]),
+                jnp.asarray(optimizer_after[path]),
+            )
+        )
+        if path not in selected and state_moved:
+            raise JaxUpdateEvidenceError(
+                "jax_update_excluded_optimizer_state_changed",
+                "an excluded per-parameter optimizer state changed",
+            )
+
+
+def _mapping_leaf(value: Mapping[str, Any], keypath: tuple[str, ...]) -> Any:
+    branch: Any = value
+    for key in keypath:
+        branch = branch[key]
+    return branch
+
+
+def validate_jax_batch_binding(learning_batch: LearningBatch, batch: Any) -> None:
+    """Require the JAX values sent to execution to identify their JSON source."""
+
+    from radjax_student.learning.jax_batch import learning_batch_digest
+    from radjax_student.learning.jax_core import JaxBatch
+
+    if not isinstance(learning_batch, LearningBatch):
+        raise TypeError("learning_batch must be LearningBatch")
+    if not isinstance(batch, JaxBatch):
+        raise TypeError("batch_materializer must return JaxBatch")
+    expected = learning_batch_digest(learning_batch)
+    if batch.source_batch_digest != expected:
+        raise JaxBatchBindingError(
+            "materialized JAX batch source identity does not match LearningBatch"
+        )
 
 
 @dataclass(frozen=True)
@@ -112,10 +227,7 @@ def execute_jax_learning_step(
     if not isinstance(batch_materializer, JaxBatchMaterializer):
         raise TypeError("batch_materializer must implement JaxBatchMaterializer")
     batch = batch_materializer.materialize(learning_batch)
-    from radjax_student.learning.jax_core import JaxBatch
-
-    if not isinstance(batch, JaxBatch):
-        raise TypeError("batch_materializer must return JaxBatch")
+    validate_jax_batch_binding(learning_batch, batch)
     stream = (
         runtime_key_stream or RuntimeKeys.from_seed(runtime_context.root_seed).dropout
     )
@@ -124,6 +236,19 @@ def execute_jax_learning_step(
     )
     if stream != expected_stream:
         raise ValueError("runtime key stream does not belong to the runtime context")
+    validate_runtime_jax_key_request(
+        context=runtime_context,
+        stream=stream,
+        global_step=learning_state.global_step,
+        micro_step=learning_state.micro_step,
+        slot=rng_slot,
+        invocation_index=rng_invocation_index,
+        expected_coordinates={
+            "global_step": learning_state.global_step,
+            "micro_step": learning_state.micro_step,
+            "invocation_index": rng_invocation_index,
+        },
+    )
     rng_key = derive_jax_key(
         stream,
         global_step=learning_state.global_step,
@@ -360,4 +485,11 @@ def _paths_for_mask(
     return tuple(sorted(result))
 
 
-__all__ = ["JaxLearningStepExecution", "execute_jax_learning_step"]
+__all__ = [
+    "JaxLearningStepExecution",
+    "JaxBatchBindingError",
+    "JaxUpdateEvidenceError",
+    "execute_jax_learning_step",
+    "validate_jax_batch_binding",
+    "validate_jax_update_evidence",
+]

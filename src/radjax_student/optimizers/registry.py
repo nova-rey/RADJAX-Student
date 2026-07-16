@@ -13,7 +13,9 @@ from radjax_student.optimizers.protocols import JaxOptimizerExecution, Optimizer
 class OptimizerRegistry:
     _backends: dict[str, OptimizerBackend] = field(default_factory=dict)
 
-    def register(self, backend: OptimizerBackend) -> None:
+    def register(
+        self, backend: OptimizerBackend, *, registry_id: str | None = None
+    ) -> None:
         if not isinstance(backend, OptimizerBackend):
             raise OptimizerContractError(
                 "optimizer_config_invalid", "registry requires full OptimizerBackend"
@@ -21,6 +23,15 @@ class OptimizerRegistry:
         if not isinstance(backend.optimizer_id, str) or not backend.optimizer_id:
             raise OptimizerContractError(
                 "optimizer_config_invalid", "optimizer ID must be a nonempty string"
+            )
+        if registry_id is not None and registry_id != backend.optimizer_id:
+            raise OptimizerContractError(
+                "optimizer_config_invalid",
+                "explicit registry ID must match the optimizer ID",
+                details={
+                    "registry_id": registry_id,
+                    "optimizer_id": backend.optimizer_id,
+                },
             )
         if backend.optimizer_id in self._backends:
             raise OptimizerContractError(

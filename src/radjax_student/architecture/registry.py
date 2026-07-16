@@ -18,7 +18,9 @@ class ArchitectureRegistry:
 
     _plugins: dict[str, ArchitecturePlugin] = field(default_factory=dict)
 
-    def register(self, plugin: ArchitecturePlugin) -> None:
+    def register(
+        self, plugin: ArchitecturePlugin, *, registry_id: str | None = None
+    ) -> None:
         if not isinstance(plugin, ArchitecturePlugin):
             raise ArchitectureContractError(
                 "architecture_plugin_invalid",
@@ -29,6 +31,15 @@ class ArchitectureRegistry:
             raise ArchitectureContractError(
                 "architecture_config_invalid",
                 "architecture plugin ID must be a nonempty string",
+            )
+        if registry_id is not None and registry_id != architecture_id:
+            raise ArchitectureContractError(
+                "architecture_config_invalid",
+                "explicit registry ID must match the plugin architecture ID",
+                details={
+                    "registry_id": registry_id,
+                    "architecture_id": architecture_id,
+                },
             )
         if architecture_id in self._plugins:
             raise ArchitectureContractError(

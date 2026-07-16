@@ -295,9 +295,36 @@ def load_learning_checkpoint_v3(
     expected_parameter_catalog_digest: str | None = None,
     expected_architecture_state_id: str | None = None,
     expected_architecture_carry_descriptor: Mapping[str, Any] | None = None,
+    require_lifecycle_expectations: bool = False,
 ) -> JaxLearningCheckpointV3:
     """Validate all v3 identity, integrity, and optimizer-owned invariants."""
 
+    if require_lifecycle_expectations and any(
+        value is None
+        for value in (
+            expected_hf_reference,
+            expected_architecture_config_digest,
+            expected_parameter_catalog_digest,
+            expected_architecture_carry_descriptor,
+        )
+    ):
+        raise CheckpointValidationError(
+            "checkpoint_lifecycle_expectations_missing",
+            "caller-bound resume requires complete lifecycle expectations",
+        )
+    if not directory.is_dir():
+        raise CheckpointValidationError(
+            "checkpoint_component_unreadable", "checkpoint directory is unreadable"
+        )
+    actual_files = {path.name for path in directory.iterdir() if path.is_file()}
+    expected_files = set(V3_FILES)
+    unexpected_files = actual_files - expected_files
+    if unexpected_files:
+        raise CheckpointValidationError(
+            "checkpoint_unexpected_file",
+            "checkpoint contains undeclared files",
+            details={"files": sorted(unexpected_files)},
+        )
     stored = _read_json(directory / "manifest.json")
     integrity = stored.pop("integrity", None)
     if not isinstance(integrity, Mapping) or integrity.get(
