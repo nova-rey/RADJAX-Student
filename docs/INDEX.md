@@ -189,6 +189,9 @@ P3.12A.1 closes the legacy core objective side entrance; see [P3.12A Objective I
 
 P3.12B locally accepted
 
+P3.12B.3 closes the validation-owned anti-cheat audit; the exact 22-positive
+and 77-adversarial inventories remain mandatory with no production gate import.
+
 P3.12C next and unstarted
 
 Phase 4 remains unstarted

@@ -1,7 +1,7 @@
 # P3.12A Objective Identity Contract
 
 Current P3.12A evidence digest:
-`b7a3f75f71944453c40454df0628847f14fcf0929b56f160af75294e0754ad1e`.
+`8772242cb80fefd4ed8c089f5dce297b75b284fe94fa20063ded22d5fb00ffa1`.
 
 P3.12A closes the hole where a caller could historically pair an arbitrary
 objective implementation with a free-standing objective string. The canonical
@@ -36,7 +36,7 @@ consumption, distillation, Hugging Face export, model quality, multi-device or
 accelerator-scale training, performance, or Phase 4 implementation.
 
 The current executed evidence digest is
-`b7a3f75f71944453c40454df0628847f14fcf0929b56f160af75294e0754ad1e`.
+`8772242cb80fefd4ed8c089f5dce297b75b284fe94fa20063ded22d5fb00ffa1`.
 
 ## P3.12A.1 Authority Closure
 

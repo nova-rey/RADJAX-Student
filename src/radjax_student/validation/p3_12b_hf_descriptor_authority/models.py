@@ -11,34 +11,11 @@ from typing import Any, Literal
 from radjax_student.contracts import HFCompatibilityDescriptor
 
 from .implementation_audit import HFDescriptorGateImplementationAudit
+from .inventory import ADVERSARIAL_CASE_IDS, POSITIVE_CASE_IDS
 
 SCHEMA_VERSION = "radjax.p3_12b_hf_descriptor_authority.v2"
-ADVERSARIAL_CASE_COUNT = 77
-POSITIVE_PROOF_COUNT = 22
-POSITIVE_CASE_IDS = (
-    "descriptor_constructed",
-    "reference_derived",
-    "canonical_round_trip",
-    "construction_determinism",
-    "projection_covers_layout",
-    "projection_matches_materialized",
-    "exportable_keys",
-    "tokenizer_complete",
-    "vocabulary_complete",
-    "special_tokens_valid",
-    "lifecycle_binds_descriptor",
-    "checkpoint_persists_descriptor",
-    "caller_bound_restore",
-    "historical_non_resumable",
-    "eager_resume_identity",
-    "jit_resume_identity",
-    "replay_ab_identity",
-    "report_summary",
-    "report_is_compact",
-    "no_export_claim",
-    "one_authority_audit",
-    "recorded_determinism",
-)
+ADVERSARIAL_CASE_COUNT = len(ADVERSARIAL_CASE_IDS)
+POSITIVE_PROOF_COUNT = len(POSITIVE_CASE_IDS)
 
 
 def digest(value: Any) -> str:
@@ -215,6 +192,7 @@ class HFDescriptorAuthorityProof:
             self.implementation_audit.positive_case_ids != POSITIVE_CASE_IDS
             or tuple(item.case_id for item in adversarial)
             != self.implementation_audit.adversarial_case_ids
+            or tuple(item.case_id for item in adversarial) != ADVERSARIAL_CASE_IDS
         ):
             raise ValueError("proof inventory does not match the implementation audit")
         if any(
@@ -395,6 +373,7 @@ def validate_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
 
 __all__ = [
     "ADVERSARIAL_CASE_COUNT",
+    "ADVERSARIAL_CASE_IDS",
     "HFAdversarialResult",
     "HFDescriptorAuthorityProof",
     "HFPositiveProof",

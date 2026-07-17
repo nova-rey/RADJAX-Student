@@ -1,4 +1,4 @@
-"""JAX-free AST/source audit for P3.12B literal gate implementation."""
+"""JAX-free, source-derived anti-cheat audit for the frozen P3.12B gate."""
 
 from __future__ import annotations
 
@@ -7,8 +7,63 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
-SCHEMA_VERSION = "radjax.p3_12b_implementation_audit.v2"
+from .inventory import ADVERSARIAL_CASE_IDS, POSITIVE_CASE_IDS
+
+SCHEMA_VERSION = "radjax.p3_12b_implementation_audit.v3"
+_SUSPICIOUS_NAMES = {
+    "case",
+    "case_id",
+    "case_name",
+    "expected",
+    "expected_code",
+    "expected_outcome",
+    "outcome",
+    "category",
+    "spec",
+    "intended_boundary",
+    "boundary_name",
+    "mutation_name",
+    "inventory_index",
+    "function_name",
+}
+_TRANSLATION_NAMES = {
+    "_matches_expected",
+    "matches_expected",
+    "normalize_expected",
+    "normalize_failure",
+    "expected_to_observed",
+    "observed_to_expected",
+    "blocker_aliases",
+    "blocker_families",
+    "accepted_codes",
+    "accepted_prefixes",
+    "failure_aliases",
+    "map_expected_code",
+    "canonicalize_observed_code",
+}
+_GENERIC_NAMES = {
+    "run_case",
+    "run_generic_adversary",
+    "generic_adversary",
+    "execute_case",
+    "make_adversary",
+    "blocker_for_case",
+    "mutation_for_case",
+}
+_PRODUCTION_OWNERS = {
+    "architecture",
+    "contracts",
+    "checkpoints",
+    "learning",
+    "runtime",
+    "objectives",
+    "optimizers",
+    "steps",
+    "reports",
+    "hf",
+}
 
 
 def _digest(value: object) -> str:
@@ -32,16 +87,19 @@ def _sha(value: object, name: str) -> str:
 
 @dataclass(frozen=True)
 class HFImplementationAuditBlocker:
-    """A source-level gate violation, recorded without an expected outcome."""
-
     code: str
     detail: str
 
     def __post_init__(self) -> None:
-        if not isinstance(self.code, str) or not self.code:
-            raise ValueError("implementation audit blocker code must be nonempty")
-        if not isinstance(self.detail, str) or not self.detail:
-            raise ValueError("implementation audit blocker detail must be nonempty")
+        if (
+            not isinstance(self.code, str)
+            or not self.code
+            or not isinstance(self.detail, str)
+            or not self.detail
+        ):
+            raise ValueError(
+                "implementation audit blocker fields must be nonempty strings"
+            )
 
     def to_dict(self) -> dict[str, str]:
         return {"code": self.code, "detail": self.detail}
@@ -49,17 +107,18 @@ class HFImplementationAuditBlocker:
 
 @dataclass(frozen=True)
 class HFImplementationAuditEntry:
-    """A registered literal adversary bound to its own source digest."""
-
     case_id: str
     function_name: str
     source_digest: str
 
     def __post_init__(self) -> None:
-        if not isinstance(self.case_id, str) or not self.case_id:
-            raise ValueError("implementation audit case_id must be nonempty")
-        if not isinstance(self.function_name, str) or not self.function_name:
-            raise ValueError("implementation audit function_name must be nonempty")
+        if (
+            not isinstance(self.case_id, str)
+            or not self.case_id
+            or not isinstance(self.function_name, str)
+            or not self.function_name
+        ):
+            raise ValueError("implementation audit entry names must be nonempty")
         _sha(self.source_digest, "implementation audit entry source_digest")
 
     def to_dict(self) -> dict[str, str]:
@@ -72,26 +131,24 @@ class HFImplementationAuditEntry:
 
 @dataclass(frozen=True)
 class HFDescriptorGateImplementationAudit:
-    """Typed source evidence replacing the former decorative digest."""
-
     source_evidence_digest: str
     positive_case_ids: tuple[str, ...]
-    adversarial_cases: tuple[HFImplementationAuditEntry, ...]
+    adversarial_source_entries: tuple[HFImplementationAuditEntry, ...]
     blockers: tuple[HFImplementationAuditBlocker, ...]
 
     def __post_init__(self) -> None:
         _sha(self.source_evidence_digest, "implementation audit source_evidence_digest")
         positives = tuple(self.positive_case_ids)
-        cases = tuple(self.adversarial_cases)
+        entries = tuple(self.adversarial_source_entries)
         blockers = tuple(self.blockers)
         if not all(isinstance(item, str) and item for item in positives):
             raise ValueError("implementation audit positive IDs must be nonempty")
-        if not all(isinstance(item, HFImplementationAuditEntry) for item in cases):
-            raise TypeError("implementation audit cases must be typed")
+        if not all(isinstance(item, HFImplementationAuditEntry) for item in entries):
+            raise TypeError("implementation audit entries must be typed")
         if not all(isinstance(item, HFImplementationAuditBlocker) for item in blockers):
             raise TypeError("implementation audit blockers must be typed")
         object.__setattr__(self, "positive_case_ids", positives)
-        object.__setattr__(self, "adversarial_cases", cases)
+        object.__setattr__(self, "adversarial_source_entries", entries)
         object.__setattr__(self, "blockers", blockers)
 
     @property
@@ -100,7 +157,15 @@ class HFDescriptorGateImplementationAudit:
 
     @property
     def adversarial_case_ids(self) -> tuple[str, ...]:
-        return tuple(item.case_id for item in self.adversarial_cases)
+        return tuple(item.case_id for item in self.adversarial_source_entries)
+
+    @property
+    def adversarial_inventory_count(self) -> int:
+        return len(self.adversarial_source_entries)
+
+    @property
+    def positive_inventory_count(self) -> int:
+        return len(self.positive_case_ids)
 
     @property
     def implementation_audit_digest(self) -> str:
@@ -108,35 +173,44 @@ class HFDescriptorGateImplementationAudit:
             {
                 "source_evidence_digest": self.source_evidence_digest,
                 "positive_case_ids": list(self.positive_case_ids),
-                "adversarial_cases": [
-                    item.to_dict() for item in self.adversarial_cases
+                "adversarial_source_entries": [
+                    item.to_dict() for item in self.adversarial_source_entries
                 ],
                 "blockers": [item.to_dict() for item in self.blockers],
             }
         )
 
-    def to_dict(self) -> dict[str, object]:
+    def to_dict(self) -> dict[str, Any]:
         return {
             "schema_version": SCHEMA_VERSION,
             "status": self.status,
-            "source_evidence_digest": self.source_evidence_digest,
-            "positive_case_ids": list(self.positive_case_ids),
-            "adversarial_cases": [item.to_dict() for item in self.adversarial_cases],
             "blockers": [item.to_dict() for item in self.blockers],
+            "adversarial_inventory_count": self.adversarial_inventory_count,
+            "positive_inventory_count": self.positive_inventory_count,
+            "positive_case_ids": list(self.positive_case_ids),
+            "adversarial_case_ids": list(self.adversarial_case_ids),
+            "adversarial_source_entries": [
+                item.to_dict() for item in self.adversarial_source_entries
+            ],
+            "source_evidence_digest": self.source_evidence_digest,
             "implementation_audit_digest": self.implementation_audit_digest,
         }
 
     @classmethod
     def from_dict(cls, payload: object) -> HFDescriptorGateImplementationAudit:
-        if not isinstance(payload, dict) or set(payload) != {
+        required = {
             "schema_version",
             "status",
-            "source_evidence_digest",
-            "positive_case_ids",
-            "adversarial_cases",
             "blockers",
+            "adversarial_inventory_count",
+            "positive_inventory_count",
+            "positive_case_ids",
+            "adversarial_case_ids",
+            "adversarial_source_entries",
+            "source_evidence_digest",
             "implementation_audit_digest",
-        }:
+        }
+        if not isinstance(payload, dict) or set(payload) != required:
             raise ValueError("implementation audit fields are missing or unknown")
         if payload["schema_version"] != SCHEMA_VERSION:
             raise ValueError("implementation audit schema is invalid")
@@ -146,11 +220,9 @@ class HFDescriptorGateImplementationAudit:
                 tuple(payload["positive_case_ids"]),
                 tuple(
                     HFImplementationAuditEntry(
-                        item["case_id"],
-                        item["function_name"],
-                        item["source_digest"],
+                        item["case_id"], item["function_name"], item["source_digest"]
                     )
-                    for item in payload["adversarial_cases"]
+                    for item in payload["adversarial_source_entries"]
                 ),
                 tuple(
                     HFImplementationAuditBlocker(item["code"], item["detail"])
@@ -161,6 +233,10 @@ class HFDescriptorGateImplementationAudit:
             raise ValueError("implementation audit payload is malformed") from error
         if (
             payload["status"] != audit.status
+            or payload["adversarial_inventory_count"]
+            != audit.adversarial_inventory_count
+            or payload["positive_inventory_count"] != audit.positive_inventory_count
+            or tuple(payload["adversarial_case_ids"]) != audit.adversarial_case_ids
             or payload["implementation_audit_digest"]
             != audit.implementation_audit_digest
         ):
@@ -169,15 +245,15 @@ class HFDescriptorGateImplementationAudit:
 
 
 def _assignment(tree: ast.AST, name: str) -> ast.Assign | ast.AnnAssign | None:
+    matches = []
     for node in ast.walk(tree):
-        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
-            continue
-        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-        if any(
-            isinstance(target, ast.Name) and target.id == name for target in targets
-        ):
-            return node
-    return None
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            if any(
+                isinstance(target, ast.Name) and target.id == name for target in targets
+            ):
+                matches.append(node)
+    return matches[0] if len(matches) == 1 else None
 
 
 def _tuple_values(node: ast.AST | None) -> tuple[ast.expr, ...] | None:
@@ -188,31 +264,235 @@ def _tuple_values(node: ast.AST | None) -> tuple[ast.expr, ...] | None:
     return None
 
 
-def _positive_case_ids(tree: ast.Module) -> tuple[str, ...]:
+def _literal_strings(node: ast.AST | None) -> tuple[str | None, ...] | None:
+    values = _tuple_values(node)
+    if values is None or not all(
+        isinstance(item, ast.Constant)
+        and (isinstance(item.value, str) or item.value is None)
+        for item in values
+    ):
+        return None
+    return tuple(item.value for item in values)  # type: ignore[union-attr]
+
+
+def _call_name(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parent = _call_name(node.value)
+        return f"{parent}.{node.attr}" if parent else node.attr
+    return None
+
+
+def _positive_ids(tree: ast.Module) -> tuple[str, ...]:
     values = _tuple_values(_assignment(tree, "positives"))
     if values is None:
         return ()
-    return tuple(
-        call.args[0].value
-        for call in values
-        if (
+    result: list[str] = []
+    for call in values:
+        if not (
             isinstance(call, ast.Call)
-            and isinstance(call.func, ast.Name)
-            and call.func.id == "_positive"
+            and _call_name(call.func) == "_positive"
             and call.args
             and isinstance(call.args[0], ast.Constant)
             and isinstance(call.args[0].value, str)
-        )
+        ):
+            return ()
+        result.append(call.args[0].value)
+    return tuple(result)
+
+
+def _boundary_count(values: tuple[ast.expr, ...] | None) -> int | None:
+    if values is None:
+        return None
+    total = 0
+    for item in values:
+        if not isinstance(item, ast.Starred):
+            total += 1
+            continue
+        value = item.value
+        if not (isinstance(value, ast.GeneratorExp) and len(value.generators) == 1):
+            return None
+        iterator = value.generators[0].iter
+        if not (
+            isinstance(iterator, ast.Call)
+            and _call_name(iterator.func) == "range"
+            and len(iterator.args) == 1
+            and isinstance(iterator.args[0], ast.Constant)
+            and isinstance(iterator.args[0].value, int)
+        ):
+            return None
+        total += iterator.args[0].value
+    return total
+
+
+def _add(blockers: list[HFImplementationAuditBlocker], code: str, detail: str) -> None:
+    item = HFImplementationAuditBlocker(code, detail)
+    if item not in blockers:
+        blockers.append(item)
+
+
+def _audit_function(
+    function: ast.FunctionDef | ast.AsyncFunctionDef,
+    source: str,
+    blockers: list[HFImplementationAuditBlocker],
+) -> None:
+    arguments = [
+        *function.args.posonlyargs,
+        *function.args.args,
+        *function.args.kwonlyargs,
+    ]
+    names = {argument.arg for argument in arguments}
+    if (
+        len(arguments) != 1
+        or function.args.vararg
+        or function.args.kwarg
+        or function.args.kwonlyargs
+    ):
+        _add(blockers, "adversarial_signature_invalid", function.name)
+    if names & _SUSPICIOUS_NAMES:
+        _add(blockers, "adversarial_signature_metadata", function.name)
+    if not any(isinstance(node, ast.Return) for node in ast.walk(function)):
+        _add(blockers, "adversarial_return_missing", function.name)
+    for node in ast.walk(function):
+        if (
+            isinstance(node, ast.Name)
+            and isinstance(node.ctx, ast.Load)
+            and node.id in _SUSPICIOUS_NAMES
+        ):
+            _add(blockers, "case_driven_semantics", function.name)
+        if isinstance(node, ast.Call):
+            name = _call_name(node.func) or ""
+            if name.split(".")[-1] in _GENERIC_NAMES:
+                _add(blockers, "generic_semantic_fallback", function.name)
+            if name.split(".")[-1] in _TRANSLATION_NAMES:
+                _add(blockers, "forbidden_expected_translation", function.name)
+        if (
+            isinstance(node, ast.Subscript)
+            and isinstance(node.slice, ast.Name)
+            and node.slice.id in _SUSPICIOUS_NAMES
+        ):
+            _add(blockers, "case_driven_semantics", function.name)
+
+
+def _audit_observer(
+    tree: ast.Module, blockers: list[HFImplementationAuditBlocker]
+) -> None:
+    observer = next(
+        (
+            node
+            for node in tree.body
+            if isinstance(node, ast.FunctionDef) and node.name == "_observe"
+        ),
+        None,
     )
+    if observer is None:
+        _add(blockers, "observer_missing", "_observe")
+        return
+    names = {
+        argument.arg
+        for argument in [
+            *observer.args.posonlyargs,
+            *observer.args.args,
+            *observer.args.kwonlyargs,
+        ]
+    }
+    if names != {"invocation"} or observer.args.vararg or observer.args.kwarg:
+        _add(blockers, "observer_expected_metadata", "observer parameters")
+    if any(
+        isinstance(node, ast.Name) and node.id in _SUSPICIOUS_NAMES
+        for node in ast.walk(observer)
+    ):
+        _add(blockers, "observer_expected_metadata", "observer body")
+
+
+def _audit_translation_and_semantics(
+    tree: ast.Module, blockers: list[HFImplementationAuditBlocker]
+) -> None:
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef) and node.name in _TRANSLATION_NAMES:
+            _add(blockers, "forbidden_expected_translation", node.name)
+        if isinstance(node, ast.Call):
+            name = (_call_name(node.func) or "").split(".")[-1]
+            if name in _TRANSLATION_NAMES:
+                _add(blockers, "forbidden_expected_translation", name)
+            if name == "partial":
+                _add(blockers, "partial_canonical_experiment", "partial")
+            if isinstance(node.func, ast.Attribute) and node.func.attr == "startswith":
+                _add(blockers, "forbidden_prefix_family_match", "startswith")
+        if isinstance(node, ast.For) and any(
+            isinstance(item, ast.FunctionDef) for item in node.body
+        ):
+            _add(blockers, "loop_generated_experiment", "function in loop")
+
+
+def _audit_observed_boundary(
+    source: str, blockers: list[HFImplementationAuditBlocker]
+) -> None:
+    if "observed_boundary = _callable_identity(first.boundary)" not in source:
+        _add(blockers, "observed_boundary_not_callable_derived", "_run")
+    if (
+        "observed_boundary = spec.intended_boundary" in source
+        or 'Invocation(\n        "' in source
+    ):
+        _add(blockers, "free_standing_observed_boundary", "boundary source")
+
+
+def _audit_receipt_authority(
+    models_path: Path, blockers: list[HFImplementationAuditBlocker]
+) -> None:
+    source = models_path.read_text(encoding="utf-8") if models_path.is_file() else ""
+    required = (
+        "ADVERSARIAL_CASE_IDS",
+        "POSITIVE_CASE_IDS",
+        "HFDescriptorGateImplementationAudit",
+        'implementation_audit.status != "pass"',
+        "implementation_audit_digest",
+    )
+    if not source or any(marker not in source for marker in required):
+        _add(blockers, "receipt_authority_incomplete", "models.py")
+    if "passed=" in source or "accepted=" in source or "success=" in source:
+        _add(blockers, "caller_supplied_receipt_success", "models.py")
+
+
+def _audit_production_imports(
+    repository_root: Path, blockers: list[HFImplementationAuditBlocker]
+) -> None:
+    source_root = repository_root / "src" / "radjax_student"
+    if not source_root.is_dir():
+        return
+    for path in sorted(source_root.rglob("*.py")):
+        relative = path.relative_to(source_root)
+        if not relative.parts or relative.parts[0] not in _PRODUCTION_OWNERS:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        imports = [
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, (ast.Import, ast.ImportFrom))
+        ]
+        for node in imports:
+            names = (
+                [alias.name for alias in node.names]
+                if isinstance(node, ast.Import)
+                else [node.module or ""]
+            )
+            if any(
+                "p3_12b_hf_descriptor_authority" in name
+                or "implementation_audit" in name
+                for name in names
+            ):
+                _add(blockers, "production_imports_gate_code", str(relative))
 
 
 def audit_gate_source(
     path: Path,
     *,
-    expected_adversarial_count: int = 77,
-    expected_positive_case_ids: tuple[str, ...] | None = None,
+    expected_adversarial_case_ids: tuple[str, ...] = ADVERSARIAL_CASE_IDS,
+    expected_positive_case_ids: tuple[str, ...] = POSITIVE_CASE_IDS,
+    repository_root: Path | None = None,
 ) -> HFDescriptorGateImplementationAudit:
-    """Audit source wiring only; importing this module never imports JAX."""
+    """Audit literal source without importing, inspecting, or executing JAX."""
 
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(path))
@@ -222,85 +502,89 @@ def audit_gate_source(
         if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
     }
     blockers: list[HFImplementationAuditBlocker] = []
-    values = _tuple_values(_assignment(tree, "_FUNCTIONS"))
-    if values is None or not all(isinstance(item, ast.Name) for item in values):
+    gate_source = expected_adversarial_case_ids == ADVERSARIAL_CASE_IDS
+    functions = _tuple_values(_assignment(tree, "_FUNCTIONS"))
+    if functions is None or not all(isinstance(item, ast.Name) for item in functions):
         names: tuple[str, ...] = ()
-        blockers.append(
-            HFImplementationAuditBlocker(
-                "adversarial_registry_invalid",
-                "_FUNCTIONS must be one literal tuple of function names",
-            )
-        )
+        registry = _assignment(tree, "_FUNCTIONS")
+        flattened = tuple(ast.walk(registry)) if registry is not None else ()
+        if any(isinstance(item, ast.Lambda) for item in flattened):
+            _add(blockers, "lambda_canonical_experiment", "_FUNCTIONS")
+        elif any(
+            isinstance(item, ast.Call)
+            and (_call_name(item.func) or "").split(".")[-1] == "partial"
+            for item in flattened
+        ):
+            _add(blockers, "partial_canonical_experiment", "_FUNCTIONS")
+        elif any(
+            isinstance(item, ast.Call)
+            and (_call_name(item.func) or "").split(".")[-1]
+            in {"iterdir", "glob", "rglob", "listdir", "walk"}
+            for item in flattened
+        ):
+            _add(blockers, "filesystem_discovered_inventory", "_FUNCTIONS")
+        else:
+            _add(blockers, "adversarial_registry_invalid", "_FUNCTIONS")
     else:
-        names = tuple(item.id for item in values if isinstance(item, ast.Name))
-    if len(names) != expected_adversarial_count:
-        blockers.append(
-            HFImplementationAuditBlocker(
-                "adversarial_inventory_count_mismatch",
-                f"expected {expected_adversarial_count}, observed {len(names)}",
+        names = tuple(item.id for item in functions if isinstance(item, ast.Name))
+    case_ids = tuple(name.removeprefix("adversary_") for name in names)
+    if case_ids != expected_adversarial_case_ids:
+        if len(case_ids) != len(expected_adversarial_case_ids):
+            _add(blockers, "wrong_adversarial_count", "canonical inventory")
+        elif set(case_ids) == set(expected_adversarial_case_ids):
+            _add(blockers, "reordered_adversarial_ids", "canonical inventory")
+        else:
+            _add(
+                blockers, "adversarial_inventory_mismatch", "canonical ordered case IDs"
             )
-        )
     if len(set(names)) != len(names):
-        blockers.append(
-            HFImplementationAuditBlocker(
-                "adversarial_registry_duplicate",
-                "_FUNCTIONS registers a function more than once",
-            )
-        )
+        _add(blockers, "duplicate_adversarial_function", "_FUNCTIONS")
     entries: list[HFImplementationAuditEntry] = []
-    for name in names:
+    for case_id, name in zip(case_ids, names, strict=True):
         function = definitions.get(name)
         if function is None:
-            blockers.append(
-                HFImplementationAuditBlocker(
-                    "adversarial_function_missing", f"{name} is not defined"
-                )
-            )
+            _add(blockers, "missing_adversarial_function", name)
             continue
-        arguments = tuple(argument.arg for argument in function.args.args)
-        if (
-            not name.startswith("adversary_")
-            or arguments != ("b",)
-            or function.args.vararg is not None
-            or function.args.kwarg is not None
-            or not any(isinstance(node, ast.Return) for node in ast.walk(function))
-        ):
-            blockers.append(
-                HFImplementationAuditBlocker(
-                    "adversarial_function_not_literal",
-                    f"{name} must be a one-baseline literal experiment",
-                )
-            )
+        _audit_function(function, source, blockers)
         segment = ast.get_source_segment(source, function) or ""
         entries.append(
             HFImplementationAuditEntry(
-                name.removeprefix("adversary_"),
-                name,
-                hashlib.sha256(segment.encode()).hexdigest(),
+                case_id, name, hashlib.sha256(segment.encode()).hexdigest()
             )
         )
-    for forbidden in (
-        "_matches" + "_expected",
-        "expected_to" + "_observed",
-        "blocker_" + "aliases",
-    ):
-        if forbidden in source:
-            blockers.append(
-                HFImplementationAuditBlocker(
-                    "forbidden_expected_translation", forbidden
-                )
-            )
-    positives = _positive_case_ids(tree)
-    if (
-        expected_positive_case_ids is not None
-        and positives != expected_positive_case_ids
-    ):
-        blockers.append(
-            HFImplementationAuditBlocker(
-                "positive_inventory_mismatch",
-                "positive proof IDs must be the canonical ordered inventory",
-            )
+    if len({item.source_digest for item in entries}) != len(entries):
+        _add(blockers, "reused_semantic_handler", "duplicate experiment source")
+    if gate_source:
+        codes = _literal_strings(_assignment(tree, "_CODES"))
+        boundaries = _boundary_count(_tuple_values(_assignment(tree, "_BOUNDARIES")))
+        if codes is None or len(codes) != len(names):
+            _add(blockers, "parallel_inventory_length_mismatch", "_CODES")
+        if boundaries is None or boundaries != len(names):
+            _add(blockers, "parallel_inventory_length_mismatch", "_BOUNDARIES")
+        if "zip(_FUNCTIONS, _BOUNDARIES, _CODES, strict=True)" not in source:
+            _add(blockers, "parallel_inventory_mapping_unproven", "SPECS")
+    positives = _positive_ids(tree)
+    if positives != expected_positive_case_ids:
+        _add(blockers, "positive_inventory_mismatch", "canonical ordered positive IDs")
+    if gate_source or "def _observe" in source:
+        _audit_observer(tree, blockers)
+    if gate_source or "observed_boundary" in source:
+        _audit_observed_boundary(source, blockers)
+    _audit_translation_and_semantics(tree, blockers)
+    inferred_root = repository_root
+    if inferred_root is None:
+        parents = path.resolve().parents
+        inferred_root = next(
+            (
+                parent
+                for parent in parents
+                if (parent / "src" / "radjax_student").is_dir()
+            ),
+            None,
         )
+    if gate_source and inferred_root is not None:
+        _audit_production_imports(inferred_root, blockers)
+        _audit_receipt_authority(path.with_name("models.py"), blockers)
     return HFDescriptorGateImplementationAudit(
         hashlib.sha256(source.encode()).hexdigest(),
         positives,
@@ -314,7 +598,7 @@ def require_clean_implementation_audit(
 ) -> None:
     if not isinstance(audit, HFDescriptorGateImplementationAudit):
         raise TypeError("implementation audit must be typed")
-    if audit.blockers:
+    if audit.status != "pass":
         raise ValueError(audit.blockers[0].code)
 
 

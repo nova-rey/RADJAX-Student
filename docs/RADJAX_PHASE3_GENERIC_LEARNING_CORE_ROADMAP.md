@@ -12,6 +12,9 @@ P3.12A.1 removes legacy split JAX objective authority from core production execu
 
 P3.12B locally accepted
 
+P3.12B.3 completed the frozen JAX-free anti-cheat audit for the mandatory 22
+positive proofs and 77 adversarial cases; P3.12C remains next and unstarted.
+
 P3.12C next and unstarted
 
 Phase 4 remains unstarted

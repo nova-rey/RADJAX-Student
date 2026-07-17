@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "c8b689659578137dab96bb77543696c3072b4d6d",
+  "accepted_commit": "947e0479163e5c3db2ee20a410ed05830b29ed7b",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -1637,7 +1637,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 153,
+  "module_count": 154,
   "modules": [
     {
       "classification": "core",
@@ -6327,12 +6327,14 @@
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
+        ".inventory",
         "__future__",
         "ast",
         "dataclasses",
         "hashlib",
         "json",
-        "pathlib"
+        "pathlib",
+        "typing"
       ],
       "internal_edges": [],
       "module": "radjax_student.validation.p3_12b_hf_descriptor_authority.implementation_audit",
@@ -6349,6 +6351,23 @@
     },
     {
       "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12b_hf_descriptor_authority.inventory",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12b_hf_descriptor_authority/inventory.py",
+      "public_exports": [
+        "ADVERSARIAL_CASE_IDS",
+        "POSITIVE_CASE_IDS"
+      ]
+    },
+    {
+      "classification": "core",
       "defined_classes": [
         "HFAdversarialResult",
         "HFDescriptorAuthorityProof",
@@ -6358,6 +6377,7 @@
       "has_dynamic_exports": false,
       "imports": [
         ".implementation_audit",
+        ".inventory",
         "__future__",
         "collections.abc",
         "dataclasses",
@@ -6374,6 +6394,7 @@
       "path": "src/radjax_student/validation/p3_12b_hf_descriptor_authority/models.py",
       "public_exports": [
         "ADVERSARIAL_CASE_COUNT",
+        "ADVERSARIAL_CASE_IDS",
         "HFAdversarialResult",
         "HFDescriptorAuthorityProof",
         "HFPositiveProof",

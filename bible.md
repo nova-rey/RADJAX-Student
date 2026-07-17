@@ -1068,3 +1068,11 @@
 - The existing strict exact-error observations and checkpoint/replay/report
   boundary ownership remain intact. The P3.12B receipt was regenerated twice
   byte-identically after the implementation audit passed all 77 adversaries.
+
+## 2026-07-17 - P3.12B.3 anti-cheat closure
+
+- Completed the frozen validation-owned AST/source audit for the mandatory
+  ordered 22-positive and 77-adversarial inventories. It records typed source
+  entries and blocks metadata-driven semantics, permissive blocker translation,
+  generic fallback registration, free-standing observed boundaries, and any
+  production import of the P3.12B gate.

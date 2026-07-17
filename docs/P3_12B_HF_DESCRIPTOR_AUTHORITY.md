@@ -28,6 +28,12 @@ translation helpers, and is included as a typed receipt field rather than a
 decorative aggregate hash. Checkpoint, replay, and report descriptor drift are
 observed at their respective owning validation boundaries.
 
+P3.12B.3 closes the frozen anti-cheat contract: the typed audit proves the
+exact ordered 22-positive and 77-adversarial inventories, named experiment
+source evidence, observer independence, callable-derived observed boundaries,
+receipt authority, and one-way production-import purity. There is no permissive
+blocker-family translation and production code has no gate dependency.
+
 Current status: P3.12B is locally accepted only after the v2 recorded receipt
 and required local gates pass. P3.12C remains next and unstarted. Phase 4
 remains unstarted.
@@ -35,4 +41,4 @@ remains unstarted.
 The recorded receipt is
 [P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json](P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json)
 under schema `radjax.p3_12b_hf_descriptor_authority.v2`. Its current evidence
-digest is `a63ea305075d26f35e2f5f1db14c25bca816bbec56e62bfe7e5dd60f320d825f`.
+digest is `e88efa4f0289249186b0ecd2dd2f7aa56c17f3be485e536096f7c78f9c882c26`.

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import runpy
+import subprocess
+import sys
 from dataclasses import replace
 from pathlib import Path
 
@@ -183,7 +186,7 @@ def test_jax_free_implementation_audit_binds_literal_source_and_fixtures():
     expected_positives = ("first", "second")
     valid = implementation_audit.audit_gate_source(
         fixtures / "valid.py",
-        expected_adversarial_count=2,
+        expected_adversarial_case_ids=("first", "second"),
         expected_positive_case_ids=expected_positives,
     )
     assert valid.status == "pass"
@@ -193,28 +196,86 @@ def test_jax_free_implementation_audit_binds_literal_source_and_fixtures():
 
     missing = implementation_audit.audit_gate_source(
         fixtures / "missing_experiment.py",
-        expected_adversarial_count=2,
+        expected_adversarial_case_ids=("first", "second"),
         expected_positive_case_ids=expected_positives,
     )
     translated = implementation_audit.audit_gate_source(
         fixtures / "expected_translation.py",
-        expected_adversarial_count=2,
+        expected_adversarial_case_ids=("first", "second"),
         expected_positive_case_ids=expected_positives,
     )
     wrong_positive_order = implementation_audit.audit_gate_source(
         fixtures / "wrong_positive_order.py",
-        expected_adversarial_count=2,
+        expected_adversarial_case_ids=("first", "second"),
         expected_positive_case_ids=expected_positives,
     )
-    assert [item.code for item in missing.blockers] == [
-        "adversarial_inventory_count_mismatch"
-    ]
+    assert [item.code for item in missing.blockers] == ["wrong_adversarial_count"]
     assert [item.code for item in translated.blockers] == [
         "forbidden_expected_translation"
     ]
     assert [item.code for item in wrong_positive_order.blockers] == [
         "positive_inventory_mismatch"
     ]
+
+
+def test_p312b3_anti_cheat_source_fixtures_execute_with_stable_blockers(tmp_path):
+    fixtures = Path(__file__).parent / "fixtures" / "p3_12b_implementation_audit"
+    source = runpy.run_path(fixtures / "anti_cheat_sources.py")
+    expected = {
+        "missing_adversarial_function": "missing_adversarial_function",
+        "duplicate_adversarial_function": "duplicate_adversarial_function",
+        "wrong_adversarial_count": "wrong_adversarial_count",
+        "reordered_adversarial_ids": "reordered_adversarial_ids",
+        "lambda_canonical_experiment": "lambda_canonical_experiment",
+        "partial_canonical_experiment": "partial_canonical_experiment",
+        "loop_generated_experiment": "loop_generated_experiment",
+        "filesystem_discovered_inventory": "filesystem_discovered_inventory",
+        "experiment_parameter_case_id": "adversarial_signature_metadata",
+        "experiment_parameter_expected_code": "adversarial_signature_metadata",
+        "experiment_parameter_spec": "adversarial_signature_metadata",
+        "matches_expected": "forbidden_expected_translation",
+        "hf_prefix": "forbidden_prefix_family_match",
+        "checkpoint_prefix": "forbidden_prefix_family_match",
+        "replay_prefix": "forbidden_prefix_family_match",
+        "report_prefix": "forbidden_prefix_family_match",
+        "wrong_positive_order": "positive_inventory_mismatch",
+        "missing_positive": "positive_inventory_mismatch",
+        "unexpected_positive": "positive_inventory_mismatch",
+    }
+    for name, code in expected.items():
+        path = tmp_path / f"{name}.py"
+        path.write_text(source["source"](name), encoding="utf-8")
+        audit = implementation_audit.audit_gate_source(
+            path,
+            expected_adversarial_case_ids=("first", "second"),
+            expected_positive_case_ids=("first", "second"),
+        )
+        assert code in {item.code for item in audit.blockers}, name
+
+
+def test_p312b3_real_audit_round_trips_and_stays_jax_free():
+    path = Path(
+        "src/radjax_student/validation/p3_12b_hf_descriptor_authority/runner_jax.py"
+    )
+    audit = implementation_audit.audit_gate_source(path)
+    assert audit.status == "pass"
+    assert audit.adversarial_inventory_count == 77
+    assert audit.positive_inventory_count == 22
+    assert type(audit).from_dict(audit.to_dict()) == audit
+    malformed = audit.to_dict()
+    malformed["unknown"] = True
+    with pytest.raises(ValueError, match="missing or unknown"):
+        type(audit).from_dict(malformed)
+    code = (
+        "import sys; "
+        "from radjax_student.validation.p3_12b_hf_descriptor_authority "
+        "import implementation_audit; "
+        "assert 'jax' not in sys.modules and 'jaxlib' not in sys.modules"
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
 
 
 @pytest.mark.jax

@@ -137,6 +137,10 @@ P3.12A.1 removes the deprecated split JAX objective authority from core producti
 
 P3.12B locally accepted
 
+P3.12B.3 closes the typed JAX-free anti-cheat audit for the exact 22-positive,
+77-adversarial boundary matrix; no permissive blocker matching or
+gate-to-production dependency is permitted.
+
 P3.12C next and unstarted
 
 Phase 4 remains unstarted

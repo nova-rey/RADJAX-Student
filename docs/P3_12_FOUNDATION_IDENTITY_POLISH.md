@@ -7,7 +7,9 @@ Tome payload consumption, export, or Phase 4 implementation.
 ## Checkpoints
 
 - P3.12A Objective Identity Contract: locally accepted.
-- P3.12B Hugging Face Descriptor Authority: locally accepted.
+- P3.12B Hugging Face Descriptor Authority: locally accepted. P3.12B.1 locks
+  the 77-case boundary matrix; P3.12B.2 owns exact blockers and typed evidence;
+  P3.12B.3 closes the JAX-free anti-cheat source audit.
 - P3.12C: next and unstarted.
 
 P3.12A adds one neutral objective identity/config/descriptor contract and one

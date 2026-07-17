@@ -1215,12 +1215,8 @@ def _run(spec: Spec, root: Path) -> HFAdversarialResult:
         outcome = "boundary_mismatch"
     elif not deterministic:
         outcome = "non_deterministic_first_failure"
-    elif spec.case_id == "non_authoritative_prose_does_not_change_identity":
-        outcome = (
-            "invariant_preserved"
-            if spec.expected_code is None and first_code is None
-            else "unexpected_failure"
-        )
+    elif spec.expected_code is None:
+        outcome = "invariant_preserved" if first_code is None else "unexpected_failure"
     elif first_code is None:
         outcome = "unexpected_pass"
     elif first_code != spec.expected_code:
