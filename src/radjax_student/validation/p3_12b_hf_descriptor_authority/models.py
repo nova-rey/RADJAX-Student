@@ -10,8 +10,35 @@ from typing import Any, Literal
 
 from radjax_student.contracts import HFCompatibilityDescriptor
 
+from .implementation_audit import HFDescriptorGateImplementationAudit
+
 SCHEMA_VERSION = "radjax.p3_12b_hf_descriptor_authority.v2"
 ADVERSARIAL_CASE_COUNT = 77
+POSITIVE_PROOF_COUNT = 22
+POSITIVE_CASE_IDS = (
+    "descriptor_constructed",
+    "reference_derived",
+    "canonical_round_trip",
+    "construction_determinism",
+    "projection_covers_layout",
+    "projection_matches_materialized",
+    "exportable_keys",
+    "tokenizer_complete",
+    "vocabulary_complete",
+    "special_tokens_valid",
+    "lifecycle_binds_descriptor",
+    "checkpoint_persists_descriptor",
+    "caller_bound_restore",
+    "historical_non_resumable",
+    "eager_resume_identity",
+    "jit_resume_identity",
+    "replay_ab_identity",
+    "report_summary",
+    "report_is_compact",
+    "no_export_claim",
+    "one_authority_audit",
+    "recorded_determinism",
+)
 
 
 def digest(value: Any) -> str:
@@ -147,7 +174,7 @@ class HFDescriptorAuthorityProof:
     replay_hf_evidence_digest: str
     report_hf_evidence_digest: str
     dependency_audit_digest: str
-    implementation_audit_digest: str
+    implementation_audit: HFDescriptorGateImplementationAudit
     positive_cases: tuple[HFPositiveProof, ...]
     adversarial_cases: tuple[HFAdversarialResult, ...]
     non_claims: tuple[str, ...]
@@ -160,9 +187,14 @@ class HFDescriptorAuthorityProof:
             "replay_hf_evidence_digest",
             "report_hf_evidence_digest",
             "dependency_audit_digest",
-            "implementation_audit_digest",
         ):
             _sha(getattr(self, name), name)
+        if not isinstance(
+            self.implementation_audit, HFDescriptorGateImplementationAudit
+        ):
+            raise TypeError("proof requires a typed implementation audit")
+        if self.implementation_audit.status != "pass":
+            raise ValueError("proof requires a clean implementation audit")
         positives, adversarial = (
             tuple(self.positive_cases),
             tuple(self.adversarial_cases),
@@ -170,10 +202,21 @@ class HFDescriptorAuthorityProof:
         if len(adversarial) != ADVERSARIAL_CASE_COUNT:
             raise ValueError("P3.12B.1 requires exactly 77 adversarial cases")
         if (
+            len(positives) != POSITIVE_PROOF_COUNT
+            or tuple(item.case_id for item in positives) != POSITIVE_CASE_IDS
+        ):
+            raise ValueError("P3.12B.2 requires the canonical 22 positive proofs")
+        if (
             len({item.case_id for item in positives}) != len(positives)
             or len({item.case_id for item in adversarial}) != ADVERSARIAL_CASE_COUNT
         ):
             raise ValueError("proof case IDs must be unique")
+        if (
+            self.implementation_audit.positive_case_ids != POSITIVE_CASE_IDS
+            or tuple(item.case_id for item in adversarial)
+            != self.implementation_audit.adversarial_case_ids
+        ):
+            raise ValueError("proof inventory does not match the implementation audit")
         if any(
             item.outcome not in {"reject", "invariant_preserved"}
             for item in adversarial
@@ -192,7 +235,7 @@ class HFDescriptorAuthorityProof:
                 "replay_hf_evidence_digest": self.replay_hf_evidence_digest,
                 "report_hf_evidence_digest": self.report_hf_evidence_digest,
                 "dependency_audit_digest": self.dependency_audit_digest,
-                "implementation_audit_digest": self.implementation_audit_digest,
+                "implementation_audit": self.implementation_audit.to_dict(),
                 "positive_cases": [item.to_dict() for item in self.positive_cases],
                 "adversarial_cases": [
                     item.to_dict() for item in self.adversarial_cases
@@ -253,11 +296,14 @@ def build_receipt(proof: HFDescriptorAuthorityProof) -> dict[str, Any]:
         "adversarial_case_results": [
             item.to_dict() for item in proof.adversarial_cases
         ],
-        "positive_proof_count": len(proof.positive_cases),
+        "positive_proof_count": POSITIVE_PROOF_COUNT,
         "adversarial_case_count": ADVERSARIAL_CASE_COUNT,
         **counts,
         "dependency_audit_digest": proof.dependency_audit_digest,
-        "implementation_audit_digest": proof.implementation_audit_digest,
+        "implementation_audit": proof.implementation_audit.to_dict(),
+        "implementation_audit_digest": (
+            proof.implementation_audit.implementation_audit_digest
+        ),
         "non_claims": list(proof.non_claims),
         "evidence_digest": proof.evidence_digest,
     }
@@ -298,6 +344,7 @@ def validate_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
         "unexpected_pass_count",
         "unexpected_failure_count",
         "dependency_audit_digest",
+        "implementation_audit",
         "implementation_audit_digest",
         "non_claims",
         "evidence_digest",
@@ -307,6 +354,7 @@ def validate_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
     if (
         payload["schema_version"] != SCHEMA_VERSION
         or payload["status"] != "pass"
+        or payload["positive_proof_count"] != POSITIVE_PROOF_COUNT
         or payload["adversarial_case_count"] != ADVERSARIAL_CASE_COUNT
     ):
         raise ValueError("P3.12B receipt schema or status is invalid")
@@ -323,10 +371,25 @@ def validate_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
     ):
         raise ValueError("P3.12B receipt contains failed cases")
     if (
-        not isinstance(payload["adversarial_case_results"], list)
+        not isinstance(payload["positive_proof_results"], list)
+        or [item.get("case_id") for item in payload["positive_proof_results"]]
+        != list(POSITIVE_CASE_IDS)
+        or not isinstance(payload["adversarial_case_results"], list)
         or len(payload["adversarial_case_results"]) != ADVERSARIAL_CASE_COUNT
     ):
         raise ValueError("P3.12B receipt adversarial inventory is incomplete")
+    implementation_audit = HFDescriptorGateImplementationAudit.from_dict(
+        payload["implementation_audit"]
+    )
+    if (
+        implementation_audit.status != "pass"
+        or implementation_audit.positive_case_ids != POSITIVE_CASE_IDS
+        or implementation_audit.adversarial_case_ids
+        != tuple(item["case_id"] for item in payload["adversarial_case_results"])
+        or payload["implementation_audit_digest"]
+        != implementation_audit.implementation_audit_digest
+    ):
+        raise ValueError("P3.12B receipt implementation audit is invalid")
     return dict(payload)
 
 
@@ -335,6 +398,8 @@ __all__ = [
     "HFAdversarialResult",
     "HFDescriptorAuthorityProof",
     "HFPositiveProof",
+    "POSITIVE_CASE_IDS",
+    "POSITIVE_PROOF_COUNT",
     "SCHEMA_VERSION",
     "build_receipt",
     "digest",

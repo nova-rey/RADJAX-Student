@@ -1052,3 +1052,19 @@
   gate containing 22 named positive proofs and the canonical 77 descriptor
   authority experiments. The receipt records repeated public-boundary evidence,
   mutation identities, and zero acceptance-harness error counts.
+
+## 2026-07-17 - P3.12B.2 WIP preservation
+
+- Preserved the in-progress exact-blocker and implementation-audit correction on
+  the dedicated `p3.12b2-wip` branch pending completion of required gates.
+
+## 2026-07-17 - P3.12B.2 typed implementation evidence
+
+- Replaced the decorative P3.12B implementation digest with a typed, JAX-free
+  AST/source audit. The receipt now records the ordered positive inventory and
+  per-adversary implementation source digests, while isolated fixtures prove
+  missing registry entries, expected-result translation, and positive-order
+  drift are blocked.
+- The existing strict exact-error observations and checkpoint/replay/report
+  boundary ownership remain intact. The P3.12B receipt was regenerated twice
+  byte-identically after the implementation audit passed all 77 adversaries.

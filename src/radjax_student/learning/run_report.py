@@ -264,6 +264,21 @@ class RunHFSummary:
         }
 
 
+def validate_run_hf_summary(
+    *, executed_descriptor: HFCompatibilityDescriptor, summary: RunHFSummary
+) -> None:
+    """Own report HF identity validation without embedding the descriptor."""
+    from radjax_student.contracts import validate_hf_descriptor_match
+
+    try:
+        validate_hf_descriptor_match(executed_descriptor, summary.descriptor)
+    except HFContractError as error:
+        raise HFContractError(
+            "report_hf_descriptor_mismatch",
+            f"report HF identity differs; cause={error.code}",
+        ) from error
+
+
 @dataclass(frozen=True)
 class LearningRunReport:
     run_id: str

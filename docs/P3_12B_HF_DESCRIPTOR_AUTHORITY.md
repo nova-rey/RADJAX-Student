@@ -21,6 +21,13 @@ a valid baseline, changes a public input, invokes its public boundary twice,
 and records actual observed failure evidence. The gate has 22 named positive
 proofs and rejects incomplete inventory execution.
 
+P3.12B.2 makes the source wiring itself recorded evidence. A JAX-free AST
+audit binds the ordered 22-positive inventory and all 77 registered literal
+adversaries to individual source digests, rejects expected-to-observed
+translation helpers, and is included as a typed receipt field rather than a
+decorative aggregate hash. Checkpoint, replay, and report descriptor drift are
+observed at their respective owning validation boundaries.
+
 Current status: P3.12B is locally accepted only after the v2 recorded receipt
 and required local gates pass. P3.12C remains next and unstarted. Phase 4
 remains unstarted.
@@ -28,4 +35,4 @@ remains unstarted.
 The recorded receipt is
 [P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json](P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json)
 under schema `radjax.p3_12b_hf_descriptor_authority.v2`. Its current evidence
-digest is `bf80c4b0d325f414f40a9cd4a9329e11acd4fe50cf193f708e8c683b412ff0bb`.
+digest is `a63ea305075d26f35e2f5f1db14c25bca816bbec56e62bfe7e5dd60f320d825f`.

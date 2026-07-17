@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
@@ -23,6 +24,9 @@ from radjax_student.contracts import (
     hf_digest,
 )
 from radjax_student.learning import RunHFSummary
+from radjax_student.validation.p3_12b_hf_descriptor_authority import (
+    implementation_audit,
+)
 from radjax_student.validation.p3_12b_hf_descriptor_authority.models import (
     ADVERSARIAL_CASE_COUNT,
     validate_receipt,
@@ -164,7 +168,6 @@ def test_literal_gate_inventory_has_exactly_77_distinct_experiments():
 
 def test_v2_receipt_rejects_incomplete_adversarial_inventory():
     import json
-    from pathlib import Path
 
     payload = json.loads(
         Path("docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
@@ -173,6 +176,45 @@ def test_v2_receipt_rejects_incomplete_adversarial_inventory():
     payload["adversarial_case_count"] = 76
     with pytest.raises(ValueError, match="schema or status"):
         validate_receipt(payload)
+
+
+def test_jax_free_implementation_audit_binds_literal_source_and_fixtures():
+    fixtures = Path(__file__).parent / "fixtures" / "p3_12b_implementation_audit"
+    expected_positives = ("first", "second")
+    valid = implementation_audit.audit_gate_source(
+        fixtures / "valid.py",
+        expected_adversarial_count=2,
+        expected_positive_case_ids=expected_positives,
+    )
+    assert valid.status == "pass"
+    assert valid.adversarial_case_ids == ("first", "second")
+    assert valid.positive_case_ids == expected_positives
+    assert type(valid).from_dict(valid.to_dict()) == valid
+
+    missing = implementation_audit.audit_gate_source(
+        fixtures / "missing_experiment.py",
+        expected_adversarial_count=2,
+        expected_positive_case_ids=expected_positives,
+    )
+    translated = implementation_audit.audit_gate_source(
+        fixtures / "expected_translation.py",
+        expected_adversarial_count=2,
+        expected_positive_case_ids=expected_positives,
+    )
+    wrong_positive_order = implementation_audit.audit_gate_source(
+        fixtures / "wrong_positive_order.py",
+        expected_adversarial_count=2,
+        expected_positive_case_ids=expected_positives,
+    )
+    assert [item.code for item in missing.blockers] == [
+        "adversarial_inventory_count_mismatch"
+    ]
+    assert [item.code for item in translated.blockers] == [
+        "forbidden_expected_translation"
+    ]
+    assert [item.code for item in wrong_positive_order.blockers] == [
+        "positive_inventory_mismatch"
+    ]
 
 
 @pytest.mark.jax

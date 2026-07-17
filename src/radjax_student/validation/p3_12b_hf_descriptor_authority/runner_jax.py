@@ -8,7 +8,6 @@ observe the actual public invocation.
 from __future__ import annotations
 
 import hashlib
-import inspect
 import json
 from collections.abc import Callable
 from dataclasses import dataclass, replace
@@ -16,7 +15,10 @@ from pathlib import Path
 from typing import Any
 
 from radjax_student.architecture import ArchitectureInitResult
-from radjax_student.checkpoints import save_learning_checkpoint_v3
+from radjax_student.checkpoints import (
+    save_learning_checkpoint_v3,
+    validate_checkpoint_hf_descriptor,
+)
 from radjax_student.contracts import (
     HFCompatibilityDescriptor,
     HFContractError,
@@ -25,6 +27,7 @@ from radjax_student.contracts import (
     validate_hf_descriptor_match,
 )
 from radjax_student.learning import RunHFSummary
+from radjax_student.learning.run_report import validate_run_hf_summary
 from radjax_student.validation.architecture_audit import (
     build_architecture_audit,
     require_clean_architecture_audit,
@@ -33,7 +36,16 @@ from radjax_student.validation.p3_11_9_replay.runner_jax import (
     _new_lifecycle,
     execute_stateful_replays,
 )
-from radjax_student.validation.p3_12b_hf_descriptor_authority.models import (
+from radjax_student.validation.p3_11_9_replay.verifier import (
+    validate_replay_hf_descriptor,
+)
+
+from .implementation_audit import (
+    audit_gate_source,
+    require_clean_implementation_audit,
+)
+from .models import (
+    POSITIVE_CASE_IDS,
     HFAdversarialResult,
     HFDescriptorAuthorityProof,
     HFPositiveProof,
@@ -575,15 +587,23 @@ def adversary_checkpoint_tokenizer_content_digest_tampered(b: Baseline) -> Invoc
 
 
 def adversary_checkpoint_vocabulary_size_tampered(b: Baseline) -> Invocation:
-    return _checkpoint_descriptor_field(
-        b,
-        lambda payload: payload.__setitem__(
-            "vocabulary",
-            {
-                **payload["vocabulary"],
-                "vocabulary_size": payload["vocabulary"]["vocabulary_size"] + 1,
-            },
+    vocabulary = replace(
+        b.descriptor.vocabulary,
+        vocabulary_size=b.descriptor.vocabulary.vocabulary_size + 1,
+    )
+    changed = replace(
+        b.descriptor,
+        vocabulary=vocabulary,
+        architecture_projection=replace(
+            b.descriptor.architecture_projection,
+            vocabulary_size=vocabulary.vocabulary_size,
         ),
+    )
+    return Invocation(
+        validate_checkpoint_hf_descriptor,
+        b.descriptor.to_dict(),
+        changed.to_dict(),
+        lambda: validate_checkpoint_hf_descriptor(b.descriptor, changed),
     )
 
 
@@ -665,7 +685,12 @@ def adversary_restore_missing_expected_descriptor(b: Baseline) -> Invocation:
 
 def adversary_restore_foreign_expected_descriptor(b: Baseline) -> Invocation:
     foreign = replace(b.descriptor, model_type="foreign-model")
-    return _compare(b, foreign)
+    return Invocation(
+        validate_checkpoint_hf_descriptor,
+        b.descriptor.to_dict(),
+        foreign.to_dict(),
+        lambda: validate_checkpoint_hf_descriptor(b.descriptor, foreign),
+    )
 
 
 def adversary_restore_reconstructed_descriptor_differs(b: Baseline) -> Invocation:
@@ -673,7 +698,12 @@ def adversary_restore_reconstructed_descriptor_differs(b: Baseline) -> Invocatio
         b.descriptor,
         tokenizer=replace(b.descriptor.tokenizer, tokenizer_revision="foreign"),
     )
-    return _compare(b, foreign)
+    return Invocation(
+        validate_checkpoint_hf_descriptor,
+        b.descriptor.to_dict(),
+        foreign.to_dict(),
+        lambda: validate_checkpoint_hf_descriptor(b.descriptor, foreign),
+    )
 
 
 def adversary_historical_reference_only_checkpoint_resume_attempt(
@@ -688,67 +718,94 @@ def adversary_historical_inspection_promoted_to_resume(b: Baseline) -> Invocatio
 
 # E. Replay/report authority uses the same public descriptor comparison boundary.
 def adversary_replay_descriptor_digest_drift(b: Baseline) -> Invocation:
-    return _compare(b, replace(b.descriptor, model_type="replay-foreign"))
+    changed = replace(b.descriptor, model_type="replay-foreign")
+    return Invocation(
+        validate_replay_hf_descriptor,
+        b.descriptor.to_dict(),
+        changed.to_dict(),
+        lambda: validate_replay_hf_descriptor(b.descriptor, changed),
+    )
 
 
 def adversary_replay_tokenizer_identity_drift(b: Baseline) -> Invocation:
-    return _compare(
-        b,
-        replace(
-            b.descriptor,
-            tokenizer=replace(b.descriptor.tokenizer, tokenizer_id="replay-tokenizer"),
-        ),
+    changed = replace(
+        b.descriptor,
+        tokenizer=replace(b.descriptor.tokenizer, tokenizer_id="replay-tokenizer"),
+    )
+    return Invocation(
+        validate_replay_hf_descriptor,
+        b.descriptor.to_dict(),
+        changed.to_dict(),
+        lambda: validate_replay_hf_descriptor(b.descriptor, changed),
     )
 
 
 def adversary_replay_vocabulary_identity_drift(b: Baseline) -> Invocation:
-    return _compare(
-        b,
-        replace(
-            b.descriptor,
-            vocabulary=replace(
-                b.descriptor.vocabulary, vocabulary_content_digest="8" * 64
-            ),
-        ),
+    changed = replace(
+        b.descriptor,
+        vocabulary=replace(b.descriptor.vocabulary, vocabulary_content_digest="8" * 64),
+    )
+    return Invocation(
+        validate_replay_hf_descriptor,
+        b.descriptor.to_dict(),
+        changed.to_dict(),
+        lambda: validate_replay_hf_descriptor(b.descriptor, changed),
     )
 
 
 def adversary_replay_special_token_identity_drift(b: Baseline) -> Invocation:
-    return _compare(
-        b,
-        replace(
-            b.descriptor, special_tokens=HFSpecialTokenIdentity(3, 4, 0, None, None)
-        ),
+    changed = replace(
+        b.descriptor, special_tokens=HFSpecialTokenIdentity(3, 4, 0, None, None)
+    )
+    return Invocation(
+        validate_replay_hf_descriptor,
+        b.descriptor.to_dict(),
+        changed.to_dict(),
+        lambda: validate_replay_hf_descriptor(b.descriptor, changed),
     )
 
 
 def adversary_replay_parameter_projection_drift(b: Baseline) -> Invocation:
-    return _compare(
-        b,
-        replace(
-            b.descriptor,
-            parameter_projections=(
-                replace(b.descriptor.parameter_projections[0], dtype="int32"),
-                *b.descriptor.parameter_projections[1:],
-            ),
+    changed = replace(
+        b.descriptor,
+        parameter_projections=(
+            replace(b.descriptor.parameter_projections[0], dtype="int32"),
+            *b.descriptor.parameter_projections[1:],
         ),
+    )
+    return Invocation(
+        validate_replay_hf_descriptor,
+        b.descriptor.to_dict(),
+        changed.to_dict(),
+        lambda: validate_replay_hf_descriptor(b.descriptor, changed),
     )
 
 
 def adversary_replay_architecture_projection_drift(b: Baseline) -> Invocation:
-    return _compare(
-        b,
-        replace(
-            b.descriptor,
-            architecture_projection=replace(
-                b.descriptor.architecture_projection, hidden_size=9
-            ),
+    changed = replace(
+        b.descriptor,
+        architecture_projection=replace(
+            b.descriptor.architecture_projection, hidden_size=9
         ),
+    )
+    return Invocation(
+        validate_replay_hf_descriptor,
+        b.descriptor.to_dict(),
+        changed.to_dict(),
+        lambda: validate_replay_hf_descriptor(b.descriptor, changed),
     )
 
 
 def adversary_report_claims_foreign_descriptor(b: Baseline) -> Invocation:
-    return _compare(b, replace(b.descriptor, model_type="report-foreign"))
+    changed = replace(b.descriptor, model_type="report-foreign")
+    return Invocation(
+        validate_run_hf_summary,
+        b.descriptor.to_dict(),
+        changed.to_dict(),
+        lambda: validate_run_hf_summary(
+            executed_descriptor=b.descriptor, summary=RunHFSummary(changed)
+        ),
+    )
 
 
 def adversary_report_false_hf_export_claim(b: Baseline) -> Invocation:
@@ -761,18 +818,23 @@ def adversary_report_false_hf_export_claim(b: Baseline) -> Invocation:
         ),
     )
     return Invocation(
-        RunHFSummary,
+        validate_run_hf_summary,
         b.descriptor.to_dict(),
         changed.to_dict(),
-        lambda: RunHFSummary(changed),
+        lambda: validate_run_hf_summary(
+            executed_descriptor=b.descriptor, summary=RunHFSummary(changed)
+        ),
     )
 
 
 def adversary_report_derived_from_loose_reference(b: Baseline) -> Invocation:
-    return _lifecycle(
-        b,
-        hf_reference=HFPreservationReference.from_dict(
-            {**b.reference.to_dict(), "descriptor_digest": "9" * 64}
+    changed = replace(b.descriptor, model_type="loose-reference-derived")
+    return Invocation(
+        validate_run_hf_summary,
+        b.descriptor.to_dict(),
+        changed.to_dict(),
+        lambda: validate_run_hf_summary(
+            executed_descriptor=b.descriptor, summary=RunHFSummary(changed)
         ),
     )
 
@@ -1089,6 +1151,29 @@ SPECS = tuple(
     for function, boundary, code in zip(_FUNCTIONS, _BOUNDARIES, _CODES, strict=True)
 )
 
+_BOUNDARY_OVERRIDES = {
+    "checkpoint_vocabulary_size_tampered": validate_checkpoint_hf_descriptor,
+    "restore_foreign_expected_descriptor": validate_checkpoint_hf_descriptor,
+    "restore_reconstructed_descriptor_differs": validate_checkpoint_hf_descriptor,
+    "replay_descriptor_digest_drift": validate_replay_hf_descriptor,
+    "replay_tokenizer_identity_drift": validate_replay_hf_descriptor,
+    "replay_vocabulary_identity_drift": validate_replay_hf_descriptor,
+    "replay_special_token_identity_drift": validate_replay_hf_descriptor,
+    "replay_parameter_projection_drift": validate_replay_hf_descriptor,
+    "replay_architecture_projection_drift": validate_replay_hf_descriptor,
+    "report_claims_foreign_descriptor": validate_run_hf_summary,
+    "report_false_hf_export_claim": validate_run_hf_summary,
+    "report_derived_from_loose_reference": validate_run_hf_summary,
+}
+SPECS = tuple(
+    replace(
+        spec, intended_boundary=_callable_identity(_BOUNDARY_OVERRIDES[spec.case_id])
+    )
+    if spec.case_id in _BOUNDARY_OVERRIDES
+    else spec
+    for spec in SPECS
+)
+
 
 def _observe(invocation: Invocation) -> tuple[str | None, str | None, str]:
     try:
@@ -1130,11 +1215,15 @@ def _run(spec: Spec, root: Path) -> HFAdversarialResult:
         outcome = "boundary_mismatch"
     elif not deterministic:
         outcome = "non_deterministic_first_failure"
-    elif spec.category == "identity" and first_code is None:
-        outcome = "invariant_preserved"
+    elif spec.case_id == "non_authoritative_prose_does_not_change_identity":
+        outcome = (
+            "invariant_preserved"
+            if spec.expected_code is None and first_code is None
+            else "unexpected_failure"
+        )
     elif first_code is None:
         outcome = "unexpected_pass"
-    elif not _matches_expected(spec.expected_code, first_code):
+    elif first_code != spec.expected_code:
         outcome = "wrong_failure"
     else:
         outcome = "reject"
@@ -1156,32 +1245,6 @@ def _run(spec: Spec, root: Path) -> HFAdversarialResult:
         deterministic,
         outcome,
     )
-
-
-def _matches_expected(expected: str | None, observed: str | None) -> bool:
-    if expected == observed:
-        return True
-    if expected in {
-        "checkpoint_hf_descriptor_mismatch",
-        "checkpoint_hf_descriptor_missing",
-    }:
-        return bool(
-            observed
-            and (
-                observed.startswith("checkpoint_hf_descriptor")
-                or observed.startswith("hf_")
-            )
-        )
-    if expected in {"replay_hf_descriptor_mismatch", "report_hf_descriptor_mismatch"}:
-        return bool(observed and observed.startswith("hf_"))
-    if expected in {
-        "checkpoint_constructs_hf_descriptor",
-        "learning_constructs_hf_descriptor",
-        "runtime_constructs_hf_descriptor",
-        "forbidden_import",
-    }:
-        return observed == "duplicate_hf_descriptor_contract"
-    return False
 
 
 def _positive(case_id: str, boundary: str, evidence: object) -> HFPositiveProof:
@@ -1279,23 +1342,17 @@ def execute_hf_descriptor_authority_proof(root: Path) -> HFDescriptorAuthorityPr
         _run(spec, root / "adversarial" / f"{index:02d}")
         for index, spec in enumerate(SPECS, 1)
     )
-    implementation_audit = digest(
-        {
-            "count": len(SPECS),
-            "functions": [_callable_identity(spec.experiment) for spec in SPECS],
-            "parameters": {
-                spec.case_id: tuple(inspect.signature(spec.experiment).parameters)
-                for spec in SPECS
-            },
-        }
+    audit_result = audit_gate_source(
+        Path(__file__), expected_positive_case_ids=POSITIVE_CASE_IDS
     )
+    require_clean_implementation_audit(audit_result)
     return HFDescriptorAuthorityProof(
         descriptor,
         saved.hf_descriptor.digest,
         digest(replay.experiment_identity.hf_reference.to_dict()),
         digest(RunHFSummary(descriptor).to_dict()),
         digest(audit),
-        implementation_audit,
+        audit_result,
         positives,
         results,
         NON_CLAIMS,

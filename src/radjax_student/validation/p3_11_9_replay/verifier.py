@@ -5,6 +5,11 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
+from radjax_student.contracts import (
+    HFCompatibilityDescriptor,
+    HFContractError,
+    validate_hf_descriptor_match,
+)
 from radjax_student.validation.p3_11_9_replay.canonical import canonical_digest
 from radjax_student.validation.p3_11_9_replay.models import (
     CrossModeComparisonEvidence,
@@ -14,6 +19,19 @@ from radjax_student.validation.p3_11_9_replay.models import (
     ReplayVerificationResult,
     StatefulReplayProof,
 )
+
+
+def validate_replay_hf_descriptor(
+    expected: HFCompatibilityDescriptor, observed: HFCompatibilityDescriptor
+) -> None:
+    """Own HF descriptor disagreement at the generic replay boundary."""
+    try:
+        validate_hf_descriptor_match(expected, observed)
+    except HFContractError as error:
+        raise HFContractError(
+            "replay_hf_descriptor_mismatch",
+            f"replay HF descriptor differs; cause={error.code}",
+        ) from error
 
 
 def verify_replay_proof(proof: StatefulReplayProof) -> ReplayVerificationResult:
@@ -253,4 +271,8 @@ def _step_index(field: str) -> int | None:
     return int(suffix) if suffix.isdigit() else None
 
 
-__all__ = ["verify_recorded_artifact", "verify_replay_proof"]
+__all__ = [
+    "validate_replay_hf_descriptor",
+    "verify_recorded_artifact",
+    "verify_replay_proof",
+]

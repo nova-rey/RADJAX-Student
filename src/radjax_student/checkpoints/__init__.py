@@ -26,6 +26,7 @@ from radjax_student.checkpoints.v3 import (
     inspect_historical_v3_objective_alias,
     load_learning_checkpoint_v3,
     save_learning_checkpoint_v3,
+    validate_checkpoint_hf_descriptor,
 )
 
 __all__ = [
@@ -50,4 +51,5 @@ __all__ = [
     "inspect_historical_v3_objective_alias",
     "inspect_historical_v3_hf_reference",
     "save_learning_checkpoint_v3",
+    "validate_checkpoint_hf_descriptor",
 ]

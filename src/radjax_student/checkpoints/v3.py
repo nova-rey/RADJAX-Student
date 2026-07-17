@@ -21,6 +21,7 @@ from radjax_student.checkpoints.npz_codec import (
 )
 from radjax_student.contracts import (
     HFCompatibilityDescriptor,
+    HFContractError,
     HFPreservationReference,
     ObjectiveConfig,
     ObjectiveExecutionDescriptor,
@@ -81,6 +82,27 @@ class CheckpointValidationError(ValueError):
         self.code = code
         self.details = MappingProxyType(dict(details or {}))
         super().__init__(f"{code}: {message}")
+
+
+def validate_checkpoint_hf_descriptor(
+    expected: HFCompatibilityDescriptor, observed: HFCompatibilityDescriptor
+) -> None:
+    """Re-emit descriptor drift at the checkpoint continuation boundary."""
+
+    from radjax_student.contracts import validate_hf_descriptor_match
+
+    try:
+        validate_hf_descriptor_match(expected, observed)
+    except HFContractError as error:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+            details={
+                "hf_code": error.code,
+                "expected": expected.digest,
+                "observed": observed.digest,
+            },
+        ) from error
 
 
 @dataclass(frozen=True)
