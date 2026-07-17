@@ -1039,3 +1039,9 @@
   and retains inspection-only handling for those historical records.
 - This adds no Hugging Face export, Transformers dependency, safetensors output,
   network access, production architecture, or Phase 4 implementation.
+
+## 2026-07-17 - P3.12B CI receipt canonicalization
+
+- Regenerated the P3.5 architecture-integrity receipt through its normal
+  canonical writer. Its evidence was unchanged; the committed bytes now match
+  the recorded-check verifier used by the JAX GitHub Actions job.
