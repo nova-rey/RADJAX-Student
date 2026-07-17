@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
+from radjax_student.contracts import ObjectiveExecutionDescriptor
 from radjax_student.learning._json import (
     finite_number,
     freeze_json_mapping,
@@ -213,6 +214,20 @@ class RunScopeSummary:
 
 
 @dataclass(frozen=True)
+class RunObjectiveSummary:
+    """Neutral report projection of the registry-selected objective descriptor."""
+
+    descriptor: ObjectiveExecutionDescriptor
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.descriptor, ObjectiveExecutionDescriptor):
+            raise TypeError("objective descriptor must be ObjectiveExecutionDescriptor")
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.descriptor.to_dict()
+
+
+@dataclass(frozen=True)
 class LearningRunReport:
     run_id: str
     status: RunStatusSummary
@@ -221,6 +236,7 @@ class LearningRunReport:
     issues: RunIssueSummary
     checkpoints: RunCheckpointSummary
     scopes: RunScopeSummary
+    objective: RunObjectiveSummary | None = None
     hook_blockers: tuple[LearningIssue, ...] = ()
     schema_version: str = SCHEMA
     claims_made: tuple[str, ...] = CLAIMS
@@ -242,6 +258,10 @@ class LearningRunReport:
             )
         ):
             raise TypeError("learning run report nested models are invalid")
+        if self.objective is not None and not isinstance(
+            self.objective, RunObjectiveSummary
+        ):
+            raise TypeError("learning run report objective is invalid")
         metrics = tuple(self.metrics)
         blockers = tuple(self.hook_blockers)
         if any(not isinstance(metric, RunMetricSummary) for metric in metrics):
@@ -280,6 +300,7 @@ class LearningRunReport:
             "issues": self.issues.to_dict(),
             "checkpoints": self.checkpoints.to_dict(),
             "scopes": self.scopes.to_dict(),
+            "objective": None if self.objective is None else self.objective.to_dict(),
             "hook_blockers": [blocker.to_dict() for blocker in self.hook_blockers],
             "claims_made": list(self.claims_made),
             "claims_not_made": list(self.claims_not_made),
@@ -297,6 +318,7 @@ def build_learning_run_report(
     run_id: str,
     update_scope: str,
     objective_scope: str,
+    objective_descriptor: ObjectiveExecutionDescriptor | None = None,
     metadata: Mapping[str, Any] | None = None,
 ) -> LearningRunReport:
     """Build a report from retained loop observations without changing the run."""
@@ -305,6 +327,20 @@ def build_learning_run_report(
 
     if not isinstance(loop_result, LearningLoopResult):
         raise TypeError("loop_result must be LearningLoopResult")
+    executed_descriptor = (
+        getattr(loop_result.final_execution, "objective_descriptor", None)
+        if loop_result.final_execution is not None
+        else None
+    )
+    if executed_descriptor is not None and not isinstance(
+        executed_descriptor, ObjectiveExecutionDescriptor
+    ):
+        raise TypeError("step execution objective descriptor is invalid")
+    if objective_descriptor != executed_descriptor:
+        raise ValueError(
+            "report_objective_identity_mismatch: report must preserve "
+            "executed objective"
+        )
     summaries: list[RunMetricSummary] = []
     records_by_name: dict[str, list[Any]] = {}
     for record in loop_result.metrics:
@@ -347,6 +383,11 @@ def build_learning_run_report(
         ),
         checkpoints=RunCheckpointSummary(tuple(loop_result.checkpoints)),
         scopes=RunScopeSummary(update_scope, objective_scope),
+        objective=(
+            None
+            if objective_descriptor is None
+            else RunObjectiveSummary(objective_descriptor)
+        ),
         hook_blockers=tuple(loop_result.hook_blockers),
         metadata={} if metadata is None else metadata,
     )

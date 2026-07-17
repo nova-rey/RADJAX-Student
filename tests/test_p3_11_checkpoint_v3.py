@@ -14,8 +14,11 @@ from radjax_student.architecture import ArchitectureState
 from radjax_student.checkpoints import (
     CheckpointValidationError,
     JaxLearningCheckpointV3,
-    load_learning_checkpoint_v3,
+    inspect_historical_v3_objective_alias,
     save_learning_checkpoint_v3,
+)
+from radjax_student.checkpoints import (
+    load_learning_checkpoint_v3 as _load_learning_checkpoint_v3,
 )
 from radjax_student.checkpoints.npz_codec import (
     descriptor_digest,
@@ -25,10 +28,16 @@ from radjax_student.checkpoints.npz_codec import (
 from radjax_student.contracts import (
     HFPreservationReference,
     JaxOptimizerStateDescriptor,
+    ObjectiveConfig,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
+    ResolvedObjectiveSelection,
 )
-from radjax_student.learning import LearningState
+from radjax_student.learning import LearningState, ObjectiveScope
+from radjax_student.objectives import (
+    CANONICAL_MSE_IDENTITY,
+    build_default_objective_registry,
+)
 from radjax_student.optimizers import (
     JaxOptimizerState,
     OptimizerCapabilityProfile,
@@ -61,9 +70,41 @@ def _state(optimizer: SgdOptimizer, step: int = 2) -> JaxOptimizerState:
     )
 
 
+def _objective_identity():
+    registry = build_default_objective_registry()
+    selection = registry.select(CANONICAL_MSE_IDENTITY)
+    config = ObjectiveConfig(CANONICAL_MSE_IDENTITY, {"reduction": "mean"})
+    resolved = ResolvedObjectiveSelection(ObjectiveScope(), "final_output")
+    descriptor = registry.execution_descriptor(
+        selection=selection,
+        config=config,
+        resolved_selection=resolved,
+    )
+    return selection, config, resolved, descriptor
+
+
+def load_learning_checkpoint_v3(directory, *, optimizer, parameter_layout, **kwargs):
+    """Test fixture always models caller-bound P3.12 continuation restore."""
+
+    selection, config, resolved, descriptor = _objective_identity()
+    return _load_learning_checkpoint_v3(
+        directory,
+        optimizer=optimizer,
+        parameter_layout=parameter_layout,
+        expected_objective_descriptor=descriptor,
+        expected_objective_config=config,
+        expected_resolved_objective_selection=resolved,
+        expected_objective_selection=selection,
+        **kwargs,
+    )
+
+
 def _checkpoint(state: JaxOptimizerState) -> JaxLearningCheckpointV3:
     layout = _layout()
     config_digest = "architecture-config-digest"
+    objective_selection, objective_config, resolved_selection, objective_descriptor = (
+        _objective_identity()
+    )
     return JaxLearningCheckpointV3(
         "runtime-1",
         LearningState(
@@ -87,6 +128,10 @@ def _checkpoint(state: JaxOptimizerState) -> JaxLearningCheckpointV3:
         ),
         config_digest,
         "parameter-catalog-digest",
+        objective_config=objective_config,
+        resolved_objective_selection=resolved_selection,
+        objective_descriptor=objective_descriptor,
+        objective_registry_selection=objective_selection.to_dict(),
     )
 
 
@@ -152,6 +197,50 @@ def test_valid_sgd_state_round_trips_and_records_both_steps(tmp_path):
     assert manifest["optimizer"]["optimizer_numerical_state_schema_version"] == (
         "sgd_jax_state.v1"
     )
+
+
+def test_strict_restore_rejects_missing_objective_identity(tmp_path):
+    optimizer = _save(tmp_path)
+    learning_path = tmp_path / "learning.json"
+    learning = json.loads(learning_path.read_text())
+    for name in (
+        "objective_config",
+        "resolved_objective_selection",
+        "objective_descriptor",
+        "objective_registry_selection",
+    ):
+        learning.pop(name)
+    learning_path.write_text(
+        json.dumps(learning, sort_keys=True, separators=(",", ":")) + "\n"
+    )
+    manifest_path = tmp_path / "manifest.json"
+    manifest = json.loads(manifest_path.read_text())
+    manifest.pop("objective")
+    manifest_path.write_text(
+        json.dumps(manifest, sort_keys=True, separators=(",", ":")) + "\n"
+    )
+    _rewrite_manifest(tmp_path)
+
+    with pytest.raises(
+        CheckpointValidationError, match="checkpoint_objective_identity_missing"
+    ):
+        load_learning_checkpoint_v3(
+            tmp_path,
+            optimizer=optimizer,
+            parameter_layout=_layout(),
+        )
+
+    historical = replace(
+        _checkpoint(_state(optimizer)),
+        objective_config=None,
+        resolved_objective_selection=None,
+        objective_descriptor=None,
+        objective_registry_selection={},
+    )
+    migration = inspect_historical_v3_objective_alias(
+        historical, source_alias="stateful_linear_mse.v1"
+    )
+    assert migration.status == "inspection_only_requires_recorded_migration"
 
 
 def test_restore_requires_callers_expected_lifecycle_identity(tmp_path):

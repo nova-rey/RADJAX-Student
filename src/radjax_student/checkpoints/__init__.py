@@ -13,10 +13,14 @@ from radjax_student.checkpoints.roles import (
     reject_implicit_hf_conversion,
 )
 from radjax_student.checkpoints.v3 import (
+    CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
     CHECKPOINT_OPTIMIZER_STEP_MISMATCH,
     CHECKPOINT_V3_SCHEMA_VERSION,
+    HISTORICAL_MSE_OBJECTIVE_ALIASES,
     CheckpointValidationError,
+    HistoricalObjectiveMigration,
     JaxLearningCheckpointV3,
+    inspect_historical_v3_objective_alias,
     load_learning_checkpoint_v3,
     save_learning_checkpoint_v3,
 )
@@ -25,8 +29,11 @@ __all__ = [
     "CONTINUATION_CHECKPOINT_ROLE",
     "CheckpointPayloadDescriptor",
     "CHECKPOINT_OPTIMIZER_STEP_MISMATCH",
+    "CHECKPOINT_OBJECTIVE_IDENTITY_MISSING",
     "CHECKPOINT_V3_SCHEMA_VERSION",
     "CheckpointValidationError",
+    "HistoricalObjectiveMigration",
+    "HISTORICAL_MSE_OBJECTIVE_ALIASES",
     "FutureTensorPayloadDescriptor",
     "HF_DISTRIBUTION_CHECKPOINT_ROLE",
     "LearningCheckpoint",
@@ -35,5 +42,6 @@ __all__ = [
     "reject_implicit_hf_conversion",
     "save_learning_checkpoint",
     "load_learning_checkpoint_v3",
+    "inspect_historical_v3_objective_alias",
     "save_learning_checkpoint_v3",
 ]

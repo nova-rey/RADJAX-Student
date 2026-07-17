@@ -232,7 +232,7 @@ def _code_for_field(field: str) -> str:
         ("optimizer", "replay_optimizer_state_mismatch"),
         ("learning", "replay_learning_state_mismatch"),
         ("scope", "replay_scope_routing_mismatch"),
-        ("objective", "replay_scope_routing_mismatch"),
+        ("objective", "replay_objective_identity_mismatch"),
         ("metric", "replay_metric_mismatch"),
         ("hook", "replay_hook_sequence_mismatch"),
         ("report", "replay_report_mismatch"),

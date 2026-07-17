@@ -42,6 +42,7 @@ _CLASSIFICATIONS = {
     "validation.p3_11_10_gate": "optional_integration",
     "validation.p3_11_10_gate.runner_jax": "optional_integration",
     "losses": "research",
+    "objectives": "core",
     "losses.dense_kl": "smoke_debug",
     "losses.sparse_topk": "research",
     "schedules": "research",
@@ -60,6 +61,7 @@ _OWNERS = {
     "legacy": "legacy_compatibility",
     "losses": "objective_research",
     "optimizers": "optimizer_contracts",
+    "objectives": "objective_contracts",
     "reports": "reporting",
     "runtime": "runtime_execution",
     "schedules": "training_policy",
@@ -303,6 +305,30 @@ def find_architecture_blockers(
             item.startswith("radjax_student.architecture") for item in imports
         ):
             add("runtime_imports_architecture", path, "runtime imports architecture")
+        if module.startswith("radjax_student.objectives") and any(
+            item.startswith(
+                (
+                    "radjax_student.architecture",
+                    "radjax_student.checkpoints",
+                    "radjax_student.optimizers",
+                    "radjax_student.validation",
+                )
+            )
+            for item in imports
+        ):
+            add(
+                "objective_imports_forbidden_owner",
+                path,
+                "objective implementation imports a forbidden owner",
+            )
+        if module.startswith("radjax_student.architecture") and any(
+            item.startswith("radjax_student.objectives.jax") for item in imports
+        ):
+            add(
+                "architecture_imports_concrete_objective",
+                path,
+                "architecture imports a concrete objective implementation",
+            )
     for path in sorted(source_root.rglob("*.py")):
         module = _module_name(path, source_root)
         if classify_module(module) != "core":
@@ -334,6 +360,38 @@ def find_architecture_blockers(
             "src/radjax_student/steps/__init__.py",
             "scalar step is publicly exported",
         )
+    step_path = source_root / "steps" / "jax_step.py"
+    if step_path.is_file():
+        tree = ast.parse(step_path.read_text(encoding="utf-8"), filename=str(step_path))
+        execution = next(
+            (
+                node
+                for node in tree.body
+                if isinstance(node, ast.FunctionDef)
+                and node.name == "execute_jax_learning_step"
+            ),
+            None,
+        )
+        expected = {
+            "objective_selection",
+            "objective_config",
+            "objective_descriptor",
+            "resolved_objective_selection",
+        }
+        if execution is None or not expected.issubset(
+            {argument.arg for argument in execution.args.kwonlyargs}
+        ):
+            add(
+                "objective_execution_authority_missing",
+                "src/radjax_student/steps/jax_step.py",
+                "production JAX step lacks the canonical objective authority",
+            )
+        elif "objective" in {argument.arg for argument in execution.args.kwonlyargs}:
+            add(
+                "objective_execution_authority_duplicated",
+                "src/radjax_student/steps/jax_step.py",
+                "production JAX step accepts an arbitrary objective",
+            )
     return sorted(blockers, key=lambda item: (item["code"], item["path"]))
 
 

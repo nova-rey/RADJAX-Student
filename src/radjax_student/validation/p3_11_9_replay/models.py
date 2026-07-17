@@ -191,6 +191,60 @@ class HFPreservationEvidence:
 
 
 @dataclass(frozen=True)
+class ObjectiveEvidence:
+    """Strict serializable identity of the registry-selected objective."""
+
+    objective_id: str
+    objective_version: str
+    capability_profile_digest: str
+    config_digest: str
+    resolved_surface_identity: str
+    metric_schema_id: str
+    implementation_identity: str
+    descriptor_digest: str
+
+    _FIELDS = {
+        "objective_id",
+        "objective_version",
+        "capability_profile_digest",
+        "config_digest",
+        "resolved_surface_identity",
+        "metric_schema_id",
+        "implementation_identity",
+        "descriptor_digest",
+    }
+
+    def __post_init__(self) -> None:
+        for name in (
+            "objective_id",
+            "objective_version",
+            "metric_schema_id",
+            "implementation_identity",
+        ):
+            _string(getattr(self, name), name)
+        for name in (
+            "capability_profile_digest",
+            "config_digest",
+            "resolved_surface_identity",
+            "descriptor_digest",
+        ):
+            _digest(getattr(self, name), name)
+
+    def to_dict(self) -> dict[str, str]:
+        return {name: getattr(self, name) for name in sorted(self._FIELDS)}
+
+    @property
+    def digest(self) -> str:
+        return canonical_digest(self.to_dict())
+
+    @classmethod
+    def from_dict(cls, value: Any) -> ObjectiveEvidence:
+        payload = _mapping(value, "objective")
+        _strict(payload, cls._FIELDS, "objective")
+        return cls(**dict(payload))
+
+
+@dataclass(frozen=True)
 class OptimizerConfigEvidence:
     optimizer_id: str
     schema_version: str
@@ -285,6 +339,7 @@ class ExperimentIdentityEvidence:
     parameter_catalog_digest: str
     parameter_layout_digest: str
     hf_reference: HFPreservationEvidence
+    objective: ObjectiveEvidence
     architecture_state_id: str | None
     architecture_carry_descriptor: ArchitectureCarryIdentityEvidence
     optimizer_id: str
@@ -300,6 +355,7 @@ class ExperimentIdentityEvidence:
         "parameter_catalog_digest",
         "parameter_layout_digest",
         "hf_reference",
+        "objective",
         "architecture_state_id",
         "architecture_carry_descriptor",
         "optimizer_id",
@@ -320,6 +376,8 @@ class ExperimentIdentityEvidence:
             _digest(getattr(self, name), name)
         if not isinstance(self.hf_reference, HFPreservationEvidence):
             raise ReplayCanonicalError("hf_reference is invalid")
+        if not isinstance(self.objective, ObjectiveEvidence):
+            raise ReplayCanonicalError("objective is invalid")
         object.__setattr__(
             self,
             "architecture_state_id",
@@ -369,6 +427,7 @@ class ExperimentIdentityEvidence:
             "parameter_catalog_digest": self.parameter_catalog_digest,
             "parameter_layout_digest": self.parameter_layout_digest,
             "hf_reference": self.hf_reference.to_dict(),
+            "objective": self.objective.to_dict(),
             "architecture_state_id": self.architecture_state_id,
             "architecture_carry_descriptor": (
                 self.architecture_carry_descriptor.to_dict()
@@ -391,6 +450,7 @@ class ExperimentIdentityEvidence:
         values["hf_reference"] = HFPreservationEvidence.from_dict(
             values["hf_reference"]
         )
+        values["objective"] = ObjectiveEvidence.from_dict(values["objective"])
         values["architecture_carry_descriptor"] = (
             ArchitectureCarryIdentityEvidence.from_dict(
                 values["architecture_carry_descriptor"]
@@ -689,8 +749,7 @@ class ReplayStepEvidence:
     step_index: int
     batch_id: str
     batch_digest: str
-    objective_id: str
-    objective_surface_id: str
+    objective: ObjectiveEvidence
     update_scope_digest: str
     counters_before: Mapping[str, int]
     counters_after: Mapping[str, int]
@@ -711,8 +770,7 @@ class ReplayStepEvidence:
         "step_index",
         "batch_id",
         "batch_digest",
-        "objective_id",
-        "objective_surface_id",
+        "objective",
         "update_scope_digest",
         "counters_before",
         "counters_after",
@@ -732,8 +790,10 @@ class ReplayStepEvidence:
 
     def __post_init__(self) -> None:
         _nonnegative_int(self.step_index, "step_index")
-        for name in ("batch_id", "objective_id", "objective_surface_id"):
+        for name in ("batch_id",):
             _string(getattr(self, name), name)
+        if not isinstance(self.objective, ObjectiveEvidence):
+            raise ReplayCanonicalError("step objective evidence is invalid")
         for name in (
             "batch_digest",
             "update_scope_digest",
@@ -772,8 +832,7 @@ class ReplayStepEvidence:
             "step_index": self.step_index,
             "batch_id": self.batch_id,
             "batch_digest": self.batch_digest,
-            "objective_id": self.objective_id,
-            "objective_surface_id": self.objective_surface_id,
+            "objective": self.objective.to_dict(),
             "update_scope_digest": self.update_scope_digest,
             "counters_before": dict(self.counters_before),
             "counters_after": dict(self.counters_after),
@@ -796,6 +855,7 @@ class ReplayStepEvidence:
         payload = _mapping(value, "replay step")
         _strict(payload, cls._FIELDS, "replay step")
         values = dict(payload)
+        values["objective"] = ObjectiveEvidence.from_dict(values["objective"])
         values["runtime"] = RuntimeEvidence.from_dict(values["runtime"])
         values["rng"] = RngEvidence.from_dict(values["rng"])
         return cls(**values)
@@ -1170,6 +1230,7 @@ __all__ = [
     "CrossModeComparisonEvidence",
     "ExperimentIdentityEvidence",
     "HFPreservationEvidence",
+    "ObjectiveEvidence",
     "OptimizerConfigEvidence",
     "REPLAY_SCHEMA_VERSION",
     "ReplayArmEvidence",

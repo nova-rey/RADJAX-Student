@@ -16,9 +16,9 @@ verifier objects are exact-schema, canonical evidence contracts.
 The committed artifact is
 [P3_11_9_REPLAY_EVIDENCE.json](P3_11_9_REPLAY_EVIDENCE.json), schema
 `radjax.p3_11_9_replay_evidence.v1`. Its canonical artifact identity is
-`4378ac5438f43c0a59a61765482155e82d650ffa3daf28388665a1be65b91eeb` and
+`0dc9947fa09eb4d763971d47005e90339c31df3b254c706391a2738179849691` and
 its executed evidence digest is
-`faa8d31ff1a56a9f22bb0c738fde7f4cce2bb0c3b3fd8cb1a35b6c04f9dccbe4`.
+`6c40c4fd81e2aa42459ad0ff1e8502c8c91d5094867aab7392c83e925aaed183`.
 Run the read-only gate with:
 
 ```bash
@@ -41,7 +41,11 @@ P3.11.1-P3.11.10 locally accepted
 
 P3.11 integration closure complete
 
-Phase 4 next and unstarted
+P3.12A locally accepted
+
+P3.12B next and unstarted
+
+Phase 4 remains unstarted
 
 Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
 

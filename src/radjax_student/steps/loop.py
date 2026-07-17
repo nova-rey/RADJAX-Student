@@ -429,11 +429,17 @@ def run_learning_loop(
         else learning_state
     )
     try:
+        objective_descriptor = (
+            getattr(result.final_execution, "objective_descriptor", None)
+            if result.final_execution is not None
+            else None
+        )
         report = build_learning_run_report(
             loop_result=result,
             run_id=report_state.run_id,
             update_scope=report_state.active_update_scope.kind,
             objective_scope=report_state.active_objective_scope.kind,
+            objective_descriptor=objective_descriptor,
         )
     except (TypeError, ValueError):
         return result

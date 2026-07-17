@@ -141,12 +141,12 @@ def experiment_h_different_objective_id(
 ) -> ExperimentExecution:
     baseline = _receipt(context.repository_root)
     mutated = _receipt(context.repository_root)
-    _trace(mutated)["steps"][3]["objective_id"] = "foreign.objective.v1"
+    _trace(mutated)["steps"][3]["objective"]["objective_id"] = "foreign.objective.v1"
     return _record(
         context,
         baseline,
         mutated,
-        "steps[3].objective_id",
+        "steps[3].objective.objective_id",
         "replace_resume_objective_id",
     )
 

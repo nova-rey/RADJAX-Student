@@ -23,10 +23,17 @@ from radjax_student.checkpoints.npz_codec import (
     describe_mapping_pytree,
     descriptor_digest,
 )
-from radjax_student.contracts import HFPreservationReference, ParameterTreeLayout
+from radjax_student.contracts import (
+    HFPreservationReference,
+    ObjectiveConfig,
+    ObjectiveContractError,
+    ObjectiveExecutionDescriptor,
+    ParameterTreeLayout,
+    ResolvedObjectiveSelection,
+)
 from radjax_student.learning import LearningBatch, LearningState
 from radjax_student.learning.jax_batch import JaxBatchMaterializer
-from radjax_student.learning.jax_core import JaxObjectiveConfig
+from radjax_student.objectives import ObjectiveRegistrySelection
 from radjax_student.optimizers import (
     JaxOptimizerBackend,
     JaxOptimizerState,
@@ -64,6 +71,10 @@ class JaxLearningLifecycle:
     parameter_catalog: ParameterCatalog
     parameter_layout: ParameterTreeLayout
     hf_reference: HFPreservationReference
+    objective_selection: ObjectiveRegistrySelection
+    objective_config: ObjectiveConfig
+    resolved_objective_selection: ResolvedObjectiveSelection
+    objective_descriptor: ObjectiveExecutionDescriptor
     optimizer: JaxOptimizerBackend
     optimizer_config: OptimizerConfig
     optimizer_state: JaxOptimizerState
@@ -108,6 +119,50 @@ class JaxLearningLifecycle:
             raise ValueError("HF reference layout identity does not match lifecycle")
         if self.hf_reference.architecture_config_digest != self.config_digest:
             raise ValueError("HF reference config identity does not match lifecycle")
+        if not isinstance(self.objective_selection, ObjectiveRegistrySelection):
+            raise TypeError("lifecycle requires ObjectiveRegistrySelection")
+        if not self.objective_selection.is_registry_selected:
+            raise ObjectiveContractError(
+                "objective_identity_mismatch",
+                "lifecycle objective must be selected through ObjectiveRegistry",
+            )
+        if not isinstance(self.objective_config, ObjectiveConfig):
+            raise TypeError("lifecycle requires ObjectiveConfig")
+        if not isinstance(
+            self.resolved_objective_selection, ResolvedObjectiveSelection
+        ):
+            raise TypeError("lifecycle requires ResolvedObjectiveSelection")
+        if not isinstance(self.objective_descriptor, ObjectiveExecutionDescriptor):
+            raise TypeError("lifecycle requires ObjectiveExecutionDescriptor")
+        objective = self.objective_selection
+        if (
+            self.objective_config.identity != objective.identity
+            or self.objective_descriptor.identity != objective.identity
+            or self.objective_descriptor.capability_profile_digest
+            != objective.profile.digest
+            or self.objective_descriptor.config_digest != self.objective_config.digest
+            or self.objective_descriptor.resolved_surface_identity
+            != self.resolved_objective_selection.digest
+            or self.objective_descriptor.metric_schema_id
+            != objective.profile.metric_schema_id
+            or self.objective_descriptor.implementation_identity
+            != objective.implementation_identity
+        ):
+            raise ObjectiveContractError(
+                "objective_config_identity_mismatch",
+                "lifecycle objective identity is inconsistent",
+            )
+        objective.plugin.validate_config(self.objective_config)
+        objective.plugin.validate_resolved_surface(self.resolved_objective_selection)
+        architecture_selection = self.architecture.resolve_objective_scope(
+            self.learning_state.active_objective_scope,
+            self.architecture.architecture_metadata(),
+        )
+        if architecture_selection != self.resolved_objective_selection:
+            raise ObjectiveContractError(
+                "objective_surface_identity_mismatch",
+                "lifecycle objective surface was not resolved by its architecture",
+            )
         if not isinstance(self.optimizer, JaxOptimizerBackend):
             raise TypeError("lifecycle requires a complete JaxOptimizerBackend")
         if self.optimizer_config.optimizer_id != self.optimizer.optimizer_id:
@@ -177,6 +232,10 @@ class JaxLearningLifecycle:
             parameter_layout=self.parameter_layout,
             architecture_state=self.architecture_state,
             hf_reference=self.hf_reference,
+            objective_config=self.objective_config,
+            resolved_objective_selection=self.resolved_objective_selection,
+            objective_descriptor=self.objective_descriptor,
+            objective_registry_selection=self.objective_selection.to_dict(),
             architecture_config_digest=self.config_digest,
             parameter_catalog_digest=self.catalog_digest,
             architecture_carry_descriptor=self.architecture_carry_descriptor,
@@ -197,6 +256,12 @@ class JaxLearningLifecycle:
             raise ValueError("checkpoint config identity does not match lifecycle")
         if checkpoint.parameter_catalog_digest != self.catalog_digest:
             raise ValueError("checkpoint catalog identity does not match lifecycle")
+        if checkpoint.objective_descriptor != self.objective_descriptor:
+            raise ValueError("checkpoint objective identity does not match lifecycle")
+        if checkpoint.objective_config != self.objective_config:
+            raise ValueError("checkpoint objective config does not match lifecycle")
+        if checkpoint.resolved_objective_selection != self.resolved_objective_selection:
+            raise ValueError("checkpoint objective surface does not match lifecycle")
         return replace(
             self,
             learning_state=checkpoint.learning_state,
@@ -224,6 +289,11 @@ class JaxLearningLifecycle:
                 else self.architecture_state.state_id
             ),
             expected_architecture_carry_descriptor=self.architecture_carry_descriptor,
+            expected_objective_descriptor=self.objective_descriptor,
+            expected_objective_config=self.objective_config,
+            expected_resolved_objective_selection=self.resolved_objective_selection,
+            expected_objective_selection=self.objective_selection,
+            require_objective_identity=True,
         )
         return self.with_checkpoint(checkpoint)
 
@@ -234,7 +304,6 @@ class JaxLoopExecutor:
 
     lifecycle: JaxLearningLifecycle
     batch_materializer: JaxBatchMaterializer
-    objective_config: JaxObjectiveConfig
     execution_request_factory: Any
     precision_policy: str | None = None
     schedule_values: Mapping[str, Any] | None = None
@@ -243,8 +312,6 @@ class JaxLoopExecutor:
     def __post_init__(self) -> None:
         if not isinstance(self.batch_materializer, JaxBatchMaterializer):
             raise TypeError("batch_materializer must implement JaxBatchMaterializer")
-        if not isinstance(self.objective_config, JaxObjectiveConfig):
-            raise TypeError("objective_config must be JaxObjectiveConfig")
         if not callable(self.execution_request_factory):
             raise TypeError("execution_request_factory must be callable")
         if not isinstance(self.rng_slot, str) or not self.rng_slot:
@@ -263,6 +330,8 @@ class JaxLoopExecutor:
             raise ValueError("loop optimizer config does not match JAX lifecycle")
         if kwargs["learning_state"] != lifecycle.learning_state:
             raise ValueError("loop learning state does not match JAX lifecycle")
+        if kwargs["objective"] != lifecycle.objective_selection:
+            raise ValueError("loop objective must be the lifecycle registry selection")
         # A checkpoint callback may replace this immutable lifecycle between
         # iterations. The generic loop deliberately keeps no JAX-specific
         # state, so this adapter remains the single owner of restored arrays.
@@ -272,7 +341,10 @@ class JaxLoopExecutor:
         execution = execute_jax_learning_step(
             architecture=lifecycle.architecture,
             architecture_config=lifecycle.architecture_config,
-            objective=kwargs["objective"],
+            objective_selection=lifecycle.objective_selection,
+            objective_config=lifecycle.objective_config,
+            objective_descriptor=lifecycle.objective_descriptor,
+            resolved_objective_selection=lifecycle.resolved_objective_selection,
             optimizer=lifecycle.optimizer,
             optimizer_config=lifecycle.optimizer_config,
             optimizer_state=lifecycle.optimizer_state,
@@ -281,7 +353,6 @@ class JaxLoopExecutor:
             architecture_carry=lifecycle.architecture_carry,
             learning_batch=batch,
             batch_materializer=self.batch_materializer,
-            objective_config=self.objective_config,
             parameter_layout=lifecycle.parameter_layout,
             runtime_key_stream=lifecycle.runtime_key_stream,
             rng_slot=self.rng_slot,

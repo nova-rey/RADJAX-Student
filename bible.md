@@ -987,3 +987,17 @@
   `a66baa6d48de05c8ac22758c4ee74e793b0dee53`; the closure receipt was
   regenerated from that audit without changing gate behavior, inventory, or
   experiment evidence.
+
+## 2026-07-16 - P3.12A objective identity contract
+
+- Canonical objective identity now has one dependency-neutral contract and one
+  production registry selection. The MSE plugin's ID, version, capability
+  profile, config, resolved architecture surface, metric schema, and portable
+  implementation identity travel together through the runtime step, report,
+  checkpoint v3, caller-bound restore, and replay evidence.
+- Historical MSE aliases resolve at the outer compatibility boundary only to
+  the registry-selected canonical plugin. Strict continuation restore rejects
+  v3 checkpoints without canonical objective identity; historical inspection
+  migration remains non-resumable and explicit.
+- P3.12B remains next and unstarted. Phase 4 remains unstarted pending the
+  required remote base/JAX CI condition or a repository-owner waiver.

@@ -25,10 +25,16 @@ from radjax_student.checkpoints.npz_codec import (
 )
 from radjax_student.contracts import (
     HFPreservationReference,
+    ObjectiveConfig,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
+    ResolvedObjectiveSelection,
 )
-from radjax_student.learning import LearningState
+from radjax_student.learning import LearningState, ObjectiveScope
+from radjax_student.objectives import (
+    CANONICAL_MSE_IDENTITY,
+    build_default_objective_registry,
+)
 from radjax_student.optimizers import (
     JaxOptimizerState,
     OptimizerState,
@@ -63,10 +69,29 @@ def checkpoint_optimizer_state(
     )
 
 
+def checkpoint_objective():
+    registry = build_default_objective_registry()
+    selection = registry.select(CANONICAL_MSE_IDENTITY)
+    config = ObjectiveConfig(CANONICAL_MSE_IDENTITY, {"reduction": "mean"})
+    resolved = ResolvedObjectiveSelection(ObjectiveScope(), "final_output")
+    descriptor = registry.execution_descriptor(
+        selection=selection,
+        config=config,
+        resolved_selection=resolved,
+    )
+    return selection, config, resolved, descriptor
+
+
 def checkpoint_payload(optimizer: SgdOptimizer) -> JaxLearningCheckpointV3:
     layout = checkpoint_layout()
     state = checkpoint_optimizer_state(optimizer)
     config_digest = "literal-architecture-config-digest"
+    (
+        objective_selection,
+        objective_config,
+        resolved_objective_selection,
+        objective_descriptor,
+    ) = checkpoint_objective()
     return JaxLearningCheckpointV3(
         "literal-runtime-reference",
         LearningState("literal-run", global_step=2, optimizer_step=2),
@@ -88,6 +113,10 @@ def checkpoint_payload(optimizer: SgdOptimizer) -> JaxLearningCheckpointV3:
         ),
         config_digest,
         "literal-parameter-catalog-digest",
+        objective_config=objective_config,
+        resolved_objective_selection=resolved_objective_selection,
+        objective_descriptor=objective_descriptor,
+        objective_registry_selection=objective_selection.to_dict(),
     )
 
 
@@ -102,11 +131,16 @@ def write_valid_checkpoint(directory: Path) -> tuple[SgdOptimizer, ParameterTree
 def load_valid_checkpoint(
     directory: Path, optimizer: SgdOptimizer, layout: ParameterTreeLayout
 ) -> JaxLearningCheckpointV3:
+    selection, config, resolved, descriptor = checkpoint_objective()
     return load_learning_checkpoint_v3(
         directory,
         optimizer=optimizer,
         parameter_layout=layout,
         runtime_reference="literal-runtime-reference",
+        expected_objective_descriptor=descriptor,
+        expected_objective_config=config,
+        expected_resolved_objective_selection=resolved,
+        expected_objective_selection=selection,
     )
 
 

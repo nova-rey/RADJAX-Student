@@ -46,6 +46,7 @@ from radjax_student.checkpoints.npz_codec import (  # noqa: E402
 )
 from radjax_student.contracts import (  # noqa: E402
     HFPreservationReference,
+    ObjectiveConfig,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
 )
@@ -61,6 +62,10 @@ from radjax_student.learning.jax_batch import (
     FiniteJsonJaxBatchMaterializer,  # noqa: E402
 )
 from radjax_student.learning.jax_core import JaxObjectiveConfig  # noqa: E402
+from radjax_student.objectives import (  # noqa: E402
+    CANONICAL_MSE_IDENTITY,
+    build_default_objective_registry,
+)
 from radjax_student.optimizers import (  # noqa: E402
     OptimizerConfig,
     OptimizerRegistry,
@@ -234,13 +239,6 @@ class StatefulLinearJaxArchitecture(FakeArchitecturePlugin):
         )
 
 
-class MeanSquaredError:
-    def evaluate(self, surface, targets, weights, objective_config):
-        del weights, objective_config
-        loss = jnp.mean((surface - targets["y"]) ** 2)
-        return loss, {"mse": loss}
-
-
 class EventHook:
     hook_id = "p3118.events"
     priority = 0
@@ -363,6 +361,17 @@ def _lifecycle(mode: str):
             optimizer.optimizer_id, initialized.parameter_layout.logical_paths
         ),
     )
+    objective_registry = build_default_objective_registry()
+    objective_selection = objective_registry.select(CANONICAL_MSE_IDENTITY)
+    objective_config = ObjectiveConfig(CANONICAL_MSE_IDENTITY, {"reduction": "mean"})
+    resolved_objective_selection = architecture.resolve_objective_scope(
+        ObjectiveScope(), architecture.architecture_metadata()
+    )
+    objective_descriptor = objective_registry.execution_descriptor(
+        selection=objective_selection,
+        config=objective_config,
+        resolved_selection=resolved_objective_selection,
+    )
     runtime_config, backend, context = _runtime(mode)
     lifecycle = JaxLearningLifecycle(
         architecture=architecture,
@@ -372,6 +381,10 @@ def _lifecycle(mode: str):
         parameter_catalog=initialized.parameter_catalog,
         parameter_layout=initialized.parameter_layout,
         hf_reference=initialized.hf_reference,
+        objective_selection=objective_selection,
+        objective_config=objective_config,
+        resolved_objective_selection=resolved_objective_selection,
+        objective_descriptor=objective_descriptor,
         optimizer=optimizer,
         optimizer_config=optimizer_config,
         optimizer_state=optimizer_state,
@@ -396,7 +409,6 @@ def _run(
     executor = JaxLoopExecutor(
         lifecycle,
         FiniteJsonJaxBatchMaterializer(),
-        JaxObjectiveConfig("stateful_linear_mse.v1"),
         _request(mode),
         precision_policy="float32",
     )
@@ -430,7 +442,7 @@ def _run(
         optimizer_state=executor.lifecycle.optimizer_state,
         learning_state=executor.lifecycle.learning_state,
         parameters=executor.lifecycle.parameters,
-        objective=MeanSquaredError(),
+        objective=executor.lifecycle.objective_selection,
         batch_source=SyntheticBatchSource(
             tuple(_batch(index, target_scale=target_scale) for index in range(6))
         ),
@@ -578,7 +590,9 @@ def _execute_stateful_systems_proof(tmp_path):
         assert float(full.parameters["trunk"]["weight"][0]) != 0.0
         assert float(full.parameters["head"]["bias"][0]) == 0.0
         losses = [
-            metric.value for metric in full_result.metrics if metric.name == "mse"
+            metric.value
+            for metric in full_result.metrics
+            if metric.name == "objective.mse"
         ]
         assert losses[-1] < losses[0]
         receipt = full_result.final_execution.runtime_result
@@ -722,6 +736,10 @@ def test_stateful_system_proof_rejects_real_boundary_violations(tmp_path):
             expected_hf_reference=replace(
                 lifecycle.hf_reference, tokenizer_id="foreign"
             ),
+            expected_objective_descriptor=lifecycle.objective_descriptor,
+            expected_objective_config=lifecycle.objective_config,
+            expected_resolved_objective_selection=lifecycle.resolved_objective_selection,
+            expected_objective_selection=lifecycle.objective_selection,
         )
     with pytest.raises(CheckpointValidationError, match="checkpoint_layout_mismatch"):
         load_learning_checkpoint_v3(
@@ -730,6 +748,10 @@ def test_stateful_system_proof_rejects_real_boundary_violations(tmp_path):
             parameter_layout=ParameterTreeLayout(
                 ARCHITECTURE_ID, lifecycle.parameter_layout.entries[:1]
             ),
+            expected_objective_descriptor=lifecycle.objective_descriptor,
+            expected_objective_config=lifecycle.objective_config,
+            expected_resolved_objective_selection=lifecycle.resolved_objective_selection,
+            expected_objective_selection=lifecycle.objective_selection,
         )
     bad_optimizer_state = replace(
         saved.optimizer_state,
@@ -786,16 +808,21 @@ def test_stateful_system_proof_rejects_real_boundary_violations(tmp_path):
 
     from radjax_student.legacy.jax_learning import execute_legacy_jax_learning_step
 
+    class LegacyMeanSquaredError:
+        def evaluate(self, surface, targets, weights, objective_config):
+            del weights, objective_config
+            loss = jnp.mean((surface - targets["y"]) ** 2)
+            return loss, {"mse": loss}
+
     executor = JaxLoopExecutor(
         lifecycle,
         FiniteJsonJaxBatchMaterializer(),
-        JaxObjectiveConfig("stateful_linear_mse.v1"),
         _request("eager"),
         precision_policy="float32",
     )
     legacy_execution = execute_legacy_jax_learning_step(
         architecture=lifecycle.architecture,
-        objective=MeanSquaredError(),
+        objective=LegacyMeanSquaredError(),
         parameters=lifecycle.parameters,
         architecture_carry=lifecycle.architecture_carry,
         batch=FiniteJsonJaxBatchMaterializer().materialize(_batch(0)),

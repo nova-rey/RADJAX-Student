@@ -25,7 +25,7 @@ _ALLOWLIST = (
 _MARKERS = (
     "P3.11.1-P3.11.10 locally accepted",
     "P3.11 integration closure complete",
-    "Phase 4 next and unstarted",
+    "Phase 4 remains unstarted",
     "Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver",
 )
 _NON_CLAIMS = (

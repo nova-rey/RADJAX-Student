@@ -25,6 +25,7 @@ from radjax_student.architecture.testing import (  # noqa: E402
     FakeArchitecturePlugin,
 )
 from radjax_student.contracts import (  # noqa: E402
+    ObjectiveConfig,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
 )
@@ -37,7 +38,11 @@ from radjax_student.learning import (  # noqa: E402
 from radjax_student.learning.jax_batch import (  # noqa: E402
     FiniteJsonJaxBatchMaterializer,
 )
-from radjax_student.learning.jax_core import JaxBatch, JaxObjectiveConfig  # noqa: E402
+from radjax_student.learning.jax_core import JaxBatch  # noqa: E402
+from radjax_student.objectives import (  # noqa: E402
+    CANONICAL_MSE_IDENTITY,
+    build_default_objective_registry,
+)
 from radjax_student.optimizers import (  # noqa: E402
     OptimizerConfig,
     OptimizerState,
@@ -122,16 +127,6 @@ class LinearPlugin(FakeArchitecturePlugin):
         )
 
 
-class MeanSquaredError:
-    seen_objective_ids = []
-
-    def evaluate(self, surface, targets, weights, objective_config):
-        del weights
-        self.seen_objective_ids.append(objective_config.objective_id)
-        loss = jnp.mean((surface - targets["y"]) ** 2)
-        return loss, {"mse": loss}
-
-
 def _layout() -> ParameterTreeLayout:
     return ParameterTreeLayout(
         "test.architecture.v1",
@@ -180,6 +175,21 @@ def _runtime(mode: str):
     return context, backend, request
 
 
+def _objective(architecture: LinearPlugin):
+    registry = build_default_objective_registry()
+    selection = registry.select(CANONICAL_MSE_IDENTITY)
+    config = ObjectiveConfig(CANONICAL_MSE_IDENTITY, {"reduction": "mean"})
+    resolved = architecture.resolve_objective_scope(
+        ObjectiveScope(), architecture.architecture_metadata()
+    )
+    descriptor = registry.execution_descriptor(
+        selection=selection,
+        config=config,
+        resolved_selection=resolved,
+    )
+    return selection, config, resolved, descriptor
+
+
 @pytest.mark.parametrize("mode", ("eager", "jit"))
 def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
     architecture = LinearPlugin()
@@ -209,10 +219,16 @@ def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
             return super().materialize(batch)
 
     materializer = RecordingMaterializer()
+    objective_selection, objective_config, resolved_selection, objective_descriptor = (
+        _objective(architecture)
+    )
     execution = execute_jax_learning_step(
         architecture=architecture,
         architecture_config=ArchitectureConfig(architecture.architecture_id),
-        objective=MeanSquaredError(),
+        objective_selection=objective_selection,
+        objective_config=objective_config,
+        objective_descriptor=objective_descriptor,
+        resolved_objective_selection=resolved_selection,
         optimizer=optimizer,
         optimizer_config=OptimizerConfig(optimizer.optimizer_id, learning_rate=0.1),
         optimizer_state=optimizer_state,
@@ -225,7 +241,6 @@ def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
         architecture_carry={"count": jnp.asarray(0)},
         learning_batch=learning_batch,
         batch_materializer=materializer,
-        objective_config=JaxObjectiveConfig("linear.mse.v1"),
         parameter_layout=layout,
         runtime_context=context,
         runtime_backend=backend,
@@ -254,7 +269,7 @@ def test_runtime_receipt_covers_full_scoped_jax_update(mode: str):
         "micro_step": 0,
         "invocation_index": 0,
     }
-    assert "linear.mse.v1" in MeanSquaredError.seen_objective_ids
+    assert execution.objective_descriptor == objective_descriptor
     assert execution.result.changed_parameter_paths == ("trunk.weight",)
     assert execution.result.unchanged_parameter_paths == ("head.bias",)
     assert float(execution.parameters["trunk"]["weight"][0]) != 0.0
@@ -278,11 +293,17 @@ def test_runtime_step_rejects_a_key_stream_from_another_runtime_root():
         optimizer_state=OptimizerState(optimizer.optimizer_id, layout.logical_paths),
     )
     context, backend, request = _runtime("eager")
+    objective_selection, objective_config, resolved_selection, objective_descriptor = (
+        _objective(architecture)
+    )
     with pytest.raises(ValueError, match="does not belong"):
         execute_jax_learning_step(
             architecture=architecture,
             architecture_config=ArchitectureConfig(architecture.architecture_id),
-            objective=MeanSquaredError(),
+            objective_selection=objective_selection,
+            objective_config=objective_config,
+            objective_descriptor=objective_descriptor,
+            resolved_objective_selection=resolved_selection,
             optimizer=optimizer,
             optimizer_config=OptimizerConfig(optimizer.optimizer_id, learning_rate=0.1),
             optimizer_state=optimizer_state,
@@ -298,7 +319,6 @@ def test_runtime_step_rejects_a_key_stream_from_another_runtime_root():
                 targets={"y": [[-1.0], [1.0], [3.0]]},
             ),
             batch_materializer=FiniteJsonJaxBatchMaterializer(),
-            objective_config=JaxObjectiveConfig("linear.mse.v1"),
             parameter_layout=layout,
             runtime_key_stream=RuntimeKeys.from_seed(1).dropout,
             runtime_context=context,

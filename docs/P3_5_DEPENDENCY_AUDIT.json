@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "a66baa6d48de05c8ac22758c4ee74e793b0dee53",
+  "accepted_commit": "315d27de96fae02ee2f75348151c15b54c979d04",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -126,6 +126,10 @@
     {
       "source": "radjax_student.checkpoints.v3",
       "target": "radjax_student.learning.models"
+    },
+    {
+      "source": "radjax_student.checkpoints.v3",
+      "target": "radjax_student.objectives.registry"
     },
     {
       "source": "radjax_student.checkpoints.v3",
@@ -324,6 +328,10 @@
       "target": "radjax_student.contracts"
     },
     {
+      "source": "radjax_student.learning.jax_core",
+      "target": "radjax_student.objectives"
+    },
+    {
       "source": "radjax_student.learning.jax_execution",
       "target": "radjax_student.architecture"
     },
@@ -449,6 +457,10 @@
     },
     {
       "source": "radjax_student.learning.run_report",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.learning.run_report",
       "target": "radjax_student.learning._json"
     },
     {
@@ -550,6 +562,50 @@
     {
       "source": "radjax_student.losses",
       "target": "radjax_student.losses.sparse_topk"
+    },
+    {
+      "source": "radjax_student.objectives",
+      "target": "radjax_student.objectives.protocols"
+    },
+    {
+      "source": "radjax_student.objectives",
+      "target": "radjax_student.objectives.registry"
+    },
+    {
+      "source": "radjax_student.objectives.builtin",
+      "target": "radjax_student.objectives.jax"
+    },
+    {
+      "source": "radjax_student.objectives.builtin",
+      "target": "radjax_student.objectives.registry"
+    },
+    {
+      "source": "radjax_student.objectives.jax",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.objectives.legacy",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.objectives.legacy",
+      "target": "radjax_student.objectives.jax"
+    },
+    {
+      "source": "radjax_student.objectives.legacy",
+      "target": "radjax_student.objectives.registry"
+    },
+    {
+      "source": "radjax_student.objectives.protocols",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.objectives.registry",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.objectives.registry",
+      "target": "radjax_student.objectives.protocols"
     },
     {
       "source": "radjax_student.optimizers",
@@ -913,7 +969,7 @@
     },
     {
       "source": "radjax_student.steps.jax_loop",
-      "target": "radjax_student.learning.jax_core"
+      "target": "radjax_student.objectives"
     },
     {
       "source": "radjax_student.steps.jax_loop",
@@ -950,6 +1006,10 @@
     {
       "source": "radjax_student.steps.jax_step",
       "target": "radjax_student.learning.jax_execution"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.objectives"
     },
     {
       "source": "radjax_student.steps.jax_step",
@@ -1126,6 +1186,10 @@
     {
       "source": "radjax_student.validation.p3_11_10_gate.implementations.literal_fixtures",
       "target": "radjax_student.learning"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.implementations.literal_fixtures",
+      "target": "radjax_student.objectives"
     },
     {
       "source": "radjax_student.validation.p3_11_10_gate.implementations.literal_fixtures",
@@ -1385,7 +1449,7 @@
     },
     {
       "source": "radjax_student.validation.p3_11_9_replay.runner_jax",
-      "target": "radjax_student.learning.jax_core"
+      "target": "radjax_student.objectives"
     },
     {
       "source": "radjax_student.validation.p3_11_9_replay.runner_jax",
@@ -1414,6 +1478,66 @@
     {
       "source": "radjax_student.validation.p3_11_9_replay.verifier",
       "target": "radjax_student.validation.p3_11_9_replay.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity",
+      "target": "radjax_student.validation.p3_12a_objective_identity.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.__main__",
+      "target": "radjax_student.validation.p3_12a_objective_identity.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.documentation",
+      "target": "radjax_student.validation.p3_12a_objective_identity.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.models",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.checkpoints"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.learning.run_report"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.objectives"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.objectives.jax"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.objectives.legacy"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.validation.architecture_audit"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.validation.p3_11_9_replay.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.validation.p3_11_9_replay.runner_jax"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.validation.p3_11_9_replay.verifier"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "target": "radjax_student.validation.p3_12a_objective_identity.models"
     },
     {
       "source": "radjax_student.validation.profile_registry",
@@ -1445,7 +1569,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 136,
+  "module_count": 147,
   "modules": [
     {
       "classification": "core",
@@ -1820,6 +1944,7 @@
       "owner": "checkpoint_persistence",
       "path": "src/radjax_student/checkpoints/__init__.py",
       "public_exports": [
+        "CHECKPOINT_OBJECTIVE_IDENTITY_MISSING",
         "CHECKPOINT_OPTIMIZER_STEP_MISMATCH",
         "CHECKPOINT_V3_SCHEMA_VERSION",
         "CONTINUATION_CHECKPOINT_ROLE",
@@ -1827,8 +1952,11 @@
         "CheckpointValidationError",
         "FutureTensorPayloadDescriptor",
         "HF_DISTRIBUTION_CHECKPOINT_ROLE",
+        "HISTORICAL_MSE_OBJECTIVE_ALIASES",
+        "HistoricalObjectiveMigration",
         "JaxLearningCheckpointV3",
         "LearningCheckpoint",
+        "inspect_historical_v3_objective_alias",
         "load_learning_checkpoint",
         "load_learning_checkpoint_v3",
         "reject_implicit_hf_conversion",
@@ -1933,6 +2061,7 @@
       "classification": "core",
       "defined_classes": [
         "CheckpointValidationError",
+        "HistoricalObjectiveMigration",
         "JaxLearningCheckpointV3"
       ],
       "forbidden_imports": [],
@@ -1949,6 +2078,7 @@
         "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning.models",
+        "radjax_student.objectives.registry",
         "radjax_student.optimizers.jax",
         "radjax_student.optimizers.models",
         "radjax_student.optimizers.protocols",
@@ -1962,6 +2092,7 @@
         "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning.models",
+        "radjax_student.objectives.registry",
         "radjax_student.optimizers.jax",
         "radjax_student.optimizers.models",
         "radjax_student.optimizers.protocols"
@@ -1970,10 +2101,14 @@
       "owner": "checkpoint_persistence",
       "path": "src/radjax_student/checkpoints/v3.py",
       "public_exports": [
+        "CHECKPOINT_OBJECTIVE_IDENTITY_MISSING",
         "CHECKPOINT_OPTIMIZER_STEP_MISMATCH",
         "CHECKPOINT_V3_SCHEMA_VERSION",
         "CheckpointValidationError",
+        "HISTORICAL_MSE_OBJECTIVE_ALIASES",
+        "HistoricalObjectiveMigration",
         "JaxLearningCheckpointV3",
+        "inspect_historical_v3_objective_alias",
         "load_learning_checkpoint_v3",
         "optimizer_state_descriptor_payload",
         "save_learning_checkpoint_v3"
@@ -2130,6 +2265,14 @@
         "LearningBatch",
         "METRIC_AGGREGATIONS",
         "MetricRecord",
+        "OBJECTIVE_CAPABILITY_SCHEMA_VERSION",
+        "OBJECTIVE_CONFIG_SCHEMA_VERSION",
+        "OBJECTIVE_EXECUTION_DESCRIPTOR_SCHEMA_VERSION",
+        "ObjectiveCapabilityProfile",
+        "ObjectiveConfig",
+        "ObjectiveContractError",
+        "ObjectiveExecutionDescriptor",
+        "ObjectiveIdentity",
         "ObjectiveScope",
         "ObjectiveScopeKind",
         "ParameterTreeLayout",
@@ -2137,7 +2280,9 @@
         "ResolvedObjectiveSelection",
         "ResolvedUpdateSelection",
         "UpdateScope",
-        "UpdateScopeKind"
+        "UpdateScopeKind",
+        "canonical_objective_json",
+        "objective_digest"
       ]
     },
     {
@@ -2278,6 +2423,11 @@
     {
       "classification": "core",
       "defined_classes": [
+        "ObjectiveCapabilityProfile",
+        "ObjectiveConfig",
+        "ObjectiveContractError",
+        "ObjectiveExecutionDescriptor",
+        "ObjectiveIdentity",
         "ResolvedObjectiveSelection"
       ],
       "forbidden_imports": [],
@@ -2286,8 +2436,11 @@
         "__future__",
         "collections.abc",
         "dataclasses",
+        "hashlib",
+        "json",
         "radjax_student.contracts._json",
         "radjax_student.contracts.scopes",
+        "re",
         "types",
         "typing"
       ],
@@ -2299,7 +2452,17 @@
       "owner": "package_boundary",
       "path": "src/radjax_student/contracts/objective.py",
       "public_exports": [
-        "ResolvedObjectiveSelection"
+        "OBJECTIVE_CAPABILITY_SCHEMA_VERSION",
+        "OBJECTIVE_CONFIG_SCHEMA_VERSION",
+        "OBJECTIVE_EXECUTION_DESCRIPTOR_SCHEMA_VERSION",
+        "ObjectiveCapabilityProfile",
+        "ObjectiveConfig",
+        "ObjectiveContractError",
+        "ObjectiveExecutionDescriptor",
+        "ObjectiveIdentity",
+        "ResolvedObjectiveSelection",
+        "canonical_objective_json",
+        "objective_digest"
       ]
     },
     {
@@ -2521,6 +2684,7 @@
         "RunIssueSummary",
         "RunLifecycleSummary",
         "RunMetricSummary",
+        "RunObjectiveSummary",
         "RunScopeSummary",
         "RunStatusSummary",
         "SyntheticRunSummary",
@@ -2660,11 +2824,13 @@
         "jax.numpy",
         "radjax_student.architecture",
         "radjax_student.contracts",
+        "radjax_student.objectives",
         "typing"
       ],
       "internal_edges": [
         "radjax_student.architecture",
-        "radjax_student.contracts"
+        "radjax_student.contracts",
+        "radjax_student.objectives"
       ],
       "module": "radjax_student.learning.jax_core",
       "owner": "learning_contracts",
@@ -2675,6 +2841,7 @@
         "JaxObjective",
         "JaxObjectiveConfig",
         "build_jax_loss_fn",
+        "build_registered_jax_loss_fn",
         "build_resolved_jax_loss_fn",
         "build_value_and_grad_fn",
         "validate_finite_loss_and_gradients"
@@ -2978,6 +3145,7 @@
         "RunIssueSummary",
         "RunLifecycleSummary",
         "RunMetricSummary",
+        "RunObjectiveSummary",
         "RunScopeSummary",
         "RunStatusSummary"
       ],
@@ -2988,6 +3156,7 @@
         "collections.abc",
         "dataclasses",
         "json",
+        "radjax_student.contracts",
         "radjax_student.learning._json",
         "radjax_student.learning.errors",
         "radjax_student.learning.telemetry",
@@ -2996,6 +3165,7 @@
         "typing"
       ],
       "internal_edges": [
+        "radjax_student.contracts",
         "radjax_student.learning._json",
         "radjax_student.learning.errors",
         "radjax_student.learning.telemetry"
@@ -3275,6 +3445,173 @@
       "owner": "objective_research",
       "path": "src/radjax_student/losses/sparse_topk.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": true,
+      "imports": [
+        "radjax_student.objectives.builtin",
+        "radjax_student.objectives.jax",
+        "radjax_student.objectives.legacy",
+        "radjax_student.objectives.protocols",
+        "radjax_student.objectives.registry"
+      ],
+      "internal_edges": [
+        "radjax_student.objectives.protocols",
+        "radjax_student.objectives.registry"
+      ],
+      "module": "radjax_student.objectives",
+      "owner": "objective_contracts",
+      "path": "src/radjax_student/objectives/__init__.py",
+      "public_exports": [
+        "CANONICAL_MSE_IDENTITY",
+        "CanonicalObjectiveAliasSelection",
+        "HISTORICAL_MSE_ALIASES",
+        "JaxObjectiveExecution",
+        "JaxObjectivePlugin",
+        "MSE_METRIC_SCHEMA_ID",
+        "MeanSquaredErrorObjective",
+        "ObjectivePlugin",
+        "ObjectiveRegistry",
+        "ObjectiveRegistrySelection",
+        "build_default_objective_registry",
+        "implementation_identity_for",
+        "resolve_historical_objective_alias"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "radjax_student.objectives.jax",
+        "radjax_student.objectives.registry"
+      ],
+      "internal_edges": [
+        "radjax_student.objectives.jax",
+        "radjax_student.objectives.registry"
+      ],
+      "module": "radjax_student.objectives.builtin",
+      "owner": "objective_contracts",
+      "path": "src/radjax_student/objectives/builtin.py",
+      "public_exports": [
+        "build_default_objective_registry"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "MeanSquaredErrorObjective"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "importlib",
+        "radjax_student.contracts",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts"
+      ],
+      "module": "radjax_student.objectives.jax",
+      "owner": "objective_contracts",
+      "path": "src/radjax_student/objectives/jax.py",
+      "public_exports": [
+        "CANONICAL_MSE_IDENTITY",
+        "MSE_METRIC_SCHEMA_ID",
+        "MeanSquaredErrorObjective"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "CanonicalObjectiveAliasSelection"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "radjax_student.contracts",
+        "radjax_student.objectives.jax",
+        "radjax_student.objectives.registry"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts",
+        "radjax_student.objectives.jax",
+        "radjax_student.objectives.registry"
+      ],
+      "module": "radjax_student.objectives.legacy",
+      "owner": "objective_contracts",
+      "path": "src/radjax_student/objectives/legacy.py",
+      "public_exports": [
+        "CanonicalObjectiveAliasSelection",
+        "HISTORICAL_MSE_ALIASES",
+        "resolve_historical_objective_alias"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "JaxObjectiveExecution",
+        "JaxObjectivePlugin",
+        "ObjectivePlugin"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "radjax_student.contracts",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts"
+      ],
+      "module": "radjax_student.objectives.protocols",
+      "owner": "objective_contracts",
+      "path": "src/radjax_student/objectives/protocols.py",
+      "public_exports": [
+        "JaxObjectiveExecution",
+        "JaxObjectivePlugin",
+        "ObjectivePlugin"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "ObjectiveRegistry",
+        "ObjectiveRegistrySelection"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "radjax_student.contracts",
+        "radjax_student.objectives.protocols",
+        "types"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts",
+        "radjax_student.objectives.protocols"
+      ],
+      "module": "radjax_student.objectives.registry",
+      "owner": "objective_contracts",
+      "path": "src/radjax_student/objectives/registry.py",
+      "public_exports": [
+        "ObjectiveRegistry",
+        "ObjectiveRegistrySelection",
+        "implementation_identity_for"
+      ]
     },
     {
       "classification": "core",
@@ -4306,7 +4643,7 @@
         "radjax_student.contracts",
         "radjax_student.learning",
         "radjax_student.learning.jax_batch",
-        "radjax_student.learning.jax_core",
+        "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
         "radjax_student.steps.jax_step",
@@ -4320,7 +4657,7 @@
         "radjax_student.contracts",
         "radjax_student.learning",
         "radjax_student.learning.jax_batch",
-        "radjax_student.learning.jax_core",
+        "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
         "radjax_student.steps.jax_step"
@@ -4353,6 +4690,7 @@
         "radjax_student.learning.jax_batch",
         "radjax_student.learning.jax_core",
         "radjax_student.learning.jax_execution",
+        "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
         "radjax_student.runtime.jax_bridge",
@@ -4368,6 +4706,7 @@
         "radjax_student.learning.jax_batch",
         "radjax_student.learning.jax_core",
         "radjax_student.learning.jax_execution",
+        "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
         "radjax_student.runtime.jax_bridge",
@@ -4865,6 +5204,7 @@
         "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning",
+        "radjax_student.objectives",
         "radjax_student.optimizers",
         "shutil",
         "typing",
@@ -4876,6 +5216,7 @@
         "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning",
+        "radjax_student.objectives",
         "radjax_student.optimizers"
       ],
       "module": "radjax_student.validation.p3_11_10_gate.implementations.literal_fixtures",
@@ -5344,6 +5685,7 @@
         "CrossModeComparisonEvidence",
         "ExperimentIdentityEvidence",
         "HFPreservationEvidence",
+        "ObjectiveEvidence",
         "OptimizerConfigEvidence",
         "ReplayArmEvidence",
         "ReplayBlocker",
@@ -5473,6 +5815,7 @@
         "CrossModeComparisonEvidence",
         "ExperimentIdentityEvidence",
         "HFPreservationEvidence",
+        "ObjectiveEvidence",
         "OptimizerConfigEvidence",
         "ReplayArmEvidence",
         "ReplayBlocker",
@@ -5509,6 +5852,7 @@
         "CrossModeComparisonEvidence",
         "ExperimentIdentityEvidence",
         "HFPreservationEvidence",
+        "ObjectiveEvidence",
         "OptimizerConfigEvidence",
         "REPLAY_SCHEMA_VERSION",
         "ReplayArmEvidence",
@@ -5529,7 +5873,6 @@
       "classification": "optional_integration",
       "defined_classes": [
         "EventHook",
-        "MeanSquaredError",
         "StatefulLinearJaxArchitecture",
         "_ExecutedArm",
         "_RecordingExecutor"
@@ -5553,7 +5896,7 @@
         "radjax_student.contracts",
         "radjax_student.learning",
         "radjax_student.learning.jax_batch",
-        "radjax_student.learning.jax_core",
+        "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
         "radjax_student.steps",
@@ -5569,7 +5912,7 @@
         "radjax_student.contracts",
         "radjax_student.learning",
         "radjax_student.learning.jax_batch",
-        "radjax_student.learning.jax_core",
+        "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
         "radjax_student.steps",
@@ -5608,6 +5951,166 @@
       "public_exports": [
         "verify_recorded_artifact",
         "verify_replay_proof"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "radjax_student.validation.p3_12a_objective_identity.models"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p3_12a_objective_identity.models"
+      ],
+      "module": "radjax_student.validation.p3_12a_objective_identity",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12a_objective_identity/__init__.py",
+      "public_exports": [
+        "ObjectiveIdentityProof",
+        "ObjectiveProofCase",
+        "SCHEMA_VERSION",
+        "build_receipt",
+        "digest",
+        "validate_receipt"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "argparse",
+        "json",
+        "pathlib",
+        "radjax_student.validation.p3_12a_objective_identity.models",
+        "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+        "tempfile"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p3_12a_objective_identity.models"
+      ],
+      "module": "radjax_student.validation.p3_12a_objective_identity.__main__",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12a_objective_identity/__main__.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "ObjectiveDocumentationCheck"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "json",
+        "pathlib",
+        "radjax_student.validation.p3_12a_objective_identity.models"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p3_12a_objective_identity.models"
+      ],
+      "module": "radjax_student.validation.p3_12a_objective_identity.documentation",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12a_objective_identity/documentation.py",
+      "public_exports": [
+        "ObjectiveDocumentationCheck",
+        "check_documentation"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "ObjectiveIdentityProof",
+        "ObjectiveProofCase"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "radjax_student.contracts",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts"
+      ],
+      "module": "radjax_student.validation.p3_12a_objective_identity.models",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12a_objective_identity/models.py",
+      "public_exports": [
+        "ObjectiveIdentityProof",
+        "ObjectiveProofCase",
+        "SCHEMA_VERSION",
+        "build_receipt",
+        "digest",
+        "validate_receipt"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "_AlternativeMseObjective",
+        "_ApplyOnlyObjective",
+        "_CompleteObjectiveWithoutJax",
+        "_EvaluateOnlyObjective",
+        "_ProfileIdentityMismatchObjective",
+        "_ProfileVersionMismatchObjective",
+        "_RawParameterAssumingObjective",
+        "_SecondAlternativeMseObjective",
+        "_UndeclaredJaxObjective"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib",
+        "radjax_student.checkpoints",
+        "radjax_student.contracts",
+        "radjax_student.learning.run_report",
+        "radjax_student.objectives",
+        "radjax_student.objectives.jax",
+        "radjax_student.objectives.legacy",
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p3_11_9_replay.models",
+        "radjax_student.validation.p3_11_9_replay.runner_jax",
+        "radjax_student.validation.p3_11_9_replay.verifier",
+        "radjax_student.validation.p3_12a_objective_identity.models",
+        "shutil",
+        "tempfile",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.checkpoints",
+        "radjax_student.contracts",
+        "radjax_student.learning.run_report",
+        "radjax_student.objectives",
+        "radjax_student.objectives.jax",
+        "radjax_student.objectives.legacy",
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p3_11_9_replay.models",
+        "radjax_student.validation.p3_11_9_replay.runner_jax",
+        "radjax_student.validation.p3_11_9_replay.verifier",
+        "radjax_student.validation.p3_12a_objective_identity.models"
+      ],
+      "module": "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12a_objective_identity/runner_jax.py",
+      "public_exports": [
+        "NON_CLAIMS",
+        "execute_objective_identity_proof"
       ]
     },
     {

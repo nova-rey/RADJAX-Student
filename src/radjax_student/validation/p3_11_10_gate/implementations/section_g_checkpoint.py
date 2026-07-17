@@ -34,6 +34,7 @@ from radjax_student.validation.p3_11_10_gate.implementations.common import (
     public_boundary,
 )
 from radjax_student.validation.p3_11_10_gate.implementations.literal_fixtures import (
+    checkpoint_objective,
     checkpoint_payload,
     clone_directory,
     load_valid_checkpoint,
@@ -861,6 +862,7 @@ def experiment_g_runtime_reference_mismatch(
     context: GateExecutionContext,
 ) -> ExperimentExecution:
     baseline, mutated, optimizer, layout = _copy_valid(context, "runtime-reference")
+    selection, config, resolved, descriptor = checkpoint_objective()
 
     def load(directory: Path):
         return load_learning_checkpoint_v3(
@@ -868,6 +870,10 @@ def experiment_g_runtime_reference_mismatch(
             optimizer=optimizer,
             parameter_layout=layout,
             runtime_reference="foreign-runtime",
+            expected_objective_descriptor=descriptor,
+            expected_objective_config=config,
+            expected_resolved_objective_selection=resolved,
+            expected_objective_selection=selection,
         )
 
     load = public_boundary("checkpoint_restore_validation")(load)
@@ -898,6 +904,7 @@ def experiment_g_caller_expected_identity_mismatch(
     context: GateExecutionContext,
 ) -> ExperimentExecution:
     baseline, mutated, optimizer, layout = _copy_valid(context, "expected-hf")
+    selection, config, resolved, descriptor = checkpoint_objective()
     checkpoint = load_valid_checkpoint(baseline, optimizer, layout)
     foreign = HFPreservationReference(
         checkpoint.hf_reference.descriptor_schema_version,
@@ -917,6 +924,10 @@ def experiment_g_caller_expected_identity_mismatch(
             optimizer=optimizer,
             parameter_layout=layout,
             expected_hf_reference=foreign,
+            expected_objective_descriptor=descriptor,
+            expected_objective_config=config,
+            expected_resolved_objective_selection=resolved,
+            expected_objective_selection=selection,
         )
 
     load = public_boundary("checkpoint_restore_validation")(load)
@@ -946,12 +957,19 @@ def experiment_g_caller_omits_required_lifecycle_expectations(
     baseline, mutated, optimizer, layout = _copy_valid(context, "missing-expectations")
     checkpoint = load_valid_checkpoint(baseline, optimizer, layout)
     valid_carry = checkpoint.architecture_carry_descriptor
+    objective_selection, objective_config, resolved_selection, objective_descriptor = (
+        checkpoint_objective()
+    )
     baseline_request = {
         "directory": baseline,
         "expected_hf_reference": checkpoint.hf_reference,
         "expected_architecture_config_digest": checkpoint.architecture_config_digest,
         "expected_parameter_catalog_digest": checkpoint.parameter_catalog_digest,
         "expected_architecture_carry_descriptor": valid_carry,
+        "expected_objective_descriptor": objective_descriptor,
+        "expected_objective_config": objective_config,
+        "expected_resolved_objective_selection": resolved_selection,
+        "expected_objective_selection": objective_selection,
     }
     mutated_request = {
         "directory": mutated,
@@ -959,6 +977,10 @@ def experiment_g_caller_omits_required_lifecycle_expectations(
         "expected_architecture_config_digest": None,
         "expected_parameter_catalog_digest": None,
         "expected_architecture_carry_descriptor": None,
+        "expected_objective_descriptor": objective_descriptor,
+        "expected_objective_config": objective_config,
+        "expected_resolved_objective_selection": resolved_selection,
+        "expected_objective_selection": objective_selection,
     }
 
     @public_boundary("checkpoint_restore_validation")
@@ -977,6 +999,12 @@ def experiment_g_caller_omits_required_lifecycle_expectations(
             expected_architecture_carry_descriptor=request[
                 "expected_architecture_carry_descriptor"
             ],
+            expected_objective_descriptor=request["expected_objective_descriptor"],
+            expected_objective_config=request["expected_objective_config"],
+            expected_resolved_objective_selection=request[
+                "expected_resolved_objective_selection"
+            ],
+            expected_objective_selection=request["expected_objective_selection"],
             require_lifecycle_expectations=True,
         )
 

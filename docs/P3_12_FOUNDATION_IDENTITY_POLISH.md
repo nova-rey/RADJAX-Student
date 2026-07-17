@@ -1,0 +1,44 @@
+# P3.12 Foundation Identity Polish
+
+P3.12 tightens identities that already flow through the accepted P3.11 JAX
+conveyor. It does not introduce an architecture, a new learning algorithm,
+Tome payload consumption, export, or Phase 4 implementation.
+
+## Checkpoints
+
+- P3.12A Objective Identity Contract: locally accepted.
+- P3.12B: next and unstarted.
+
+P3.12A adds one neutral objective identity/config/descriptor contract and one
+production registry. The registry-selected plugin, its capability profile,
+architecture-owned resolved surface, objective-owned configuration, metric
+schema, and implementation identity are bound through the runtime step,
+lifecycle, v3 continuation checkpoint, report, and deterministic replay.
+
+Historical `mse`, `linear.mse.v1`, and `stateful_linear_mse.v1` names resolve
+only at the outer compatibility boundary to the registered canonical MSE
+plugin. They never appear as executed objective identity in lifecycle evidence.
+
+## Current Status
+
+P3.11.1-P3.11.10 locally accepted
+
+P3.11 integration closure complete
+
+P3.12A locally accepted
+
+P3.12B next and unstarted
+
+Phase 4 remains unstarted
+
+Phase 4 requires successful required remote base/JAX CI or an explicit
+repository-owner waiver
+
+Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+
+## Non-Claims
+
+P3.12A makes no production architecture, Tome payload consumption,
+distillation, Hugging Face export, accelerator-scale training, multi-device,
+cross-hardware replay, cross-version replay, performance, model-quality, or
+RadLads-parity claim.

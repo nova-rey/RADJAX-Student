@@ -7,7 +7,19 @@ from radjax_student.contracts.layout import (
     ParameterTreeLayoutEntry,
 )
 from radjax_student.contracts.metrics import METRIC_AGGREGATIONS, MetricRecord
-from radjax_student.contracts.objective import ResolvedObjectiveSelection
+from radjax_student.contracts.objective import (
+    OBJECTIVE_CAPABILITY_SCHEMA_VERSION,
+    OBJECTIVE_CONFIG_SCHEMA_VERSION,
+    OBJECTIVE_EXECUTION_DESCRIPTOR_SCHEMA_VERSION,
+    ObjectiveCapabilityProfile,
+    ObjectiveConfig,
+    ObjectiveContractError,
+    ObjectiveExecutionDescriptor,
+    ObjectiveIdentity,
+    ResolvedObjectiveSelection,
+    canonical_objective_json,
+    objective_digest,
+)
 from radjax_student.contracts.shared import (
     LearningBatch,
     ObjectiveScope,
@@ -23,6 +35,14 @@ __all__ = [
     "LearningBatch",
     "MetricRecord",
     "METRIC_AGGREGATIONS",
+    "OBJECTIVE_CAPABILITY_SCHEMA_VERSION",
+    "OBJECTIVE_CONFIG_SCHEMA_VERSION",
+    "OBJECTIVE_EXECUTION_DESCRIPTOR_SCHEMA_VERSION",
+    "ObjectiveCapabilityProfile",
+    "ObjectiveConfig",
+    "ObjectiveContractError",
+    "ObjectiveExecutionDescriptor",
+    "ObjectiveIdentity",
     "ObjectiveScope",
     "ObjectiveScopeKind",
     "ParameterTreeLayout",
@@ -31,4 +51,6 @@ __all__ = [
     "ResolvedObjectiveSelection",
     "UpdateScope",
     "UpdateScopeKind",
+    "canonical_objective_json",
+    "objective_digest",
 ]

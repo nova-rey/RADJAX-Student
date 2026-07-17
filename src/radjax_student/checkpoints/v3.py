@@ -21,10 +21,15 @@ from radjax_student.checkpoints.npz_codec import (
 )
 from radjax_student.contracts import (
     HFPreservationReference,
+    ObjectiveConfig,
+    ObjectiveExecutionDescriptor,
+    ObjectiveIdentity,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
+    ResolvedObjectiveSelection,
 )
 from radjax_student.learning.models import LearningState
+from radjax_student.objectives.registry import ObjectiveRegistrySelection
 from radjax_student.optimizers.jax import (
     JaxOptimizerState,
     validate_jax_optimizer_state,
@@ -34,6 +39,7 @@ from radjax_student.optimizers.protocols import JaxOptimizerBackend
 
 CHECKPOINT_V3_SCHEMA_VERSION = "learning_checkpoint.v3"
 CHECKPOINT_OPTIMIZER_STEP_MISMATCH = "checkpoint_optimizer_step_mismatch"
+CHECKPOINT_OBJECTIVE_IDENTITY_MISSING = "checkpoint_objective_identity_missing"
 ARCHITECTURE_CARRY_SCHEMA_VERSION = "architecture_carry.v1"
 V3_FILES = (
     "parameters.npz",
@@ -56,6 +62,10 @@ V3_OWNERSHIP = {
     "learning.json": "learning",
     "layout.json": "architecture",
 }
+HISTORICAL_MSE_OBJECTIVE_ALIASES = frozenset(
+    {"mse", "linear.mse.v1", "stateful_linear_mse.v1"}
+)
+_HISTORICAL_MSE_IDENTITY = ObjectiveIdentity("radjax.objective.mean_squared_error", "1")
 
 
 class CheckpointValidationError(ValueError):
@@ -67,6 +77,63 @@ class CheckpointValidationError(ValueError):
         self.code = code
         self.details = MappingProxyType(dict(details or {}))
         super().__init__(f"{code}: {message}")
+
+
+@dataclass(frozen=True)
+class HistoricalObjectiveMigration:
+    """Inspection-only acknowledgement for exact pre-P3.12 MSE aliases.
+
+    This record is deliberately not a lifecycle or checkpoint replacement.
+    Continuation restore still requires the explicit canonical objective block.
+    """
+
+    source_alias: str
+    canonical_objective_id: str
+    canonical_objective_version: str
+    status: str = "inspection_only_requires_recorded_migration"
+
+    def __post_init__(self) -> None:
+        if self.source_alias not in HISTORICAL_MSE_OBJECTIVE_ALIASES:
+            raise CheckpointValidationError(
+                CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
+                "historical objective alias is not an accepted MSE migration source",
+            )
+        if (
+            self.canonical_objective_id != _HISTORICAL_MSE_IDENTITY.objective_id
+            or self.canonical_objective_version
+            != _HISTORICAL_MSE_IDENTITY.objective_version
+        ):
+            raise CheckpointValidationError(
+                "checkpoint_objective_identity_mismatch",
+                "historical migration must target canonical MSE identity",
+            )
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "source_alias": self.source_alias,
+            "canonical_objective_id": self.canonical_objective_id,
+            "canonical_objective_version": self.canonical_objective_version,
+            "status": self.status,
+        }
+
+
+def inspect_historical_v3_objective_alias(
+    checkpoint: JaxLearningCheckpointV3, *, source_alias: str
+) -> HistoricalObjectiveMigration:
+    """Return explicit inspection migration evidence, never a resumable lifecycle."""
+
+    if not isinstance(checkpoint, JaxLearningCheckpointV3):
+        raise TypeError("historical objective inspection requires a v3 checkpoint")
+    if checkpoint.objective_descriptor is not None:
+        raise CheckpointValidationError(
+            "checkpoint_objective_identity_mismatch",
+            "canonical objective checkpoint does not require historical migration",
+        )
+    return HistoricalObjectiveMigration(
+        source_alias=source_alias,
+        canonical_objective_id=_HISTORICAL_MSE_IDENTITY.objective_id,
+        canonical_objective_version=_HISTORICAL_MSE_IDENTITY.objective_version,
+    )
 
 
 @dataclass(frozen=True)
@@ -85,6 +152,10 @@ class JaxLearningCheckpointV3:
     manifest: Mapping[str, Any] = field(default_factory=dict)
     integrity: Mapping[str, Any] = field(default_factory=dict)
     schema_version: str = CHECKPOINT_V3_SCHEMA_VERSION
+    objective_config: ObjectiveConfig | None = None
+    resolved_objective_selection: ResolvedObjectiveSelection | None = None
+    objective_descriptor: ObjectiveExecutionDescriptor | None = None
+    objective_registry_selection: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if not self.runtime_reference:
@@ -135,6 +206,33 @@ class JaxLearningCheckpointV3:
             )
         object.__setattr__(self, "manifest", MappingProxyType(dict(self.manifest)))
         object.__setattr__(self, "integrity", MappingProxyType(dict(self.integrity)))
+        if not isinstance(self.objective_registry_selection, Mapping):
+            raise TypeError("objective_registry_selection must be a mapping")
+        object.__setattr__(
+            self,
+            "objective_registry_selection",
+            MappingProxyType(dict(self.objective_registry_selection)),
+        )
+        values = (
+            self.objective_config,
+            self.resolved_objective_selection,
+            self.objective_descriptor,
+        )
+        if any(value is not None for value in values) and not all(
+            value is not None for value in values
+        ):
+            raise CheckpointValidationError(
+                CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
+                "objective checkpoint identity must be complete when present",
+            )
+        if all(value is not None for value in values):
+            _validate_objective_identity(
+                objective_config=self.objective_config,
+                resolved_objective_selection=self.resolved_objective_selection,
+                objective_descriptor=self.objective_descriptor,
+                objective_registry_selection=self.objective_registry_selection,
+                manifest=None,
+            )
 
 
 def save_learning_checkpoint_v3(
@@ -207,6 +305,14 @@ def save_learning_checkpoint_v3(
                 "architecture_config_digest": checkpoint.architecture_config_digest,
                 "parameter_catalog_digest": checkpoint.parameter_catalog_digest,
                 "architecture_carry_descriptor": architecture_carry_identity,
+                "objective_config": checkpoint.objective_config.to_dict(),
+                "resolved_objective_selection": (
+                    checkpoint.resolved_objective_selection.to_dict()
+                ),
+                "objective_descriptor": checkpoint.objective_descriptor.to_dict(),
+                "objective_registry_selection": dict(
+                    checkpoint.objective_registry_selection
+                ),
             },
             "layout.json": checkpoint.parameter_layout.to_dict(),
         }
@@ -247,6 +353,15 @@ def save_learning_checkpoint_v3(
                 ),
                 descriptor_digest=descriptor_digest(optimizer_descriptor),
             ),
+            "objective": {
+                "descriptor": checkpoint.objective_descriptor.to_dict(),
+                "descriptor_digest": checkpoint.objective_descriptor.digest,
+                "config_digest": checkpoint.objective_config.digest,
+                "resolved_surface_identity": (
+                    checkpoint.resolved_objective_selection.digest
+                ),
+                "registry_selection": dict(checkpoint.objective_registry_selection),
+            },
         }
         integrity = {
             "algorithm": "sha256",
@@ -258,6 +373,11 @@ def save_learning_checkpoint_v3(
             optimizer=optimizer,
             parameter_layout=checkpoint.parameter_layout,
             runtime_reference=checkpoint.runtime_reference,
+            expected_objective_descriptor=checkpoint.objective_descriptor,
+            expected_objective_config=checkpoint.objective_config,
+            expected_resolved_objective_selection=checkpoint.resolved_objective_selection,
+            expected_objective_registry_selection=checkpoint.objective_registry_selection,
+            require_objective_identity=False,
         )
         _fsync_tree(temporary)
         if directory.exists():
@@ -268,19 +388,23 @@ def save_learning_checkpoint_v3(
         shutil.rmtree(temporary, ignore_errors=True)
         raise
     return JaxLearningCheckpointV3(
-        checkpoint.runtime_reference,
-        checkpoint.learning_state,
-        checkpoint.optimizer_state,
-        checkpoint.parameters,
-        checkpoint.architecture_carry,
-        checkpoint.parameter_layout,
-        checkpoint.architecture_state,
-        checkpoint.hf_reference,
-        checkpoint.architecture_config_digest,
-        checkpoint.parameter_catalog_digest,
-        architecture_carry_identity,
-        manifest,
-        integrity,
+        runtime_reference=checkpoint.runtime_reference,
+        learning_state=checkpoint.learning_state,
+        optimizer_state=checkpoint.optimizer_state,
+        parameters=checkpoint.parameters,
+        architecture_carry=checkpoint.architecture_carry,
+        parameter_layout=checkpoint.parameter_layout,
+        architecture_state=checkpoint.architecture_state,
+        hf_reference=checkpoint.hf_reference,
+        architecture_config_digest=checkpoint.architecture_config_digest,
+        parameter_catalog_digest=checkpoint.parameter_catalog_digest,
+        architecture_carry_descriptor=architecture_carry_identity,
+        manifest=manifest,
+        integrity=integrity,
+        objective_config=checkpoint.objective_config,
+        resolved_objective_selection=checkpoint.resolved_objective_selection,
+        objective_descriptor=checkpoint.objective_descriptor,
+        objective_registry_selection=checkpoint.objective_registry_selection,
     )
 
 
@@ -295,7 +419,13 @@ def load_learning_checkpoint_v3(
     expected_parameter_catalog_digest: str | None = None,
     expected_architecture_state_id: str | None = None,
     expected_architecture_carry_descriptor: Mapping[str, Any] | None = None,
+    expected_objective_descriptor: ObjectiveExecutionDescriptor | None = None,
+    expected_objective_config: ObjectiveConfig | None = None,
+    expected_resolved_objective_selection: ResolvedObjectiveSelection | None = None,
+    expected_objective_registry_selection: Mapping[str, Any] | None = None,
+    expected_objective_selection: ObjectiveRegistrySelection | None = None,
     require_lifecycle_expectations: bool = False,
+    require_objective_identity: bool = True,
 ) -> JaxLearningCheckpointV3:
     """Validate all v3 identity, integrity, and optimizer-owned invariants."""
 
@@ -312,6 +442,50 @@ def load_learning_checkpoint_v3(
             "checkpoint_lifecycle_expectations_missing",
             "caller-bound resume requires complete lifecycle expectations",
         )
+    if require_objective_identity and any(
+        value is None
+        for value in (
+            expected_objective_descriptor,
+            expected_objective_config,
+            expected_resolved_objective_selection,
+            expected_objective_selection,
+        )
+    ):
+        raise CheckpointValidationError(
+            CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
+            "caller-bound objective restore requires complete expected "
+            "objective identity",
+        )
+    if expected_objective_selection is not None:
+        if not isinstance(expected_objective_selection, ObjectiveRegistrySelection):
+            raise CheckpointValidationError(
+                "checkpoint_objective_identity_mismatch",
+                "expected objective selection must come from ObjectiveRegistry",
+            )
+        if not expected_objective_selection.is_registry_selected:
+            raise CheckpointValidationError(
+                "checkpoint_objective_identity_mismatch",
+                "expected objective selection was not issued by ObjectiveRegistry",
+            )
+        selected = expected_objective_selection.to_dict()
+        if (
+            expected_objective_descriptor is not None
+            and expected_objective_descriptor.implementation_identity
+            != expected_objective_selection.implementation_identity
+        ):
+            raise CheckpointValidationError(
+                "checkpoint_objective_identity_mismatch",
+                "caller objective descriptor does not match selected plugin",
+            )
+        if (
+            expected_objective_registry_selection is not None
+            and dict(expected_objective_registry_selection) != selected
+        ):
+            raise CheckpointValidationError(
+                "checkpoint_objective_identity_mismatch",
+                "caller objective registry selection identities disagree",
+            )
+        expected_objective_registry_selection = selected
     if not directory.is_dir():
         raise CheckpointValidationError(
             "checkpoint_component_unreadable", "checkpoint directory is unreadable"
@@ -468,6 +642,54 @@ def load_learning_checkpoint_v3(
             "checkpoint_architecture_descriptor_missing",
             "architecture carry descriptor is required",
         )
+    objective_config_payload = learning_payload.get("objective_config")
+    resolved_objective_payload = learning_payload.get("resolved_objective_selection")
+    objective_descriptor_payload = learning_payload.get("objective_descriptor")
+    objective_registry_selection = learning_payload.get("objective_registry_selection")
+    objective_values = (
+        objective_config_payload,
+        resolved_objective_payload,
+        objective_descriptor_payload,
+        objective_registry_selection,
+    )
+    if any(value is not None for value in objective_values) and not all(
+        value is not None for value in objective_values
+    ):
+        raise CheckpointValidationError(
+            CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
+            "checkpoint objective identity block is incomplete",
+        )
+    if not all(value is not None for value in objective_values):
+        if require_objective_identity:
+            raise CheckpointValidationError(
+                CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
+                "checkpoint predates canonical objective identity and is "
+                "inspection-only",
+            )
+        objective_config = None
+        resolved_objective_selection = None
+        objective_descriptor = None
+        objective_registry_selection = MappingProxyType({})
+    else:
+        if not isinstance(objective_registry_selection, Mapping):
+            raise CheckpointValidationError(
+                CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
+                "checkpoint objective registry selection is invalid",
+            )
+        objective_config = ObjectiveConfig.from_dict(objective_config_payload)
+        resolved_objective_selection = ResolvedObjectiveSelection.from_dict(
+            resolved_objective_payload
+        )
+        objective_descriptor = ObjectiveExecutionDescriptor.from_dict(
+            objective_descriptor_payload
+        )
+        _validate_objective_identity(
+            objective_config=objective_config,
+            resolved_objective_selection=resolved_objective_selection,
+            objective_descriptor=objective_descriptor,
+            objective_registry_selection=objective_registry_selection,
+            manifest=stored,
+        )
     parameters = read_deterministic_npz(
         directory / "parameters.npz", _read_json(directory / "parameters.json")
     )
@@ -508,20 +730,35 @@ def load_learning_checkpoint_v3(
         expected_architecture_state_id=expected_architecture_state_id,
         expected_architecture_carry_descriptor=expected_architecture_carry_descriptor,
     )
+    if objective_descriptor is not None:
+        _validate_expected_objective_identity(
+            objective_config=objective_config,
+            resolved_objective_selection=resolved_objective_selection,
+            objective_descriptor=objective_descriptor,
+            objective_registry_selection=objective_registry_selection,
+            expected_objective_descriptor=expected_objective_descriptor,
+            expected_objective_config=expected_objective_config,
+            expected_resolved_objective_selection=expected_resolved_objective_selection,
+            expected_objective_registry_selection=expected_objective_registry_selection,
+        )
     return JaxLearningCheckpointV3(
-        learning_payload["runtime_reference"],
-        learning_state,
-        state,
-        parameters,
-        carry,
-        parameter_layout,
-        architecture_state,
-        hf_reference,
-        architecture_config_digest,
-        parameter_catalog_digest,
-        architecture_carry_descriptor,
-        stored,
-        integrity,
+        runtime_reference=learning_payload["runtime_reference"],
+        learning_state=learning_state,
+        optimizer_state=state,
+        parameters=parameters,
+        architecture_carry=carry,
+        parameter_layout=parameter_layout,
+        architecture_state=architecture_state,
+        hf_reference=hf_reference,
+        architecture_config_digest=architecture_config_digest,
+        parameter_catalog_digest=parameter_catalog_digest,
+        architecture_carry_descriptor=architecture_carry_descriptor,
+        manifest=stored,
+        integrity=integrity,
+        objective_config=objective_config,
+        resolved_objective_selection=resolved_objective_selection,
+        objective_descriptor=objective_descriptor,
+        objective_registry_selection=objective_registry_selection,
     )
 
 
@@ -569,6 +806,23 @@ def _optimizer_manifest(
 def _validate_runtime_state(
     checkpoint: JaxLearningCheckpointV3, optimizer: JaxOptimizerBackend
 ) -> None:
+    if (
+        checkpoint.objective_config is None
+        or checkpoint.resolved_objective_selection is None
+        or checkpoint.objective_descriptor is None
+        or not checkpoint.objective_registry_selection
+    ):
+        raise CheckpointValidationError(
+            CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
+            "continuation checkpoint requires canonical objective identity",
+        )
+    _validate_objective_identity(
+        objective_config=checkpoint.objective_config,
+        resolved_objective_selection=checkpoint.resolved_objective_selection,
+        objective_descriptor=checkpoint.objective_descriptor,
+        objective_registry_selection=checkpoint.objective_registry_selection,
+        manifest=None,
+    )
     descriptor = optimizer.jax_state_descriptor(checkpoint.parameter_layout)
     if checkpoint.optimizer_state.envelope.parameter_paths != (
         checkpoint.parameter_layout.logical_paths
@@ -609,6 +863,123 @@ def _validate_runtime_state(
         architecture_carry_descriptor=checkpoint.architecture_carry_descriptor,
         manifest=None,
     )
+
+
+def _validate_objective_identity(
+    *,
+    objective_config: ObjectiveConfig,
+    resolved_objective_selection: ResolvedObjectiveSelection,
+    objective_descriptor: ObjectiveExecutionDescriptor,
+    objective_registry_selection: Mapping[str, Any],
+    manifest: Mapping[str, Any] | None,
+) -> None:
+    if (
+        not isinstance(objective_config, ObjectiveConfig)
+        or not isinstance(resolved_objective_selection, ResolvedObjectiveSelection)
+        or not isinstance(objective_descriptor, ObjectiveExecutionDescriptor)
+    ):
+        raise CheckpointValidationError(
+            CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
+            "checkpoint objective identity contracts are malformed",
+        )
+    required_selection = {
+        "objective_id",
+        "objective_version",
+        "capability_profile_digest",
+        "implementation_identity",
+        "registry_identity",
+    }
+    if set(objective_registry_selection) != required_selection:
+        raise CheckpointValidationError(
+            "checkpoint_objective_identity_mismatch",
+            "checkpoint objective registry selection fields are invalid",
+        )
+    expected = {
+        "objective_id": objective_descriptor.identity.objective_id,
+        "objective_version": objective_descriptor.identity.objective_version,
+        "capability_profile_digest": objective_descriptor.capability_profile_digest,
+        "implementation_identity": objective_descriptor.implementation_identity,
+    }
+    if any(
+        objective_registry_selection[name] != value for name, value in expected.items()
+    ):
+        raise CheckpointValidationError(
+            "checkpoint_objective_identity_mismatch",
+            "checkpoint objective registry selection disagrees with descriptor",
+        )
+    if (
+        objective_config.identity != objective_descriptor.identity
+        or objective_config.digest != objective_descriptor.config_digest
+        or resolved_objective_selection.digest
+        != objective_descriptor.resolved_surface_identity
+    ):
+        raise CheckpointValidationError(
+            "checkpoint_objective_identity_mismatch",
+            "checkpoint objective config, surface, and descriptor disagree",
+        )
+    if manifest is not None:
+        objective_manifest = manifest.get("objective")
+        if not isinstance(objective_manifest, Mapping):
+            raise CheckpointValidationError(
+                CHECKPOINT_OBJECTIVE_IDENTITY_MISSING,
+                "checkpoint manifest lacks canonical objective identity",
+            )
+        if (
+            objective_manifest.get("descriptor") != objective_descriptor.to_dict()
+            or objective_manifest.get("descriptor_digest")
+            != objective_descriptor.digest
+            or objective_manifest.get("config_digest") != objective_config.digest
+            or objective_manifest.get("resolved_surface_identity")
+            != resolved_objective_selection.digest
+            or objective_manifest.get("registry_selection")
+            != dict(objective_registry_selection)
+        ):
+            raise CheckpointValidationError(
+                "checkpoint_objective_identity_mismatch",
+                "checkpoint manifest objective identity disagrees with "
+                "learning payload",
+            )
+
+
+def _validate_expected_objective_identity(
+    *,
+    objective_config: ObjectiveConfig,
+    resolved_objective_selection: ResolvedObjectiveSelection,
+    objective_descriptor: ObjectiveExecutionDescriptor,
+    objective_registry_selection: Mapping[str, Any],
+    expected_objective_descriptor: ObjectiveExecutionDescriptor | None,
+    expected_objective_config: ObjectiveConfig | None,
+    expected_resolved_objective_selection: ResolvedObjectiveSelection | None,
+    expected_objective_registry_selection: Mapping[str, Any] | None,
+) -> None:
+    expected_values = (
+        expected_objective_descriptor,
+        expected_objective_config,
+        expected_resolved_objective_selection,
+        expected_objective_registry_selection,
+    )
+    if any(value is None for value in expected_values):
+        return
+    if (
+        not isinstance(expected_objective_descriptor, ObjectiveExecutionDescriptor)
+        or not isinstance(expected_objective_config, ObjectiveConfig)
+        or not isinstance(
+            expected_resolved_objective_selection, ResolvedObjectiveSelection
+        )
+        or not isinstance(expected_objective_registry_selection, Mapping)
+    ):
+        raise TypeError("expected objective identity contracts are invalid")
+    if (
+        objective_descriptor != expected_objective_descriptor
+        or objective_config != expected_objective_config
+        or resolved_objective_selection != expected_resolved_objective_selection
+        or dict(objective_registry_selection)
+        != dict(expected_objective_registry_selection)
+    ):
+        raise CheckpointValidationError(
+            "checkpoint_objective_identity_mismatch",
+            "checkpoint objective identity does not match caller-selected objective",
+        )
 
 
 def _validate_manifest(
@@ -938,11 +1309,15 @@ def _digest(data: bytes) -> str:
 
 
 __all__ = [
+    "CHECKPOINT_OBJECTIVE_IDENTITY_MISSING",
     "CHECKPOINT_OPTIMIZER_STEP_MISMATCH",
     "CHECKPOINT_V3_SCHEMA_VERSION",
     "CheckpointValidationError",
+    "HistoricalObjectiveMigration",
+    "HISTORICAL_MSE_OBJECTIVE_ALIASES",
     "JaxLearningCheckpointV3",
     "load_learning_checkpoint_v3",
+    "inspect_historical_v3_objective_alias",
     "optimizer_state_descriptor_payload",
     "save_learning_checkpoint_v3",
 ]

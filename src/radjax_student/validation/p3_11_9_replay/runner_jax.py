@@ -37,8 +37,10 @@ from radjax_student.checkpoints.npz_codec import (
 )
 from radjax_student.contracts import (
     HFPreservationReference,
+    ObjectiveConfig,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
+    ResolvedObjectiveSelection,
 )
 from radjax_student.learning import (
     HookResult,
@@ -49,7 +51,10 @@ from radjax_student.learning import (
     UpdateScope,
 )
 from radjax_student.learning.jax_batch import FiniteJsonJaxBatchMaterializer
-from radjax_student.learning.jax_core import JaxObjectiveConfig
+from radjax_student.objectives import (
+    CANONICAL_MSE_IDENTITY,
+    build_default_objective_registry,
+)
 from radjax_student.optimizers import (
     OptimizerConfig,
     OptimizerRegistry,
@@ -83,6 +88,7 @@ from radjax_student.validation.p3_11_9_replay.models import (
     CrossModeComparisonEvidence,
     ExperimentIdentityEvidence,
     HFPreservationEvidence,
+    ObjectiveEvidence,
     OptimizerConfigEvidence,
     ReplayArmEvidence,
     ReplayRunEvidence,
@@ -236,13 +242,6 @@ class StatefulLinearJaxArchitecture(FakeArchitecturePlugin):
         )
 
 
-class MeanSquaredError:
-    def evaluate(self, surface, targets, weights, objective_config):
-        del weights, objective_config
-        loss = jnp.mean((surface - targets["y"]) ** 2)
-        return loss, {"mse": loss}
-
-
 class EventHook:
     hook_id = "p3119.events"
     priority = 0
@@ -339,6 +338,25 @@ def _new_lifecycle(mode: str, objects: list[object]) -> JaxLearningLifecycle:
             "sgd.v1", initialized.parameter_layout.logical_paths
         ),
     )
+    objective_registry = build_default_objective_registry()
+    objective_selection = objective_registry.select(CANONICAL_MSE_IDENTITY)
+    objective_config = ObjectiveConfig(
+        CANONICAL_MSE_IDENTITY,
+        {"reduction": "mean"},
+    )
+    resolved_objective_selection = architecture.resolve_objective_scope(
+        ObjectiveScope(),
+        architecture.architecture_metadata(),
+    )
+    if not isinstance(resolved_objective_selection, ResolvedObjectiveSelection):
+        raise RuntimeError(
+            "stateful architecture did not return a resolved objective selection"
+        )
+    objective_descriptor = objective_registry.execution_descriptor(
+        selection=objective_selection,
+        config=objective_config,
+        resolved_selection=resolved_objective_selection,
+    )
     runtime_config = RuntimeConfig(
         backend_id="jax",
         platform_preference="cpu",
@@ -368,6 +386,8 @@ def _new_lifecycle(mode: str, objects: list[object]) -> JaxLearningLifecycle:
             architecture,
             optimizer_registry,
             optimizer,
+            objective_registry,
+            objective_selection,
             registry,
             context,
             stream,
@@ -381,6 +401,10 @@ def _new_lifecycle(mode: str, objects: list[object]) -> JaxLearningLifecycle:
         parameter_catalog=initialized.parameter_catalog,
         parameter_layout=initialized.parameter_layout,
         hf_reference=initialized.hf_reference,
+        objective_selection=objective_selection,
+        objective_config=objective_config,
+        resolved_objective_selection=resolved_objective_selection,
+        objective_descriptor=objective_descriptor,
         optimizer=optimizer,
         optimizer_config=optimizer_config,
         optimizer_state=optimizer_state,
@@ -445,6 +469,20 @@ def _runtime_evidence(execution) -> RuntimeEvidence:
     )
 
 
+def _objective_evidence(lifecycle: JaxLearningLifecycle) -> ObjectiveEvidence:
+    descriptor = lifecycle.objective_descriptor
+    return ObjectiveEvidence(
+        objective_id=descriptor.identity.objective_id,
+        objective_version=descriptor.identity.objective_version,
+        capability_profile_digest=descriptor.capability_profile_digest,
+        config_digest=descriptor.config_digest,
+        resolved_surface_identity=descriptor.resolved_surface_identity,
+        metric_schema_id=descriptor.metric_schema_id,
+        implementation_identity=descriptor.implementation_identity,
+        descriptor_digest=descriptor.digest,
+    )
+
+
 def _step_evidence(
     records: list[tuple[LearningBatch, Any]], hook: EventHook
 ) -> tuple[ReplayStepEvidence, ...]:
@@ -458,8 +496,9 @@ def _step_evidence(
                 step_index=index,
                 batch_id=batch.batch_id,
                 batch_digest=_digest(batch.to_dict()),
-                objective_id="stateful_linear_mse.v1",
-                objective_surface_id="final_output",
+                objective=_objective_evidence_from_descriptor(
+                    execution.objective_descriptor
+                ),
                 update_scope_digest=_digest(step_result.active_update_scope.to_dict()),
                 counters_before={
                     "global_step": step_result.global_step_before,
@@ -510,6 +549,7 @@ def _identity(lifecycle: JaxLearningLifecycle) -> ExperimentIdentityEvidence:
         parameter_catalog_digest=lifecycle.catalog_digest,
         parameter_layout_digest=lifecycle.parameter_layout.digest(),
         hf_reference=HFPreservationEvidence.from_dict(lifecycle.hf_reference.to_dict()),
+        objective=_objective_evidence(lifecycle),
         architecture_state_id=(
             None
             if lifecycle.architecture_state is None
@@ -531,6 +571,19 @@ def _identity(lifecycle: JaxLearningLifecycle) -> ExperimentIdentityEvidence:
     )
 
 
+def _objective_evidence_from_descriptor(descriptor) -> ObjectiveEvidence:
+    return ObjectiveEvidence(
+        objective_id=descriptor.identity.objective_id,
+        objective_version=descriptor.identity.objective_version,
+        capability_profile_digest=descriptor.capability_profile_digest,
+        config_digest=descriptor.config_digest,
+        resolved_surface_identity=descriptor.resolved_surface_identity,
+        metric_schema_id=descriptor.metric_schema_id,
+        implementation_identity=descriptor.implementation_identity,
+        descriptor_digest=descriptor.digest,
+    )
+
+
 @dataclass(frozen=True)
 class _ExecutedArm:
     """Ephemeral comparison inputs; raw arrays never leave validation execution."""
@@ -547,6 +600,8 @@ class _ExecutedArm:
     rng_coordinates: tuple[RngEvidence, ...]
     runtimes: tuple[RuntimeEvidence, ...]
     final_runtime: RuntimeEvidence
+    report: Any
+    loop_result: Any
 
 
 def _run_arm(
@@ -559,7 +614,6 @@ def _run_arm(
     inner = JaxLoopExecutor(
         lifecycle,
         FiniteJsonJaxBatchMaterializer(),
-        JaxObjectiveConfig("stateful_linear_mse.v1"),
         _request(mode),
         precision_policy="float32",
     )
@@ -595,7 +649,7 @@ def _run_arm(
         optimizer_state=inner.lifecycle.optimizer_state,
         learning_state=inner.lifecycle.learning_state,
         parameters=inner.lifecycle.parameters,
-        objective=MeanSquaredError(),
+        objective=inner.lifecycle.objective_selection,
         batch_source=source,
         step_executor=executor,
         checkpoint=checkpoint,
@@ -660,6 +714,8 @@ def _run_arm(
         rng_coordinates=tuple(step.rng for step in evidence.steps),
         runtimes=tuple(step.runtime for step in evidence.steps),
         final_runtime=evidence.final_runtime,
+        report=result.report,
+        loop_result=result,
     )
 
 

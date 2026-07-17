@@ -8,7 +8,13 @@ from types import MappingProxyType
 from typing import Any
 
 from radjax_student.architecture import ArchitectureConfig, JaxArchitecturePlugin
-from radjax_student.contracts import ParameterTreeLayout
+from radjax_student.contracts import (
+    ObjectiveConfig,
+    ObjectiveContractError,
+    ObjectiveExecutionDescriptor,
+    ParameterTreeLayout,
+    ResolvedObjectiveSelection,
+)
 from radjax_student.learning import (
     LearningBatch,
     LearningState,
@@ -20,13 +26,12 @@ from radjax_student.learning.jax_batch import JaxBatchMaterializer
 from radjax_student.learning.jax_core import (
     JaxBatch,
     JaxLossAuxiliary,
-    JaxObjective,
-    JaxObjectiveConfig,
-    build_resolved_jax_loss_fn,
+    build_registered_jax_loss_fn,
     build_value_and_grad_fn,
     validate_finite_loss_and_gradients,
 )
 from radjax_student.learning.jax_execution import prepare_jax_execution_plan
+from radjax_student.objectives import ObjectiveRegistrySelection
 from radjax_student.optimizers import (
     JaxOptimizerBackend,
     JaxOptimizerState,
@@ -176,6 +181,7 @@ class JaxLearningStepExecution:
     architecture_carry: Any
     gradients: Any
     runtime_result: ExecutionResult
+    objective_descriptor: ObjectiveExecutionDescriptor
     objective_metrics: Mapping[str, Any]
     architecture_metrics: Mapping[str, Any]
     optimizer_metrics: Mapping[str, Any]
@@ -189,7 +195,10 @@ class JaxLearningStepExecution:
 def execute_jax_learning_step(
     *,
     architecture: JaxArchitecturePlugin,
-    objective: JaxObjective,
+    objective_selection: ObjectiveRegistrySelection,
+    objective_config: ObjectiveConfig,
+    objective_descriptor: ObjectiveExecutionDescriptor,
+    resolved_objective_selection: ResolvedObjectiveSelection,
     optimizer: JaxOptimizerBackend,
     optimizer_config: OptimizerConfig,
     optimizer_state: JaxOptimizerState,
@@ -199,7 +208,6 @@ def execute_jax_learning_step(
     architecture_carry: Any,
     learning_batch: LearningBatch,
     batch_materializer: JaxBatchMaterializer,
-    objective_config: JaxObjectiveConfig,
     parameter_layout: ParameterTreeLayout,
     runtime_key_stream: RuntimeKeyStream | None = None,
     rng_slot: str = "dropout",
@@ -214,6 +222,38 @@ def execute_jax_learning_step(
 
     if not isinstance(architecture, JaxArchitecturePlugin):
         raise TypeError("JAX learning requires a complete JaxArchitecturePlugin")
+    if not isinstance(objective_selection, ObjectiveRegistrySelection):
+        raise TypeError("JAX learning requires ObjectiveRegistrySelection")
+    if not objective_selection.is_registry_selected:
+        raise ObjectiveContractError(
+            "objective_identity_mismatch",
+            "JAX learning requires an objective selected through ObjectiveRegistry",
+        )
+    if not isinstance(objective_config, ObjectiveConfig):
+        raise TypeError("JAX learning requires ObjectiveConfig")
+    if not isinstance(objective_descriptor, ObjectiveExecutionDescriptor):
+        raise TypeError("JAX learning requires ObjectiveExecutionDescriptor")
+    if not isinstance(resolved_objective_selection, ResolvedObjectiveSelection):
+        raise TypeError("JAX learning requires ResolvedObjectiveSelection")
+    if (
+        objective_config.identity != objective_selection.identity
+        or objective_descriptor.identity != objective_selection.identity
+        or objective_descriptor.capability_profile_digest
+        != objective_selection.profile.digest
+        or objective_descriptor.config_digest != objective_config.digest
+        or objective_descriptor.resolved_surface_identity
+        != resolved_objective_selection.digest
+        or objective_descriptor.metric_schema_id
+        != objective_selection.profile.metric_schema_id
+        or objective_descriptor.implementation_identity
+        != objective_selection.implementation_identity
+    ):
+        raise ObjectiveContractError(
+            "objective_config_identity_mismatch",
+            "JAX learning objective identity is inconsistent",
+        )
+    objective_selection.plugin.validate_config(objective_config)
+    objective_selection.plugin.validate_resolved_surface(resolved_objective_selection)
     if not isinstance(optimizer, JaxOptimizerBackend):
         raise TypeError("JAX learning requires a complete JaxOptimizerBackend")
     if not isinstance(optimizer_state, JaxOptimizerState):
@@ -228,6 +268,9 @@ def execute_jax_learning_step(
         raise TypeError("batch_materializer must implement JaxBatchMaterializer")
     batch = batch_materializer.materialize(learning_batch)
     validate_jax_batch_binding(learning_batch, batch)
+    # Validate objective-owned target requirements before compiling the loss.
+    # The objective remains surface-only inside the JAX graph.
+    objective_selection.plugin.validate_targets(batch.targets)
     stream = (
         runtime_key_stream or RuntimeKeys.from_seed(runtime_context.root_seed).dropout
     )
@@ -264,6 +307,11 @@ def execute_jax_learning_step(
         objective_scope=learning_state.active_objective_scope,
         update_scope=learning_state.active_update_scope,
     )
+    if plan.objective_selection != resolved_objective_selection:
+        raise ObjectiveContractError(
+            "objective_surface_identity_mismatch",
+            "architecture objective resolution differs from lifecycle selection",
+        )
     optimizer_descriptor = optimizer.jax_state_descriptor(parameter_layout)
     validate_jax_optimizer_state(
         optimizer_state,
@@ -295,13 +343,14 @@ def execute_jax_learning_step(
         batch=batch,
         precision_policy=resolved_precision,
     )
-    effective_objective_config = JaxObjectiveConfig(
-        objective_config.objective_id,
-        plan.objective_selection.scope,
-        objective_config.reduction,
-    )
     value_and_grad = build_value_and_grad_fn(
-        build_resolved_jax_loss_fn(architecture, objective, plan.objective_selection)
+        build_registered_jax_loss_fn(
+            architecture=architecture,
+            objective_selection=objective_selection,
+            objective_config=objective_config,
+            objective_descriptor=objective_descriptor,
+            resolved_selection=resolved_objective_selection,
+        )
     )
 
     def complete_step(
@@ -318,7 +367,6 @@ def execute_jax_learning_step(
             current_parameters,
             current_carry,
             current_batch,
-            effective_objective_config,
             current_rng_key,
         )
         loss, auxiliary = loss_and_auxiliary
@@ -386,6 +434,7 @@ def execute_jax_learning_step(
                 "micro_step": learning_state.micro_step,
                 "invocation_index": rng_invocation_index,
             },
+            "objective_execution_descriptor": objective_descriptor.to_dict(),
         },
     )
     (
@@ -402,6 +451,7 @@ def execute_jax_learning_step(
     ) = output
     if not isinstance(auxiliary, JaxLossAuxiliary):
         raise TypeError("JAX loss must return JaxLossAuxiliary")
+    objective_selection.plugin.validate_metrics(auxiliary.objective_metrics)
     validate_finite_loss_and_gradients(loss, gradients)
     require_finite_jax_gradients(optimizer_metrics)
     updated_optimizer_state = advanced_jax_optimizer_state(
@@ -456,6 +506,7 @@ def execute_jax_learning_step(
         architecture_carry=auxiliary.updated_architecture_carry,
         gradients=gradients,
         runtime_result=runtime_result,
+        objective_descriptor=objective_descriptor,
         objective_metrics=auxiliary.objective_metrics,
         architecture_metrics=auxiliary.architecture_metrics,
         optimizer_metrics=optimizer_metrics,

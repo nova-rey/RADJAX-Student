@@ -108,6 +108,11 @@ Start here for Phase 0 foundation context.
 - [P3.11.10 Final Adversarial Gate](P3_11_10_FINAL_ADVERSARIAL_GATE.md):
   241 literal public-boundary experiments, an immutable implementation audit,
   and the local integration-closure receipt.
+- [P3.12 Foundation Identity Polish](P3_12_FOUNDATION_IDENTITY_POLISH.md):
+  post-closure canonical identity work, with P3.12A accepted and P3.12B next.
+- [P3.12A Objective Identity Contract](P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md):
+  registry-selected objective identity across JAX execution, lifecycle,
+  checkpoint restore, replay, metrics, and reports.
 - [P3.5 Architecture Integrity Roadmap](P3_5_ARCHITECTURE_INTEGRITY_ROADMAP.md):
   ordered cleanup checkpoints required before Phase 4.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
@@ -176,7 +181,11 @@ P3.11.1-P3.11.10 locally accepted
 
 P3.11 integration closure complete
 
-Phase 4 next and unstarted
+P3.12A locally accepted
+
+P3.12B next and unstarted
+
+Phase 4 remains unstarted
 
 Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
 

@@ -20,13 +20,17 @@ generated closure receipt.
 The generated receipt is
 [`P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json`](P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json),
 schema `radjax.p3_11_10_final_adversarial_gate.v1`, with final gate evidence
-digest `4d4e4dde5c2b44bc58a1a9fc05f1262a1e787353e66d433af75f2276f3a6bc94`.
+digest `1c9af14d05bfe1fbf5398e2e3d1d1f7fd7afed9a6dd9e9a14a58085c8661fb86`.
 
 P3.11.1-P3.11.10 locally accepted
 
 P3.11 integration closure complete
 
-Phase 4 next and unstarted
+P3.12A locally accepted
+
+P3.12B next and unstarted
+
+Phase 4 remains unstarted
 
 Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
 
