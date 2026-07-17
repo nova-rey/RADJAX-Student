@@ -235,14 +235,14 @@ def experiment_c_materializer_foreign_source_digest(
 def experiment_c_objective_id_drift(
     context: GateExecutionContext,
 ) -> ExperimentExecution:
-    from radjax_student.learning.jax_core import JaxObjectiveConfig
+    from radjax_student.legacy.objectives_jax import LegacyJaxObjectiveConfig
 
     baseline = {"objective_id": "linear.mse.v1"}
     mutated = {"objective_id": ""}
 
     @public_boundary("learning_batch_validation")
     def construct(value: dict[str, str]) -> Any:
-        return JaxObjectiveConfig(value["objective_id"])
+        return LegacyJaxObjectiveConfig(value["objective_id"])
 
     return _record(
         context,

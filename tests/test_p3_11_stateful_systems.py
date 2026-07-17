@@ -61,7 +61,9 @@ from radjax_student.learning import (  # noqa: E402
 from radjax_student.learning.jax_batch import (
     FiniteJsonJaxBatchMaterializer,  # noqa: E402
 )
-from radjax_student.learning.jax_core import JaxObjectiveConfig  # noqa: E402
+from radjax_student.legacy.objectives_jax import (  # noqa: E402
+    LegacyJaxObjectiveConfig as JaxObjectiveConfig,
+)
 from radjax_student.objectives import (  # noqa: E402
     CANONICAL_MSE_IDENTITY,
     build_default_objective_registry,

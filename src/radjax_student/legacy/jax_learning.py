@@ -11,11 +11,13 @@ from radjax_student.architecture import JaxArchitectureExecution
 from radjax_student.learning.jax_core import (
     JaxBatch,
     JaxLossAuxiliary,
-    JaxObjective,
-    JaxObjectiveConfig,
-    build_jax_loss_fn,
     build_value_and_grad_fn,
     validate_finite_loss_and_gradients,
+)
+from radjax_student.legacy.objectives_jax import (
+    LegacyJaxObjective,
+    LegacyJaxObjectiveConfig,
+    build_legacy_jax_loss_fn,
 )
 from radjax_student.runtime import (
     ExecutionBackend,
@@ -78,11 +80,11 @@ class LegacyJaxLearningStepExecution:
 def execute_legacy_jax_learning_step(
     *,
     architecture: JaxArchitectureExecution,
-    objective: JaxObjective,
+    objective: LegacyJaxObjective,
     parameters: Any,
     architecture_carry: Any,
     batch: JaxBatch,
-    objective_config: JaxObjectiveConfig,
+    objective_config: LegacyJaxObjectiveConfig,
     rng_key: Any | None,
     selection_mask: Any,
     learning_rate: float,
@@ -92,7 +94,9 @@ def execute_legacy_jax_learning_step(
 ) -> LegacyJaxLearningStepExecution:
     """Compatibility-only partial update path; production uses `steps.jax_step`."""
 
-    loss_and_grad = build_value_and_grad_fn(build_jax_loss_fn(architecture, objective))
+    loss_and_grad = build_value_and_grad_fn(
+        build_legacy_jax_loss_fn(architecture, objective)
+    )
     output, runtime_result = execute_function(
         context=runtime_context,
         function=loss_and_grad,

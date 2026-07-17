@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "216b4cbb5883ac4336bafc4f3a90f91d979d5aa5",
+  "accepted_commit": "d925542d34bf2bbfbcacb736f78f411295a33826",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -533,7 +533,23 @@
     },
     {
       "source": "radjax_student.legacy.jax_learning",
+      "target": "radjax_student.legacy.objectives_jax"
+    },
+    {
+      "source": "radjax_student.legacy.jax_learning",
       "target": "radjax_student.runtime"
+    },
+    {
+      "source": "radjax_student.legacy.objectives_jax",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.legacy.objectives_jax",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.legacy.objectives_jax",
+      "target": "radjax_student.learning.jax_core"
     },
     {
       "source": "radjax_student.legacy.scalar_learning",
@@ -1569,7 +1585,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 147,
+  "module_count": 148,
   "modules": [
     {
       "classification": "core",
@@ -2807,9 +2823,7 @@
       "classification": "core",
       "defined_classes": [
         "JaxBatch",
-        "JaxLossAuxiliary",
-        "JaxObjective",
-        "JaxObjectiveConfig"
+        "JaxLossAuxiliary"
       ],
       "forbidden_imports": [
         "jax",
@@ -2838,11 +2852,7 @@
       "public_exports": [
         "JaxBatch",
         "JaxLossAuxiliary",
-        "JaxObjective",
-        "JaxObjectiveConfig",
-        "build_jax_loss_fn",
         "build_registered_jax_loss_fn",
-        "build_resolved_jax_loss_fn",
         "build_value_and_grad_fn",
         "validate_finite_loss_and_gradients"
       ]
@@ -3076,6 +3086,7 @@
         "radjax_student.learning",
         "radjax_student.learning.errors",
         "radjax_student.learning.jax_core",
+        "radjax_student.legacy.objectives_jax",
         "radjax_student.optimizers",
         "radjax_student.steps",
         "radjax_student.validation.architecture_audit",
@@ -3314,6 +3325,7 @@
         "importlib",
         "radjax_student.architecture",
         "radjax_student.learning.jax_core",
+        "radjax_student.legacy.objectives_jax",
         "radjax_student.runtime",
         "types",
         "typing"
@@ -3321,6 +3333,7 @@
       "internal_edges": [
         "radjax_student.architecture",
         "radjax_student.learning.jax_core",
+        "radjax_student.legacy.objectives_jax",
         "radjax_student.runtime"
       ],
       "module": "radjax_student.legacy.jax_learning",
@@ -3330,6 +3343,40 @@
         "LegacyJaxLearningStepExecution",
         "apply_scoped_gradient_update",
         "execute_legacy_jax_learning_step"
+      ]
+    },
+    {
+      "classification": "deprecated",
+      "defined_classes": [
+        "LegacyJaxObjective",
+        "LegacyJaxObjectiveConfig"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "importlib",
+        "radjax_student.architecture",
+        "radjax_student.contracts",
+        "radjax_student.learning.jax_core",
+        "typing",
+        "warnings"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture",
+        "radjax_student.contracts",
+        "radjax_student.learning.jax_core"
+      ],
+      "module": "radjax_student.legacy.objectives_jax",
+      "owner": "legacy_compatibility",
+      "path": "src/radjax_student/legacy/objectives_jax.py",
+      "public_exports": [
+        "LegacyJaxObjective",
+        "LegacyJaxObjectiveConfig",
+        "build_legacy_jax_loss_fn",
+        "build_legacy_resolved_jax_loss_fn"
       ]
     },
     {
@@ -5322,6 +5369,7 @@
         "radjax_student.contracts",
         "radjax_student.learning.jax_batch",
         "radjax_student.learning.jax_core",
+        "radjax_student.legacy.objectives_jax",
         "radjax_student.steps.jax_step",
         "radjax_student.validation.p3_11_10_gate.implementations.common",
         "typing"
@@ -6056,7 +6104,7 @@
       ]
     },
     {
-      "classification": "core",
+      "classification": "optional_integration",
       "defined_classes": [
         "_AlternativeMseObjective",
         "_ApplyOnlyObjective",
@@ -6079,7 +6127,10 @@
         "pathlib",
         "radjax_student.checkpoints",
         "radjax_student.contracts",
+        "radjax_student.learning.jax_batch",
+        "radjax_student.learning.jax_core",
         "radjax_student.learning.run_report",
+        "radjax_student.legacy.objectives_jax",
         "radjax_student.objectives",
         "radjax_student.objectives.jax",
         "radjax_student.objectives.legacy",

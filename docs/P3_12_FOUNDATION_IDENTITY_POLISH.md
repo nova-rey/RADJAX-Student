@@ -19,6 +19,11 @@ Historical `mse`, `linear.mse.v1`, and `stateful_linear_mse.v1` names resolve
 only at the outer compatibility boundary to the registered canonical MSE
 plugin. They never appear as executed objective identity in lifecycle evidence.
 
+P3.12A.1 removes the remaining pre-registry JAX objective builder from the core
+learning namespace. Deprecated historical mathematical compatibility remains
+explicitly isolated in `radjax_student.legacy.objectives_jax`; it is never a
+production execution authority.
+
 ## Current Status
 
 P3.11.1-P3.11.10 locally accepted
@@ -30,9 +35,6 @@ P3.12A locally accepted
 P3.12B next and unstarted
 
 Phase 4 remains unstarted
-
-Phase 4 requires successful required remote base/JAX CI or an explicit
-repository-owner waiver
 
 Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
 

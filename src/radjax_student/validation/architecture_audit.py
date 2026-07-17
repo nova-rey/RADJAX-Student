@@ -20,9 +20,11 @@ FORBIDDEN_IMPORTS = (
 _JAX_EXCEPTIONS = {
     "radjax_student.learning.jax_core",
     "radjax_student.learning.p3_5_acceptance",
+    "radjax_student.legacy.objectives_jax",
     "radjax_student.steps.jax_step",
     "radjax_student.validation.p3_11_9_replay.runner_jax",
     "radjax_student.validation.p3_11_10_gate.runner_jax",
+    "radjax_student.validation.p3_12a_objective_identity.runner_jax",
 }
 _COMPATIBILITY_MODULES = {
     "radjax_student.learning.p3_5_acceptance",
@@ -41,6 +43,7 @@ _CLASSIFICATIONS = {
     "validation.p3_11_9_replay.runner_jax": "optional_integration",
     "validation.p3_11_10_gate": "optional_integration",
     "validation.p3_11_10_gate.runner_jax": "optional_integration",
+    "validation.p3_12a_objective_identity.runner_jax": "optional_integration",
     "losses": "research",
     "objectives": "core",
     "losses.dense_kl": "smoke_debug",
@@ -242,6 +245,106 @@ def _forward_is_discarded(tree: ast.Module) -> bool:
     return False
 
 
+_LEGACY_OBJECTIVE_NAMES = {
+    "JaxObjective",
+    "JaxObjectiveConfig",
+    "build_jax_loss_fn",
+    "build_resolved_jax_loss_fn",
+}
+
+
+def _function_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> set[str]:
+    return {
+        argument.arg
+        for argument in (
+            [*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs]
+        )
+    }
+
+
+def _audit_objective_authority(
+    tree: ast.Module, *, path: str, add: Any
+) -> tuple[str, ...]:
+    """Return canonical registered builders after rejecting split authority."""
+
+    exports = set(_literal_exports(tree))
+    defined = {node.name for node in tree.body if isinstance(node, ast.ClassDef)}
+    legacy_definitions = defined & {"JaxObjective", "JaxObjectiveConfig"}
+    if "JaxObjectiveConfig" in legacy_definitions:
+        add(
+            "legacy_objective_config_in_core",
+            path,
+            "core module defines JaxObjectiveConfig",
+        )
+    if "JaxObjective" in legacy_definitions:
+        add(
+            "arbitrary_objective_protocol_in_core",
+            path,
+            "core module defines evaluate-only JaxObjective protocol",
+        )
+    legacy_exports = exports & _LEGACY_OBJECTIVE_NAMES
+    if legacy_exports:
+        add(
+            "legacy_objective_exported_from_core",
+            path,
+            "core module exports legacy objective authority",
+            exports=sorted(legacy_exports),
+        )
+
+    canonical: list[str] = []
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        arguments = _function_arguments(node)
+        if node.name in {"build_jax_loss_fn", "build_resolved_jax_loss_fn"}:
+            add(
+                "unregistered_objective_builder_in_core",
+                path,
+                "core module defines an unregistered JAX objective builder",
+                builder=node.name,
+            )
+        if (
+            "jax" in node.name
+            and "objective" in arguments
+            and (
+                "objective_config" in arguments
+                or "objective_id" in arguments
+                or "config" in arguments
+            )
+        ):
+            add(
+                "split_objective_authority_signature",
+                path,
+                "core signature accepts arbitrary objective with independent identity",
+                function=node.name,
+            )
+        if node.name == "build_registered_jax_loss_fn":
+            required = {
+                "architecture",
+                "objective_selection",
+                "objective_config",
+                "objective_descriptor",
+                "resolved_selection",
+            }
+            if (
+                required.issubset(arguments)
+                and not {
+                    "objective",
+                    "objective_id",
+                }
+                & arguments
+            ):
+                canonical.append(path)
+            else:
+                add(
+                    "split_objective_authority_signature",
+                    path,
+                    "registered builder has an incomplete or split authority signature",
+                    function=node.name,
+                )
+    return tuple(canonical)
+
+
 def find_architecture_blockers(
     records: list[Mapping[str, Any]], source_root: Path
 ) -> list[dict[str, Any]]:
@@ -329,11 +432,19 @@ def find_architecture_blockers(
                 path,
                 "architecture imports a concrete objective implementation",
             )
+    canonical_builders: list[str] = []
     for path in sorted(source_root.rglob("*.py")):
         module = _module_name(path, source_root)
         if classify_module(module) != "core":
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        canonical_builders.extend(
+            _audit_objective_authority(
+                tree,
+                path=str(path.relative_to(source_root.parent.parent)),
+                add=add,
+            )
+        )
         if any(_call_is_parameter_objective(call) for call in ast.walk(tree)):
             add(
                 "objective_receives_raw_parameters",
@@ -346,6 +457,16 @@ def find_architecture_blockers(
                 str(path.relative_to(source_root.parent.parent)),
                 "architecture forward result is discarded",
             )
+    if "radjax_student.learning.jax_core" in by_module and canonical_builders != [
+        "src/radjax_student/learning/jax_core.py"
+    ]:
+        add(
+            "unregistered_objective_builder_in_core",
+            "src/radjax_student/learning/jax_core.py",
+            "core tree must contain exactly one canonical registered JAX "
+            "objective builder",
+            builders=canonical_builders,
+        )
     artifacts = by_module.get("radjax_student.artifacts", {})
     if "load_dense_tome_targets" in artifacts.get("public_exports", ()):
         add(

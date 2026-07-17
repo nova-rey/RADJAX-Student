@@ -187,10 +187,12 @@ def _check_architecture_objective() -> GateCheck:
 
         from radjax_student.architecture import ForwardResult
         from radjax_student.learning import ObjectiveScope
-        from radjax_student.learning.jax_core import (
-            JaxBatch,
-            JaxObjectiveConfig,
-            build_jax_loss_fn,
+        from radjax_student.learning.jax_core import JaxBatch
+        from radjax_student.legacy.objectives_jax import (
+            LegacyJaxObjectiveConfig as JaxObjectiveConfig,
+        )
+        from radjax_student.legacy.objectives_jax import (
+            build_legacy_jax_loss_fn as build_jax_loss_fn,
         )
 
         class Architecture:
@@ -278,10 +280,14 @@ def _run_jax_contract() -> GateCheck:
         from radjax_student.learning import ObjectiveScope
         from radjax_student.learning.jax_core import (
             JaxBatch,
-            JaxObjectiveConfig,
-            build_jax_loss_fn,
             build_value_and_grad_fn,
             validate_finite_loss_and_gradients,
+        )
+        from radjax_student.legacy.objectives_jax import (
+            LegacyJaxObjectiveConfig as JaxObjectiveConfig,
+        )
+        from radjax_student.legacy.objectives_jax import (
+            build_legacy_jax_loss_fn as build_jax_loss_fn,
         )
 
         class LinearArchitecture:

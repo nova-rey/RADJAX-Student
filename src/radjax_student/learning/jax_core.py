@@ -4,21 +4,19 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol
+from typing import Any
 
 import jax
 import jax.numpy as jnp
 
 from radjax_student.architecture import (
     ForwardResult,
-    JaxArchitectureExecution,
     JaxArchitecturePlugin,
 )
 from radjax_student.contracts import (
     ObjectiveConfig,
     ObjectiveContractError,
     ObjectiveExecutionDescriptor,
-    ObjectiveScope,
     ResolvedObjectiveSelection,
 )
 from radjax_student.objectives import JaxObjectivePlugin, ObjectiveRegistrySelection
@@ -44,57 +42,6 @@ class JaxBatch:
 
 @jax.tree_util.register_pytree_node_class
 @dataclass(frozen=True)
-class JaxObjectiveConfig:
-    objective_id: str
-    objective_scope: ObjectiveScope = ObjectiveScope()
-    reduction: Literal["mean", "sum"] = "mean"
-
-    def __post_init__(self) -> None:
-        if not self.objective_id or not isinstance(
-            self.objective_scope, ObjectiveScope
-        ):
-            raise ValueError("JAX objective identifiers must be nonempty")
-        if self.reduction not in ("mean", "sum"):
-            raise ValueError("unsupported JAX objective reduction")
-
-    @property
-    def surface_id(self) -> str:
-        if self.objective_scope.kind in {"final_output", "whole_student"}:
-            return "final_output"
-        assert self.objective_scope.target_id is not None
-        return self.objective_scope.target_id
-
-    def tree_flatten(self):
-        return (), (
-            self.objective_id,
-            self.objective_scope.kind,
-            self.objective_scope.target_id,
-            self.reduction,
-        )
-
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        del children
-        objective_id, kind, target_id, reduction = aux_data
-        return cls(
-            objective_id,
-            ObjectiveScope(kind=kind, target_id=target_id),
-            reduction,
-        )
-
-
-class JaxObjective(Protocol):
-    def evaluate(
-        self,
-        surface: Any,
-        targets: Any,
-        weights: Any,
-        objective_config: JaxObjectiveConfig,
-    ) -> tuple[Any, Mapping[str, Any]]: ...
-
-
-@jax.tree_util.register_pytree_node_class
-@dataclass(frozen=True)
 class JaxLossAuxiliary:
     """Typed functional output of one JAX architecture/objective evaluation."""
 
@@ -115,113 +62,6 @@ class JaxLossAuxiliary:
     def tree_unflatten(cls, aux_data, children):
         del aux_data
         return cls(*children)
-
-
-def build_jax_loss_fn(
-    architecture: JaxArchitectureExecution,
-    objective: JaxObjective,
-):
-    """Build a pure loss function; compilation belongs to runtime."""
-
-    if not isinstance(architecture, JaxArchitectureExecution):
-        raise TypeError("architecture must expose the JAX execution capability")
-
-    def loss_fn(
-        parameters: Any,
-        architecture_carry: Any,
-        batch: JaxBatch,
-        objective_config: JaxObjectiveConfig,
-        rng_key: Any | None,
-    ):
-        if not isinstance(batch, JaxBatch):
-            raise TypeError("batch must be JaxBatch")
-        input_carry = jax.tree_util.tree_map(jax.lax.stop_gradient, architecture_carry)
-        forward = architecture.apply_jax(
-            parameters,
-            input_carry,
-            batch,
-            objective_scope=objective_config.objective_scope,
-            training=True,
-            rng_key=rng_key,
-        )
-        if not isinstance(forward, ForwardResult):
-            raise TypeError("JAX architecture execution must return ForwardResult")
-        surface = forward.surface_for_legacy_scope(objective_config.objective_scope)
-        loss, objective_auxiliary = objective.evaluate(
-            surface,
-            batch.targets,
-            batch.weights,
-            objective_config,
-        )
-        next_carry = (
-            input_carry
-            if forward.updated_architecture_carry is None
-            else forward.updated_architecture_carry
-        )
-        next_carry = jax.tree_util.tree_map(jax.lax.stop_gradient, next_carry)
-        return loss, JaxLossAuxiliary(
-            selected_surface=surface,
-            updated_architecture_carry=next_carry,
-            objective_metrics=dict(objective_auxiliary),
-            architecture_metrics=dict(forward.architecture_metrics),
-        )
-
-    return loss_fn
-
-
-def build_resolved_jax_loss_fn(
-    architecture: JaxArchitecturePlugin,
-    objective: JaxObjective,
-    objective_selection: ResolvedObjectiveSelection,
-):
-    """Build the production loss graph from an architecture-resolved surface."""
-
-    if not isinstance(architecture, JaxArchitecturePlugin):
-        raise TypeError("resolved JAX execution requires JaxArchitecturePlugin")
-    if not isinstance(objective_selection, ResolvedObjectiveSelection):
-        raise TypeError("objective_selection must be ResolvedObjectiveSelection")
-
-    def loss_fn(
-        parameters: Any,
-        architecture_carry: Any,
-        batch: JaxBatch,
-        objective_config: JaxObjectiveConfig,
-        rng_key: Any | None,
-    ):
-        if not isinstance(batch, JaxBatch):
-            raise TypeError("batch must be JaxBatch")
-        input_carry = jax.tree_util.tree_map(jax.lax.stop_gradient, architecture_carry)
-        forward = architecture.apply_jax(
-            parameters,
-            input_carry,
-            batch,
-            objective_scope=objective_selection.scope,
-            training=True,
-            rng_key=rng_key,
-        )
-        if not isinstance(forward, ForwardResult):
-            raise TypeError("JAX architecture execution must return ForwardResult")
-        surface = forward.surface_for(objective_selection)
-        loss, objective_auxiliary = objective.evaluate(
-            surface,
-            batch.targets,
-            batch.weights,
-            objective_config,
-        )
-        next_carry = (
-            input_carry
-            if forward.updated_architecture_carry is None
-            else forward.updated_architecture_carry
-        )
-        next_carry = jax.tree_util.tree_map(jax.lax.stop_gradient, next_carry)
-        return loss, JaxLossAuxiliary(
-            selected_surface=surface,
-            updated_architecture_carry=next_carry,
-            objective_metrics=dict(objective_auxiliary),
-            architecture_metrics=dict(forward.architecture_metrics),
-        )
-
-    return loss_fn
 
 
 def build_registered_jax_loss_fn(
@@ -334,11 +174,7 @@ def validate_finite_loss_and_gradients(loss: Any, gradients: Any) -> None:
 __all__ = [
     "JaxBatch",
     "JaxLossAuxiliary",
-    "JaxObjective",
-    "JaxObjectiveConfig",
     "build_registered_jax_loss_fn",
-    "build_jax_loss_fn",
-    "build_resolved_jax_loss_fn",
     "build_value_and_grad_fn",
     "validate_finite_loss_and_gradients",
 ]

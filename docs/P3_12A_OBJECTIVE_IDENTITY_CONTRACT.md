@@ -33,7 +33,19 @@ consumption, distillation, Hugging Face export, model quality, multi-device or
 accelerator-scale training, performance, or Phase 4 implementation.
 
 The current executed evidence digest is
-`a01fc17c295f9b086a9f0af80f02e20fba32e3620d1929c7a931f94bedf088a7`.
+`6102cb6aeb146a61342cb4e4cbb137824e2a33502d6a0de354f142ce5d9cc8cb`.
+
+## P3.12A.1 Authority Closure
+
+P3.12A.1 removes the historical split objective authority from active core
+production namespaces. `radjax_student.learning.jax_core` now exposes only
+`build_registered_jax_loss_fn`; it cannot import, construct, or execute the
+former evaluate-only objective/config pair. Historical JAX objective behavior
+lives only in `radjax_student.legacy.objectives_jax`, emits a
+`DeprecationWarning`, and cannot enter a modern lifecycle, JAX step, or
+continuation restore. The architecture audit verifies the sole canonical
+builder and rejects legacy exports, legacy configuration declarations, and
+split arbitrary-objective signatures.
 
 The maintained non-claims are: no production architecture; no Tome payload consumption; no distillation; no Hugging Face export; no accelerator-scale training; no multi-device proof; no cross-hardware replay; no cross-version replay; no performance claim; and no RadLads-parity claim.
 
@@ -48,8 +60,5 @@ P3.12A locally accepted
 P3.12B next and unstarted
 
 Phase 4 remains unstarted
-
-Phase 4 requires successful required remote base/JAX CI or an explicit
-repository-owner waiver
 
 Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver

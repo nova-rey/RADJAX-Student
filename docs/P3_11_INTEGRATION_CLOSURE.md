@@ -30,6 +30,8 @@ P3.11 integration closure complete
 
 P3.12A locally accepted
 
+Post-closure note: P3.12A.1 removed the remaining deprecated split JAX objective authority from active core namespaces without changing the accepted P3.11 conveyor.
+
 P3.12B next and unstarted
 
 Phase 4 remains unstarted

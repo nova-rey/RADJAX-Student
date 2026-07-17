@@ -183,6 +183,8 @@ P3.11 integration closure complete
 
 P3.12A locally accepted
 
+P3.12A.1 closes the legacy core objective side entrance; see [P3.12A Objective Identity Contract](P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md).
+
 P3.12B next and unstarted
 
 Phase 4 remains unstarted

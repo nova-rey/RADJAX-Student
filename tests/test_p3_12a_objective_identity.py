@@ -182,7 +182,7 @@ def test_p312a_real_conveyor_receipt_has_all_literal_adversaries(tmp_path):
 
     proof = execute_objective_identity_proof(tmp_path)
     receipt = build_receipt(proof)
-    assert len(proof.positive_cases) == 6
+    assert len(proof.positive_cases) == 10
     assert len(proof.adversarial_cases) == 37
     assert receipt["unexpected_pass_count"] == 0
     assert receipt["unexpected_failure_count"] == 0

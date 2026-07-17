@@ -19,14 +19,18 @@ from radjax_student.learning import ObjectiveScope  # noqa: E402
 from radjax_student.learning.jax_core import (  # noqa: E402
     JaxBatch,
     JaxLossAuxiliary,
-    JaxObjectiveConfig,
-    build_jax_loss_fn,
     build_value_and_grad_fn,
     validate_finite_loss_and_gradients,
 )
 from radjax_student.legacy.jax_learning import (  # noqa: E402
     apply_scoped_gradient_update,
     execute_legacy_jax_learning_step,
+)
+from radjax_student.legacy.objectives_jax import (  # noqa: E402
+    LegacyJaxObjectiveConfig as JaxObjectiveConfig,
+)
+from radjax_student.legacy.objectives_jax import (  # noqa: E402
+    build_legacy_jax_loss_fn as build_jax_loss_fn,
 )
 from radjax_student.runtime import (  # noqa: E402
     CompilationOptions,

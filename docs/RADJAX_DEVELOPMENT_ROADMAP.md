@@ -234,6 +234,8 @@ P3.11 integration closure complete
 
 P3.12A locally accepted
 
+P3.12A.1 removes legacy split JAX objective authority from core production execution.
+
 P3.12B next and unstarted
 
 Phase 4 remains unstarted

@@ -1008,3 +1008,15 @@
   commit `216b4cbb5883ac4336bafc4f3a90f91d979d5aa5`. The P3.5, P3.11.10, and
   P3.12A generated receipts were then reproduced byte-for-byte from that
   committed source without changing production behavior or acceptance claims.
+
+## 2026-07-17 - P3.12A.1 legacy objective side-entrance removal
+
+- The pre-registry JAX objective config, evaluate-only protocol, and free-form
+  builders were removed from `learning.jax_core`. Production JAX loss assembly
+  now has one objective authority: the registry selection, canonical config,
+  execution descriptor, and architecture-resolved surface.
+- Historical mathematical compatibility is isolated under
+  `legacy.objectives_jax`, emits `DeprecationWarning`, and cannot satisfy modern
+  lifecycle or registry selection boundaries. The dependency audit rejects any
+  reintroduced legacy config, unregistered builder, export, or split authority
+  signature in core modules.

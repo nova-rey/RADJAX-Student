@@ -39,6 +39,7 @@ from radjax_student.validation.p3_11_9_replay.models import (
     ReplayRunEvidence,
 )
 from radjax_student.validation.p3_11_9_replay.runner_jax import (
+    _batch,
     _new_lifecycle,
     _run_arm,
     execute_stateful_replays,
@@ -364,6 +365,76 @@ def execute_objective_identity_proof(
     if audit["status"] != "pass":
         raise RuntimeError("dependency audit blocked P3.12A proof")
 
+    core_source = (
+        Path.cwd() / "src" / "radjax_student" / "learning" / "jax_core.py"
+    ).read_text(encoding="utf-8")
+    expected_core_exports = (
+        "JaxBatch",
+        "JaxLossAuxiliary",
+        "build_registered_jax_loss_fn",
+        "build_value_and_grad_fn",
+        "validate_finite_loss_and_gradients",
+    )
+    from radjax_student.learning.jax_batch import FiniteJsonJaxBatchMaterializer
+    from radjax_student.learning.jax_core import (
+        build_registered_jax_loss_fn,
+        build_value_and_grad_fn,
+    )
+    from radjax_student.legacy.objectives_jax import (
+        LegacyJaxObjectiveConfig,
+        build_legacy_jax_loss_fn,
+    )
+
+    class HistoricalMse:
+        def evaluate(self, surface, targets, weights, objective_config):
+            del weights
+            values = (surface - targets["y"]) ** 2
+            jnp_local = __import__("jax.numpy", fromlist=["mean", "sum"])
+            loss = jnp_local.mean(values)
+            if objective_config.reduction == "sum":
+                loss = jnp_local.sum(values)
+            return loss, {"mse": loss}
+
+    equivalence_batch = FiniteJsonJaxBatchMaterializer().materialize(_batch(0))
+    canonical_value_and_grad = build_value_and_grad_fn(
+        build_registered_jax_loss_fn(
+            architecture=lifecycle.architecture,
+            objective_selection=selection,
+            objective_config=lifecycle.objective_config,
+            objective_descriptor=descriptor,
+            resolved_selection=lifecycle.resolved_objective_selection,
+        )
+    )
+    historical_value_and_grad = build_value_and_grad_fn(
+        build_legacy_jax_loss_fn(lifecycle.architecture, HistoricalMse())
+    )
+    canonical_loss, canonical_gradients = canonical_value_and_grad(
+        lifecycle.parameters,
+        lifecycle.architecture_carry,
+        equivalence_batch,
+        __import__("jax.random", fromlist=["key"]).key(0),
+    )
+    historical_loss, historical_gradients = historical_value_and_grad(
+        lifecycle.parameters,
+        lifecycle.architecture_carry,
+        equivalence_batch,
+        LegacyJaxObjectiveConfig("mse"),
+        __import__("jax.random", fromlist=["key"]).key(0),
+    )
+    jax = __import__("jax")
+
+    if not bool(
+        jax.numpy.array_equal(canonical_loss[0], historical_loss[0])
+    ) or not all(
+        bool(jax.numpy.array_equal(left, right))
+        for left, right in zip(
+            jax.tree_util.tree_leaves(canonical_gradients),
+            jax.tree_util.tree_leaves(historical_gradients),
+            strict=True,
+        )
+    ):
+        raise RuntimeError("canonical MSE no longer matches historical MSE mathematics")
+
     positives = (
         _passed(
             "registered_plugin_selection",
@@ -405,6 +476,44 @@ def execute_objective_identity_proof(
                 registry=registry,
                 resolved_selection=lifecycle.resolved_objective_selection,
             ).descriptor.to_dict(),
+        ),
+        _passed(
+            "one_active_registered_objective_builder",
+            "learning.jax_core",
+            {
+                "exports": expected_core_exports,
+                "registered_builder_count": core_source.count(
+                    "def build_registered_jax_loss_fn("
+                ),
+            },
+        ),
+        _passed(
+            "legacy_objective_authority_absent_from_core",
+            "learning.jax_core",
+            {
+                "legacy_names_absent": all(
+                    name not in core_source
+                    for name in (
+                        "class JaxObjectiveConfig",
+                        "class JaxObjective",
+                        "def build_jax_loss_fn",
+                        "def build_resolved_jax_loss_fn",
+                    )
+                )
+            },
+        ),
+        _passed(
+            "canonical_mse_numerical_equivalence_retained",
+            "registered_jax_loss",
+            {
+                "loss": float(canonical_loss[0]),
+                "gradient_leaves": len(jax.tree_util.tree_leaves(canonical_gradients)),
+            },
+        ),
+        _passed(
+            "architecture_audit_confirms_one_objective_authority",
+            "architecture_audit",
+            {"status": audit["status"], "blockers": audit["blockers"]},
         ),
     )
 
