@@ -1020,3 +1020,10 @@
   lifecycle or registry selection boundaries. The dependency audit rejects any
   reintroduced legacy config, unregistered builder, export, or split authority
   signature in core modules.
+
+## 2026-07-17 - P3.12A.1 metadata snapshot
+
+- The dependency audit now records implementation commit
+  `002db6c516b1625b742de3853ca3c950856c1f98`. The P3.11.10 receipt was
+  regenerated from that normal audit artifact without changing execution
+  behavior, objective mathematics, or acceptance claims.
