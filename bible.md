@@ -1001,3 +1001,10 @@
   migration remains non-resumable and explicit.
 - P3.12B remains next and unstarted. Phase 4 remains unstarted pending the
   required remote base/JAX CI condition or a repository-owner waiver.
+
+## 2026-07-16 - P3.12A metadata snapshot
+
+- The normal P3.5 dependency audit was regenerated against implementation
+  commit `216b4cbb5883ac4336bafc4f3a90f91d979d5aa5`. The P3.5, P3.11.10, and
+  P3.12A generated receipts were then reproduced byte-for-byte from that
+  committed source without changing production behavior or acceptance claims.
