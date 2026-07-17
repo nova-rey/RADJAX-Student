@@ -151,6 +151,7 @@ def test_initialization_rejects_reference_without_descriptor():
         )
 
 
+@pytest.mark.jax
 def test_literal_gate_inventory_has_exactly_77_distinct_experiments():
     from radjax_student.validation.p3_12b_hf_descriptor_authority.runner_jax import (
         SPECS,

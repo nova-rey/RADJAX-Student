@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "3512ea9fd489e2f79119769108326c3e9efce1c5",
+  "accepted_commit": "78ef3fd663f7c412f3995bcde0c4731355966047",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -1573,6 +1573,10 @@
     },
     {
       "source": "radjax_student.validation.p3_12b_hf_descriptor_authority.runner_jax",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.validation.p3_12b_hf_descriptor_authority.runner_jax",
       "target": "radjax_student.checkpoints"
     },
     {
@@ -2354,7 +2358,8 @@
         "canonical_hf_json",
         "canonical_objective_json",
         "hf_digest",
-        "objective_digest"
+        "objective_digest",
+        "validate_hf_descriptor_match"
       ]
     },
     {
@@ -2469,7 +2474,8 @@
         "HF_DESCRIPTOR_SCHEMA_VERSION",
         "HF_REFERENCE_SCHEMA_VERSION",
         "canonical_hf_json",
-        "hf_digest"
+        "hf_digest",
+        "validate_hf_descriptor_match"
       ]
     },
     {
@@ -6268,8 +6274,10 @@
       "owner": "compatibility_validation",
       "path": "src/radjax_student/validation/p3_12b_hf_descriptor_authority/__init__.py",
       "public_exports": [
+        "ADVERSARIAL_CASE_COUNT",
+        "HFAdversarialResult",
         "HFDescriptorAuthorityProof",
-        "HFProofCase",
+        "HFPositiveProof",
         "SCHEMA_VERSION",
         "build_receipt",
         "validate_receipt"
@@ -6300,8 +6308,9 @@
     {
       "classification": "core",
       "defined_classes": [
+        "HFAdversarialResult",
         "HFDescriptorAuthorityProof",
-        "HFProofCase"
+        "HFPositiveProof"
       ],
       "forbidden_imports": [],
       "has_dynamic_exports": false,
@@ -6321,8 +6330,10 @@
       "owner": "compatibility_validation",
       "path": "src/radjax_student/validation/p3_12b_hf_descriptor_authority/models.py",
       "public_exports": [
+        "ADVERSARIAL_CASE_COUNT",
+        "HFAdversarialResult",
         "HFDescriptorAuthorityProof",
-        "HFProofCase",
+        "HFPositiveProof",
         "SCHEMA_VERSION",
         "build_receipt",
         "digest",
@@ -6331,22 +6342,32 @@
     },
     {
       "classification": "optional_integration",
-      "defined_classes": [],
+      "defined_classes": [
+        "Baseline",
+        "Invocation",
+        "Spec"
+      ],
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
         "collections.abc",
         "dataclasses",
+        "hashlib",
+        "inspect",
+        "json",
         "pathlib",
+        "radjax_student.architecture",
         "radjax_student.checkpoints",
         "radjax_student.contracts",
         "radjax_student.learning",
         "radjax_student.validation.architecture_audit",
         "radjax_student.validation.p3_11_9_replay.runner_jax",
-        "radjax_student.validation.p3_12b_hf_descriptor_authority.models"
+        "radjax_student.validation.p3_12b_hf_descriptor_authority.models",
+        "typing"
       ],
       "internal_edges": [
+        "radjax_student.architecture",
         "radjax_student.checkpoints",
         "radjax_student.contracts",
         "radjax_student.learning",
@@ -6358,7 +6379,7 @@
       "owner": "compatibility_validation",
       "path": "src/radjax_student/validation/p3_12b_hf_descriptor_authority/runner_jax.py",
       "public_exports": [
-        "NON_CLAIMS",
+        "SPECS",
         "execute_hf_descriptor_authority_proof"
       ]
     },
