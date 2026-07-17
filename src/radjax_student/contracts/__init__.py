@@ -13,6 +13,7 @@ from radjax_student.contracts.hf import (
     HFVocabularyIdentity,
     canonical_hf_json,
     hf_digest,
+    validate_hf_descriptor_match,
 )
 from radjax_student.contracts.layout import (
     JaxOptimizerStateDescriptor,
@@ -76,5 +77,6 @@ __all__ = [
     "canonical_objective_json",
     "canonical_hf_json",
     "hf_digest",
+    "validate_hf_descriptor_match",
     "objective_digest",
 ]

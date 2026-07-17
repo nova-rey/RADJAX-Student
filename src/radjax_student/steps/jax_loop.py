@@ -116,7 +116,10 @@ class JaxLearningLifecycle:
         ):
             raise ValueError("parameter catalog and layout paths must match")
         if not isinstance(self.hf_descriptor, HFCompatibilityDescriptor):
-            raise TypeError("hf_descriptor must be HFCompatibilityDescriptor")
+            raise HFContractError(
+                "hf_descriptor_missing",
+                "lifecycle requires a complete HFCompatibilityDescriptor",
+            )
         if not isinstance(self.hf_reference, HFPreservationReference):
             raise TypeError("hf_reference must be HFPreservationReference")
         _validate_hf_descriptor_against_init(

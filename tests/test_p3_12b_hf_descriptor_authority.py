@@ -23,6 +23,10 @@ from radjax_student.contracts import (
     hf_digest,
 )
 from radjax_student.learning import RunHFSummary
+from radjax_student.validation.p3_12b_hf_descriptor_authority.models import (
+    ADVERSARIAL_CASE_COUNT,
+    validate_receipt,
+)
 
 
 def _descriptor() -> HFCompatibilityDescriptor:
@@ -145,6 +149,29 @@ def test_initialization_rejects_reference_without_descriptor():
             parameter_layout=layout,
             hf_reference=descriptor.preservation_reference(),
         )
+
+
+def test_literal_gate_inventory_has_exactly_77_distinct_experiments():
+    from radjax_student.validation.p3_12b_hf_descriptor_authority.runner_jax import (
+        SPECS,
+    )
+
+    assert len(SPECS) == ADVERSARIAL_CASE_COUNT
+    assert len({spec.case_id for spec in SPECS}) == ADVERSARIAL_CASE_COUNT
+    assert len({spec.experiment for spec in SPECS}) == ADVERSARIAL_CASE_COUNT
+
+
+def test_v2_receipt_rejects_incomplete_adversarial_inventory():
+    import json
+    from pathlib import Path
+
+    payload = json.loads(
+        Path("docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
+    )
+    assert validate_receipt(payload)["adversarial_case_count"] == 77
+    payload["adversarial_case_count"] = 76
+    with pytest.raises(ValueError, match="schema or status"):
+        validate_receipt(payload)
 
 
 @pytest.mark.jax

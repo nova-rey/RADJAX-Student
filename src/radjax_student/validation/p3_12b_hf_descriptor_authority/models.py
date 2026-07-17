@@ -1,4 +1,4 @@
-"""Strict JAX-free P3.12B executed-proof and receipt contracts."""
+"""Strict, JAX-free evidence contracts for the P3.12B.1 acceptance gate."""
 
 from __future__ import annotations
 
@@ -10,7 +10,8 @@ from typing import Any, Literal
 
 from radjax_student.contracts import HFCompatibilityDescriptor
 
-SCHEMA_VERSION = "radjax.p3_12b_hf_descriptor_authority.v1"
+SCHEMA_VERSION = "radjax.p3_12b_hf_descriptor_authority.v2"
+ADVERSARIAL_CASE_COUNT = 77
 
 
 def digest(value: Any) -> str:
@@ -26,42 +27,116 @@ def _sha(value: object, name: str) -> str:
     if (
         not isinstance(value, str)
         or len(value) != 64
-        or any(c not in "0123456789abcdef" for c in value)
+        or set(value) - set("0123456789abcdef")
     ):
         raise ValueError(f"{name} must be a lowercase SHA-256 digest")
     return value
 
 
 @dataclass(frozen=True)
-class HFProofCase:
+class HFPositiveProof:
     case_id: str
-    category: Literal["positive", "adversarial"]
-    outcome: Literal["pass", "reject"]
-    observed_code: str | None
     boundary: str
     evidence_digest: str
 
     def __post_init__(self) -> None:
         if not isinstance(self.case_id, str) or not self.case_id:
-            raise ValueError("case_id must be nonempty")
-        if self.category not in {"positive", "adversarial"}:
-            raise ValueError("case category is invalid")
-        if self.outcome not in {"pass", "reject"}:
-            raise ValueError("case outcome is invalid")
-        if (self.outcome == "pass") != (self.observed_code is None):
-            raise ValueError("case outcome and observed code disagree")
+            raise ValueError("positive case_id must be nonempty")
         if not isinstance(self.boundary, str) or not self.boundary:
-            raise ValueError("case boundary is invalid")
-        _sha(self.evidence_digest, "case evidence digest")
+            raise ValueError("positive boundary must be nonempty")
+        _sha(self.evidence_digest, "positive evidence_digest")
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "case_id": self.case_id,
+            "boundary": self.boundary,
+            "evidence_digest": self.evidence_digest,
+        }
+
+
+@dataclass(frozen=True)
+class HFAdversarialResult:
+    """Evidence collected after, never before, a literal boundary invocation."""
+
+    case_id: str
+    category: str
+    intended_boundary: str
+    observed_boundary: str
+    boundary_callable_identity: str
+    baseline_input_digest: str
+    mutated_input_digest: str
+    mutation_applied: bool
+    expected_code: str | None
+    observed_code: str | None
+    observed_exception_type: str | None
+    observed_details_digest: str
+    first_run_evidence_digest: str
+    second_run_evidence_digest: str
+    deterministic_first_failure: bool
+    outcome: Literal[
+        "reject",
+        "invariant_preserved",
+        "unexpected_pass",
+        "unexpected_failure",
+        "wrong_failure",
+        "boundary_mismatch",
+        "mutation_not_applied",
+        "non_deterministic_first_failure",
+    ]
+
+    def __post_init__(self) -> None:
+        for name in (
+            "case_id",
+            "category",
+            "intended_boundary",
+            "observed_boundary",
+            "boundary_callable_identity",
+        ):
+            if not isinstance(getattr(self, name), str) or not getattr(self, name):
+                raise ValueError(f"{name} must be nonempty")
+        for name in (
+            "baseline_input_digest",
+            "mutated_input_digest",
+            "observed_details_digest",
+            "first_run_evidence_digest",
+            "second_run_evidence_digest",
+        ):
+            _sha(getattr(self, name), name)
+        if (
+            type(self.mutation_applied) is not bool
+            or type(self.deterministic_first_failure) is not bool
+        ):
+            raise ValueError("adversarial booleans must be exact booleans")
+        if self.outcome not in {
+            "reject",
+            "invariant_preserved",
+            "unexpected_pass",
+            "unexpected_failure",
+            "wrong_failure",
+            "boundary_mismatch",
+            "mutation_not_applied",
+            "non_deterministic_first_failure",
+        }:
+            raise ValueError("adversarial outcome is invalid")
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "case_id": self.case_id,
             "category": self.category,
-            "outcome": self.outcome,
+            "intended_boundary": self.intended_boundary,
+            "observed_boundary": self.observed_boundary,
+            "boundary_callable_identity": self.boundary_callable_identity,
+            "baseline_input_digest": self.baseline_input_digest,
+            "mutated_input_digest": self.mutated_input_digest,
+            "mutation_applied": self.mutation_applied,
+            "expected_code": self.expected_code,
             "observed_code": self.observed_code,
-            "boundary": self.boundary,
-            "evidence_digest": self.evidence_digest,
+            "observed_exception_type": self.observed_exception_type,
+            "observed_details_digest": self.observed_details_digest,
+            "first_run_evidence_digest": self.first_run_evidence_digest,
+            "second_run_evidence_digest": self.second_run_evidence_digest,
+            "deterministic_first_failure": self.deterministic_first_failure,
+            "outcome": self.outcome,
         }
 
 
@@ -72,8 +147,9 @@ class HFDescriptorAuthorityProof:
     replay_hf_evidence_digest: str
     report_hf_evidence_digest: str
     dependency_audit_digest: str
-    positive_cases: tuple[HFProofCase, ...]
-    adversarial_cases: tuple[HFProofCase, ...]
+    implementation_audit_digest: str
+    positive_cases: tuple[HFPositiveProof, ...]
+    adversarial_cases: tuple[HFAdversarialResult, ...]
     non_claims: tuple[str, ...]
 
     def __post_init__(self) -> None:
@@ -84,29 +160,25 @@ class HFDescriptorAuthorityProof:
             "replay_hf_evidence_digest",
             "report_hf_evidence_digest",
             "dependency_audit_digest",
+            "implementation_audit_digest",
         ):
             _sha(getattr(self, name), name)
         positives, adversarial = (
             tuple(self.positive_cases),
             tuple(self.adversarial_cases),
         )
+        if len(adversarial) != ADVERSARIAL_CASE_COUNT:
+            raise ValueError("P3.12B.1 requires exactly 77 adversarial cases")
         if (
-            not positives
-            or not adversarial
-            or any(
-                item.category != "positive" or item.outcome != "pass"
-                for item in positives
-            )
-            or any(
-                item.category != "adversarial" or item.outcome != "reject"
-                for item in adversarial
-            )
-        ):
-            raise ValueError("proof case outcomes are invalid")
-        if len({item.case_id for item in positives + adversarial}) != len(
-            positives + adversarial
+            len({item.case_id for item in positives}) != len(positives)
+            or len({item.case_id for item in adversarial}) != ADVERSARIAL_CASE_COUNT
         ):
             raise ValueError("proof case IDs must be unique")
+        if any(
+            item.outcome not in {"reject", "invariant_preserved"}
+            for item in adversarial
+        ):
+            raise ValueError("proof cannot contain an incomplete adversarial result")
         object.__setattr__(self, "positive_cases", positives)
         object.__setattr__(self, "adversarial_cases", adversarial)
         object.__setattr__(self, "non_claims", tuple(self.non_claims))
@@ -120,6 +192,7 @@ class HFDescriptorAuthorityProof:
                 "replay_hf_evidence_digest": self.replay_hf_evidence_digest,
                 "report_hf_evidence_digest": self.report_hf_evidence_digest,
                 "dependency_audit_digest": self.dependency_audit_digest,
+                "implementation_audit_digest": self.implementation_audit_digest,
                 "positive_cases": [item.to_dict() for item in self.positive_cases],
                 "adversarial_cases": [
                     item.to_dict() for item in self.adversarial_cases
@@ -129,9 +202,33 @@ class HFDescriptorAuthorityProof:
         )
 
 
+def _error_counts(cases: tuple[HFAdversarialResult, ...]) -> dict[str, int]:
+    return {
+        "mutation_not_applied_count": sum(
+            item.outcome == "mutation_not_applied" for item in cases
+        ),
+        "boundary_mismatch_count": sum(
+            item.outcome == "boundary_mismatch" for item in cases
+        ),
+        "wrong_failure_count": sum(item.outcome == "wrong_failure" for item in cases),
+        "non_deterministic_first_failure_count": sum(
+            item.outcome == "non_deterministic_first_failure" for item in cases
+        ),
+        "unexpected_pass_count": sum(
+            item.outcome == "unexpected_pass" for item in cases
+        ),
+        "unexpected_failure_count": sum(
+            item.outcome == "unexpected_failure" for item in cases
+        ),
+    }
+
+
 def build_receipt(proof: HFDescriptorAuthorityProof) -> dict[str, Any]:
     if not isinstance(proof, HFDescriptorAuthorityProof):
         raise TypeError("receipt requires typed executed proof")
+    counts = _error_counts(proof.adversarial_cases)
+    if any(counts.values()):
+        raise ValueError("cannot build a passing receipt from failed case evidence")
     descriptor = proof.descriptor
     return {
         "schema_version": SCHEMA_VERSION,
@@ -157,16 +254,20 @@ def build_receipt(proof: HFDescriptorAuthorityProof) -> dict[str, Any]:
             item.to_dict() for item in proof.adversarial_cases
         ],
         "positive_proof_count": len(proof.positive_cases),
-        "adversarial_case_count": len(proof.adversarial_cases),
-        "unexpected_pass_count": 0,
-        "unexpected_failure_count": 0,
+        "adversarial_case_count": ADVERSARIAL_CASE_COUNT,
+        **counts,
         "dependency_audit_digest": proof.dependency_audit_digest,
+        "implementation_audit_digest": proof.implementation_audit_digest,
         "non_claims": list(proof.non_claims),
         "evidence_digest": proof.evidence_digest,
     }
 
 
 def validate_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
+    required = set(
+        build_receipt.__annotations__
+    )  # retained below as an explicit stable set
+    del required
     required = {
         "schema_version",
         "status",
@@ -190,42 +291,50 @@ def validate_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
         "adversarial_case_results",
         "positive_proof_count",
         "adversarial_case_count",
+        "mutation_not_applied_count",
+        "boundary_mismatch_count",
+        "wrong_failure_count",
+        "non_deterministic_first_failure_count",
         "unexpected_pass_count",
         "unexpected_failure_count",
         "dependency_audit_digest",
+        "implementation_audit_digest",
         "non_claims",
         "evidence_digest",
     }
     if not isinstance(payload, Mapping) or set(payload) != required:
         raise ValueError("P3.12B receipt fields are missing or unknown")
-    if payload["schema_version"] != SCHEMA_VERSION or payload["status"] != "pass":
-        raise ValueError("P3.12B receipt schema or status is invalid")
-    for name in required - {
-        "schema_version",
-        "status",
-        "architecture_id",
-        "model_type",
-        "positive_proof_results",
-        "adversarial_case_results",
-        "positive_proof_count",
-        "adversarial_case_count",
-        "unexpected_pass_count",
-        "unexpected_failure_count",
-        "non_claims",
-        "descriptor_schema_version",
-    }:
-        _sha(payload[name], name)
     if (
-        payload["unexpected_pass_count"] != 0
-        or payload["unexpected_failure_count"] != 0
+        payload["schema_version"] != SCHEMA_VERSION
+        or payload["status"] != "pass"
+        or payload["adversarial_case_count"] != ADVERSARIAL_CASE_COUNT
     ):
-        raise ValueError("P3.12B receipt contains unexpected results")
+        raise ValueError("P3.12B receipt schema or status is invalid")
+    if any(
+        payload[name] != 0
+        for name in (
+            "mutation_not_applied_count",
+            "boundary_mismatch_count",
+            "wrong_failure_count",
+            "non_deterministic_first_failure_count",
+            "unexpected_pass_count",
+            "unexpected_failure_count",
+        )
+    ):
+        raise ValueError("P3.12B receipt contains failed cases")
+    if (
+        not isinstance(payload["adversarial_case_results"], list)
+        or len(payload["adversarial_case_results"]) != ADVERSARIAL_CASE_COUNT
+    ):
+        raise ValueError("P3.12B receipt adversarial inventory is incomplete")
     return dict(payload)
 
 
 __all__ = [
+    "ADVERSARIAL_CASE_COUNT",
+    "HFAdversarialResult",
     "HFDescriptorAuthorityProof",
-    "HFProofCase",
+    "HFPositiveProof",
     "SCHEMA_VERSION",
     "build_receipt",
     "digest",

@@ -831,7 +831,7 @@ def load_learning_checkpoint_v3(
     )
     if expected_hf_descriptor is None:
         raise CheckpointValidationError(
-            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint_hf_descriptor_missing",
             "caller-bound continuation requires expected HF descriptor",
         )
     if not isinstance(expected_hf_descriptor, HFCompatibilityDescriptor):

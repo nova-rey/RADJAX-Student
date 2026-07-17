@@ -1045,3 +1045,10 @@
 - Regenerated the P3.5 architecture-integrity receipt through its normal
   canonical writer. Its evidence was unchanged; the committed bytes now match
   the recorded-check verifier used by the JAX GitHub Actions job.
+
+## 2026-07-17 - P3.12B.1 literal descriptor adversarial completion
+
+- Replaced the incomplete six-case P3.12B receipt with a schema-v2 evidence
+  gate containing 22 named positive proofs and the canonical 77 descriptor
+  authority experiments. The receipt records repeated public-boundary evidence,
+  mutation identities, and zero acceptance-harness error counts.

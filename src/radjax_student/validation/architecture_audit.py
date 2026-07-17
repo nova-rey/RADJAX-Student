@@ -466,7 +466,7 @@ def find_architecture_blockers(
             "HFCompatibilityDescriptor" in defined
         ):
             add(
-                "validation_defines_hf_descriptor",
+                "duplicate_hf_descriptor_contract",
                 relative,
                 "validation must not define a competing HF descriptor",
             )
@@ -477,10 +477,27 @@ def find_architecture_blockers(
                 "radjax_student.runtime",
             )
         ) and "HFCompatibilityDescriptor(" in path.read_text(encoding="utf-8"):
+            owner = module.removeprefix("radjax_student.").split(".", 1)[0]
             add(
-                "hf_descriptor_constructed_outside_architecture",
+                {
+                    "checkpoints": "checkpoint_constructs_hf_descriptor",
+                    "learning": "learning_constructs_hf_descriptor",
+                    "runtime": "runtime_constructs_hf_descriptor",
+                }[owner],
                 relative,
                 "only architecture may construct an HF descriptor",
+            )
+        source = path.read_text(encoding="utf-8")
+        if (
+            classify_module(module) == "core"
+            and not module.startswith("radjax_student.contracts")
+            and not module.startswith("radjax_student.validation")
+            and "HFPreservationReference(" in source
+        ):
+            add(
+                "direct_hf_reference_construction",
+                relative,
+                "modern production code constructs an HF reference directly",
             )
         if module.startswith("radjax_student.architecture") and any(
             item.startswith("radjax_student.checkpoints") for item in imports
@@ -514,7 +531,7 @@ def find_architecture_blockers(
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         if "HFCompatibilityDescriptor" in _defined_classes(tree):
             add(
-                "validation_defines_hf_descriptor",
+                "duplicate_hf_descriptor_contract",
                 str(path.relative_to(source_root.parent.parent)),
                 "validation must not define a competing HF descriptor",
             )

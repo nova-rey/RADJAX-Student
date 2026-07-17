@@ -134,7 +134,12 @@ class HFTokenizerIdentity:
 
     def __post_init__(self) -> None:
         for name in ("tokenizer_id", "tokenizer_revision", "tokenizer_family"):
-            _string(getattr(self, name), name)
+            try:
+                _string(getattr(self, name), name)
+            except HFContractError as error:
+                raise HFContractError(
+                    "hf_tokenizer_identity_invalid", str(error)
+                ) from error
         for name in (
             "tokenizer_content_digest",
             "tokenizer_config_digest",
@@ -142,7 +147,12 @@ class HFTokenizerIdentity:
         ):
             value = getattr(self, name)
             if value != _UNKNOWN:
-                _digest(value, name)
+                try:
+                    _digest(value, name)
+                except HFContractError as error:
+                    raise HFContractError(
+                        "hf_tokenizer_identity_invalid", str(error)
+                    ) from error
         if self.identity_availability not in {
             "known",
             "synthetic",
@@ -727,6 +737,60 @@ class HFCompatibilityDescriptor:
         return cls.from_dict(json.loads(value))
 
 
+def validate_hf_descriptor_match(
+    expected: HFCompatibilityDescriptor, observed: HFCompatibilityDescriptor
+) -> None:
+    """Compare two internally valid descriptors at an authority boundary."""
+
+    if not isinstance(expected, HFCompatibilityDescriptor) or not isinstance(
+        observed, HFCompatibilityDescriptor
+    ):
+        raise HFContractError(
+            "hf_descriptor_invalid", "descriptor comparison is invalid"
+        )
+    if expected.architecture_id != observed.architecture_id or (
+        expected.architecture_plugin_version != observed.architecture_plugin_version
+    ):
+        raise HFContractError(
+            "hf_architecture_identity_mismatch", "architecture identity differs"
+        )
+    if expected.model_type != observed.model_type:
+        raise HFContractError("hf_model_type_mismatch", "model type differs")
+    if expected.architecture_config_digest != observed.architecture_config_digest:
+        raise HFContractError(
+            "hf_config_identity_mismatch", "architecture config differs"
+        )
+    if expected.parameter_catalog_digest != observed.parameter_catalog_digest:
+        raise HFContractError(
+            "hf_catalog_identity_mismatch", "parameter catalog differs"
+        )
+    if expected.parameter_layout_digest != observed.parameter_layout_digest:
+        raise HFContractError("hf_layout_identity_mismatch", "parameter layout differs")
+    if expected.tokenizer != observed.tokenizer:
+        raise HFContractError(
+            "hf_tokenizer_identity_mismatch", "tokenizer identity differs"
+        )
+    if expected.vocabulary != observed.vocabulary:
+        raise HFContractError(
+            "hf_vocabulary_identity_mismatch", "vocabulary identity differs"
+        )
+    if expected.special_tokens != observed.special_tokens:
+        raise HFContractError(
+            "hf_special_token_identity_mismatch", "special token identity differs"
+        )
+    if expected.parameter_projections != observed.parameter_projections:
+        raise HFContractError(
+            "hf_parameter_projection_mismatch", "parameter projection differs"
+        )
+    if (
+        expected.architecture_projection != observed.architecture_projection
+        or expected.digest != observed.digest
+    ):
+        raise HFContractError(
+            "hf_descriptor_identity_mismatch", "descriptor identity differs"
+        )
+
+
 # P3.5 spelling retained as an alias to the canonical projection type.
 HFParameterMapping = HFParameterProjection
 
@@ -746,4 +810,5 @@ __all__ = [
     "HFVocabularyIdentity",
     "canonical_hf_json",
     "hf_digest",
+    "validate_hf_descriptor_match",
 ]

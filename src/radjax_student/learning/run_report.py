@@ -10,6 +10,7 @@ from typing import Any, Literal
 
 from radjax_student.contracts import (
     HFCompatibilityDescriptor,
+    HFContractError,
     ObjectiveExecutionDescriptor,
 )
 from radjax_student.learning._json import (
@@ -239,6 +240,14 @@ class RunHFSummary:
     def __post_init__(self) -> None:
         if not isinstance(self.descriptor, HFCompatibilityDescriptor):
             raise TypeError("HF descriptor must be HFCompatibilityDescriptor")
+        if not {
+            "no_hf_export",
+            "hf_export_not_implemented",
+        }.intersection(self.descriptor.non_claims):
+            raise HFContractError(
+                "report_hf_descriptor_mismatch",
+                "run reports cannot claim an unexecuted Hugging Face export",
+            )
 
     def to_dict(self) -> dict[str, Any]:
         descriptor = self.descriptor
