@@ -411,7 +411,7 @@ def _hf_fixture():
         ParameterCatalog,
         ParameterDescriptor,
     )
-    from radjax_student.hf import HFParameterMapping
+    from radjax_student.contracts import HFParameterProjection
 
     config = ArchitectureConfig("p35", model_config={"width": 1}, vocab_size=4)
     catalog = ParameterCatalog(
@@ -422,99 +422,150 @@ def _hf_fixture():
         ),
     )
     mappings = (
-        HFParameterMapping("head.bias", "head/bias", "head.bias", (1,), "float32"),
-        HFParameterMapping(
-            "head.weight", "head/weight", "head.weight", (1, 1), "float32"
+        HFParameterProjection(
+            "head.bias",
+            ("head", "bias"),
+            (1,),
+            "float32",
+            "exportable",
+            "head.bias",
+            "identity",
+        ),
+        HFParameterProjection(
+            "head.weight",
+            ("head", "weight"),
+            (1, 1),
+            "float32",
+            "exportable",
+            "head.weight",
+            "identity",
         ),
     )
     return config, catalog, mappings
 
 
+def _p35_hf_descriptor(config, catalog, mappings):
+    from radjax_student.contracts import (
+        HFArchitectureProjection,
+        HFCompatibilityDescriptor,
+        HFSpecialTokenIdentity,
+        HFTokenizerIdentity,
+        HFVocabularyIdentity,
+        hf_digest,
+    )
+
+    if dict(config.model_config) != {"width": 1}:
+        raise ValueError("architecture configuration conflicts with HF projection")
+    expected = {item.path: item for item in catalog.parameters}
+    actual = {item.logical_path: item for item in mappings}
+    if set(actual) != set(expected):
+        raise ValueError("parameter projections must exactly cover catalog")
+    for path, parameter in expected.items():
+        projection = actual[path]
+        if projection.shape != parameter.shape or projection.dtype != parameter.dtype:
+            raise ValueError("parameter projection conflicts with catalog")
+    return HFCompatibilityDescriptor(
+        "hf_compatibility_descriptor.v2",
+        config.architecture_id,
+        1,
+        "p35",
+        hf_digest(config.to_dict()),
+        hf_digest(catalog.to_dict()),
+        hf_digest({"p35_layout": sorted(actual)}),
+        HFTokenizerIdentity(
+            "p35-tokenizer",
+            "synthetic-r1",
+            hf_digest("tokenizer"),
+            hf_digest("config"),
+            "synthetic",
+            hf_digest("normalization"),
+            "synthetic",
+        ),
+        HFVocabularyIdentity(
+            4, hf_digest("vocabulary"), hf_digest("mapping"), hf_digest("added"), None
+        ),
+        HFSpecialTokenIdentity(None, None, 0, None, None),
+        tuple(mappings),
+        HFArchitectureProjection("p35", "p35", 1, 1, 4, 1, {"width": 1}),
+        ("hf_export_not_implemented",),
+    )
+
+
 def _check_hf() -> GateCheck:
     from radjax_student.architecture import ArchitectureConfig
-    from radjax_student.hf import HFCompatibilityDescriptor, HFParameterMapping
+    from radjax_student.contracts import HFParameterProjection
 
     config, catalog, mappings = _hf_fixture()
     try:
-        descriptor = HFCompatibilityDescriptor.from_architecture(
-            config,
-            catalog,
-            model_type="p35",
-            tokenizer_id="p35-tokenizer",
-            special_token_ids={"pad": 0},
-            parameter_mappings=mappings,
-        )
+        descriptor = _p35_hf_descriptor(config, catalog, mappings)
         duplicate_jax = (
             mappings[0],
-            HFParameterMapping(
-                "head.weight", "head/bias", "head.weight", (1, 1), "float32"
+            HFParameterProjection(
+                "head.weight",
+                ("head", "bias"),
+                (1, 1),
+                "float32",
+                "exportable",
+                "head.weight",
+                "identity",
             ),
         )
         duplicate_hf = (
             mappings[0],
-            HFParameterMapping(
-                "head.weight", "head/weight", "head.bias", (1, 1), "float32"
+            HFParameterProjection(
+                "head.weight",
+                ("head", "weight"),
+                (1, 1),
+                "float32",
+                "exportable",
+                "head.bias",
+                "identity",
             ),
         )
         checks = {
             "duplicate_jax_rejected": _expect_rejected(
-                lambda: HFCompatibilityDescriptor.from_architecture(
-                    config,
-                    catalog,
-                    model_type="p35",
-                    tokenizer_id="p35",
-                    special_token_ids={"pad": 0},
-                    parameter_mappings=duplicate_jax,
-                )
+                lambda: _p35_hf_descriptor(config, catalog, duplicate_jax)
             ),
             "duplicate_hf_rejected": _expect_rejected(
-                lambda: HFCompatibilityDescriptor.from_architecture(
-                    config,
-                    catalog,
-                    model_type="p35",
-                    tokenizer_id="p35",
-                    special_token_ids={"pad": 0},
-                    parameter_mappings=duplicate_hf,
-                )
+                lambda: _p35_hf_descriptor(config, catalog, duplicate_hf)
             ),
             "missing_catalog_rejected": _expect_rejected(
-                lambda: HFCompatibilityDescriptor.from_architecture(
-                    config,
-                    catalog,
-                    model_type="p35",
-                    tokenizer_id="p35",
-                    special_token_ids={"pad": 0},
-                    parameter_mappings=(mappings[0],),
-                )
+                lambda: _p35_hf_descriptor(config, catalog, (mappings[0],))
             ),
             "shape_mismatch_rejected": _expect_rejected(
-                lambda: HFCompatibilityDescriptor.from_architecture(
+                lambda: _p35_hf_descriptor(
                     config,
                     catalog,
-                    model_type="p35",
-                    tokenizer_id="p35",
-                    special_token_ids={"pad": 0},
-                    parameter_mappings=(
+                    (
                         mappings[0],
-                        HFParameterMapping(
+                        HFParameterProjection(
                             "head.weight",
-                            "head/weight",
-                            "head.weight",
+                            ("head", "weight"),
                             (2, 1),
                             "float32",
+                            "exportable",
+                            "head.weight",
+                            "identity",
                         ),
                     ),
                 )
             ),
             "runtime_name_rejected": _expect_rejected(
-                lambda: HFParameterMapping(
-                    "head.weight", "mesh/weight", "head.weight", (1, 1), "float32"
+                lambda: HFParameterProjection(
+                    "head.weight",
+                    ("mesh", "weight"),
+                    (1, 1),
+                    "float32",
+                    "exportable",
+                    "head.weight",
+                    "identity",
                 )
             ),
             "config_conflict_rejected": _expect_rejected(
-                lambda: descriptor.validate_against(
+                lambda: _p35_hf_descriptor(
                     ArchitectureConfig("p35", model_config={"width": 2}, vocab_size=4),
                     catalog,
+                    mappings,
                 )
             ),
         }
@@ -548,7 +599,7 @@ def _check_hf() -> GateCheck:
                 optional_import=optional_import,
             )
         return _check_success(
-            mapping_count=len(descriptor.parameter_mappings),
+            mapping_count=len(descriptor.parameter_projections),
             **checks,
             optional_import=optional_import,
         )

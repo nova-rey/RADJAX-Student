@@ -135,7 +135,9 @@ P3.12A locally accepted
 
 P3.12A.1 removes the deprecated split JAX objective authority from core production namespaces; registry-selected objective execution is the only active path.
 
-P3.12B next and unstarted
+P3.12B locally accepted
+
+P3.12C next and unstarted
 
 Phase 4 remains unstarted
 

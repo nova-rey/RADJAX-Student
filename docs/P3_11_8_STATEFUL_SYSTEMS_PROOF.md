@@ -34,7 +34,9 @@ P3.11 integration closure complete
 
 P3.12A locally accepted
 
-P3.12B next and unstarted
+P3.12B locally accepted
+
+P3.12C next and unstarted
 
 Phase 4 remains unstarted
 

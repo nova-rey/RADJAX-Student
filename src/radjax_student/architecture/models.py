@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -22,6 +23,8 @@ from radjax_student.architecture.errors import (
     ArchitectureIssue,
 )
 from radjax_student.contracts import (
+    HFCompatibilityDescriptor,
+    HFContractError,
     HFPreservationReference,
     LearningBatch,
     ObjectiveScope,
@@ -527,6 +530,10 @@ class ArchitectureInitResult:
     architecture_carry: Any = field(default=None, repr=False, compare=False)
     architecture_carry_descriptor: Mapping[str, Any] | None = None
     parameter_layout: ParameterTreeLayout | None = None
+    hf_descriptor: HFCompatibilityDescriptor | None = None
+    # Compatibility-only parsing carrier for pre-P3.12B initialization records.
+    # Modern lifecycle construction requires hf_descriptor and verifies the
+    # descriptor-derived reference below.
     hf_reference: HFPreservationReference | None = None
     warnings: tuple[ArchitectureIssue, ...] = ()
     claims_not_made: tuple[str, ...] = ARCHITECTURE_CLAIMS_NOT_MADE
@@ -546,12 +553,34 @@ class ArchitectureInitResult:
             raise TypeError(
                 "parameter_layout must be ParameterTreeLayout when specified"
             )
+        if self.hf_descriptor is not None and not isinstance(
+            self.hf_descriptor, HFCompatibilityDescriptor
+        ):
+            raise TypeError("hf_descriptor must be HFCompatibilityDescriptor when set")
         if self.hf_reference is not None and not isinstance(
             self.hf_reference, HFPreservationReference
         ):
             raise TypeError(
                 "hf_reference must be HFPreservationReference when specified"
             )
+        if self.hf_descriptor is None and self.hf_reference is not None:
+            raise HFContractError(
+                "hf_descriptor_missing",
+                "initialization cannot accept a reference without its "
+                "authoritative descriptor",
+            )
+        if self.hf_descriptor is not None:
+            if self.parameter_layout is None:
+                raise ValueError("HF descriptor requires parameter_layout")
+            _validate_hf_descriptor_against_init(
+                self.hf_descriptor,
+                parameter_catalog=self.parameter_catalog,
+                parameter_layout=self.parameter_layout,
+            )
+            derived = self.hf_descriptor.preservation_reference()
+            if self.hf_reference is not None and self.hf_reference != derived:
+                raise ValueError("HF reference must be derived from HF descriptor")
+            object.__setattr__(self, "hf_reference", derived)
         if self.architecture_carry_descriptor is not None and not isinstance(
             self.architecture_carry_descriptor, Mapping
         ):
@@ -584,6 +613,9 @@ class ArchitectureInitResult:
             "parameter_layout": None
             if self.parameter_layout is None
             else self.parameter_layout.to_dict(),
+            "hf_descriptor": None
+            if self.hf_descriptor is None
+            else self.hf_descriptor.to_dict(),
             "hf_reference": None
             if self.hf_reference is None
             else self.hf_reference.to_dict(),
@@ -595,6 +627,7 @@ class ArchitectureInitResult:
     def from_dict(cls, payload: Mapping[str, Any]) -> ArchitectureInitResult:
         raw_state = payload.get("architecture_state")
         raw_hf_reference = payload.get("hf_reference")
+        raw_hf_descriptor = payload.get("hf_descriptor")
         raw_layout = payload.get("parameter_layout")
         raw_carry_descriptor = payload.get("architecture_carry_descriptor")
         return cls(
@@ -622,6 +655,13 @@ class ArchitectureInitResult:
                     mapping(raw_hf_reference, "hf_reference")
                 )
             ),
+            hf_descriptor=(
+                None
+                if raw_hf_descriptor is None
+                else HFCompatibilityDescriptor.from_dict(
+                    mapping(raw_hf_descriptor, "hf_descriptor")
+                )
+            ),
             architecture_carry_descriptor=(
                 None
                 if raw_carry_descriptor is None
@@ -636,6 +676,68 @@ class ArchitectureInitResult:
                 "claims_not_made",
             ),
         )
+
+
+def _digest_contract(value: Mapping[str, Any]) -> str:
+    return hashlib.sha256(
+        (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    ).hexdigest()
+
+
+def _validate_hf_descriptor_against_init(
+    descriptor: HFCompatibilityDescriptor,
+    *,
+    parameter_catalog: ParameterCatalog,
+    parameter_layout: ParameterTreeLayout,
+    architecture_config: ArchitectureConfig | None = None,
+    architecture_version: int | None = None,
+) -> None:
+    """Architecture-owned binding of neutral HF identity to concrete layout."""
+
+    if descriptor.architecture_id != parameter_catalog.architecture_id:
+        raise ValueError("HF descriptor architecture identity does not match catalog")
+    if descriptor.parameter_layout_digest != parameter_layout.digest():
+        raise ValueError("HF descriptor layout identity does not match initialization")
+    if architecture_config is not None:
+        if descriptor.architecture_id != architecture_config.architecture_id:
+            raise ValueError(
+                "HF descriptor architecture identity does not match config"
+            )
+        if descriptor.architecture_config_digest != _digest_contract(
+            architecture_config.to_dict()
+        ):
+            raise ValueError(
+                "HF descriptor config digest does not match initialization"
+            )
+        if descriptor.parameter_catalog_digest != _digest_contract(
+            parameter_catalog.to_dict()
+        ):
+            raise ValueError(
+                "HF descriptor catalog digest does not match initialization"
+            )
+    if architecture_version is not None and (
+        descriptor.architecture_plugin_version != architecture_version
+    ):
+        raise ValueError("HF descriptor plugin version does not match architecture")
+    projections = {item.logical_path: item for item in descriptor.parameter_projections}
+    if set(projections) != set(parameter_layout.logical_paths):
+        raise ValueError(
+            "HF descriptor projections must exactly cover parameter layout"
+        )
+    for entry in parameter_layout.entries:
+        projection = projections[entry.logical_path]
+        if (
+            projection.jax_keypath != entry.jax_keypath
+            or projection.shape != entry.shape
+            or projection.dtype != entry.dtype
+            or projection.tied_parameter_group != entry.tied_weight_group
+        ):
+            raise ValueError("HF descriptor projection conflicts with parameter layout")
+        expected_exportability = "exportable" if entry.exportable else "non_exportable"
+        if projection.exportability != expected_exportability:
+            raise ValueError("HF descriptor exportability conflicts with layout")
+        if projection.hf_distribution_key != entry.hf_distribution_key:
+            raise ValueError("HF descriptor HF key conflicts with parameter layout")
 
 
 @dataclass(frozen=True)

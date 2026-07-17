@@ -15,6 +15,7 @@ from radjax_student.architecture import (
     JaxArchitecturePlugin,
     ParameterCatalog,
 )
+from radjax_student.architecture.models import _validate_hf_descriptor_against_init
 from radjax_student.checkpoints import (
     JaxLearningCheckpointV3,
     load_learning_checkpoint_v3,
@@ -24,6 +25,8 @@ from radjax_student.checkpoints.npz_codec import (
     descriptor_digest,
 )
 from radjax_student.contracts import (
+    HFCompatibilityDescriptor,
+    HFContractError,
     HFPreservationReference,
     ObjectiveConfig,
     ObjectiveContractError,
@@ -70,6 +73,7 @@ class JaxLearningLifecycle:
     architecture_carry: Any
     parameter_catalog: ParameterCatalog
     parameter_layout: ParameterTreeLayout
+    hf_descriptor: HFCompatibilityDescriptor
     hf_reference: HFPreservationReference
     objective_selection: ObjectiveRegistrySelection
     objective_config: ObjectiveConfig
@@ -111,14 +115,22 @@ class JaxLearningLifecycle:
             self.parameter_layout.logical_paths
         ):
             raise ValueError("parameter catalog and layout paths must match")
+        if not isinstance(self.hf_descriptor, HFCompatibilityDescriptor):
+            raise TypeError("hf_descriptor must be HFCompatibilityDescriptor")
         if not isinstance(self.hf_reference, HFPreservationReference):
             raise TypeError("hf_reference must be HFPreservationReference")
-        if self.hf_reference.architecture_id != self.architecture.architecture_id:
-            raise ValueError("HF reference identity does not match plugin")
-        if self.hf_reference.parameter_layout_digest != self.parameter_layout.digest():
-            raise ValueError("HF reference layout identity does not match lifecycle")
-        if self.hf_reference.architecture_config_digest != self.config_digest:
-            raise ValueError("HF reference config identity does not match lifecycle")
+        _validate_hf_descriptor_against_init(
+            self.hf_descriptor,
+            parameter_catalog=self.parameter_catalog,
+            parameter_layout=self.parameter_layout,
+            architecture_config=self.architecture_config,
+            architecture_version=self.architecture.architecture_version,
+        )
+        if self.hf_reference != self.hf_descriptor.preservation_reference():
+            raise HFContractError(
+                "hf_reference_derivation_mismatch",
+                "HF reference was not derived from the lifecycle descriptor",
+            )
         if not isinstance(self.objective_selection, ObjectiveRegistrySelection):
             raise TypeError("lifecycle requires ObjectiveRegistrySelection")
         if not self.objective_selection.is_registry_selected:
@@ -231,6 +243,7 @@ class JaxLearningLifecycle:
             architecture_carry=self.architecture_carry,
             parameter_layout=self.parameter_layout,
             architecture_state=self.architecture_state,
+            hf_descriptor=self.hf_descriptor,
             hf_reference=self.hf_reference,
             objective_config=self.objective_config,
             resolved_objective_selection=self.resolved_objective_selection,
@@ -250,6 +263,8 @@ class JaxLearningLifecycle:
             raise ValueError("checkpoint runtime identity does not match lifecycle")
         if checkpoint.parameter_layout.digest() != self.parameter_layout.digest():
             raise ValueError("checkpoint parameter layout does not match lifecycle")
+        if checkpoint.hf_descriptor != self.hf_descriptor:
+            raise ValueError("checkpoint HF descriptor does not match lifecycle")
         if checkpoint.hf_reference != self.hf_reference:
             raise ValueError("checkpoint HF identity does not match lifecycle")
         if checkpoint.architecture_config_digest != self.config_digest:
@@ -281,6 +296,7 @@ class JaxLearningLifecycle:
             parameter_layout=self.parameter_layout,
             runtime_reference=self.runtime_reference,
             expected_hf_reference=self.hf_reference,
+            expected_hf_descriptor=self.hf_descriptor,
             expected_architecture_config_digest=self.config_digest,
             expected_parameter_catalog_digest=self.catalog_digest,
             expected_architecture_state_id=(

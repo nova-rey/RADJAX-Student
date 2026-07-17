@@ -32,7 +32,12 @@ P3.12A locally accepted
 
 Post-closure note: P3.12A.1 removed the remaining deprecated split JAX objective authority from active core namespaces without changing the accepted P3.11 conveyor.
 
-P3.12B next and unstarted
+P3.12B locally accepted
+
+Post-closure note: P3.12B made one complete architecture-owned HF descriptor
+authoritative and made the preservation reference a derived lifecycle value.
+
+P3.12C next and unstarted
 
 Phase 4 remains unstarted
 

@@ -23,7 +23,6 @@ from radjax_student.checkpoints.npz_codec import (
     read_deterministic_npz,
     write_deterministic_npz,
 )
-from radjax_student.contracts import HFPreservationReference
 from radjax_student.optimizers import SgdOptimizer
 from radjax_student.validation.p3_11_10_gate.implementations.common import (
     ExperimentExecution,
@@ -863,6 +862,7 @@ def experiment_g_runtime_reference_mismatch(
 ) -> ExperimentExecution:
     baseline, mutated, optimizer, layout = _copy_valid(context, "runtime-reference")
     selection, config, resolved, descriptor = checkpoint_objective()
+    expected = checkpoint_payload(optimizer)
 
     def load(directory: Path):
         return load_learning_checkpoint_v3(
@@ -870,6 +870,8 @@ def experiment_g_runtime_reference_mismatch(
             optimizer=optimizer,
             parameter_layout=layout,
             runtime_reference="foreign-runtime",
+            expected_hf_reference=expected.hf_reference,
+            expected_hf_descriptor=expected.hf_descriptor,
             expected_objective_descriptor=descriptor,
             expected_objective_config=config,
             expected_resolved_objective_selection=resolved,
@@ -906,16 +908,9 @@ def experiment_g_caller_expected_identity_mismatch(
     baseline, mutated, optimizer, layout = _copy_valid(context, "expected-hf")
     selection, config, resolved, descriptor = checkpoint_objective()
     checkpoint = load_valid_checkpoint(baseline, optimizer, layout)
-    foreign = HFPreservationReference(
-        checkpoint.hf_reference.descriptor_schema_version,
-        checkpoint.hf_reference.descriptor_digest,
-        checkpoint.hf_reference.model_type,
-        checkpoint.hf_reference.architecture_id,
-        "foreign-tokenizer",
-        checkpoint.hf_reference.vocabulary_size,
-        checkpoint.hf_reference.special_token_digest,
-        checkpoint.hf_reference.parameter_layout_digest,
-        checkpoint.hf_reference.architecture_config_digest,
+    foreign = replace(
+        checkpoint.hf_descriptor,
+        tokenizer=replace(checkpoint.hf_descriptor.tokenizer, tokenizer_id="foreign"),
     )
 
     def load(directory: Path):
@@ -923,7 +918,8 @@ def experiment_g_caller_expected_identity_mismatch(
             directory,
             optimizer=optimizer,
             parameter_layout=layout,
-            expected_hf_reference=foreign,
+            expected_hf_reference=foreign.preservation_reference(),
+            expected_hf_descriptor=foreign,
             expected_objective_descriptor=descriptor,
             expected_objective_config=config,
             expected_resolved_objective_selection=resolved,
@@ -936,7 +932,7 @@ def experiment_g_caller_expected_identity_mismatch(
         baseline_directory=baseline,
         mutated_directory=mutated,
         public_input_kind="checkpoint_load_request",
-        canonical_path="expected_hf_reference.tokenizer_id",
+        canonical_path="expected_hf_descriptor.tokenizer.tokenizer_id",
         operation="replace_expected_tokenizer_identity",
         value_summary={"tokenizer_id": "foreign-tokenizer"},
         public_callable=load,
@@ -963,6 +959,7 @@ def experiment_g_caller_omits_required_lifecycle_expectations(
     baseline_request = {
         "directory": baseline,
         "expected_hf_reference": checkpoint.hf_reference,
+        "expected_hf_descriptor": checkpoint.hf_descriptor,
         "expected_architecture_config_digest": checkpoint.architecture_config_digest,
         "expected_parameter_catalog_digest": checkpoint.parameter_catalog_digest,
         "expected_architecture_carry_descriptor": valid_carry,
@@ -974,6 +971,7 @@ def experiment_g_caller_omits_required_lifecycle_expectations(
     mutated_request = {
         "directory": mutated,
         "expected_hf_reference": None,
+        "expected_hf_descriptor": None,
         "expected_architecture_config_digest": None,
         "expected_parameter_catalog_digest": None,
         "expected_architecture_carry_descriptor": None,
@@ -990,6 +988,7 @@ def experiment_g_caller_omits_required_lifecycle_expectations(
             optimizer=optimizer,
             parameter_layout=layout,
             expected_hf_reference=request["expected_hf_reference"],
+            expected_hf_descriptor=request["expected_hf_descriptor"],
             expected_architecture_config_digest=request[
                 "expected_architecture_config_digest"
             ],

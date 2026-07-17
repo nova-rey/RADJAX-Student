@@ -1,6 +1,19 @@
 """Dependency-free shared contracts for the pre-Phase-4 learning conveyor."""
 
-from radjax_student.contracts.hf import HFPreservationReference
+from radjax_student.contracts.hf import (
+    HFArchitectureProjection,
+    HFCompatibilityDescriptor,
+    HFCompatibilityError,
+    HFContractError,
+    HFParameterMapping,
+    HFParameterProjection,
+    HFPreservationReference,
+    HFSpecialTokenIdentity,
+    HFTokenizerIdentity,
+    HFVocabularyIdentity,
+    canonical_hf_json,
+    hf_digest,
+)
 from radjax_student.contracts.layout import (
     JaxOptimizerStateDescriptor,
     ParameterTreeLayout,
@@ -31,6 +44,15 @@ from radjax_student.contracts.shared import (
 
 __all__ = [
     "HFPreservationReference",
+    "HFArchitectureProjection",
+    "HFCompatibilityDescriptor",
+    "HFCompatibilityError",
+    "HFContractError",
+    "HFParameterMapping",
+    "HFParameterProjection",
+    "HFSpecialTokenIdentity",
+    "HFTokenizerIdentity",
+    "HFVocabularyIdentity",
     "JaxOptimizerStateDescriptor",
     "LearningBatch",
     "MetricRecord",
@@ -52,5 +74,7 @@ __all__ = [
     "UpdateScope",
     "UpdateScopeKind",
     "canonical_objective_json",
+    "canonical_hf_json",
+    "hf_digest",
     "objective_digest",
 ]

@@ -44,6 +44,7 @@ from radjax_student.learning.protocols import (
 from radjax_student.learning.run_report import (
     LearningRunReport,
     RunCheckpointSummary,
+    RunHFSummary,
     RunIssueSummary,
     RunLifecycleSummary,
     RunMetricSummary,
@@ -93,6 +94,7 @@ __all__ = [
     "MetricSummary",
     "LearningEvent",
     "LearningRunReport",
+    "RunHFSummary",
     "RunCheckpointSummary",
     "RunIssueSummary",
     "RunLifecycleSummary",

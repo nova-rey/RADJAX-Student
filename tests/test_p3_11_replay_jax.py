@@ -214,6 +214,10 @@ def test_cross_mode_result_is_computed_from_executed_arrays_and_metrics(tmp_path
                     lifecycle_identity=replace(
                         eager.evidence.lifecycle_identity,
                         parameter_catalog_digest=_changed_digest(),
+                        hf_reference=replace(
+                            eager.evidence.lifecycle_identity.hf_reference,
+                            parameter_catalog_digest=_changed_digest(),
+                        ),
                     ),
                 ),
             ),

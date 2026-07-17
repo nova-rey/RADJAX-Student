@@ -20,6 +20,7 @@ from radjax_student.learning.p3_5_acceptance import (
     _check_architecture_objective,
     _check_checkpoint,
     _check_hf,
+    _p35_hf_descriptor,
     _run_command,
     _run_jax_contract,
     run_p3_5_architecture_integrity_acceptance,
@@ -160,51 +161,53 @@ def test_16_hf_duplicate_jax_path_is_rejected_by_real_constructor():
     from radjax_student.learning.p3_5_acceptance import _hf_fixture
 
     config, catalog, mappings = _hf_fixture()
-    from radjax_student.hf import HFCompatibilityDescriptor
 
     duplicate = (
         mappings[0],
         HFParameterMapping(
-            "head.weight", "head/bias", "head.weight", (1, 1), "float32"
+            "head.weight",
+            ("head", "bias"),
+            (1, 1),
+            "float32",
+            "exportable",
+            "head.weight",
+            "identity",
         ),
     )
     with pytest.raises(HFCompatibilityError):
-        HFCompatibilityDescriptor.from_architecture(
-            config,
-            catalog,
-            model_type="p35",
-            tokenizer_id="p35",
-            special_token_ids={"pad": 0},
-            parameter_mappings=duplicate,
-        )
+        _p35_hf_descriptor(config, catalog, duplicate)
 
 
 def test_17_hf_duplicate_distribution_key_is_rejected_by_real_constructor():
-    from radjax_student.hf import HFCompatibilityDescriptor
     from radjax_student.learning.p3_5_acceptance import _hf_fixture
 
     config, catalog, mappings = _hf_fixture()
     duplicate = (
         mappings[0],
         HFParameterMapping(
-            "head.weight", "head/weight", "head.bias", (1, 1), "float32"
+            "head.weight",
+            ("head", "weight"),
+            (1, 1),
+            "float32",
+            "exportable",
+            "head.bias",
+            "identity",
         ),
     )
     with pytest.raises(HFCompatibilityError):
-        HFCompatibilityDescriptor.from_architecture(
-            config,
-            catalog,
-            model_type="p35",
-            tokenizer_id="p35",
-            special_token_ids={"pad": 0},
-            parameter_mappings=duplicate,
-        )
+        _p35_hf_descriptor(config, catalog, duplicate)
 
 
 def test_18_hf_runtime_layout_name_is_rejected_by_real_constructor():
     with pytest.raises(HFCompatibilityError):
         HFParameterMapping(
-            "head.weight", "mesh/weight", "head.weight", (1, 1), "float32"
+            "head.weight",
+            ("mesh", "weight"),
+            (1, 1),
+            "float32",
+            "exportable",
+            "head.weight",
+            "identity",
         )
 
 

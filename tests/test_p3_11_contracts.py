@@ -69,8 +69,18 @@ def test_nested_layout_metadata_is_immutable_and_canonically_serializable():
 
 
 def test_hf_reference_requires_lifecycle_identity():
-    reference = HFPreservationReference(
-        "v1", "d", "model", "arch", "token", 4, "special", "layout", "config"
+    reference = HFPreservationReference.from_dict(
+        {
+            "descriptor_schema_version": "hf_compatibility_descriptor.v2",
+            "descriptor_digest": "d" * 64,
+            "architecture_id": "arch",
+            "model_type": "model",
+            "architecture_config_digest": "c" * 64,
+            "parameter_layout_digest": "a" * 64,
+            "tokenizer_identity_digest": "b" * 64,
+            "vocabulary_identity_digest": "e" * 64,
+            "special_token_identity_digest": "f" * 64,
+        }
     )
     assert reference.to_dict()["architecture_id"] == "arch"
 

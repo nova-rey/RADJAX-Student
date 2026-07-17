@@ -7,7 +7,8 @@ Tome payload consumption, export, or Phase 4 implementation.
 ## Checkpoints
 
 - P3.12A Objective Identity Contract: locally accepted.
-- P3.12B: next and unstarted.
+- P3.12B Hugging Face Descriptor Authority: locally accepted.
+- P3.12C: next and unstarted.
 
 P3.12A adds one neutral objective identity/config/descriptor contract and one
 production registry. The registry-selected plugin, its capability profile,
@@ -32,7 +33,9 @@ P3.11 integration closure complete
 
 P3.12A locally accepted
 
-P3.12B next and unstarted
+P3.12B locally accepted
+
+P3.12C next and unstarted
 
 Phase 4 remains unstarted
 
@@ -40,7 +43,14 @@ Phase 4 requires successful required remote base/JAX CI or an explicit repositor
 
 ## Non-Claims
 
-P3.12A makes no production architecture, Tome payload consumption,
+P3.12A/P3.12B make no production architecture, Tome payload consumption,
 distillation, Hugging Face export, accelerator-scale training, multi-device,
 cross-hardware replay, cross-version replay, performance, model-quality, or
 RadLads-parity claim.
+
+P3.12B binds tokenizer, vocabulary, special-token, architecture-projection,
+and parameter-projection identity into one architecture-owned descriptor. The
+preservation reference is derived from that descriptor, checkpoint v3 persists
+both forms, and routine reports retain only a compact digest summary. No HF
+export, Transformers dependency, safetensors output, or network loading was
+implemented.

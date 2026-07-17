@@ -8,7 +8,10 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
-from radjax_student.contracts import ObjectiveExecutionDescriptor
+from radjax_student.contracts import (
+    HFCompatibilityDescriptor,
+    ObjectiveExecutionDescriptor,
+)
 from radjax_student.learning._json import (
     finite_number,
     freeze_json_mapping,
@@ -228,6 +231,31 @@ class RunObjectiveSummary:
 
 
 @dataclass(frozen=True)
+class RunHFSummary:
+    """Compact report projection; the checkpoint owns the complete descriptor."""
+
+    descriptor: HFCompatibilityDescriptor
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.descriptor, HFCompatibilityDescriptor):
+            raise TypeError("HF descriptor must be HFCompatibilityDescriptor")
+
+    def to_dict(self) -> dict[str, Any]:
+        descriptor = self.descriptor
+        return {
+            "schema_version": descriptor.schema_version,
+            "descriptor_digest": descriptor.digest,
+            "architecture_id": descriptor.architecture_id,
+            "model_type": descriptor.model_type,
+            "tokenizer_identity_digest": descriptor.tokenizer.digest,
+            "vocabulary_identity_digest": descriptor.vocabulary.digest,
+            "special_token_identity_digest": descriptor.special_tokens.digest,
+            "parameter_projection_digest": descriptor.parameter_projection_digest,
+            "non_claims": list(descriptor.non_claims),
+        }
+
+
+@dataclass(frozen=True)
 class LearningRunReport:
     run_id: str
     status: RunStatusSummary
@@ -237,6 +265,7 @@ class LearningRunReport:
     checkpoints: RunCheckpointSummary
     scopes: RunScopeSummary
     objective: RunObjectiveSummary | None = None
+    hf: RunHFSummary | None = None
     hook_blockers: tuple[LearningIssue, ...] = ()
     schema_version: str = SCHEMA
     claims_made: tuple[str, ...] = CLAIMS
@@ -262,6 +291,8 @@ class LearningRunReport:
             self.objective, RunObjectiveSummary
         ):
             raise TypeError("learning run report objective is invalid")
+        if self.hf is not None and not isinstance(self.hf, RunHFSummary):
+            raise TypeError("learning run report HF summary is invalid")
         metrics = tuple(self.metrics)
         blockers = tuple(self.hook_blockers)
         if any(not isinstance(metric, RunMetricSummary) for metric in metrics):
@@ -301,6 +332,7 @@ class LearningRunReport:
             "checkpoints": self.checkpoints.to_dict(),
             "scopes": self.scopes.to_dict(),
             "objective": None if self.objective is None else self.objective.to_dict(),
+            "hf": None if self.hf is None else self.hf.to_dict(),
             "hook_blockers": [blocker.to_dict() for blocker in self.hook_blockers],
             "claims_made": list(self.claims_made),
             "claims_not_made": list(self.claims_not_made),
@@ -319,6 +351,7 @@ def build_learning_run_report(
     update_scope: str,
     objective_scope: str,
     objective_descriptor: ObjectiveExecutionDescriptor | None = None,
+    hf_descriptor: HFCompatibilityDescriptor | None = None,
     metadata: Mapping[str, Any] | None = None,
 ) -> LearningRunReport:
     """Build a report from retained loop observations without changing the run."""
@@ -388,6 +421,7 @@ def build_learning_run_report(
             if objective_descriptor is None
             else RunObjectiveSummary(objective_descriptor)
         ),
+        hf=None if hf_descriptor is None else RunHFSummary(hf_descriptor),
         hook_blockers=tuple(loop_result.hook_blockers),
         metadata={} if metadata is None else metadata,
     )

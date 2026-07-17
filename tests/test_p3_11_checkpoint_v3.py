@@ -26,7 +26,12 @@ from radjax_student.checkpoints.npz_codec import (
     write_deterministic_npz,
 )
 from radjax_student.contracts import (
-    HFPreservationReference,
+    HFArchitectureProjection,
+    HFCompatibilityDescriptor,
+    HFParameterProjection,
+    HFSpecialTokenIdentity,
+    HFTokenizerIdentity,
+    HFVocabularyIdentity,
     JaxOptimizerStateDescriptor,
     ObjectiveConfig,
     ParameterTreeLayout,
@@ -87,6 +92,9 @@ def load_learning_checkpoint_v3(directory, *, optimizer, parameter_layout, **kwa
     """Test fixture always models caller-bound P3.12 continuation restore."""
 
     selection, config, resolved, descriptor = _objective_identity()
+    expected = _checkpoint(_state(optimizer))
+    kwargs.setdefault("expected_hf_reference", expected.hf_reference)
+    kwargs.setdefault("expected_hf_descriptor", expected.hf_descriptor)
     return _load_learning_checkpoint_v3(
         directory,
         optimizer=optimizer,
@@ -101,7 +109,7 @@ def load_learning_checkpoint_v3(directory, *, optimizer, parameter_layout, **kwa
 
 def _checkpoint(state: JaxOptimizerState) -> JaxLearningCheckpointV3:
     layout = _layout()
-    config_digest = "architecture-config-digest"
+    config_digest = _digest({"architecture_config": "test"})
     objective_selection, objective_config, resolved_selection, objective_descriptor = (
         _objective_identity()
     )
@@ -115,23 +123,68 @@ def _checkpoint(state: JaxOptimizerState) -> JaxLearningCheckpointV3:
         {"count": np.asarray(state.envelope.step, dtype=np.int32)},
         layout,
         ArchitectureState("architecture-state-1"),
-        HFPreservationReference(
-            "hf_descriptor.v1",
-            "hf-descriptor-digest",
-            "test-model",
-            layout.architecture_id,
-            "tokenizer-test",
-            8,
-            "special-token-digest",
-            layout.digest(),
-            config_digest,
-        ),
+        _hf_descriptor(layout, config_digest),
+        _hf_descriptor(layout, config_digest).preservation_reference(),
         config_digest,
-        "parameter-catalog-digest",
+        _digest({"parameter_catalog": "test"}),
         objective_config=objective_config,
         resolved_objective_selection=resolved_selection,
         objective_descriptor=objective_descriptor,
         objective_registry_selection=objective_selection.to_dict(),
+    )
+
+
+def _digest(value) -> str:
+    return hashlib.sha256(
+        (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    ).hexdigest()
+
+
+def _hf_descriptor(layout, config_digest):
+    return HFCompatibilityDescriptor(
+        schema_version="hf_compatibility_descriptor.v2",
+        architecture_id=layout.architecture_id,
+        architecture_plugin_version=1,
+        model_type="checkpoint_test_model",
+        architecture_config_digest=config_digest,
+        parameter_catalog_digest=_digest({"parameter_catalog": "test"}),
+        parameter_layout_digest=layout.digest(),
+        tokenizer=HFTokenizerIdentity(
+            "tokenizer-test",
+            "synthetic-r1",
+            _digest({"tokenizer": "test"}),
+            _digest({"config": "test"}),
+            "synthetic",
+            _digest({"norm": "identity"}),
+            "synthetic",
+        ),
+        vocabulary=HFVocabularyIdentity(
+            8,
+            _digest({"vocabulary": 8}),
+            _digest({"mapping": 8}),
+            _digest({"added": []}),
+            "0-3",
+        ),
+        special_tokens=HFSpecialTokenIdentity(0, 1, 2, 3, None),
+        parameter_projections=tuple(
+            HFParameterProjection(
+                entry.logical_path,
+                entry.jax_keypath,
+                entry.shape,
+                entry.dtype,
+                "non_exportable",
+                None,
+                "identity",
+                entry.tied_weight_group,
+                "checkpoint_test_not_exported",
+            )
+            for entry in layout.entries
+        ),
+        architecture_projection=HFArchitectureProjection(
+            "checkpoint_test_config", "checkpoint_test_architecture", 1, 1, 8, 1, {}
+        ),
+        non_claims=("no_hf_export",),
+        notes="Checkpoint test fixture.",
     )
 
 
@@ -248,7 +301,13 @@ def test_restore_requires_callers_expected_lifecycle_identity(tmp_path):
     checkpoint = load_learning_checkpoint_v3(
         tmp_path, optimizer=optimizer, parameter_layout=_layout()
     )
-    foreign_hf = replace(checkpoint.hf_reference, tokenizer_id="foreign-tokenizer")
+    foreign_descriptor = replace(
+        checkpoint.hf_descriptor,
+        tokenizer=replace(
+            checkpoint.hf_descriptor.tokenizer, tokenizer_id="foreign-tokenizer"
+        ),
+    )
+    foreign_hf = foreign_descriptor.preservation_reference()
     with pytest.raises(
         CheckpointValidationError, match="checkpoint_hf_identity_mismatch"
     ):
@@ -257,6 +316,7 @@ def test_restore_requires_callers_expected_lifecycle_identity(tmp_path):
             optimizer=optimizer,
             parameter_layout=_layout(),
             expected_hf_reference=foreign_hf,
+            expected_hf_descriptor=foreign_descriptor,
         )
     with pytest.raises(
         CheckpointValidationError, match="checkpoint_config_identity_mismatch"
@@ -283,8 +343,8 @@ def test_restore_requires_callers_expected_lifecycle_identity(tmp_path):
             optimizer=optimizer,
             parameter_layout=_layout(),
             expected_hf_reference=checkpoint.hf_reference,
-            expected_architecture_config_digest="architecture-config-digest",
-            expected_parameter_catalog_digest="parameter-catalog-digest",
+            expected_architecture_config_digest=checkpoint.architecture_config_digest,
+            expected_parameter_catalog_digest=checkpoint.parameter_catalog_digest,
             expected_architecture_state_id="architecture-state-1",
             expected_architecture_carry_descriptor=checkpoint.architecture_carry_descriptor,
         ).architecture_state.state_id

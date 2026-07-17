@@ -107,8 +107,8 @@ Implement the first architecture plugin:
 This phase validates the plugin system, not RWKV itself.
 
 > **Current integration status:** P3.11.1-P3.11.10 locally accepted; the
-> integration closure is complete. P3.12A is locally accepted, P3.12B is next
-> and unstarted, and Phase 4 remains unstarted pending successful required
+> integration closure is complete. P3.12A and P3.12B are locally accepted,
+> P3.12C is next and unstarted, and Phase 4 remains unstarted pending successful required
 > remote base/JAX CI or an explicit repository-owner waiver.
 
 # Phase 5 - Behavior Compilation
@@ -236,7 +236,9 @@ P3.12A locally accepted
 
 P3.12A.1 removes legacy split JAX objective authority from core production execution.
 
-P3.12B next and unstarted
+P3.12B locally accepted
+
+P3.12C next and unstarted
 
 Phase 4 remains unstarted
 

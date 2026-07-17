@@ -203,12 +203,14 @@ def experiment_h_different_hf_identity(
 ) -> ExperimentExecution:
     baseline = _receipt(context.repository_root)
     mutated = _receipt(context.repository_root)
-    mutated["experiment_identity"]["hf_reference"]["tokenizer_id"] = "foreign-tokenizer"
+    mutated["experiment_identity"]["hf_reference"]["tokenizer_identity_digest"] = (
+        "f" * 64
+    )
     return _record(
         context,
         baseline,
         mutated,
-        "experiment_identity.hf_reference.tokenizer_id",
+        "experiment_identity.hf_reference.tokenizer_identity_digest",
         "replace_resume_hf_tokenizer_identity",
     )
 

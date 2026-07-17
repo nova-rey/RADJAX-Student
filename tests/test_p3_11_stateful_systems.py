@@ -45,7 +45,12 @@ from radjax_student.checkpoints.npz_codec import (  # noqa: E402
     descriptor_digest,
 )
 from radjax_student.contracts import (  # noqa: E402
-    HFPreservationReference,
+    HFArchitectureProjection,
+    HFCompatibilityDescriptor,
+    HFParameterProjection,
+    HFSpecialTokenIdentity,
+    HFTokenizerIdentity,
+    HFVocabularyIdentity,
     ObjectiveConfig,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
@@ -176,18 +181,7 @@ class StatefulLinearJaxArchitecture(FakeArchitecturePlugin):
         self.validate_config(request.config)
         catalog = self.describe_parameters()
         layout = _layout()
-        config_digest = _digest(request.config.to_dict())
-        hf = HFPreservationReference(
-            "hf_preservation_reference.v1",
-            "stateful-linear-hf-descriptor",
-            "stateful-linear",
-            self.architecture_id,
-            "stateful-test-tokenizer",
-            8,
-            "stateful-special-tokens",
-            layout.digest(),
-            config_digest,
-        )
+        hf_descriptor = self._hf_descriptor(request, catalog, layout)
         return ArchitectureInitResult(
             parameter_catalog=catalog,
             architecture_state=ArchitectureState("stateful-linear-state.v1"),
@@ -212,7 +206,58 @@ class StatefulLinearJaxArchitecture(FakeArchitecturePlugin):
                 ),
             },
             parameter_layout=layout,
-            hf_reference=hf,
+            hf_descriptor=hf_descriptor,
+        )
+
+    def _hf_descriptor(self, request, catalog, layout):
+        return HFCompatibilityDescriptor(
+            schema_version="hf_compatibility_descriptor.v2",
+            architecture_id=self.architecture_id,
+            architecture_plugin_version=self.architecture_version,
+            model_type="radjax_stateful_linear_validation",
+            architecture_config_digest=_digest(request.config.to_dict()),
+            parameter_catalog_digest=_digest(catalog.to_dict()),
+            parameter_layout_digest=layout.digest(),
+            tokenizer=HFTokenizerIdentity(
+                "stateful-test-tokenizer",
+                "synthetic-r1",
+                _digest({"tokenizer": "stateful"}),
+                _digest({"config": "stateful"}),
+                "synthetic",
+                _digest({"normalization": "identity"}),
+                "synthetic",
+            ),
+            vocabulary=HFVocabularyIdentity(
+                8,
+                _digest({"vocabulary": 8}),
+                _digest({"mapping": "stateful"}),
+                _digest({"added": []}),
+                "0-3",
+            ),
+            special_tokens=HFSpecialTokenIdentity(0, 1, 2, 3, None),
+            parameter_projections=tuple(
+                HFParameterProjection(
+                    entry.logical_path,
+                    entry.jax_keypath,
+                    entry.shape,
+                    entry.dtype,
+                    "exportable",
+                    f"stateful.{entry.logical_path}",
+                    "identity",
+                    entry.tied_weight_group,
+                )
+                for entry in layout.entries
+            ),
+            architecture_projection=HFArchitectureProjection(
+                "stateful_linear_config", "stateful_linear", 1, 1, 8, 3, {}
+            ),
+            non_claims=("validation_only_architecture", "hf_export_not_implemented"),
+            notes="P3.11 validation-only stateful linear architecture",
+        )
+
+    def hf_compatibility_descriptor(self, request, result):
+        return self._hf_descriptor(
+            request, result.parameter_catalog, result.parameter_layout
         )
 
     def apply_jax(
@@ -282,6 +327,8 @@ def _layout() -> ParameterTreeLayout:
                 "float32",
                 "recurrent_block",
                 ("trunk", "whole_student"),
+                exportable=True,
+                hf_distribution_key="stateful.trunk.weight",
             ),
             ParameterTreeLayoutEntry(
                 "head.bias",
@@ -290,6 +337,8 @@ def _layout() -> ParameterTreeLayout:
                 "float32",
                 "output_head",
                 ("head", "whole_student"),
+                exportable=True,
+                hf_distribution_key="stateful.head.bias",
             ),
         ),
     )
@@ -382,6 +431,7 @@ def _lifecycle(mode: str):
         architecture_carry=initialized.architecture_carry,
         parameter_catalog=initialized.parameter_catalog,
         parameter_layout=initialized.parameter_layout,
+        hf_descriptor=initialized.hf_descriptor,
         hf_reference=initialized.hf_reference,
         objective_selection=objective_selection,
         objective_config=objective_config,
@@ -452,6 +502,7 @@ def _run(
         checkpoint=checkpoint,
         hooks=(hook,),
         emit_run_report=True,
+        hf_descriptor=executor.lifecycle.hf_descriptor,
     )
     assert (
         result.status == "pass" and saved is not None and result.report is not None
@@ -712,10 +763,16 @@ def test_stateful_system_proof_rejects_real_boundary_violations(tmp_path):
         "eager", tmp_path / "saved", restore_at_three=True
     )
     destination = tmp_path / "saved" / "checkpoint-eager"
-    with pytest.raises(ValueError, match="checkpoint HF identity"):
+    with pytest.raises(ValueError, match="checkpoint HF reference"):
         lifecycle.with_checkpoint(
             replace(
-                saved, hf_reference=replace(saved.hf_reference, tokenizer_id="foreign")
+                saved,
+                hf_descriptor=replace(
+                    saved.hf_descriptor,
+                    tokenizer=replace(
+                        saved.hf_descriptor.tokenizer, tokenizer_id="foreign"
+                    ),
+                ),
             )
         )
     with pytest.raises(ValueError, match="parameter layout"):
@@ -736,7 +793,16 @@ def test_stateful_system_proof_rejects_real_boundary_violations(tmp_path):
             optimizer=lifecycle.optimizer,
             parameter_layout=lifecycle.parameter_layout,
             expected_hf_reference=replace(
-                lifecycle.hf_reference, tokenizer_id="foreign"
+                lifecycle.hf_descriptor,
+                tokenizer=replace(
+                    lifecycle.hf_descriptor.tokenizer, tokenizer_id="foreign"
+                ),
+            ).preservation_reference(),
+            expected_hf_descriptor=replace(
+                lifecycle.hf_descriptor,
+                tokenizer=replace(
+                    lifecycle.hf_descriptor.tokenizer, tokenizer_id="foreign"
+                ),
             ),
             expected_objective_descriptor=lifecycle.objective_descriptor,
             expected_objective_config=lifecycle.objective_config,
@@ -786,9 +852,16 @@ def test_stateful_system_proof_rejects_real_boundary_violations(tmp_path):
     )
     with pytest.raises(AssertionError, match="values differ"):
         _require_exact(restored_lifecycle.parameters, divergent.parameters)
+    foreign_descriptor = replace(
+        restored_lifecycle.hf_descriptor,
+        tokenizer=replace(
+            restored_lifecycle.hf_descriptor.tokenizer, tokenizer_id="foreign"
+        ),
+    )
     foreign_lifecycle = replace(
         restored_lifecycle,
-        hf_reference=replace(restored_lifecycle.hf_reference, tokenizer_id="foreign"),
+        hf_descriptor=foreign_descriptor,
+        hf_reference=foreign_descriptor.preservation_reference(),
     )
     with pytest.raises(
         CheckpointValidationError, match="checkpoint_hf_identity_mismatch"

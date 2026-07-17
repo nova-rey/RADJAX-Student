@@ -29,7 +29,12 @@ from radjax_student.architecture.models import (
     ResolvedObjectiveSelection,
 )
 from radjax_student.contracts import (
-    HFPreservationReference,
+    HFArchitectureProjection,
+    HFCompatibilityDescriptor,
+    HFParameterProjection,
+    HFSpecialTokenIdentity,
+    HFTokenizerIdentity,
+    HFVocabularyIdentity,
     LearningBatch,
     ObjectiveScope,
     ParameterTreeLayout,
@@ -189,44 +194,7 @@ class FakeArchitecturePlugin:
                 for descriptor in catalog.parameters
             ),
         )
-        config_digest = hashlib.sha256(
-            (
-                json.dumps(
-                    request.config.to_dict(), sort_keys=True, separators=(",", ":")
-                )
-                + "\n"
-            ).encode()
-        ).hexdigest()
-        catalog_digest = hashlib.sha256(
-            (
-                json.dumps(catalog.to_dict(), sort_keys=True, separators=(",", ":"))
-                + "\n"
-            ).encode()
-        ).hexdigest()
-        hf_reference = HFPreservationReference(
-            descriptor_schema_version="hf_preservation_reference.v1",
-            descriptor_digest=hashlib.sha256(
-                (
-                    json.dumps(
-                        {
-                            "architecture_id": self.architecture_id,
-                            "parameter_layout_digest": layout.digest(),
-                            "parameter_catalog_digest": catalog_digest,
-                        },
-                        sort_keys=True,
-                        separators=(",", ":"),
-                    )
-                    + "\n"
-                ).encode()
-            ).hexdigest(),
-            model_type="radjax_test_architecture",
-            architecture_id=self.architecture_id,
-            tokenizer_id="test-tokenizer",
-            vocabulary_size=request.config.vocab_size or 1,
-            special_token_digest="test-special-token-digest",
-            parameter_layout_digest=layout.digest(),
-            architecture_config_digest=config_digest,
-        )
+        hf_descriptor = self._hf_descriptor(request, catalog, layout)
         return ArchitectureInitResult(
             parameter_catalog=catalog,
             architecture_state=ArchitectureState(
@@ -236,7 +204,7 @@ class FakeArchitecturePlugin:
             parameters=TestParameterTree(catalog.paths),
             architecture_carry={"state": f"{self.architecture_id}:initial-carry"},
             parameter_layout=layout,
-            hf_reference=hf_reference,
+            hf_descriptor=hf_descriptor,
             warnings=(
                 ArchitectureIssue(
                     code="architecture_plugin_test_double",
@@ -246,6 +214,72 @@ class FakeArchitecturePlugin:
                     ),
                 ),
             ),
+        )
+
+    def _hf_descriptor(self, request, catalog, layout):
+        def digest(value):
+            return hashlib.sha256(
+                (
+                    json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n"
+                ).encode()
+            ).hexdigest()
+
+        vocab_size = request.config.vocab_size or 8
+        return HFCompatibilityDescriptor(
+            schema_version="hf_compatibility_descriptor.v2",
+            architecture_id=self.architecture_id,
+            architecture_plugin_version=self.architecture_version,
+            model_type="radjax_test_architecture",
+            architecture_config_digest=digest(request.config.to_dict()),
+            parameter_catalog_digest=digest(catalog.to_dict()),
+            parameter_layout_digest=layout.digest(),
+            tokenizer=HFTokenizerIdentity(
+                "test-tokenizer",
+                "synthetic-r1",
+                digest({"tokenizer": "test"}),
+                digest({"config": "test"}),
+                "synthetic",
+                digest({"normalization": "identity"}),
+                "synthetic",
+            ),
+            vocabulary=HFVocabularyIdentity(
+                vocab_size,
+                digest({"vocabulary": vocab_size}),
+                digest({"mapping": vocab_size}),
+                digest({"added": []}),
+                "0-3",
+            ),
+            special_tokens=HFSpecialTokenIdentity(0, 1, 2, 3, None),
+            parameter_projections=tuple(
+                HFParameterProjection(
+                    entry.logical_path,
+                    entry.jax_keypath,
+                    entry.shape,
+                    entry.dtype,
+                    "exportable" if entry.exportable else "non_exportable",
+                    entry.hf_distribution_key,
+                    "identity",
+                    entry.tied_weight_group,
+                    None if entry.exportable else "test_double_not_exported",
+                )
+                for entry in layout.entries
+            ),
+            architecture_projection=HFArchitectureProjection(
+                "test_config",
+                "test_architecture",
+                4,
+                1,
+                vocab_size,
+                request.config.sequence_length or 1,
+                {},
+            ),
+            non_claims=("test_double", "no_hf_export"),
+            notes="Non-numerical test double.",
+        )
+
+    def hf_compatibility_descriptor(self, request, result):
+        return self._hf_descriptor(
+            request, result.parameter_catalog, result.parameter_layout
         )
 
     def validate_batch(

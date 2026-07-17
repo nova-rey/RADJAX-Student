@@ -1027,3 +1027,15 @@
   `002db6c516b1625b742de3853ca3c950856c1f98`. The P3.11.10 receipt was
   regenerated from that normal audit artifact without changing execution
   behavior, objective mathematics, or acceptance claims.
+
+## 2026-07-17 - P3.12B Hugging Face descriptor authority
+
+- One neutral, architecture-owned `HFCompatibilityDescriptor` now binds model,
+  config, catalog, layout, tokenizer, vocabulary, special-token, architecture,
+  and parameter-projection identity. The preservation reference is derived and
+  no longer a parallel modern lifecycle authority.
+- Checkpoint v3 persists `hf_descriptor.json`, rejects historical
+  reference-only continuation restores with `checkpoint_hf_descriptor_missing`,
+  and retains inspection-only handling for those historical records.
+- This adds no Hugging Face export, Transformers dependency, safetensors output,
+  network access, production architecture, or Phase 4 implementation.

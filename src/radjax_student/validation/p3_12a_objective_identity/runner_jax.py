@@ -261,6 +261,7 @@ def _checkpoint_loader(lifecycle, directory: Path, **changes: Any):
         "parameter_layout": lifecycle.parameter_layout,
         "runtime_reference": lifecycle.runtime_reference,
         "expected_hf_reference": lifecycle.hf_reference,
+        "expected_hf_descriptor": lifecycle.hf_descriptor,
         "expected_architecture_config_digest": lifecycle.config_digest,
         "expected_parameter_catalog_digest": lifecycle.catalog_digest,
         "expected_architecture_state_id": lifecycle.architecture_state.state_id,

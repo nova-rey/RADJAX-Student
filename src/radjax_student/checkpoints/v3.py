@@ -20,6 +20,7 @@ from radjax_student.checkpoints.npz_codec import (
     write_deterministic_npz,
 )
 from radjax_student.contracts import (
+    HFCompatibilityDescriptor,
     HFPreservationReference,
     ObjectiveConfig,
     ObjectiveExecutionDescriptor,
@@ -40,6 +41,7 @@ from radjax_student.optimizers.protocols import JaxOptimizerBackend
 CHECKPOINT_V3_SCHEMA_VERSION = "learning_checkpoint.v3"
 CHECKPOINT_OPTIMIZER_STEP_MISMATCH = "checkpoint_optimizer_step_mismatch"
 CHECKPOINT_OBJECTIVE_IDENTITY_MISSING = "checkpoint_objective_identity_missing"
+CHECKPOINT_HF_DESCRIPTOR_MISSING = "checkpoint_hf_descriptor_missing"
 ARCHITECTURE_CARRY_SCHEMA_VERSION = "architecture_carry.v1"
 V3_FILES = (
     "parameters.npz",
@@ -48,6 +50,7 @@ V3_FILES = (
     "architecture_carry.json",
     "optimizer_state.npz",
     "optimizer_state.json",
+    "hf_descriptor.json",
     "learning.json",
     "layout.json",
     "manifest.json",
@@ -59,6 +62,7 @@ V3_OWNERSHIP = {
     "architecture_carry.json": "architecture",
     "optimizer_state.npz": "optimizer",
     "optimizer_state.json": "optimizer",
+    "hf_descriptor.json": "architecture",
     "learning.json": "learning",
     "layout.json": "architecture",
 }
@@ -117,6 +121,47 @@ class HistoricalObjectiveMigration:
         }
 
 
+@dataclass(frozen=True)
+class HistoricalHFDescriptorInspection:
+    """Reference-only historical v3 inspection; never continuation state."""
+
+    hf_reference: Mapping[str, Any]
+    status: str = "inspection_only_descriptor_unavailable"
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.hf_reference, Mapping):
+            raise TypeError("historical HF inspection requires a serialized reference")
+        if not self.hf_reference:
+            raise CheckpointValidationError(
+                CHECKPOINT_HF_DESCRIPTOR_MISSING,
+                "historical checkpoint contains no preservation reference",
+            )
+        object.__setattr__(
+            self, "hf_reference", MappingProxyType(dict(self.hf_reference))
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"hf_reference": dict(self.hf_reference), "status": self.status}
+
+
+def inspect_historical_v3_hf_reference(
+    directory: Path,
+) -> HistoricalHFDescriptorInspection:
+    """Read only a valid reference-only v3 shape without making it resumable."""
+
+    if not directory.is_dir() or not (directory / "learning.json").is_file():
+        raise CheckpointValidationError(
+            "checkpoint_component_unreadable", "historical checkpoint is unreadable"
+        )
+    if (directory / "hf_descriptor.json").exists():
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "canonical descriptor checkpoint does not require historical inspection",
+        )
+    payload = _read_json(directory / "learning.json")
+    return HistoricalHFDescriptorInspection(payload["hf_reference"])
+
+
 def inspect_historical_v3_objective_alias(
     checkpoint: JaxLearningCheckpointV3, *, source_alias: str
 ) -> HistoricalObjectiveMigration:
@@ -145,6 +190,7 @@ class JaxLearningCheckpointV3:
     architecture_carry: Mapping[str, Any]
     parameter_layout: ParameterTreeLayout
     architecture_state: ArchitectureState | None
+    hf_descriptor: HFCompatibilityDescriptor | None
     hf_reference: HFPreservationReference
     architecture_config_digest: str
     parameter_catalog_digest: str
@@ -172,8 +218,16 @@ class JaxLearningCheckpointV3:
             self.architecture_state, ArchitectureState
         ):
             raise TypeError("architecture_state must be ArchitectureState when set")
+        if self.hf_descriptor is not None and not isinstance(
+            self.hf_descriptor, HFCompatibilityDescriptor
+        ):
+            raise TypeError("hf_descriptor must be HFCompatibilityDescriptor")
         if not isinstance(self.hf_reference, HFPreservationReference):
             raise TypeError("hf_reference must be HFPreservationReference")
+        if self.hf_descriptor is not None and (
+            self.hf_reference != self.hf_descriptor.preservation_reference()
+        ):
+            raise ValueError("checkpoint HF reference must be descriptor-derived")
         for name in ("architecture_config_digest", "parameter_catalog_digest"):
             if not isinstance(getattr(self, name), str) or not getattr(self, name):
                 raise ValueError(f"{name} must be nonempty")
@@ -243,6 +297,11 @@ def save_learning_checkpoint_v3(
 ) -> JaxLearningCheckpointV3:
     """Validate then write one canonical v3 continuation checkpoint."""
 
+    if checkpoint.hf_descriptor is None:
+        raise CheckpointValidationError(
+            CHECKPOINT_HF_DESCRIPTOR_MISSING,
+            "P3.12B checkpoint save requires a complete HF descriptor",
+        )
     _validate_runtime_state(checkpoint, optimizer)
     if os.path.lexists(directory) and (
         not directory.is_dir() or any(directory.iterdir())
@@ -290,6 +349,7 @@ def save_learning_checkpoint_v3(
             descriptor=optimizer_descriptor,
         )
         payloads = {
+            "hf_descriptor.json": checkpoint.hf_descriptor.to_dict(),
             "parameters.json": parameter_descriptor,
             "architecture_carry.json": carry_descriptor,
             "optimizer_state.json": descriptor,
@@ -338,6 +398,22 @@ def save_learning_checkpoint_v3(
                 "parameter_catalog_digest": checkpoint.parameter_catalog_digest,
                 "architecture_config_digest": checkpoint.architecture_config_digest,
                 "hf_reference": checkpoint.hf_reference.to_dict(),
+                "hf_descriptor_digest": checkpoint.hf_descriptor.digest,
+                "tokenizer_identity_digest": (
+                    checkpoint.hf_descriptor.tokenizer.digest
+                ),
+                "vocabulary_identity_digest": (
+                    checkpoint.hf_descriptor.vocabulary.digest
+                ),
+                "special_token_identity_digest": (
+                    checkpoint.hf_descriptor.special_tokens.digest
+                ),
+                "parameter_projection_digest": (
+                    checkpoint.hf_descriptor.parameter_projection_digest
+                ),
+                "architecture_projection_digest": (
+                    checkpoint.hf_descriptor.architecture_projection.digest
+                ),
                 "parameters_descriptor_digest": descriptor_digest(parameter_descriptor),
                 "carry_descriptor_digest": descriptor_digest(carry_descriptor),
                 "architecture_carry_descriptor": architecture_carry_identity,
@@ -373,6 +449,8 @@ def save_learning_checkpoint_v3(
             optimizer=optimizer,
             parameter_layout=checkpoint.parameter_layout,
             runtime_reference=checkpoint.runtime_reference,
+            expected_hf_reference=checkpoint.hf_reference,
+            expected_hf_descriptor=checkpoint.hf_descriptor,
             expected_objective_descriptor=checkpoint.objective_descriptor,
             expected_objective_config=checkpoint.objective_config,
             expected_resolved_objective_selection=checkpoint.resolved_objective_selection,
@@ -395,6 +473,7 @@ def save_learning_checkpoint_v3(
         architecture_carry=checkpoint.architecture_carry,
         parameter_layout=checkpoint.parameter_layout,
         architecture_state=checkpoint.architecture_state,
+        hf_descriptor=checkpoint.hf_descriptor,
         hf_reference=checkpoint.hf_reference,
         architecture_config_digest=checkpoint.architecture_config_digest,
         parameter_catalog_digest=checkpoint.parameter_catalog_digest,
@@ -415,6 +494,7 @@ def load_learning_checkpoint_v3(
     parameter_layout: ParameterTreeLayout,
     runtime_reference: str | None = None,
     expected_hf_reference: HFPreservationReference | None = None,
+    expected_hf_descriptor: HFCompatibilityDescriptor | None = None,
     expected_architecture_config_digest: str | None = None,
     expected_parameter_catalog_digest: str | None = None,
     expected_architecture_state_id: str | None = None,
@@ -433,6 +513,7 @@ def load_learning_checkpoint_v3(
         value is None
         for value in (
             expected_hf_reference,
+            expected_hf_descriptor,
             expected_architecture_config_digest,
             expected_parameter_catalog_digest,
             expected_architecture_carry_descriptor,
@@ -506,6 +587,16 @@ def load_learning_checkpoint_v3(
     ) != _digest(_json_bytes(stored)):
         raise CheckpointValidationError(
             "checkpoint_manifest_hash_mismatch", "checkpoint manifest hash mismatch"
+        )
+    # Historical v3 checkpoints had a valid manifest but no complete HF
+    # descriptor.  Classify them before modern exact-file validation.
+    if (
+        "hf_descriptor.json" not in stored.get("files", ())
+        or not (directory / "hf_descriptor.json").is_file()
+    ):
+        raise CheckpointValidationError(
+            CHECKPOINT_HF_DESCRIPTOR_MISSING,
+            "checkpoint predates canonical HF descriptor and is inspection-only",
         )
     descriptor = optimizer.jax_state_descriptor(parameter_layout)
     _validate_manifest(
@@ -632,6 +723,14 @@ def load_learning_checkpoint_v3(
         else ArchitectureState.from_dict(architecture_state_payload)
     )
     hf_reference = HFPreservationReference.from_dict(learning_payload["hf_reference"])
+    hf_descriptor = HFCompatibilityDescriptor.from_dict(
+        _read_json(directory / "hf_descriptor.json")
+    )
+    if hf_reference != hf_descriptor.preservation_reference():
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF reference is not derived from its descriptor",
+        )
     architecture_config_digest = str(learning_payload["architecture_config_digest"])
     parameter_catalog_digest = str(learning_payload["parameter_catalog_digest"])
     architecture_carry_descriptor = learning_payload.get(
@@ -730,6 +829,21 @@ def load_learning_checkpoint_v3(
         expected_architecture_state_id=expected_architecture_state_id,
         expected_architecture_carry_descriptor=expected_architecture_carry_descriptor,
     )
+    if expected_hf_descriptor is None:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "caller-bound continuation requires expected HF descriptor",
+        )
+    if not isinstance(expected_hf_descriptor, HFCompatibilityDescriptor):
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "expected HF descriptor is invalid",
+        )
+    if hf_descriptor != expected_hf_descriptor:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )
     if objective_descriptor is not None:
         _validate_expected_objective_identity(
             objective_config=objective_config,
@@ -749,6 +863,7 @@ def load_learning_checkpoint_v3(
         architecture_carry=carry,
         parameter_layout=parameter_layout,
         architecture_state=architecture_state,
+        hf_descriptor=hf_descriptor,
         hf_reference=hf_reference,
         architecture_config_digest=architecture_config_digest,
         parameter_catalog_digest=parameter_catalog_digest,
@@ -806,6 +921,16 @@ def _optimizer_manifest(
 def _validate_runtime_state(
     checkpoint: JaxLearningCheckpointV3, optimizer: JaxOptimizerBackend
 ) -> None:
+    if checkpoint.hf_descriptor is None:
+        raise CheckpointValidationError(
+            CHECKPOINT_HF_DESCRIPTOR_MISSING,
+            "continuation checkpoint requires a complete HF descriptor",
+        )
+    if checkpoint.hf_reference != checkpoint.hf_descriptor.preservation_reference():
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF reference was not derived from its descriptor",
+        )
     if (
         checkpoint.objective_config is None
         or checkpoint.resolved_objective_selection is None

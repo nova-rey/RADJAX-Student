@@ -36,7 +36,12 @@ from radjax_student.checkpoints.npz_codec import (
     mapping_pytree_digest,
 )
 from radjax_student.contracts import (
-    HFPreservationReference,
+    HFArchitectureProjection,
+    HFCompatibilityDescriptor,
+    HFParameterProjection,
+    HFSpecialTokenIdentity,
+    HFTokenizerIdentity,
+    HFVocabularyIdentity,
     ObjectiveConfig,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
@@ -182,13 +187,14 @@ class StatefulLinearJaxArchitecture(FakeArchitecturePlugin):
     ) -> ArchitectureInitResult:
         self.validate_config(request.config)
         layout = _layout()
-        config_digest = _digest(request.config.to_dict())
         carry = {
             "forwards": jnp.asarray(0, dtype=jnp.int32),
             "rng_probe": jnp.asarray(0.0, dtype=jnp.float32),
         }
+        catalog = self.describe_parameters()
+        descriptor = self._hf_descriptor(request, catalog, layout)
         return ArchitectureInitResult(
-            parameter_catalog=self.describe_parameters(),
+            parameter_catalog=catalog,
             architecture_state=ArchitectureState("stateful-linear-state.v1"),
             parameters={
                 "trunk": {"weight": jnp.asarray((0.0,), dtype=jnp.float32)},
@@ -203,17 +209,68 @@ class StatefulLinearJaxArchitecture(FakeArchitecturePlugin):
                 ),
             },
             parameter_layout=layout,
-            hf_reference=HFPreservationReference(
-                "hf_preservation_reference.v1",
-                "stateful-linear-hf-descriptor",
-                "stateful-linear",
-                self.architecture_id,
+            hf_descriptor=descriptor,
+        )
+
+    def _hf_descriptor(self, request, catalog, layout):
+        projections = tuple(
+            HFParameterProjection(
+                logical_path=entry.logical_path,
+                jax_keypath=entry.jax_keypath,
+                shape=entry.shape,
+                dtype=entry.dtype,
+                exportability="exportable" if entry.exportable else "non_exportable",
+                hf_distribution_key=entry.hf_distribution_key,
+                projection_rule="identity",
+                tied_parameter_group=entry.tied_weight_group,
+                non_exportability_reason=(
+                    None if entry.exportable else "validation_fixture_not_exported"
+                ),
+            )
+            for entry in layout.entries
+        )
+        return HFCompatibilityDescriptor(
+            schema_version="hf_compatibility_descriptor.v2",
+            architecture_id=self.architecture_id,
+            architecture_plugin_version=self.architecture_version,
+            model_type="stateful_linear_validation",
+            architecture_config_digest=_digest(request.config.to_dict()),
+            parameter_catalog_digest=_digest(catalog.to_dict()),
+            parameter_layout_digest=layout.digest(),
+            tokenizer=HFTokenizerIdentity(
                 "stateful-test-tokenizer",
-                8,
-                "stateful-special-tokens",
-                layout.digest(),
-                config_digest,
+                "synthetic-r1",
+                _digest({"tokenizer": "stateful-linear"}),
+                _digest({"tokenizer_config": "stateful-linear"}),
+                "synthetic_wordlevel",
+                _digest({"normalization": "identity"}),
+                "synthetic",
             ),
+            vocabulary=HFVocabularyIdentity(
+                8,
+                _digest({"vocabulary": list(range(8))}),
+                _digest({"token_to_id": list(range(8))}),
+                _digest({"added_tokens": []}),
+                "0-3",
+            ),
+            special_tokens=HFSpecialTokenIdentity(0, 1, 2, 3, None, ()),
+            parameter_projections=projections,
+            architecture_projection=HFArchitectureProjection(
+                "stateful_linear_config",
+                "stateful_linear_validation",
+                1,
+                1,
+                8,
+                request.config.sequence_length or 1,
+                {"dtype_intent": request.config.dtype_intent},
+            ),
+            non_claims=("no_hf_export", "validation_only_architecture"),
+            notes="Synthetic validation descriptor; no Hugging Face export is claimed.",
+        )
+
+    def hf_compatibility_descriptor(self, request, result):
+        return self._hf_descriptor(
+            request, result.parameter_catalog, result.parameter_layout
         )
 
     def apply_jax(
@@ -400,6 +457,7 @@ def _new_lifecycle(mode: str, objects: list[object]) -> JaxLearningLifecycle:
         architecture_carry=initialized.architecture_carry,
         parameter_catalog=initialized.parameter_catalog,
         parameter_layout=initialized.parameter_layout,
+        hf_descriptor=initialized.hf_descriptor,
         hf_reference=initialized.hf_reference,
         objective_selection=objective_selection,
         objective_config=objective_config,
@@ -548,7 +606,29 @@ def _identity(lifecycle: JaxLearningLifecycle) -> ExperimentIdentityEvidence:
         architecture_config_digest=lifecycle.config_digest,
         parameter_catalog_digest=lifecycle.catalog_digest,
         parameter_layout_digest=lifecycle.parameter_layout.digest(),
-        hf_reference=HFPreservationEvidence.from_dict(lifecycle.hf_reference.to_dict()),
+        hf_reference=HFPreservationEvidence(
+            descriptor_schema_version=lifecycle.hf_descriptor.schema_version,
+            descriptor_digest=lifecycle.hf_descriptor.digest,
+            architecture_id=lifecycle.hf_descriptor.architecture_id,
+            model_type=lifecycle.hf_descriptor.model_type,
+            architecture_config_digest=(
+                lifecycle.hf_descriptor.architecture_config_digest
+            ),
+            parameter_catalog_digest=(lifecycle.hf_descriptor.parameter_catalog_digest),
+            parameter_layout_digest=(lifecycle.hf_descriptor.parameter_layout_digest),
+            parameter_projection_digest=(
+                lifecycle.hf_descriptor.parameter_projection_digest
+            ),
+            architecture_projection_digest=(
+                lifecycle.hf_descriptor.architecture_projection.digest
+            ),
+            tokenizer_identity_digest=lifecycle.hf_descriptor.tokenizer.digest,
+            vocabulary_identity_digest=lifecycle.hf_descriptor.vocabulary.digest,
+            special_token_identity_digest=(
+                lifecycle.hf_descriptor.special_tokens.digest
+            ),
+            preservation_reference_digest=lifecycle.hf_reference.digest,
+        ),
         objective=_objective_evidence(lifecycle),
         architecture_state_id=(
             None
@@ -655,6 +735,7 @@ def _run_arm(
         checkpoint=checkpoint,
         hooks=(hook,),
         emit_run_report=True,
+        hf_descriptor=inner.lifecycle.hf_descriptor,
     )
     if (
         result.status != "pass"

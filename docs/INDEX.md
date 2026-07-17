@@ -109,7 +109,9 @@ Start here for Phase 0 foundation context.
   241 literal public-boundary experiments, an immutable implementation audit,
   and the local integration-closure receipt.
 - [P3.12 Foundation Identity Polish](P3_12_FOUNDATION_IDENTITY_POLISH.md):
-  post-closure canonical identity work, with P3.12A accepted and P3.12B next.
+  post-closure canonical identity work, with P3.12A and P3.12B accepted.
+- [P3.12B HF Descriptor Authority](P3_12B_HF_DESCRIPTOR_AUTHORITY.md):
+  architecture-owned descriptor and derived preservation-reference lifecycle.
 - [P3.12A Objective Identity Contract](P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md):
   registry-selected objective identity across JAX execution, lifecycle,
   checkpoint restore, replay, metrics, and reports.
@@ -185,7 +187,9 @@ P3.12A locally accepted
 
 P3.12A.1 closes the legacy core objective side entrance; see [P3.12A Objective Identity Contract](P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md).
 
-P3.12B next and unstarted
+P3.12B locally accepted
+
+P3.12C next and unstarted
 
 Phase 4 remains unstarted
 

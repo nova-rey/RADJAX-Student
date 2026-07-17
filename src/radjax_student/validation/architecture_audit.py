@@ -25,6 +25,7 @@ _JAX_EXCEPTIONS = {
     "radjax_student.validation.p3_11_9_replay.runner_jax",
     "radjax_student.validation.p3_11_10_gate.runner_jax",
     "radjax_student.validation.p3_12a_objective_identity.runner_jax",
+    "radjax_student.validation.p3_12b_hf_descriptor_authority.runner_jax",
 }
 _COMPATIBILITY_MODULES = {
     "radjax_student.learning.p3_5_acceptance",
@@ -44,6 +45,7 @@ _CLASSIFICATIONS = {
     "validation.p3_11_10_gate": "optional_integration",
     "validation.p3_11_10_gate.runner_jax": "optional_integration",
     "validation.p3_12a_objective_identity.runner_jax": "optional_integration",
+    "validation.p3_12b_hf_descriptor_authority.runner_jax": "optional_integration",
     "losses": "research",
     "objectives": "core",
     "losses.dense_kl": "smoke_debug",
@@ -457,6 +459,45 @@ def find_architecture_blockers(
                 str(path.relative_to(source_root.parent.parent)),
                 "architecture forward result is discarded",
             )
+        defined = set(_defined_classes(tree))
+        imports = set(_imports(tree))
+        relative = str(path.relative_to(source_root.parent.parent))
+        if module.startswith("radjax_student.validation") and (
+            "HFCompatibilityDescriptor" in defined
+        ):
+            add(
+                "validation_defines_hf_descriptor",
+                relative,
+                "validation must not define a competing HF descriptor",
+            )
+        if module.startswith(
+            (
+                "radjax_student.checkpoints",
+                "radjax_student.learning",
+                "radjax_student.runtime",
+            )
+        ) and "HFCompatibilityDescriptor(" in path.read_text(encoding="utf-8"):
+            add(
+                "hf_descriptor_constructed_outside_architecture",
+                relative,
+                "only architecture may construct an HF descriptor",
+            )
+        if module.startswith("radjax_student.architecture") and any(
+            item.startswith("radjax_student.checkpoints") for item in imports
+        ):
+            add(
+                "architecture_imports_checkpoint_implementation",
+                relative,
+                "architecture must not import checkpoint implementation",
+            )
+        if module.startswith("radjax_student.contracts") and any(
+            item.split(".", 1)[0] in {"jax", "transformers"} for item in imports
+        ):
+            add(
+                "hf_contract_has_runtime_dependency",
+                relative,
+                "neutral contracts must not import runtime dependencies",
+            )
     if "radjax_student.learning.jax_core" in by_module and canonical_builders != [
         "src/radjax_student/learning/jax_core.py"
     ]:
@@ -467,6 +508,16 @@ def find_architecture_blockers(
             "objective builder",
             builders=canonical_builders,
         )
+    # Validation may consume the neutral descriptor but cannot define a second
+    # authority. This pass intentionally covers non-core validation modules.
+    for path in sorted(source_root.joinpath("validation").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        if "HFCompatibilityDescriptor" in _defined_classes(tree):
+            add(
+                "validation_defines_hf_descriptor",
+                str(path.relative_to(source_root.parent.parent)),
+                "validation must not define a competing HF descriptor",
+            )
     artifacts = by_module.get("radjax_student.artifacts", {})
     if "load_dense_tome_targets" in artifacts.get("public_exports", ()):
         add(

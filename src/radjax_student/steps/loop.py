@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Protocol
 
 from radjax_student.architecture import ArchitectureConfig, ArchitecturePlugin
+from radjax_student.contracts import HFCompatibilityDescriptor
 from radjax_student.learning import (
     LearningBatch,
     LearningIssue,
@@ -393,6 +394,7 @@ def run_learning_loop(
     hooks: tuple[LearningHook, ...] = (),
     hook_policy: HookPolicy = DEFAULT_HOOK_POLICY,
     emit_run_report: bool = False,
+    hf_descriptor: HFCompatibilityDescriptor | None = None,
 ) -> LearningLoopResult:
     """Run generic learning and optionally attach a post-completion report."""
 
@@ -440,6 +442,7 @@ def run_learning_loop(
             update_scope=report_state.active_update_scope.kind,
             objective_scope=report_state.active_objective_scope.kind,
             objective_descriptor=objective_descriptor,
+            hf_descriptor=hf_descriptor,
         )
     except (TypeError, ValueError):
         return result

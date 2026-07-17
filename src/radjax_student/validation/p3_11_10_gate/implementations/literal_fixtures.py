@@ -24,7 +24,12 @@ from radjax_student.checkpoints.npz_codec import (
     write_deterministic_npz,
 )
 from radjax_student.contracts import (
-    HFPreservationReference,
+    HFArchitectureProjection,
+    HFCompatibilityDescriptor,
+    HFParameterProjection,
+    HFSpecialTokenIdentity,
+    HFTokenizerIdentity,
+    HFVocabularyIdentity,
     ObjectiveConfig,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
@@ -85,7 +90,7 @@ def checkpoint_objective():
 def checkpoint_payload(optimizer: SgdOptimizer) -> JaxLearningCheckpointV3:
     layout = checkpoint_layout()
     state = checkpoint_optimizer_state(optimizer)
-    config_digest = "literal-architecture-config-digest"
+    config_digest = _sha({"architecture_config": "literal"})
     (
         objective_selection,
         objective_config,
@@ -100,23 +105,70 @@ def checkpoint_payload(optimizer: SgdOptimizer) -> JaxLearningCheckpointV3:
         {"count": np.asarray(2, dtype=np.int32)},
         layout,
         ArchitectureState("literal-architecture-state"),
-        HFPreservationReference(
-            "hf_descriptor.v1",
-            "literal-hf-descriptor-digest",
-            "literal-model",
-            layout.architecture_id,
-            "literal-tokenizer",
-            8,
-            "literal-special-token-digest",
-            layout.digest(),
-            config_digest,
-        ),
+        _hf_descriptor(layout, config_digest),
+        _hf_descriptor(layout, config_digest).preservation_reference(),
         config_digest,
-        "literal-parameter-catalog-digest",
+        _sha({"parameter_catalog": "literal"}),
         objective_config=objective_config,
         resolved_objective_selection=resolved_objective_selection,
         objective_descriptor=objective_descriptor,
         objective_registry_selection=objective_selection.to_dict(),
+    )
+
+
+def _sha(value: object) -> str:
+    return hashlib.sha256(
+        (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    ).hexdigest()
+
+
+def _hf_descriptor(
+    layout: ParameterTreeLayout, config_digest: str
+) -> HFCompatibilityDescriptor:
+    return HFCompatibilityDescriptor(
+        schema_version="hf_compatibility_descriptor.v2",
+        architecture_id=layout.architecture_id,
+        architecture_plugin_version=1,
+        model_type="literal_checkpoint_validation",
+        architecture_config_digest=config_digest,
+        parameter_catalog_digest=_sha({"parameter_catalog": "literal"}),
+        parameter_layout_digest=layout.digest(),
+        tokenizer=HFTokenizerIdentity(
+            "literal-tokenizer",
+            "synthetic-r1",
+            _sha({"tokenizer": "literal"}),
+            _sha({"config": "literal"}),
+            "synthetic",
+            _sha({"normalization": "identity"}),
+            "synthetic",
+        ),
+        vocabulary=HFVocabularyIdentity(
+            8,
+            _sha({"vocabulary": 8}),
+            _sha({"mapping": 8}),
+            _sha({"added": []}),
+            "0-3",
+        ),
+        special_tokens=HFSpecialTokenIdentity(0, 1, 2, 3, None),
+        parameter_projections=tuple(
+            HFParameterProjection(
+                entry.logical_path,
+                entry.jax_keypath,
+                entry.shape,
+                entry.dtype,
+                "non_exportable",
+                None,
+                "identity",
+                entry.tied_weight_group,
+                "checkpoint_gate_fixture_not_exported",
+            )
+            for entry in layout.entries
+        ),
+        architecture_projection=HFArchitectureProjection(
+            "literal_config", "literal_architecture", 1, 1, 8, 1, {}
+        ),
+        non_claims=("no_hf_export",),
+        notes="Literal checkpoint validation fixture.",
     )
 
 
@@ -132,11 +184,14 @@ def load_valid_checkpoint(
     directory: Path, optimizer: SgdOptimizer, layout: ParameterTreeLayout
 ) -> JaxLearningCheckpointV3:
     selection, config, resolved, descriptor = checkpoint_objective()
+    expected_checkpoint = checkpoint_payload(optimizer)
     return load_learning_checkpoint_v3(
         directory,
         optimizer=optimizer,
         parameter_layout=layout,
         runtime_reference="literal-runtime-reference",
+        expected_hf_reference=expected_checkpoint.hf_reference,
+        expected_hf_descriptor=expected_checkpoint.hf_descriptor,
         expected_objective_descriptor=descriptor,
         expected_objective_config=config,
         expected_resolved_objective_selection=resolved,

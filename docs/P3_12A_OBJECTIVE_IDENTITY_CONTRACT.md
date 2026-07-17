@@ -1,5 +1,8 @@
 # P3.12A Objective Identity Contract
 
+Current P3.12A evidence digest:
+`82aa21c1e3a99b1969438ff31d4c381ca2e798cf3f0d7921e51d49b87383ebd0`.
+
 P3.12A closes the hole where a caller could historically pair an arbitrary
 objective implementation with a free-standing objective string. The canonical
 contracts live under `radjax_student.contracts.objective`; the production
@@ -57,8 +60,15 @@ P3.11 integration closure complete
 
 P3.12A locally accepted
 
-P3.12B next and unstarted
+P3.12B locally accepted
+
+P3.12C next and unstarted
 
 Phase 4 remains unstarted
 
 Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+# P3.12A - Objective Identity Contract
+
+> Post-closure note: P3.12B now binds the HF lifecycle descriptor independently
+> of objective identity. Objective selection and mathematics remain unchanged;
+> P3.12C is next and unstarted.

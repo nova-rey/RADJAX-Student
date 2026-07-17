@@ -17,6 +17,7 @@ from radjax_student.architecture.models import (
     ResolvedObjectiveSelection,
 )
 from radjax_student.contracts import (
+    HFCompatibilityDescriptor,
     LearningBatch,
     ObjectiveScope,
     ResolvedUpdateSelection,
@@ -58,6 +59,12 @@ class ArchitecturePlugin(Protocol):
     def resolve_objective_scope(
         self, scope: ObjectiveScope, metadata: ArchitectureMetadata
     ) -> ResolvedObjectiveSelection: ...
+
+    def hf_compatibility_descriptor(
+        self,
+        request: ArchitectureInitRequest,
+        result: ArchitectureInitResult,
+    ) -> HFCompatibilityDescriptor: ...
 
 
 @runtime_checkable

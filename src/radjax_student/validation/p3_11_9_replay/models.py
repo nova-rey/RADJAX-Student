@@ -135,24 +135,32 @@ class ArchitectureCarryIdentityEvidence:
 class HFPreservationEvidence:
     descriptor_schema_version: str
     descriptor_digest: str
-    model_type: str
     architecture_id: str
-    tokenizer_id: str
-    vocabulary_size: int
-    special_token_digest: str
-    parameter_layout_digest: str
+    model_type: str
     architecture_config_digest: str
+    parameter_catalog_digest: str
+    parameter_layout_digest: str
+    parameter_projection_digest: str
+    architecture_projection_digest: str
+    tokenizer_identity_digest: str
+    vocabulary_identity_digest: str
+    special_token_identity_digest: str
+    preservation_reference_digest: str
 
     _FIELDS = {
         "descriptor_schema_version",
         "descriptor_digest",
-        "model_type",
         "architecture_id",
-        "tokenizer_id",
-        "vocabulary_size",
-        "special_token_digest",
-        "parameter_layout_digest",
+        "model_type",
         "architecture_config_digest",
+        "parameter_catalog_digest",
+        "parameter_layout_digest",
+        "parameter_projection_digest",
+        "architecture_projection_digest",
+        "tokenizer_identity_digest",
+        "vocabulary_identity_digest",
+        "special_token_identity_digest",
+        "preservation_reference_digest",
     }
 
     def __post_init__(self) -> None:
@@ -161,26 +169,37 @@ class HFPreservationEvidence:
             "descriptor_digest",
             "model_type",
             "architecture_id",
-            "tokenizer_id",
-            "special_token_digest",
+            "model_type",
         ):
             _string(getattr(self, name), name)
-        if not isinstance(self.vocabulary_size, int) or self.vocabulary_size <= 0:
-            raise ReplayCanonicalError("vocabulary_size must be a positive integer")
-        for name in ("parameter_layout_digest", "architecture_config_digest"):
+        for name in (
+            "architecture_config_digest",
+            "parameter_catalog_digest",
+            "parameter_layout_digest",
+            "parameter_projection_digest",
+            "architecture_projection_digest",
+            "tokenizer_identity_digest",
+            "vocabulary_identity_digest",
+            "special_token_identity_digest",
+            "preservation_reference_digest",
+        ):
             _digest(getattr(self, name), name)
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "descriptor_schema_version": self.descriptor_schema_version,
             "descriptor_digest": self.descriptor_digest,
-            "model_type": self.model_type,
             "architecture_id": self.architecture_id,
-            "tokenizer_id": self.tokenizer_id,
-            "vocabulary_size": self.vocabulary_size,
-            "special_token_digest": self.special_token_digest,
-            "parameter_layout_digest": self.parameter_layout_digest,
+            "model_type": self.model_type,
             "architecture_config_digest": self.architecture_config_digest,
+            "parameter_catalog_digest": self.parameter_catalog_digest,
+            "parameter_layout_digest": self.parameter_layout_digest,
+            "parameter_projection_digest": self.parameter_projection_digest,
+            "architecture_projection_digest": self.architecture_projection_digest,
+            "tokenizer_identity_digest": self.tokenizer_identity_digest,
+            "vocabulary_identity_digest": self.vocabulary_identity_digest,
+            "special_token_identity_digest": self.special_token_identity_digest,
+            "preservation_reference_digest": self.preservation_reference_digest,
         }
 
     @classmethod
@@ -414,6 +433,8 @@ class ExperimentIdentityEvidence:
             )
         if self.hf_reference.parameter_layout_digest != self.parameter_layout_digest:
             raise ReplayCanonicalError("HF layout identity differs from experiment")
+        if self.hf_reference.parameter_catalog_digest != self.parameter_catalog_digest:
+            raise ReplayCanonicalError("HF catalog identity differs from experiment")
         if (
             self.hf_reference.architecture_config_digest
             != self.architecture_config_digest

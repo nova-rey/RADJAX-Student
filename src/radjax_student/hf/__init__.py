@@ -5,13 +5,25 @@ inference, and export integration.
 """
 
 from radjax_student.hf.contracts import (
+    HFArchitectureProjection,
     HFCompatibilityDescriptor,
     HFCompatibilityError,
     HFParameterMapping,
+    HFParameterProjection,
+    HFPreservationReference,
+    HFSpecialTokenIdentity,
+    HFTokenizerIdentity,
+    HFVocabularyIdentity,
 )
 
 __all__ = [
+    "HFArchitectureProjection",
     "HFCompatibilityDescriptor",
     "HFCompatibilityError",
     "HFParameterMapping",
+    "HFParameterProjection",
+    "HFPreservationReference",
+    "HFSpecialTokenIdentity",
+    "HFTokenizerIdentity",
+    "HFVocabularyIdentity",
 ]
