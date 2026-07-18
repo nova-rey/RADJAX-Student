@@ -287,7 +287,56 @@ def build_receipt(proof: HFDescriptorAuthorityProof) -> dict[str, Any]:
     }
 
 
-def validate_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
+def _typed_positive_results(payload: list[object]) -> tuple[HFPositiveProof, ...]:
+    try:
+        results = tuple(
+            HFPositiveProof(item["case_id"], item["boundary"], item["evidence_digest"])
+            for item in payload
+            if isinstance(item, Mapping)
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("P3.12B positive proof evidence is malformed") from error
+    if len(results) != len(payload) or [item.to_dict() for item in results] != payload:
+        raise ValueError("P3.12B positive proof evidence is malformed")
+    return results
+
+
+def _typed_adversarial_results(
+    payload: list[object],
+) -> tuple[HFAdversarialResult, ...]:
+    try:
+        results = tuple(
+            HFAdversarialResult(
+                item["case_id"],
+                item["category"],
+                item["intended_boundary"],
+                item["observed_boundary"],
+                item["boundary_callable_identity"],
+                item["baseline_input_digest"],
+                item["mutated_input_digest"],
+                item["mutation_applied"],
+                item["expected_code"],
+                item["observed_code"],
+                item["observed_exception_type"],
+                item["observed_details_digest"],
+                item["first_run_evidence_digest"],
+                item["second_run_evidence_digest"],
+                item["deterministic_first_failure"],
+                item["outcome"],
+            )
+            for item in payload
+            if isinstance(item, Mapping)
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        raise ValueError("P3.12B adversarial evidence is malformed") from error
+    if len(results) != len(payload) or [item.to_dict() for item in results] != payload:
+        raise ValueError("P3.12B adversarial evidence is malformed")
+    return results
+
+
+def validate_receipt(
+    payload: Mapping[str, Any], *, proof: HFDescriptorAuthorityProof | None = None
+) -> dict[str, Any]:
     required = set(
         build_receipt.__annotations__
     )  # retained below as an explicit stable set
@@ -350,12 +399,20 @@ def validate_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("P3.12B receipt contains failed cases")
     if (
         not isinstance(payload["positive_proof_results"], list)
-        or [item.get("case_id") for item in payload["positive_proof_results"]]
-        != list(POSITIVE_CASE_IDS)
         or not isinstance(payload["adversarial_case_results"], list)
         or len(payload["adversarial_case_results"]) != ADVERSARIAL_CASE_COUNT
     ):
         raise ValueError("P3.12B receipt adversarial inventory is incomplete")
+    positives = _typed_positive_results(payload["positive_proof_results"])
+    adversarial = _typed_adversarial_results(payload["adversarial_case_results"])
+    if tuple(item.case_id for item in positives) != POSITIVE_CASE_IDS:
+        raise ValueError("P3.12B receipt positive inventory is incomplete")
+    if tuple(item.case_id for item in adversarial) != ADVERSARIAL_CASE_IDS:
+        raise ValueError("P3.12B receipt adversarial inventory is incomplete")
+    if any(
+        item.outcome not in {"reject", "invariant_preserved"} for item in adversarial
+    ):
+        raise ValueError("P3.12B receipt contains failed adversarial evidence")
     implementation_audit = HFDescriptorGateImplementationAudit.from_dict(
         payload["implementation_audit"]
     )
@@ -368,6 +425,35 @@ def validate_receipt(payload: Mapping[str, Any]) -> dict[str, Any]:
         != implementation_audit.implementation_audit_digest
     ):
         raise ValueError("P3.12B receipt implementation audit is invalid")
+    for name in (
+        "descriptor_digest",
+        "preservation_reference_digest",
+        "architecture_config_digest",
+        "parameter_catalog_digest",
+        "parameter_layout_digest",
+        "parameter_projection_digest",
+        "architecture_projection_digest",
+        "tokenizer_identity_digest",
+        "vocabulary_identity_digest",
+        "special_token_identity_digest",
+        "checkpoint_hf_descriptor_digest",
+        "replay_hf_evidence_digest",
+        "report_hf_evidence_digest",
+        "dependency_audit_digest",
+        "implementation_audit_digest",
+        "evidence_digest",
+    ):
+        _sha(payload[name], name)
+    if payload["checkpoint_hf_descriptor_digest"] != payload["descriptor_digest"]:
+        raise ValueError("P3.12B checkpoint descriptor projection is invalid")
+    if proof is not None:
+        if not isinstance(proof, HFDescriptorAuthorityProof):
+            raise TypeError("P3.12B current evidence requires a typed authority proof")
+        # The normal current checker supplies a newly executed typed proof.  This
+        # byte-for-byte projection rejects hand-edited receipts and stale source
+        # evidence rather than treating receipt schema validity as success.
+        if dict(payload) != build_receipt(proof):
+            raise ValueError("P3.12B receipt does not match typed authority proof")
     return dict(payload)
 
 

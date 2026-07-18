@@ -42,10 +42,23 @@ CANONICAL_TRAINING_PATHS = (
     "steps/jax_loop.py",
     "steps/jax_step.py",
 )
-# Every source package other than the proof-owned validation namespace is
-# production or legacy support code.  This deliberately avoids a selective
-# import-graph traversal, which could hide a new dependency in an unexercised
-# product module.
+# These owners are a reviewed production boundary, not an import-graph
+# approximation.  A proof-shaped module beneath any of them is a policy
+# violation unless it is one of the frozen paths below.
+PRODUCTION_OWNER_ROOTS = frozenset(
+    {
+        "architecture",
+        "checkpoints",
+        "contracts",
+        "hf",
+        "learning",
+        "objectives",
+        "optimizers",
+        "reports",
+        "runtime",
+        "steps",
+    }
+)
 PROOF_OWNED_NAMESPACE = "validation"
 HISTORICAL_PROOF_EXCEPTIONS = (
     "learning/observability_acceptance.py",
@@ -99,7 +112,7 @@ def _production_paths(root: Path) -> tuple[Path, ...]:
     return tuple(
         path
         for path in sorted(source.rglob("*.py"))
-        if PROOF_OWNED_NAMESPACE not in path.parts
+        if path.relative_to(source).parts[0] in PRODUCTION_OWNER_ROOTS
     )
 
 
@@ -122,6 +135,181 @@ def _has_proof_shape(path: Path) -> bool:
         and ("Acceptance" in node.name or node.name.endswith("Proof"))
         for node in tree.body
     )
+
+
+def _is_new_proof_path(relative: str) -> bool:
+    """Reject proof/acceptance filenames under production owners exactly."""
+    if relative in HISTORICAL_PROOF_EXCEPTIONS:
+        return False
+    filename = Path(relative).stem
+    return any(token in filename for token in ("acceptance", "proof", "audit"))
+
+
+def _function(tree: ast.Module, name: str) -> ast.FunctionDef | None:
+    return next(
+        (
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.name == name
+        ),
+        None,
+    )
+
+
+def _call_keywords(function: ast.FunctionDef, callee: str) -> set[str]:
+    keys: set[str] = set()
+    for node in ast.walk(function):
+        if not isinstance(node, ast.Call):
+            continue
+        name = _call_name(node.func)
+        if name == callee:
+            keys.update(keyword.arg for keyword in node.keywords if keyword.arg)
+    return keys
+
+
+def _call_keyword_attribute(
+    function: ast.FunctionDef,
+    callee: str,
+    keyword_name: str,
+    value: str,
+    attribute: str,
+) -> bool:
+    return any(
+        _call_name(node.func) == callee
+        and any(
+            keyword.arg == keyword_name
+            and isinstance(keyword.value, ast.Attribute)
+            and isinstance(keyword.value.value, ast.Name)
+            and keyword.value.value.id == value
+            and keyword.value.attr == attribute
+            for keyword in node.keywords
+        )
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+    )
+
+
+def _call_name(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        parent = _call_name(node.value)
+        return f"{parent}.{node.attr}" if parent else node.attr
+    return None
+
+
+def _contains_attribute(tree: ast.AST, value: str, attribute: str) -> bool:
+    return any(
+        isinstance(node, ast.Attribute)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == value
+        and node.attr == attribute
+        for node in ast.walk(tree)
+    )
+
+
+def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
+    """Prove the fixed HF descriptor route using source structure, not tokens."""
+    blockers: list[str] = []
+
+    def tree(path: str) -> ast.Module | None:
+        source = sources.get(path)
+        if source is None:
+            blockers.append(f"hf_authority_source_missing:{path}")
+            return None
+        return ast.parse(source, filename=path)
+
+    models = tree("architecture/models.py")
+    if models is not None:
+        result = next(
+            (
+                node
+                for node in models.body
+                if isinstance(node, ast.ClassDef)
+                and node.name == "ArchitectureInitResult"
+            ),
+            None,
+        )
+        if result is None or not (
+            _contains_attribute(result, "self", "hf_descriptor")
+            and _contains_attribute(result, "self", "hf_reference")
+            and any(
+                isinstance(node, ast.Call)
+                and _call_name(node.func) == "self.hf_descriptor.preservation_reference"
+                for node in ast.walk(result)
+            )
+        ):
+            blockers.append("hf_architecture_descriptor_reference_unproven")
+
+    assembly = tree("learning/assembly.py")
+    if assembly is not None:
+        assemble = _function(assembly, "assemble_jax_learning_lifecycle")
+        if assemble is None or not (
+            _contains_attribute(assemble, "initialized", "hf_descriptor")
+            and _contains_attribute(assemble, "initialized", "hf_reference")
+            and _call_keyword_attribute(
+                assemble,
+                "JaxLearningLifecycle",
+                "hf_descriptor",
+                "initialized",
+                "hf_descriptor",
+            )
+            and _call_keyword_attribute(
+                assemble,
+                "JaxLearningLifecycle",
+                "hf_reference",
+                "initialized",
+                "hf_reference",
+            )
+        ):
+            blockers.append("hf_assembly_descriptor_substitution")
+
+    lifecycle = tree("steps/jax_loop.py")
+    if lifecycle is not None:
+        restore = _function(lifecycle, "restore_from_checkpoint")
+        if restore is None or not {
+            "expected_hf_reference",
+            "expected_hf_descriptor",
+        } <= _call_keywords(restore, "load_learning_checkpoint_v3"):
+            blockers.append("hf_checkpoint_lifecycle_bypass")
+
+    checkpoint = tree("checkpoints/v3.py")
+    if checkpoint is not None:
+        restore = _function(checkpoint, "load_learning_checkpoint_v3")
+        has_required_guard = any(
+            isinstance(node, ast.If)
+            and isinstance(node.test, ast.Compare)
+            and len(node.test.ops) == 1
+            and isinstance(node.test.ops[0], ast.Is)
+            and isinstance(node.test.left, ast.Name)
+            and node.test.left.id == "expected_hf_descriptor"
+            and len(node.test.comparators) == 1
+            and isinstance(node.test.comparators[0], ast.Constant)
+            and node.test.comparators[0].value is None
+            for node in ast.walk(restore or checkpoint)
+        )
+        if restore is None or not has_required_guard:
+            blockers.append("hf_checkpoint_descriptor_validation_bypassed")
+
+    replay = tree("validation/p3_11_9_replay/runner_jax.py")
+    if replay is not None:
+        identity = _function(replay, "_identity")
+        if identity is None or not (
+            _contains_attribute(identity, "lifecycle", "hf_descriptor")
+            and _contains_attribute(identity, "lifecycle", "hf_reference")
+        ):
+            blockers.append("hf_replay_non_lifecycle_descriptor")
+
+    report = tree("learning/run_report.py")
+    if report is not None:
+        validate = _function(report, "validate_run_hf_summary")
+        if validate is None or not any(
+            isinstance(node, ast.Call)
+            and _call_name(node.func) == "validate_hf_descriptor_match"
+            for node in ast.walk(validate)
+        ):
+            blockers.append("hf_report_descriptor_validation_bypassed")
+    return tuple(sorted(set(blockers)))
 
 
 @dataclass(frozen=True)
@@ -188,7 +376,6 @@ class FoundationAuditReport:
             "hf_shape_gate": self.hf_shape_gate,
             "p312b_recorded_evidence_current": self.p312b_recorded_evidence_current,
             "phase4_ingestion_policy_locked": self.phase4_ingestion_policy_locked,
-            "recorded_gates_read_only": self.status == "pass",
             "claims_not_made": list(CLAIMS_NOT_MADE),
             "blockers": list(self.blockers),
             "evidence_digest": self.evidence_digest,
@@ -224,7 +411,11 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
             validation_imports += sum(
                 name.startswith("radjax_student.validation") for name in imports
             )
-        if _has_proof_shape(path) and relative not in HISTORICAL_PROOF_EXCEPTIONS:
+        if (
+            _is_new_proof_path(relative)
+            or _has_proof_shape(path)
+            and (relative not in HISTORICAL_PROOF_EXCEPTIONS)
+        ):
             blockers.append(f"new_production_proof_module:{relative}")
     if validation_imports:
         blockers.append("production_validation_import")
@@ -266,9 +457,9 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
     if not test_support_hermetic:
         blockers.append("test_support_not_hermetic")
 
-    hf_shape = _hf_shape_current(repository)
-    if not hf_shape:
-        blockers.append("hf_shape_gate_failed")
+    hf_authority_blockers = _hf_shape_blockers(repository)
+    if hf_authority_blockers:
+        blockers.extend(hf_authority_blockers)
     p312b_current = _p312b_recorded_evidence_current(repository)
     if not p312b_current:
         blockers.append("p312b_recorded_evidence_stale")
@@ -283,7 +474,7 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
         canonical_loss_imports,
         test_support_hermetic,
         not purity_failures and canonical_loss_imports == 0,
-        hf_shape,
+        not hf_authority_blockers,
         p312b_current,
         phase4_locked,
     )
@@ -310,25 +501,26 @@ def _p312b_recorded_evidence_current(root: Path) -> bool:
     )
 
 
-def _hf_shape_current(root: Path) -> bool:
-    required = {
-        "architecture/models.py": (
-            "ArchitectureInitResult",
-            "hf_descriptor",
-            "preservation_reference",
-        ),
-        "learning/assembly.py": (
-            "initialized.hf_descriptor",
-            "initialized.hf_reference",
-        ),
-        "checkpoints/v3.py": ("hf_descriptor", "preservation_reference"),
-        "learning/run_report.py": ("RunHFSummary", "validate_hf_descriptor_match"),
-    }
+HF_AUTHORITY_PATHS = (
+    "architecture/models.py",
+    "learning/assembly.py",
+    "steps/jax_loop.py",
+    "checkpoints/v3.py",
+    "validation/p3_11_9_replay/runner_jax.py",
+    "learning/run_report.py",
+)
+
+
+def _hf_shape_blockers(root: Path) -> tuple[str, ...]:
     source = _source_root(root)
-    return all(
-        all(token in (source / path).read_text(encoding="utf-8") for token in tokens)
-        for path, tokens in required.items()
-    )
+    try:
+        sources = {
+            relative: (source / relative).read_text(encoding="utf-8")
+            for relative in HF_AUTHORITY_PATHS
+        }
+    except OSError:
+        return ("hf_authority_source_unreadable",)
+    return _authority_blockers(sources)
 
 
 def _phase4_policy_locked(root: Path) -> bool:
@@ -373,7 +565,34 @@ def audit_source_fixture(source: str, *, relative_path: str) -> tuple[str, ...]:
         name.startswith("radjax_student.legacy.losses") for name in imports
     ):
         blockers.append("canonical_numpy_loss_import")
+    if relative_path.split("/", 1)[0] in PRODUCTION_OWNER_ROOTS and (
+        _is_new_proof_path(relative_path)
+        or _has_proof_shape_from_tree(tree)
+        and relative_path not in HISTORICAL_PROOF_EXCEPTIONS
+    ):
+        blockers.append(f"new_production_proof_module:{relative_path}")
     return tuple(sorted(set(blockers)))
+
+
+def _has_proof_shape_from_tree(tree: ast.Module) -> bool:
+    return any(
+        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and (
+            node.name.startswith(("run_p3_", "execute_p3_"))
+            or node.name.endswith("_acceptance")
+            or node.name.endswith("_proof")
+        )
+        for node in tree.body
+    ) or any(
+        isinstance(node, ast.ClassDef)
+        and ("Acceptance" in node.name or node.name.endswith("Proof"))
+        for node in tree.body
+    )
+
+
+def audit_hf_authority_fixture(sources: dict[str, str]) -> tuple[str, ...]:
+    """Expose fixed-path HF provenance checks for independent breakage tests."""
+    return _authority_blockers(sources)
 
 
 def _bytes(report: FoundationAuditReport) -> bytes:

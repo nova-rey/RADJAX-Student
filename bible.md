@@ -1190,3 +1190,14 @@
   HF authority path. The documentation now defines Phase 4 as architecture
   plugin ingestion with RWKV only as the first reference architecture; no
   Phase 4 implementation was added.
+
+## 2026-07-18 - Foundation audit proof hardening
+
+- Preserved the v1 foundation report schema while removing its unmeasured
+  read-only-pass assertion. The audit now uses fixed production-owner roots,
+  exact historical proof exceptions, and AST provenance checks for the
+  architecture-to-assembly-to-lifecycle/checkpoint-to-replay/report HF route.
+- P3.12B receipt parsing now reconstructs typed positive and adversarial
+  evidence, and its normal recorded checker compares the receipt exactly with
+  a newly executed typed authority proof. The canonical 22-positive/77-case
+  inventory and receipt schema remain unchanged.
