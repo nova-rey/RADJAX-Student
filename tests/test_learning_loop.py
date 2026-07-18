@@ -12,7 +12,7 @@ from radjax_student.steps import (
     SyntheticBatchSource,
     run_learning_loop,
 )
-from tests.test_single_learning_step import LinearObjective
+from tests.support.linear_objective import LinearObjective
 
 
 def test_loop_stops_exactly_and_restores_source_position():

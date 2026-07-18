@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from radjax_student.validation.compatibility import metadata_inspection_only_profile
-from radjax_student.validation.compatibility_models import StudentCapabilityProfile
+from radjax_student.artifacts.compatibility import metadata_inspection_only_profile
+from radjax_student.artifacts.compatibility_models import StudentCapabilityProfile
 
 DECLARATION_TEST_ONLY_PROFILE_ID = "declaration_test_only"
 

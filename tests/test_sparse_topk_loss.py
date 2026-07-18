@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from radjax_student.losses import dense_kl_loss, sparse_topk_kl_loss
+from radjax_student.legacy.losses import dense_kl_loss, sparse_topk_kl_loss
 
 
 def test_sparse_topk_loss_matches_dense_loss_when_all_tokens_are_present() -> None:

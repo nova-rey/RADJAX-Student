@@ -96,15 +96,36 @@ Performance is secondary.
 
 Correctness is mandatory.
 
-# Phase 4 - First Student Architecture
+# Phase 4 - Architecture Plugin Ingestion and First Real Architecture
 
-**Question:** Does the plugin interface actually work?
+**Question:** Can the generic framework ingest one serious architecture plugin
+without architecture-specific contamination?
 
-Implement the first architecture plugin:
+Phase 4 does not exist merely to implement RWKV. It exists to define and prove
+a standardized architecture-ingestion process, with RWKV as the first serious
+reference architecture.
 
-- RWKV
+Every checkpoint either deepens the first plugin or proves that generic
+framework accepts it. Architecture-neutral capability belongs in generic
+contracts (typed carry schema, parameter-layout support, stable objective
+surface, tied-weight metadata); architecture-specific behavior remains in the
+plugin. A runtime RWKV mode, RWKV-specific checkpoint branch, learning-loop
+time-mix flag, or objective logic keyed on RWKV are forbidden.
 
-This phase validates the plugin system, not RWKV itself.
+Provisional sequence, documentation only:
+
+- P4.1 — Architecture Ingestion Contract Freeze
+- P4.2 — Reference Architecture Config and HF Identity
+- P4.3 — Pure JAX Architecture Primitive
+- P4.4 — Complete Reference Architecture Plugin
+- P4.5 — Generic Assembled Lifecycle Integration
+- P4.6 — Tiny Learning/Overfit Proof
+- P4.7 — HF-Shaped State Projection
+- P4.8 — Architecture Ingestion Acceptance Gate
+
+Phase 4 excludes teacher loading, Tome payload production, distillation,
+dataset infrastructure, distributed/multi-device/Pallas work, production CLI,
+serving, full HF export, and a second architecture before ingestion acceptance.
 
 > **Current integration status:** P3.11.1-P3.11.10 locally accepted; the
 > integration closure is complete. P3.12A-D are locally accepted; P3.12 is

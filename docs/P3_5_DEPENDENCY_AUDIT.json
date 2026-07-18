@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "973a7f66a1cccf120c0ece0e845c6491e2dfa435",
+  "accepted_commit": "6b90a5c4df6bd41e8588e86a66c6c4d6c9df11fa",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -80,6 +80,50 @@
       "target": "radjax_student.artifacts.view"
     },
     {
+      "source": "radjax_student.artifacts.compatibility",
+      "target": "radjax_student.artifacts.compatibility_models"
+    },
+    {
+      "source": "radjax_student.artifacts.compatibility",
+      "target": "radjax_student.artifacts.default_models"
+    },
+    {
+      "source": "radjax_student.artifacts.compatibility",
+      "target": "radjax_student.artifacts.models"
+    },
+    {
+      "source": "radjax_student.artifacts.compatibility",
+      "target": "radjax_student.artifacts.run_defaults"
+    },
+    {
+      "source": "radjax_student.artifacts.compatibility",
+      "target": "radjax_student.artifacts.view"
+    },
+    {
+      "source": "radjax_student.artifacts.compatibility_models",
+      "target": "radjax_student.artifacts.default_models"
+    },
+    {
+      "source": "radjax_student.artifacts.profile_registry",
+      "target": "radjax_student.artifacts.compatibility"
+    },
+    {
+      "source": "radjax_student.artifacts.profile_registry",
+      "target": "radjax_student.artifacts.compatibility_models"
+    },
+    {
+      "source": "radjax_student.artifacts.run_defaults",
+      "target": "radjax_student.artifacts.default_models"
+    },
+    {
+      "source": "radjax_student.artifacts.run_defaults",
+      "target": "radjax_student.artifacts.models"
+    },
+    {
+      "source": "radjax_student.artifacts.run_defaults",
+      "target": "radjax_student.artifacts.view"
+    },
+    {
       "source": "radjax_student.artifacts.view",
       "target": "radjax_student.artifacts.models"
     },
@@ -153,15 +197,15 @@
     },
     {
       "source": "radjax_student.cli.inspect",
+      "target": "radjax_student.artifacts.profile_registry"
+    },
+    {
+      "source": "radjax_student.cli.inspect",
       "target": "radjax_student.cli.render"
     },
     {
       "source": "radjax_student.cli.inspect",
       "target": "radjax_student.reports"
-    },
-    {
-      "source": "radjax_student.cli.inspect",
-      "target": "radjax_student.validation"
     },
     {
       "source": "radjax_student.cli.main",
@@ -313,6 +357,10 @@
     },
     {
       "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.learning.composition"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
       "target": "radjax_student.learning.jax_batch"
     },
     {
@@ -342,6 +390,14 @@
     {
       "source": "radjax_student.learning.assembly",
       "target": "radjax_student.steps.jax_loop"
+    },
+    {
+      "source": "radjax_student.learning.composition",
+      "target": "radjax_student.runtime.callables"
+    },
+    {
+      "source": "radjax_student.learning.composition",
+      "target": "radjax_student.steps.jax_step"
     },
     {
       "source": "radjax_student.learning.errors",
@@ -584,6 +640,14 @@
       "target": "radjax_student.runtime"
     },
     {
+      "source": "radjax_student.legacy.losses",
+      "target": "radjax_student.legacy.losses.dense_kl"
+    },
+    {
+      "source": "radjax_student.legacy.losses",
+      "target": "radjax_student.legacy.losses.sparse_topk"
+    },
+    {
       "source": "radjax_student.legacy.objectives_jax",
       "target": "radjax_student.architecture"
     },
@@ -613,15 +677,7 @@
     },
     {
       "source": "radjax_student.legacy.training",
-      "target": "radjax_student.losses"
-    },
-    {
-      "source": "radjax_student.losses",
-      "target": "radjax_student.losses.dense_kl"
-    },
-    {
-      "source": "radjax_student.losses",
-      "target": "radjax_student.losses.sparse_topk"
+      "target": "radjax_student.legacy.losses"
     },
     {
       "source": "radjax_student.objectives",
@@ -773,15 +829,15 @@
     },
     {
       "source": "radjax_student.reports.doctor",
+      "target": "radjax_student.artifacts.compatibility"
+    },
+    {
+      "source": "radjax_student.reports.doctor",
+      "target": "radjax_student.artifacts.profile_registry"
+    },
+    {
+      "source": "radjax_student.reports.doctor",
       "target": "radjax_student.runtime"
-    },
-    {
-      "source": "radjax_student.reports.doctor",
-      "target": "radjax_student.validation"
-    },
-    {
-      "source": "radjax_student.reports.doctor",
-      "target": "radjax_student.validation.profile_registry"
     },
     {
       "source": "radjax_student.reports.inspection",
@@ -789,7 +845,15 @@
     },
     {
       "source": "radjax_student.reports.inspection",
-      "target": "radjax_student.validation"
+      "target": "radjax_student.artifacts.compatibility"
+    },
+    {
+      "source": "radjax_student.reports.inspection",
+      "target": "radjax_student.artifacts.compatibility_models"
+    },
+    {
+      "source": "radjax_student.reports.inspection",
+      "target": "radjax_student.artifacts.default_models"
     },
     {
       "source": "radjax_student.runtime",
@@ -1165,51 +1229,31 @@
     },
     {
       "source": "radjax_student.validation",
+      "target": "radjax_student.artifacts.compatibility"
+    },
+    {
+      "source": "radjax_student.validation",
+      "target": "radjax_student.artifacts.compatibility_models"
+    },
+    {
+      "source": "radjax_student.validation",
+      "target": "radjax_student.artifacts.default_models"
+    },
+    {
+      "source": "radjax_student.validation",
+      "target": "radjax_student.artifacts.profile_registry"
+    },
+    {
+      "source": "radjax_student.validation",
+      "target": "radjax_student.artifacts.run_defaults"
+    },
+    {
+      "source": "radjax_student.validation",
       "target": "radjax_student.validation.architecture_audit"
     },
     {
-      "source": "radjax_student.validation",
-      "target": "radjax_student.validation.compatibility"
-    },
-    {
-      "source": "radjax_student.validation",
-      "target": "radjax_student.validation.compatibility_models"
-    },
-    {
-      "source": "radjax_student.validation",
-      "target": "radjax_student.validation.default_models"
-    },
-    {
-      "source": "radjax_student.validation",
-      "target": "radjax_student.validation.profile_registry"
-    },
-    {
-      "source": "radjax_student.validation",
-      "target": "radjax_student.validation.run_defaults"
-    },
-    {
-      "source": "radjax_student.validation.compatibility",
-      "target": "radjax_student.artifacts.models"
-    },
-    {
-      "source": "radjax_student.validation.compatibility",
-      "target": "radjax_student.artifacts.view"
-    },
-    {
-      "source": "radjax_student.validation.compatibility",
-      "target": "radjax_student.validation.compatibility_models"
-    },
-    {
-      "source": "radjax_student.validation.compatibility",
-      "target": "radjax_student.validation.default_models"
-    },
-    {
-      "source": "radjax_student.validation.compatibility",
-      "target": "radjax_student.validation.run_defaults"
-    },
-    {
-      "source": "radjax_student.validation.compatibility_models",
-      "target": "radjax_student.validation.default_models"
+      "source": "radjax_student.validation.foundation_audit_closure",
+      "target": "radjax_student.validation.p3_12b_hf_descriptor_authority"
     },
     {
       "source": "radjax_student.validation.p3_11_10_gate",
@@ -1782,26 +1826,6 @@
     {
       "source": "radjax_student.validation.p3_12d_runtime_callable_identity.experiments",
       "target": "radjax_student.runtime.portability"
-    },
-    {
-      "source": "radjax_student.validation.profile_registry",
-      "target": "radjax_student.validation.compatibility"
-    },
-    {
-      "source": "radjax_student.validation.profile_registry",
-      "target": "radjax_student.validation.compatibility_models"
-    },
-    {
-      "source": "radjax_student.validation.run_defaults",
-      "target": "radjax_student.artifacts.models"
-    },
-    {
-      "source": "radjax_student.validation.run_defaults",
-      "target": "radjax_student.artifacts.view"
-    },
-    {
-      "source": "radjax_student.validation.run_defaults",
-      "target": "radjax_student.validation.default_models"
     }
   ],
   "forbidden_imports": [
@@ -1813,7 +1837,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 176,
+  "module_count": 178,
   "modules": [
     {
       "classification": "core",
@@ -2079,6 +2103,85 @@
       "imports": [
         "__future__",
         "pathlib",
+        "radjax_student.artifacts.compatibility_models",
+        "radjax_student.artifacts.default_models",
+        "radjax_student.artifacts.models",
+        "radjax_student.artifacts.run_defaults",
+        "radjax_student.artifacts.view"
+      ],
+      "internal_edges": [
+        "radjax_student.artifacts.compatibility_models",
+        "radjax_student.artifacts.default_models",
+        "radjax_student.artifacts.models",
+        "radjax_student.artifacts.run_defaults",
+        "radjax_student.artifacts.view"
+      ],
+      "module": "radjax_student.artifacts.compatibility",
+      "owner": "artifact_consumption",
+      "path": "src/radjax_student/artifacts/compatibility.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "CompatibilityArtifactIdentity",
+        "CompatibilityFinding",
+        "DimensionCompatibility",
+        "PlanCompatibility",
+        "StudentCapabilityProfile",
+        "StudentCompatibilityReport",
+        "TargetScopeCompatibility"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "radjax_student.artifacts.default_models",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.artifacts.default_models"
+      ],
+      "module": "radjax_student.artifacts.compatibility_models",
+      "owner": "artifact_consumption",
+      "path": "src/radjax_student/artifacts/compatibility_models.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "ArtifactRunFacts",
+        "AvailableSurface",
+        "CorridorSurfaceFacts",
+        "ExemplarSurfaceFacts",
+        "RecommendedPass",
+        "StudentRunDefaults"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.artifacts.default_models",
+      "owner": "artifact_consumption",
+      "path": "src/radjax_student/artifacts/default_models.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "pathlib",
         "radjax_contract.io",
         "radjax_contract.validation",
         "typing"
@@ -2120,6 +2223,48 @@
       "module": "radjax_student.artifacts.models",
       "owner": "artifact_consumption",
       "path": "src/radjax_student/artifacts/models.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "radjax_student.artifacts.compatibility",
+        "radjax_student.artifacts.compatibility_models"
+      ],
+      "internal_edges": [
+        "radjax_student.artifacts.compatibility",
+        "radjax_student.artifacts.compatibility_models"
+      ],
+      "module": "radjax_student.artifacts.profile_registry",
+      "owner": "artifact_consumption",
+      "path": "src/radjax_student/artifacts/profile_registry.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "pathlib",
+        "radjax_student.artifacts.default_models",
+        "radjax_student.artifacts.models",
+        "radjax_student.artifacts.view",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.artifacts.default_models",
+        "radjax_student.artifacts.models",
+        "radjax_student.artifacts.view"
+      ],
+      "module": "radjax_student.artifacts.run_defaults",
+      "owner": "artifact_consumption",
+      "path": "src/radjax_student/artifacts/run_defaults.py",
       "public_exports": []
     },
     {
@@ -2405,15 +2550,15 @@
       "imports": [
         "__future__",
         "argparse",
+        "radjax_student.artifacts.profile_registry",
         "radjax_student.cli.render",
         "radjax_student.reports",
-        "radjax_student.validation",
         "typing"
       ],
       "internal_edges": [
+        "radjax_student.artifacts.profile_registry",
         "radjax_student.cli.render",
-        "radjax_student.reports",
-        "radjax_student.validation"
+        "radjax_student.reports"
       ],
       "module": "radjax_student.cli.inspect",
       "owner": "product_cli",
@@ -3032,6 +3177,7 @@
         "radjax_student.architecture",
         "radjax_student.architecture.protocols",
         "radjax_student.contracts",
+        "radjax_student.learning.composition",
         "radjax_student.learning.jax_batch",
         "radjax_student.learning.models",
         "radjax_student.objectives",
@@ -3047,6 +3193,7 @@
         "radjax_student.architecture",
         "radjax_student.architecture.protocols",
         "radjax_student.contracts",
+        "radjax_student.learning.composition",
         "radjax_student.learning.jax_batch",
         "radjax_student.learning.models",
         "radjax_student.objectives",
@@ -3069,6 +3216,27 @@
         "REQUEST_SCHEMA_VERSION",
         "RESULT_SCHEMA_VERSION",
         "assemble_jax_learning_lifecycle"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "radjax_student.runtime.callables",
+        "radjax_student.steps.jax_step"
+      ],
+      "internal_edges": [
+        "radjax_student.runtime.callables",
+        "radjax_student.steps.jax_step"
+      ],
+      "module": "radjax_student.learning.composition",
+      "owner": "learning_contracts",
+      "path": "src/radjax_student/learning/composition.py",
+      "public_exports": [
+        "build_default_learning_callable_registry"
       ]
     },
     {
@@ -3684,6 +3852,57 @@
     },
     {
       "classification": "deprecated",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "radjax_student.legacy.losses.dense_kl",
+        "radjax_student.legacy.losses.sparse_topk"
+      ],
+      "internal_edges": [
+        "radjax_student.legacy.losses.dense_kl",
+        "radjax_student.legacy.losses.sparse_topk"
+      ],
+      "module": "radjax_student.legacy.losses",
+      "owner": "legacy_compatibility",
+      "path": "src/radjax_student/legacy/losses/__init__.py",
+      "public_exports": [
+        "dense_kl_loss",
+        "sparse_topk_kl_loss"
+      ]
+    },
+    {
+      "classification": "deprecated",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "numpy"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.legacy.losses.dense_kl",
+      "owner": "legacy_compatibility",
+      "path": "src/radjax_student/legacy/losses/dense_kl.py",
+      "public_exports": []
+    },
+    {
+      "classification": "deprecated",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "numpy"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.legacy.losses.sparse_topk",
+      "owner": "legacy_compatibility",
+      "path": "src/radjax_student/legacy/losses/sparse_topk.py",
+      "public_exports": []
+    },
+    {
+      "classification": "deprecated",
       "defined_classes": [
         "LegacyJaxObjective",
         "LegacyJaxObjectiveConfig"
@@ -3765,11 +3984,11 @@
         "numpy",
         "radjax_contract.vocab",
         "radjax_student.debug.tiny_debug",
-        "radjax_student.losses"
+        "radjax_student.legacy.losses"
       ],
       "internal_edges": [
         "radjax_student.debug.tiny_debug",
-        "radjax_student.losses"
+        "radjax_student.legacy.losses"
       ],
       "module": "radjax_student.legacy.training",
       "owner": "legacy_compatibility",
@@ -3778,57 +3997,6 @@
         "TinyTrainStepResult",
         "run_tiny_train_step"
       ]
-    },
-    {
-      "classification": "research",
-      "defined_classes": [],
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "radjax_student.losses.dense_kl",
-        "radjax_student.losses.sparse_topk"
-      ],
-      "internal_edges": [
-        "radjax_student.losses.dense_kl",
-        "radjax_student.losses.sparse_topk"
-      ],
-      "module": "radjax_student.losses",
-      "owner": "objective_research",
-      "path": "src/radjax_student/losses/__init__.py",
-      "public_exports": [
-        "dense_kl_loss",
-        "sparse_topk_kl_loss"
-      ]
-    },
-    {
-      "classification": "smoke_debug",
-      "defined_classes": [],
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "__future__",
-        "numpy"
-      ],
-      "internal_edges": [],
-      "module": "radjax_student.losses.dense_kl",
-      "owner": "objective_research",
-      "path": "src/radjax_student/losses/dense_kl.py",
-      "public_exports": []
-    },
-    {
-      "classification": "research",
-      "defined_classes": [],
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "__future__",
-        "numpy"
-      ],
-      "internal_edges": [],
-      "module": "radjax_student.losses.sparse_topk",
-      "owner": "objective_research",
-      "path": "src/radjax_student/losses/sparse_topk.py",
-      "public_exports": []
     },
     {
       "classification": "core",
@@ -4289,17 +4457,17 @@
         "pathlib",
         "platform",
         "radjax_student.artifacts",
+        "radjax_student.artifacts.compatibility",
+        "radjax_student.artifacts.profile_registry",
         "radjax_student.runtime",
-        "radjax_student.validation",
-        "radjax_student.validation.profile_registry",
         "types",
         "typing"
       ],
       "internal_edges": [
         "radjax_student.artifacts",
-        "radjax_student.runtime",
-        "radjax_student.validation",
-        "radjax_student.validation.profile_registry"
+        "radjax_student.artifacts.compatibility",
+        "radjax_student.artifacts.profile_registry",
+        "radjax_student.runtime"
       ],
       "module": "radjax_student.reports.doctor",
       "owner": "reporting",
@@ -4319,12 +4487,16 @@
         "dataclasses",
         "pathlib",
         "radjax_student.artifacts",
-        "radjax_student.validation",
+        "radjax_student.artifacts.compatibility",
+        "radjax_student.artifacts.compatibility_models",
+        "radjax_student.artifacts.default_models",
         "typing"
       ],
       "internal_edges": [
         "radjax_student.artifacts",
-        "radjax_student.validation"
+        "radjax_student.artifacts.compatibility",
+        "radjax_student.artifacts.compatibility_models",
+        "radjax_student.artifacts.default_models"
       ],
       "module": "radjax_student.reports.inspection",
       "owner": "reporting",
@@ -4495,7 +4667,6 @@
         "ValuePlacementSpec",
         "bind_runtime_callable",
         "bind_runtime_for_learning",
-        "build_default_runtime_callable_registry",
         "build_default_runtime_registry",
         "canonical_runtime_state_json",
         "default_cpu_smoke_config",
@@ -4568,7 +4739,6 @@
         "hashlib",
         "inspect",
         "json",
-        "radjax_student.steps.jax_step",
         "typing"
       ],
       "internal_edges": [],
@@ -5309,20 +5479,20 @@
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
-        "radjax_student.validation.architecture_audit",
-        "radjax_student.validation.compatibility",
-        "radjax_student.validation.compatibility_models",
-        "radjax_student.validation.default_models",
-        "radjax_student.validation.profile_registry",
-        "radjax_student.validation.run_defaults"
+        "radjax_student.artifacts.compatibility",
+        "radjax_student.artifacts.compatibility_models",
+        "radjax_student.artifacts.default_models",
+        "radjax_student.artifacts.profile_registry",
+        "radjax_student.artifacts.run_defaults",
+        "radjax_student.validation.architecture_audit"
       ],
       "internal_edges": [
-        "radjax_student.validation.architecture_audit",
-        "radjax_student.validation.compatibility",
-        "radjax_student.validation.compatibility_models",
-        "radjax_student.validation.default_models",
-        "radjax_student.validation.profile_registry",
-        "radjax_student.validation.run_defaults"
+        "radjax_student.artifacts.compatibility",
+        "radjax_student.artifacts.compatibility_models",
+        "radjax_student.artifacts.default_models",
+        "radjax_student.artifacts.profile_registry",
+        "radjax_student.artifacts.run_defaults",
+        "radjax_student.validation.architecture_audit"
       ],
       "module": "radjax_student.validation",
       "owner": "compatibility_validation",
@@ -5385,81 +5555,28 @@
     },
     {
       "classification": "core",
-      "defined_classes": [],
+      "defined_classes": [
+        "FoundationAuditReport"
+      ],
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
+        "argparse",
+        "ast",
+        "dataclasses",
+        "hashlib",
+        "json",
         "pathlib",
-        "radjax_student.artifacts.models",
-        "radjax_student.artifacts.view",
-        "radjax_student.validation.compatibility_models",
-        "radjax_student.validation.default_models",
-        "radjax_student.validation.run_defaults"
-      ],
-      "internal_edges": [
-        "radjax_student.artifacts.models",
-        "radjax_student.artifacts.view",
-        "radjax_student.validation.compatibility_models",
-        "radjax_student.validation.default_models",
-        "radjax_student.validation.run_defaults"
-      ],
-      "module": "radjax_student.validation.compatibility",
-      "owner": "compatibility_validation",
-      "path": "src/radjax_student/validation/compatibility.py",
-      "public_exports": []
-    },
-    {
-      "classification": "core",
-      "defined_classes": [
-        "CompatibilityArtifactIdentity",
-        "CompatibilityFinding",
-        "DimensionCompatibility",
-        "PlanCompatibility",
-        "StudentCapabilityProfile",
-        "StudentCompatibilityReport",
-        "TargetScopeCompatibility"
-      ],
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "__future__",
-        "collections.abc",
-        "dataclasses",
-        "radjax_student.validation.default_models",
+        "radjax_student.validation.p3_12b_hf_descriptor_authority",
         "typing"
       ],
       "internal_edges": [
-        "radjax_student.validation.default_models"
+        "radjax_student.validation.p3_12b_hf_descriptor_authority"
       ],
-      "module": "radjax_student.validation.compatibility_models",
+      "module": "radjax_student.validation.foundation_audit_closure",
       "owner": "compatibility_validation",
-      "path": "src/radjax_student/validation/compatibility_models.py",
-      "public_exports": []
-    },
-    {
-      "classification": "core",
-      "defined_classes": [
-        "ArtifactRunFacts",
-        "AvailableSurface",
-        "CorridorSurfaceFacts",
-        "ExemplarSurfaceFacts",
-        "RecommendedPass",
-        "StudentRunDefaults"
-      ],
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "__future__",
-        "collections.abc",
-        "dataclasses",
-        "types",
-        "typing"
-      ],
-      "internal_edges": [],
-      "module": "radjax_student.validation.default_models",
-      "owner": "compatibility_validation",
-      "path": "src/radjax_student/validation/default_models.py",
+      "path": "src/radjax_student/validation/foundation_audit_closure.py",
       "public_exports": []
     },
     {
@@ -7289,48 +7406,6 @@
         "execute_runtime_callable_identity_proof",
         "raw_diagnostic_failures"
       ]
-    },
-    {
-      "classification": "core",
-      "defined_classes": [],
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "__future__",
-        "radjax_student.validation.compatibility",
-        "radjax_student.validation.compatibility_models"
-      ],
-      "internal_edges": [
-        "radjax_student.validation.compatibility",
-        "radjax_student.validation.compatibility_models"
-      ],
-      "module": "radjax_student.validation.profile_registry",
-      "owner": "compatibility_validation",
-      "path": "src/radjax_student/validation/profile_registry.py",
-      "public_exports": []
-    },
-    {
-      "classification": "core",
-      "defined_classes": [],
-      "forbidden_imports": [],
-      "has_dynamic_exports": false,
-      "imports": [
-        "__future__",
-        "pathlib",
-        "radjax_student.artifacts.models",
-        "radjax_student.artifacts.view",
-        "radjax_student.validation.default_models",
-        "typing"
-      ],
-      "internal_edges": [
-        "radjax_student.artifacts.models",
-        "radjax_student.artifacts.view",
-        "radjax_student.validation.default_models"
-      ],
-      "module": "radjax_student.validation.run_defaults",
-      "owner": "compatibility_validation",
-      "path": "src/radjax_student/validation/run_defaults.py",
-      "public_exports": []
     }
   ],
   "repository": "RADJAX-Student",

@@ -4,13 +4,12 @@ This package is reserved for compatibility and readiness checks that decide
 whether this runtime can consume a valid Contract artifact.
 """
 
-from radjax_student.validation.architecture_audit import build_architecture_audit
-from radjax_student.validation.compatibility import (
+from radjax_student.artifacts.compatibility import (
     evaluate_student_compatibility,
     evaluate_tome_path_compatibility,
     metadata_inspection_only_profile,
 )
-from radjax_student.validation.compatibility_models import (
+from radjax_student.artifacts.compatibility_models import (
     CompatibilityArtifactIdentity,
     CompatibilityFinding,
     DimensionCompatibility,
@@ -19,7 +18,7 @@ from radjax_student.validation.compatibility_models import (
     StudentCompatibilityReport,
     TargetScopeCompatibility,
 )
-from radjax_student.validation.default_models import (
+from radjax_student.artifacts.default_models import (
     ArtifactRunFacts,
     AvailableSurface,
     CorridorSurfaceFacts,
@@ -27,15 +26,16 @@ from radjax_student.validation.default_models import (
     RecommendedPass,
     StudentRunDefaults,
 )
-from radjax_student.validation.profile_registry import (
+from radjax_student.artifacts.profile_registry import (
     available_profile_ids,
     declaration_test_only_profile,
     resolve_profile,
 )
-from radjax_student.validation.run_defaults import (
+from radjax_student.artifacts.run_defaults import (
     infer_run_defaults,
     infer_run_defaults_from_tome,
 )
+from radjax_student.validation.architecture_audit import build_architecture_audit
 
 __all__ = [
     "ArtifactRunFacts",

@@ -12,6 +12,12 @@ from types import MappingProxyType
 from typing import Any
 
 from radjax_student.artifacts import open_tome_artifact
+from radjax_student.artifacts.compatibility import (
+    evaluate_student_compatibility,
+    infer_run_defaults,
+    metadata_inspection_only_profile,
+)
+from radjax_student.artifacts.profile_registry import available_profile_ids
 from radjax_student.runtime import (
     PLACEMENT_INTENTS,
     CpuRuntimeSmokeReceipt,
@@ -28,12 +34,6 @@ from radjax_student.runtime import (
     run_single_device_cpu_smoke,
     select_runtime_backend,
 )
-from radjax_student.validation import (
-    evaluate_student_compatibility,
-    infer_run_defaults,
-    metadata_inspection_only_profile,
-)
-from radjax_student.validation.profile_registry import available_profile_ids
 
 ACCEPTED_FIXTURE_DIGEST = (
     "468a259d518a28a6f60af8c339b124b65fd52da0640544d186eb9609933608d1"

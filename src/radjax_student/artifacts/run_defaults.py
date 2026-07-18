@@ -3,12 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from radjax_student.artifacts.models import (
-    TomeArtifactView,
-    TomeBehavioralSurface,
-)
-from radjax_student.artifacts.view import open_tome_artifact
-from radjax_student.validation.default_models import (
+from radjax_student.artifacts.default_models import (
     ArtifactRunFacts,
     AvailableSurface,
     CorridorSurfaceFacts,
@@ -17,6 +12,11 @@ from radjax_student.validation.default_models import (
     StudentRunDefaults,
     immutable_mapping,
 )
+from radjax_student.artifacts.models import (
+    TomeArtifactView,
+    TomeBehavioralSurface,
+)
+from radjax_student.artifacts.view import open_tome_artifact
 
 REQUIRED_FROM_USER: dict[str, None] = {
     "student_architecture": None,

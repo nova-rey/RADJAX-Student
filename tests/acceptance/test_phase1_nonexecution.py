@@ -6,13 +6,12 @@ import subprocess
 import sys
 import urllib.request
 
-from tome_fixtures import write_dense_tome
-
 from radjax_student.artifacts import open_tome_artifact
 from radjax_student.artifacts import targets as target_loading
 from radjax_student.debug import TinyDebugStudentBackend
 from radjax_student.legacy import training as legacy_training
 from radjax_student.validation import infer_run_defaults_from_tome
+from tests.support.tome_fixtures import write_dense_tome
 
 from .support import REPO_ROOT, canonical_fixture, run_cli
 

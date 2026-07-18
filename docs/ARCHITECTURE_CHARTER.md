@@ -154,8 +154,8 @@ Current implementation classification:
 | --- | --- | --- |
 | `artifacts/loaders.py` | Smoke/debug | Thin Contract-backed Tome inspection. Keep, but do not treat as complete Phase 1 compatibility checking. |
 | `artifacts/targets.py` | Smoke/debug | Dense Tome loading is useful for NumPy smoke work, but production compressed payloads should become the primary training substrate. |
-| `losses/dense_kl.py` | Smoke/debug | Dense teacher probability loss for small validated tests. |
-| `losses/sparse_topk.py` | Smoke/debug | Early mechanism for compressed targets. Keep as implementation detail until production target contracts settle. |
+| `legacy/losses/dense_kl.py` | Legacy/offline analysis | Dense teacher probability loss; never a canonical JAX objective. |
+| `legacy/losses/sparse_topk.py` | Legacy/offline analysis | Compressed-target analysis mechanism retained outside canonical training. |
 | `students/base.py` | Core architecture candidate | Existing protocol is the seed of the architecture plugin contract, but it lives under the transitional `students/` namespace. |
 | `students/registry.py` | Core architecture candidate | Registry behavior is useful, but the long-term namespace should be `architecture/`. |
 | `students/tiny_debug/` | Smoke/debug | NumPy backend for import, registry, and training smoke tests only. |

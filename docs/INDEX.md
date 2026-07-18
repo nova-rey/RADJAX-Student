@@ -123,6 +123,8 @@ Start here for Phase 0 foundation context.
 - [P3.12D Runtime Callable Identity](P3_12D_RUNTIME_CALLABLE_IDENTITY.md):
   runtime-owned actual-callable binding, final prepared identity, and exact
   eager/JIT execution identity evidence.
+- [Foundation Audit Closure](FOUNDATION_AUDIT_CLOSURE.md): composition, purity,
+  validation-namespace, HF-shape, and Phase 4 ingestion-path lock.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
 - [P3.5.3 JAX-Native Learning](P3_5_3_JAX_NATIVE_LEARNING.md)
 - [P3.5.4 Architecture Namespace Consolidation](P3_5_4_ARCHITECTURE_NAMESPACE_CONSOLIDATION.md)

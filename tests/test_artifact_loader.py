@@ -1,8 +1,7 @@
 from pathlib import Path
 
-from tome_fixtures import write_dense_tome
-
 from radjax_student.artifacts import inspect_teacher_tome
+from tests.support.tome_fixtures import write_dense_tome
 
 
 def test_contract_teacher_tome_artifact_can_be_inspected(tmp_path: Path) -> None:

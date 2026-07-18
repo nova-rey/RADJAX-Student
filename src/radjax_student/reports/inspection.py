@@ -6,13 +6,15 @@ from pathlib import Path
 from typing import Any
 
 from radjax_student.artifacts import TomeArtifactView, open_tome_artifact
-from radjax_student.validation import (
-    StudentCapabilityProfile,
-    StudentCompatibilityReport,
-    StudentRunDefaults,
+from radjax_student.artifacts.compatibility import (
     evaluate_student_compatibility,
     infer_run_defaults,
 )
+from radjax_student.artifacts.compatibility_models import (
+    StudentCapabilityProfile,
+    StudentCompatibilityReport,
+)
+from radjax_student.artifacts.default_models import StudentRunDefaults
 
 
 @dataclass(frozen=True)

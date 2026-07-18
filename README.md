@@ -148,6 +148,11 @@ P3.12D locally accepted: runtime binds the actual declared generic JAX-step
 callable, its source-derived identity, and all compilation-relevant prepared
 execution identity fields. P3.12 is closed; Phase 4 is next and unstarted.
 
+The foundation audit closure keeps application callable registration in learning
+composition, makes NumPy losses legacy-only, locks proof-owned validation
+namespaces, and defines Phase 4 as architecture-plugin ingestion with RWKV only
+as the first reference architecture. No Phase 4 implementation has begun.
+
 Phase 4 remains unstarted
 
 Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver

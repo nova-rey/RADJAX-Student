@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from radjax_student.artifacts.models import TomeArtifactView
-from radjax_student.artifacts.view import open_tome_artifact
-from radjax_student.validation.compatibility_models import (
+from radjax_student.artifacts.compatibility_models import (
     CompatibilityArtifactIdentity,
     CompatibilityFinding,
     DimensionCompatibility,
@@ -13,11 +11,13 @@ from radjax_student.validation.compatibility_models import (
     StudentCompatibilityReport,
     TargetScopeCompatibility,
 )
-from radjax_student.validation.default_models import (
+from radjax_student.artifacts.default_models import (
     AvailableSurface,
     StudentRunDefaults,
 )
-from radjax_student.validation.run_defaults import infer_run_defaults
+from radjax_student.artifacts.models import TomeArtifactView
+from radjax_student.artifacts.run_defaults import infer_run_defaults
+from radjax_student.artifacts.view import open_tome_artifact
 
 REPORT_CLAIMS_NOT_MADE: tuple[str, ...] = (
     "payload_loading_not_tested",

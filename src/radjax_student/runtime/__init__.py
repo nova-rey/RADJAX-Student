@@ -18,7 +18,6 @@ from radjax_student.runtime.callables import (
     RuntimeCallableRegistry,
     RuntimePreparedExecutionIdentity,
     bind_runtime_callable,
-    build_default_runtime_callable_registry,
     final_prepared_execution_identity,
 )
 from radjax_student.runtime.errors import (
@@ -310,7 +309,6 @@ __all__ = [
     "evaluate_runtime_resume_compatibility",
     "execute_function",
     "bind_runtime_callable",
-    "build_default_runtime_callable_registry",
     "final_prepared_execution_identity",
     "initialization_reference_from_root_seed",
     "execute_prepared",

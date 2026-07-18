@@ -181,7 +181,7 @@ def test_cpu_smoke_has_no_architecture_training_or_tome_imports() -> None:
         "radjax_student.artifacts",
         "radjax_student.students",
         "radjax_student.training",
-        "radjax_student.losses",
+        "radjax_student.legacy.losses",
         "radjax_student.schedules",
         "radjax_contract",
         "socket",

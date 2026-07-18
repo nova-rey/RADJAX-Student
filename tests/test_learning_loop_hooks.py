@@ -21,7 +21,7 @@ from radjax_student.steps import (
     SyntheticBatchSource,
     run_learning_loop,
 )
-from tests.test_single_learning_step import LinearObjective
+from tests.support.linear_objective import LinearObjective
 
 DEFAULT_POLICY = HookPolicy()
 

@@ -1,3 +1,5 @@
+"""Legacy NumPy sparse-top-k analysis implementation; not a training objective."""
+
 from __future__ import annotations
 
 import numpy as np

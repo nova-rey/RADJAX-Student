@@ -245,7 +245,7 @@ def test_malformed_production_cover_does_not_fall_back_silently(
 
 
 def test_legacy_dense_fixture_is_explicit_smoke_debug_path(tmp_path: Path) -> None:
-    from tome_fixtures import write_dense_tome
+    from tests.support.tome_fixtures import write_dense_tome
 
     view = open_tome_artifact(write_dense_tome(tmp_path / "legacy"))
 

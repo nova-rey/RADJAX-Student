@@ -3,13 +3,13 @@ from __future__ import annotations
 import argparse
 from typing import TextIO
 
+from radjax_student.artifacts.profile_registry import resolve_profile
 from radjax_student.cli.render import (
     render_inspection_human,
     render_json,
     write_rendered_output,
 )
 from radjax_student.reports import build_inspection_report
-from radjax_student.validation import resolve_profile
 
 
 def configure_parser(subparsers: argparse._SubParsersAction) -> None:

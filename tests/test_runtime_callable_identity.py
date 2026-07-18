@@ -9,7 +9,6 @@ from radjax_student.runtime.callables import (
     RuntimeCallableDeclaration,
     RuntimeCallableError,
     RuntimeCallableReference,
-    build_default_runtime_callable_registry,
     final_prepared_execution_identity,
 )
 from radjax_student.runtime.execution import PreparedExecutionIdentityCache
@@ -19,12 +18,12 @@ from radjax_student.validation.p3_12d_runtime_callable_identity.models import (
 )
 
 
+@pytest.mark.jax
 def test_default_generic_step_binding_is_source_derived_and_deterministic() -> None:
     pytest.importorskip("jax")
-    first = build_default_runtime_callable_registry().resolve(
-        _reference_from_default_registry()
-    )
-    second = build_default_runtime_callable_registry().resolve(first.reference)
+    registry = _default_registry()
+    first = registry.resolve(_reference_from_default_registry())
+    second = registry.resolve(first.reference)
     assert first.identity == second.identity
     assert first.reference.callable_id == "radjax.learning.generic_jax_step"
     assert (
@@ -33,6 +32,7 @@ def test_default_generic_step_binding_is_source_derived_and_deterministic() -> N
     assert first.to_dict().keys() == {"declaration", "identity"}
 
 
+@pytest.mark.jax
 def test_reference_rejects_unknown_fields_and_wrong_identity() -> None:
     reference = RuntimeCallableReference(
         "radjax.runtime_callable_reference.v1",
@@ -44,7 +44,7 @@ def test_reference_rejects_unknown_fields_and_wrong_identity() -> None:
     with pytest.raises(ValueError, match="unknown"):
         RuntimeCallableReference.from_dict(payload)
     pytest.importorskip("jax")
-    registry = build_default_runtime_callable_registry()
+    registry = _default_registry()
     with pytest.raises(RuntimeCallableError, match="request_mismatch"):
         registry.resolve(
             RuntimeCallableReference(
@@ -187,8 +187,17 @@ def test_typed_evidence_records_round_trip_strictly() -> None:
 
 
 def _reference_from_default_registry() -> RuntimeCallableReference:
-    registry = build_default_runtime_callable_registry()
+    registry = _default_registry()
     # The API deliberately has no discovery: this reference is taken from a
     # known declared operation, then resolution remains exact.
     binding = next(iter(registry._bindings.values()))
     return binding.reference
+
+
+def _default_registry():
+    pytest.importorskip("jax")
+    from radjax_student.learning.composition import (
+        build_default_learning_callable_registry,
+    )
+
+    return build_default_learning_callable_registry()

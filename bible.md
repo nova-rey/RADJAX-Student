@@ -1170,3 +1170,23 @@
   the JAX-free AST audit rather than by source-text marker matching. The
   correction preserves the frozen 28-fixture inventory and stable blocker
   codes while making fixture evidence exercise the audited syntax boundary.
+
+## 2026-07-18 - Foundation audit closure
+
+- Moved default generic JAX-step registration out of runtime and into the
+  narrow learning composition root. Runtime remains the generic callable
+  identity and exact-binding authority and no longer imports application steps
+  or learning composition.
+- Removed the top-level `radjax_student.losses` namespace after updating every
+  internal import. The retained NumPy implementations are explicitly
+  `radjax_student.legacy.losses`, excluded from the canonical assembled JAX
+  training path and its reviewed source-purity audit.
+- Made reusable test support a hermetic local `tests.support` package, moved
+  product compatibility material out of validation, and locked the
+  production-versus-proof namespace policy with four explicit historical
+  exceptions only.
+- Added the deterministic JAX-free foundation audit/report, independently
+  checking current P3.12B HF descriptor evidence and the architecture-owned
+  HF authority path. The documentation now defines Phase 4 as architecture
+  plugin ingestion with RWKV only as the first reference architecture; no
+  Phase 4 implementation was added.

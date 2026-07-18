@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 from radjax_contract.testing import production_tome_fixture_path
-from tome_fixtures import write_dense_tome
 
 from radjax_student.artifacts import TomeArtifactError, open_tome_artifact
 from radjax_student.validation import (
     infer_run_defaults,
     infer_run_defaults_from_tome,
 )
+from tests.support.tome_fixtures import write_dense_tome
 
 CURRENT_REQUIRED_CAPABILITIES = (
     "radjax.corridor.packed_assignments.v1",

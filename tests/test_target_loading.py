@@ -3,12 +3,12 @@ from pathlib import Path
 import numpy as np
 from radjax_contract.tome import TomeManifest, TomeShard
 from radjax_contract.vocab import VocabContract
-from tome_fixtures import write_dense_tome
 
 from radjax_student.artifacts.targets import (
     load_dense_tome_targets,
     target_batch_from_dense_tome,
 )
+from tests.support.tome_fixtures import write_dense_tome
 
 
 def test_dense_tome_targets_load_logits_records_and_probabilities(

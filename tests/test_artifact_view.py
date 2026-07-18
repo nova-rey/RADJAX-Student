@@ -2,9 +2,9 @@ from pathlib import Path
 
 import pytest
 from radjax_contract.io import read_json, write_json
-from tome_fixtures import write_dense_tome
 
 from radjax_student.artifacts import TomeArtifactError, open_tome_artifact
+from tests.support.tome_fixtures import write_dense_tome
 
 
 def test_open_tome_artifact_returns_stable_metadata_view(tmp_path: Path) -> None:

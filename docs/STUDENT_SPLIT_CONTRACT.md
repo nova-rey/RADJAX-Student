@@ -180,8 +180,8 @@ The P0.3 classification remains in force:
 | --- | --- | --- |
 | `artifacts/loaders.py` | Smoke/debug | Thin Contract-backed Tome inspection. |
 | `artifacts/targets.py` | Smoke/debug | Dense Tome loading for NumPy smoke work, not the production training substrate. |
-| `losses/dense_kl.py` | Smoke/debug | Dense teacher-probability loss for small tests. |
-| `losses/sparse_topk.py` | Smoke/debug | Early compressed-target mechanism, not a settled public API. |
+| `legacy/losses/dense_kl.py` | Legacy/offline analysis | Dense teacher-probability loss; not a canonical objective. |
+| `legacy/losses/sparse_topk.py` | Legacy/offline analysis | Compressed-target analysis mechanism; not a settled public API. |
 | `students/base.py` | Core architecture candidate | Seed of the plugin contract in a transitional namespace. |
 | `students/registry.py` | Core architecture candidate | Useful registry behavior that should migrate toward `architecture/`. |
 | `students/tiny_debug/` | Smoke/debug | NumPy backend for import, registry, and training smoke tests. |

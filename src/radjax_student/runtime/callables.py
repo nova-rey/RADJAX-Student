@@ -625,21 +625,3 @@ class RuntimeCallableRegistry:
                 "callable declaration is not registered",
             )
         return binding
-
-
-def build_default_runtime_callable_registry() -> RuntimeCallableRegistry:
-    """Return the explicit production registry without module discovery."""
-    # Local import prevents optional JAX learning code from entering base imports.
-    from radjax_student.steps.jax_step import (
-        GENERIC_JAX_LEARNING_STEP_DECLARATION,
-        execute_jax_learning_step_kernel,
-    )
-
-    registry = RuntimeCallableRegistry()
-    registry.register(
-        bind_runtime_callable(
-            callable=execute_jax_learning_step_kernel,
-            declaration=GENERIC_JAX_LEARNING_STEP_DECLARATION,
-        )
-    )
-    return registry

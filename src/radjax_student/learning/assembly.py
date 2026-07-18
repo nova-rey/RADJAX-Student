@@ -22,6 +22,9 @@ from radjax_student.contracts import (
     ObjectiveIdentity,
     ResolvedObjectiveSelection,
 )
+from radjax_student.learning.composition import (
+    build_default_learning_callable_registry,
+)
 from radjax_student.learning.jax_batch import (
     FiniteJsonJaxBatchMaterializer,
 )
@@ -40,7 +43,6 @@ from radjax_student.runtime import (
     RuntimeCallableReference,
     RuntimeConfig,
     bind_runtime_for_learning,
-    build_default_runtime_callable_registry,
     build_default_runtime_registry,
     initialization_reference_from_root_seed,
 )
@@ -786,7 +788,7 @@ def assemble_jax_learning_lifecycle(
             "assembly_execution_factory_unknown", "unknown execution request factory"
         )
     try:
-        callable_binding = build_default_runtime_callable_registry().lookup(
+        callable_binding = build_default_learning_callable_registry().lookup(
             "radjax.learning.generic_jax_step", 1
         )
         executor = JaxLoopExecutor(

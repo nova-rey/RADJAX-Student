@@ -343,7 +343,7 @@ def test_generic_runtime_modules_do_not_import_product_or_policy_layers() -> Non
     forbidden = (
         "radjax_student.architecture",
         "radjax_student.artifacts",
-        "radjax_student.losses",
+        "radjax_student.legacy.losses",
         "radjax_student.schedules",
         "radjax_student.students",
         "radjax_student.training",

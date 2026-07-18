@@ -8,7 +8,7 @@ import numpy as np
 from radjax_contract.vocab import VocabContract
 
 from radjax_student.debug.tiny_debug import TinyDebugStudentBackend
-from radjax_student.losses import dense_kl_loss
+from radjax_student.legacy.losses import dense_kl_loss
 
 
 @dataclass(frozen=True)

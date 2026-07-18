@@ -77,4 +77,4 @@ Phase 4 requires successful required remote base/JAX CI or an explicit repositor
 > remains unstarted.
 
 Current P3.12A receipt evidence digest:
-`07681f60d67d0ee0b973856a66cf0dbef6e807fe45bbc05226f4c6abd84def27`.
+`035fd7d38f3092a2f7eef960b3bef14d7eb38c8a783bb192f5183655b2582905`.

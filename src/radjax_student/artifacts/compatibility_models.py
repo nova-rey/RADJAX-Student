@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from radjax_student.validation.default_models import immutable_mapping
+from radjax_student.artifacts.default_models import immutable_mapping
 
 CompatibilityStatus = Literal["pass", "fail"]
 CheckStatus = Literal["pass", "fail", "unevaluated", "not_present"]
