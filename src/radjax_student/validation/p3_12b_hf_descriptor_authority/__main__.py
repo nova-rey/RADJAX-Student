@@ -22,6 +22,11 @@ def main(argv: list[str] | None = None) -> int:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--check-recorded", action="store_true")
     group.add_argument("--write", type=Path)
+    parser.add_argument(
+        "--recorded",
+        type=Path,
+        default=Path("docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json"),
+    )
     args = parser.parse_args(argv)
     from radjax_student.validation.p3_12b_hf_descriptor_authority.runner_jax import (
         execute_hf_descriptor_authority_proof,
@@ -35,7 +40,7 @@ def main(argv: list[str] | None = None) -> int:
         args.write.parent.mkdir(parents=True, exist_ok=True)
         args.write.write_bytes(generated)
         return 0
-    recorded = Path("docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_bytes()
+    recorded = args.recorded.read_bytes()
     try:
         validate_receipt(json.loads(recorded), proof=proof)
     except (json.JSONDecodeError, ValueError) as error:

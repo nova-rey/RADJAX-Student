@@ -1201,3 +1201,11 @@
   evidence, and its normal recorded checker compares the receipt exactly with
   a newly executed typed authority proof. The canonical 22-positive/77-case
   inventory and receipt schema remain unchanged.
+
+## 2026-07-18 - Foundation audit current-evidence closure
+
+- The foundation audit now evaluates P3.12B recorded evidence against a fresh
+  typed authority proof, so schema-valid digest substitutions cannot be treated
+  as current. Its HF source audit also proves lifecycle-owned checkpoint
+  operands, the active checkpoint comparison, and canonical run-report
+  comparison operands rather than only finding a guard or callee name.

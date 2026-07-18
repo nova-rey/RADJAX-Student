@@ -6,13 +6,11 @@ import argparse
 import ast
 import hashlib
 import json
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from radjax_student.validation.p3_12b_hf_descriptor_authority import (
-    implementation_audit as p312b_audit,
-)
 from radjax_student.validation.p3_12b_hf_descriptor_authority import (
     models as p312b_models,
 )
@@ -189,6 +187,17 @@ def _call_keyword_attribute(
     )
 
 
+def _call_arguments_are(
+    function: ast.FunctionDef, callee: str, *arguments: str
+) -> bool:
+    return any(
+        _call_name(node.func) == callee
+        and tuple(_call_name(argument) for argument in node.args) == arguments
+        for node in ast.walk(function)
+        if isinstance(node, ast.Call)
+    )
+
+
 def _call_name(node: ast.AST) -> str | None:
     if isinstance(node, ast.Name):
         return node.id
@@ -267,10 +276,22 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
     lifecycle = tree("steps/jax_loop.py")
     if lifecycle is not None:
         restore = _function(lifecycle, "restore_from_checkpoint")
-        if restore is None or not {
-            "expected_hf_reference",
-            "expected_hf_descriptor",
-        } <= _call_keywords(restore, "load_learning_checkpoint_v3"):
+        if restore is None or not (
+            _call_keyword_attribute(
+                restore,
+                "load_learning_checkpoint_v3",
+                "expected_hf_reference",
+                "self",
+                "hf_reference",
+            )
+            and _call_keyword_attribute(
+                restore,
+                "load_learning_checkpoint_v3",
+                "expected_hf_descriptor",
+                "self",
+                "hf_descriptor",
+            )
+        ):
             blockers.append("hf_checkpoint_lifecycle_bypass")
 
     checkpoint = tree("checkpoints/v3.py")
@@ -288,7 +309,18 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
             and node.test.comparators[0].value is None
             for node in ast.walk(restore or checkpoint)
         )
-        if restore is None or not has_required_guard:
+        has_exact_comparison = any(
+            isinstance(node, ast.Compare)
+            and len(node.ops) == 1
+            and isinstance(node.ops[0], ast.NotEq)
+            and isinstance(node.left, ast.Name)
+            and node.left.id == "hf_descriptor"
+            and len(node.comparators) == 1
+            and isinstance(node.comparators[0], ast.Name)
+            and node.comparators[0].id == "expected_hf_descriptor"
+            for node in ast.walk(restore or checkpoint)
+        )
+        if restore is None or not has_required_guard or not has_exact_comparison:
             blockers.append("hf_checkpoint_descriptor_validation_bypassed")
 
     replay = tree("validation/p3_11_9_replay/runner_jax.py")
@@ -303,10 +335,11 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
     report = tree("learning/run_report.py")
     if report is not None:
         validate = _function(report, "validate_run_hf_summary")
-        if validate is None or not any(
-            isinstance(node, ast.Call)
-            and _call_name(node.func) == "validate_hf_descriptor_match"
-            for node in ast.walk(validate)
+        if validate is None or not _call_arguments_are(
+            validate,
+            "validate_hf_descriptor_match",
+            "executed_descriptor",
+            "summary.descriptor",
         ):
             blockers.append("hf_report_descriptor_validation_bypassed")
     return tuple(sorted(set(blockers)))
@@ -482,23 +515,19 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
 
 def _p312b_recorded_evidence_current(root: Path) -> bool:
     try:
-        payload = p312b_models.validate_receipt(
-            json.loads(
-                (root / "docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
-            )
+        payload = json.loads(
+            (root / "docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
         )
-        runner = (
-            root
-            / "src/radjax_student/validation/p3_12b_hf_descriptor_authority"
-            / "runner_jax.py"
+        from radjax_student.validation.p3_12b_hf_descriptor_authority import (
+            runner_jax,
         )
-        audit = p312b_audit.audit_gate_source(runner, repository_root=root)
+
+        with tempfile.TemporaryDirectory(prefix="radjax-foundation-p312b-") as temp:
+            proof = runner_jax.execute_hf_descriptor_authority_proof(Path(temp))
+        p312b_models.validate_receipt(payload, proof=proof)
     except (OSError, ValueError, json.JSONDecodeError):
         return False
-    return (
-        audit.status == "pass"
-        and payload["implementation_audit_digest"] == audit.implementation_audit_digest
-    )
+    return True
 
 
 HF_AUTHORITY_PATHS = (
@@ -606,13 +635,16 @@ def main(argv: list[str] | None = None) -> int:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--write", action="store_true")
     group.add_argument("--check-recorded", action="store_true")
+    parser.add_argument("--recorded", type=Path, default=REPORT_PATH)
     args = parser.parse_args(argv)
     report = build_foundation_audit(Path.cwd())
     generated = _bytes(report)
     if args.write:
-        REPORT_PATH.write_bytes(generated)
+        args.recorded.write_bytes(generated)
         return 0 if report.status == "pass" else 1
-    return 0 if report.status == "pass" and REPORT_PATH.read_bytes() == generated else 1
+    return (
+        0 if report.status == "pass" and args.recorded.read_bytes() == generated else 1
+    )
 
 
 if __name__ == "__main__":

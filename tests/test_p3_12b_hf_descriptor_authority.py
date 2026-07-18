@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import runpy
 import subprocess
 import sys
@@ -170,8 +171,6 @@ def test_literal_gate_inventory_has_exactly_77_distinct_experiments():
 
 
 def test_v2_receipt_rejects_incomplete_adversarial_inventory():
-    import json
-
     payload = json.loads(
         Path("docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
     )
@@ -179,6 +178,22 @@ def test_v2_receipt_rejects_incomplete_adversarial_inventory():
     payload["adversarial_case_count"] = 76
     with pytest.raises(ValueError, match="schema or status"):
         validate_receipt(payload)
+
+
+@pytest.mark.jax
+def test_normal_checker_rejects_schema_valid_stale_descriptor_receipt(tmp_path: Path):
+    from radjax_student.validation.p3_12b_hf_descriptor_authority.__main__ import (
+        main,
+    )
+
+    payload = json.loads(
+        Path("docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
+    )
+    payload["descriptor_digest"] = "0" * 64
+    payload["checkpoint_hf_descriptor_digest"] = "0" * 64
+    recorded = tmp_path / "P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json"
+    recorded.write_text(json.dumps(payload), encoding="utf-8")
+    assert main(["--check-recorded", "--recorded", str(recorded)]) == 1
 
 
 def test_jax_free_implementation_audit_binds_literal_source_and_fixtures():

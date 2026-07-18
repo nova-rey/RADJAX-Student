@@ -9,18 +9,23 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 from radjax_student.validation.foundation_audit_closure import (
     CANONICAL_TRAINING_PATHS,
     SCHEMA_VERSION,
     _bytes,
+    _p312b_recorded_evidence_current,
     audit_hf_authority_fixture,
     audit_source_fixture,
     build_foundation_audit,
+    main,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
+@pytest.mark.jax
 def test_foundation_audit_is_clean_and_uses_literal_canonical_paths() -> None:
     report = build_foundation_audit(ROOT)
     assert report.status == "pass"
@@ -95,6 +100,21 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
+    comparison = dict(sources)
+    comparison["checkpoints/v3.py"] = comparison["checkpoints/v3.py"].replace(
+        "if hf_descriptor != expected_hf_descriptor:", "if False:"
+    )
+    assert audit_hf_authority_fixture(comparison) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
+    lifecycle = dict(sources)
+    lifecycle["steps/jax_loop.py"] = lifecycle["steps/jax_loop.py"].replace(
+        "expected_hf_descriptor=self.hf_descriptor",
+        "expected_hf_descriptor=None",
+    )
+    assert audit_hf_authority_fixture(lifecycle) == ("hf_checkpoint_lifecycle_bypass",)
+
     replay = dict(sources)
     replay["validation/p3_11_9_replay/runner_jax.py"] = replay[
         "validation/p3_11_9_replay/runner_jax.py"
@@ -109,8 +129,23 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "hf_report_descriptor_validation_bypassed",
     )
 
+    report_operands = dict(sources)
+    report_operands["learning/run_report.py"] = report_operands[
+        "learning/run_report.py"
+    ].replace(
+        "validate_hf_descriptor_match(executed_descriptor, summary.descriptor)",
+        "validate_hf_descriptor_match(foreign_descriptor, foreign_summary)",
+    )
+    assert audit_hf_authority_fixture(report_operands) == (
+        "hf_report_descriptor_validation_bypassed",
+    )
 
-def test_foundation_report_bytes_are_deterministic_and_detect_mismatch() -> None:
+
+@pytest.mark.jax
+def test_foundation_report_bytes_are_deterministic_and_public_checker_detects_mismatch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.chdir(ROOT)
     report = build_foundation_audit(ROOT)
     generated = _bytes(report)
     assert generated == _bytes(build_foundation_audit(ROOT))
@@ -118,7 +153,24 @@ def test_foundation_report_bytes_are_deterministic_and_detect_mismatch() -> None
         (ROOT / "docs/FOUNDATION_AUDIT_CLOSURE_REPORT.json").read_text()
     )
     assert recorded["schema_version"] == SCHEMA_VERSION
-    assert generated != generated[:-1] + b" "
+    corrupted = tmp_path / "FOUNDATION_AUDIT_CLOSURE_REPORT.json"
+    corrupted.write_bytes(generated[:-1] + b" ")
+    assert main(["--check-recorded", "--recorded", str(corrupted)]) == 1
+
+
+@pytest.mark.jax
+def test_foundation_rejects_schema_valid_stale_p312b_receipt(tmp_path: Path) -> None:
+    receipt = json.loads(
+        (ROOT / "docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
+    )
+    receipt["descriptor_digest"] = "0" * 64
+    receipt["checkpoint_hf_descriptor_digest"] = "0" * 64
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").write_text(
+        json.dumps(receipt), encoding="utf-8"
+    )
+    assert not _p312b_recorded_evidence_current(tmp_path)
 
 
 def test_runtime_import_and_local_test_support_are_hermetic() -> None:

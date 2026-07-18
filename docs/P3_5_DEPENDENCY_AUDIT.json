@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "090fd456c5ff1059a207bb13c48c624e497ae285",
+  "accepted_commit": "8bac3ff445ff580ca8bf88aa3fbfa323be4c2163",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -5569,6 +5569,7 @@
         "json",
         "pathlib",
         "radjax_student.validation.p3_12b_hf_descriptor_authority",
+        "tempfile",
         "typing"
       ],
       "internal_edges": [
