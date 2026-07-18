@@ -1282,6 +1282,13 @@
   protected-import aliases are all rejected. The frozen 22-positive/77-case
   P3.12B evidence inventory remains unchanged.
 
+## 2026-07-18 - Foundation audit provenance evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `246cc70`
+  through its canonical writer and regenerated the dependent P3.11.10 final
+  receipt twice byte-identically. Foundation and P3.12A-D recorded checks
+  remained current; no unrelated receipt was rewritten.
+
 ## 2026-07-18 - Architecture audit formatter evidence refresh
 
 - Refreshed generated acceptance evidence from the formatted source-revision
