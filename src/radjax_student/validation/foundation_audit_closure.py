@@ -6,6 +6,9 @@ import argparse
 import ast
 import hashlib
 import json
+import os
+import subprocess
+import sys
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,6 +50,7 @@ PRODUCTION_OWNER_ROOTS = frozenset(
     {
         "architecture",
         "checkpoints",
+        "cli",
         "contracts",
         "hf",
         "learning",
@@ -95,14 +99,17 @@ def _normalized_from_imports(
 ) -> tuple[str, ...]:
     """Resolve a relative import from a source-relative module path."""
     if not node.level:
-        return (node.module,) if node.module else ()
-    package = ("radjax_student", *Path(relative_path).parent.parts)
-    parent_count = node.level - 1
-    if parent_count >= len(package):
+        base = node.module
+    else:
+        package = ("radjax_student", *Path(relative_path).parent.parts)
+        parent_count = node.level - 1
+        base = ".".join(package[: max(1, len(package) - parent_count)])
+        if node.module:
+            base = f"{base}.{node.module}"
+    if not base:
         return ()
-    base = ".".join(package[: len(package) - parent_count])
     if node.module:
-        return (f"{base}.{node.module}",)
+        return (base, *(f"{base}.{item.name}" for item in node.names))
     return tuple(f"{base}.{item.name}" for item in node.names)
 
 
@@ -593,10 +600,7 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
             "canonical_jax_purity:" + ",".join(sorted(set(purity_failures)))
         )
 
-    support = repository / "tests" / "support" / "linear_objective.py"
-    test_support_hermetic = (
-        support.is_file() and (repository / "tests" / "__init__.py").is_file()
-    )
+    test_support_hermetic = _test_support_is_hermetic(repository)
     if not test_support_hermetic:
         blockers.append("test_support_not_hermetic")
 
@@ -638,6 +642,45 @@ def _p312b_recorded_evidence_current(root: Path) -> bool:
     except (OSError, ValueError, json.JSONDecodeError):
         return False
     return True
+
+
+def _test_support_is_hermetic(repository: Path) -> bool:
+    """Prove local ``tests.support`` wins over a competing PYTHONPATH package."""
+    support = repository / "tests" / "support" / "linear_objective.py"
+    if not support.is_file() or not (repository / "tests" / "__init__.py").is_file():
+        return False
+    with tempfile.TemporaryDirectory(prefix="radjax-foundation-tests-") as temp:
+        competing = Path(temp) / "competing"
+        competitor = competing / "tests" / "support"
+        competitor.mkdir(parents=True)
+        (competitor.parent / "__init__.py").write_text("", encoding="utf-8")
+        (competitor / "__init__.py").write_text("", encoding="utf-8")
+        (competitor / "linear_objective.py").write_text("", encoding="utf-8")
+        expected = f"pathlib.Path({str(support.resolve())!r})"
+        script = "\n".join(
+            (
+                "import importlib.util",
+                "import pathlib",
+                "spec = importlib.util.find_spec('tests.support.linear_objective')",
+                "assert spec is not None and spec.origin is not None",
+                "assert pathlib.Path(spec.origin).resolve() == " + expected,
+            )
+        )
+        environment = {
+            **os.environ,
+            "PYTHONPATH": os.pathsep.join(
+                filter(None, (str(competing), os.environ.get("PYTHONPATH")))
+            ),
+        }
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=repository,
+            env=environment,
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+    return result.returncode == 0
 
 
 HF_AUTHORITY_PATHS = (

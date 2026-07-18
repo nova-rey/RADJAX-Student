@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "3cfe61e81f16e5ffaba6f52236a3b543943476e1",
+  "accepted_commit": "eca28ebd607100ae387302f67c4f9a1138631665",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -5575,8 +5575,11 @@
         "dataclasses",
         "hashlib",
         "json",
+        "os",
         "pathlib",
         "radjax_student.validation.p3_12b_hf_descriptor_authority",
+        "subprocess",
+        "sys",
         "tempfile",
         "typing"
       ],

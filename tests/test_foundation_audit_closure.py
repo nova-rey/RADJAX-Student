@@ -13,9 +13,11 @@ import pytest
 
 from radjax_student.validation.foundation_audit_closure import (
     CANONICAL_TRAINING_PATHS,
+    PRODUCTION_OWNER_ROOTS,
     SCHEMA_VERSION,
     _bytes,
     _p312b_recorded_evidence_current,
+    _test_support_is_hermetic,
     audit_hf_authority_fixture,
     audit_source_fixture,
     build_foundation_audit,
@@ -43,11 +45,17 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "from ..steps import jax_step\n", relative_path="runtime/x.py"
     ) == ("runtime_steps_import",)
     assert audit_source_fixture(
+        "from radjax_student import steps\n", relative_path="runtime/x.py"
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
         "from radjax_student.validation import compatibility\n",
         relative_path="reports/x.py",
     ) == ("production_validation_import",)
     assert audit_source_fixture(
         "from ..validation import compatibility\n", relative_path="runtime/x.py"
+    ) == ("production_validation_import",)
+    assert audit_source_fixture(
+        "from radjax_student import validation\n", relative_path="reports/x.py"
     ) == ("production_validation_import",)
     assert audit_source_fixture(
         "import numpy\n", relative_path="steps/jax_step.py"
@@ -60,10 +68,30 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "from ..legacy.losses import dense_kl_loss\n",
         relative_path="learning/assembly.py",
     ) == ("canonical_numpy_loss_import",)
+    assert audit_source_fixture(
+        "from radjax_student.legacy import losses\n",
+        relative_path="learning/assembly.py",
+    ) == ("canonical_numpy_loss_import",)
+    assert audit_source_fixture(
+        "from ..legacy import losses\n", relative_path="learning/assembly.py"
+    ) == ("canonical_numpy_loss_import",)
+    assert audit_source_fixture(
+        "from ...legacy import losses\n", relative_path="learning/assembly.py"
+    ) == ("canonical_numpy_loss_import",)
     assert (
         audit_source_fixture(
             "from ..contracts import ObjectiveConfig\n", relative_path="runtime/x.py"
         )
+        == ()
+    )
+    assert (
+        audit_source_fixture(
+            "from radjax_student import contracts\n", relative_path="runtime/x.py"
+        )
+        == ()
+    )
+    assert (
+        audit_source_fixture("from .. import contracts\n", relative_path="runtime/x.py")
         == ()
     )
     assert audit_source_fixture(
@@ -84,6 +112,14 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     assert audit_source_fixture(
         "from radjax_student.learning import assembly\n",
         relative_path="runtime/x.py",
+    ) == ("runtime_learning_import",)
+
+
+def test_production_owners_include_cli_and_test_support_beats_competitors() -> None:
+    assert "cli" in PRODUCTION_OWNER_ROOTS
+    assert _test_support_is_hermetic(ROOT)
+    assert audit_source_fixture(
+        "from radjax_student import learning\n", relative_path="runtime/x.py"
     ) == ("runtime_learning_import",)
 
 

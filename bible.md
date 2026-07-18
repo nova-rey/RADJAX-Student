@@ -1244,3 +1244,12 @@
 - The fixed-source foundation audit now recognizes `ValueError` superclass
   handlers and structural `match` case returns as paths that could swallow a
   checkpoint mismatch or bypass report descriptor validation.
+
+## 2026-07-18 - Foundation import and test-isolation closure
+
+- The literal production-owner inventory now includes `cli`, and import audit
+  normalization expands package-form imported aliases so `steps`, `learning`,
+  `validation`, and legacy-loss policies cannot be bypassed by parent-package
+  syntax.
+- Foundation test-support evidence now proves local `tests.support` wins over
+  a competing third-party `tests` package placed earlier on `PYTHONPATH`.
