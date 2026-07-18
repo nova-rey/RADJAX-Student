@@ -233,6 +233,27 @@ def test_jax_free_implementation_audit_binds_literal_source_and_fixtures():
     ]
 
 
+def test_production_import_audit_rejects_bound_gate_import_alias(
+    tmp_path: Path,
+) -> None:
+    runtime = tmp_path / "src" / "radjax_student" / "runtime"
+    runtime.mkdir(parents=True)
+    (runtime / "alias.py").write_text(
+        "from radjax_student.validation import implementation_audit\n",
+        encoding="utf-8",
+    )
+    (runtime / "direct.py").write_text(
+        "from radjax_student.validation.p3_12b_hf_descriptor_authority import models\n",
+        encoding="utf-8",
+    )
+    blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
+    implementation_audit._audit_production_imports(tmp_path, blockers)
+    assert [(item.code, item.detail) for item in blockers] == [
+        ("production_imports_gate_code", "runtime/alias.py"),
+        ("production_imports_gate_code", "runtime/direct.py"),
+    ]
+
+
 def test_p312b3_anti_cheat_source_fixtures_execute_with_stable_blockers(tmp_path):
     fixtures = Path(__file__).parent / "fixtures" / "p3_12b_implementation_audit"
     source = runpy.run_path(fixtures / "anti_cheat_sources.py")
@@ -276,6 +297,17 @@ def test_p312b3_real_audit_round_trips_and_stays_jax_free():
     assert audit.status == "pass"
     assert audit.adversarial_inventory_count == 77
     assert audit.positive_inventory_count == 22
+    recorded = json.loads(
+        Path("docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
+    )
+    assert (
+        audit.source_evidence_digest
+        == recorded["implementation_audit"]["source_evidence_digest"]
+    )
+    assert (
+        audit.implementation_audit_digest
+        == recorded["implementation_audit"]["implementation_audit_digest"]
+    )
     assert type(audit).from_dict(audit.to_dict()) == audit
     malformed = audit.to_dict()
     malformed["unknown"] = True

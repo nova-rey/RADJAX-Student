@@ -64,6 +64,10 @@ _PRODUCTION_OWNERS = {
     "reports",
     "hf",
 }
+_PROTECTED_GATE_IMPORT_MARKERS = (
+    "p3_12b_hf_descriptor_authority",
+    "implementation_audit",
+)
 
 
 def _digest(value: object) -> str:
@@ -244,15 +248,23 @@ class HFDescriptorGateImplementationAudit:
         return audit
 
 
-def _assignment(tree: ast.AST, name: str) -> ast.Assign | ast.AnnAssign | None:
-    matches = []
-    for node in ast.walk(tree):
+def _assignment_index(
+    nodes: tuple[ast.AST, ...],
+) -> dict[str, tuple[ast.Assign | ast.AnnAssign, ...]]:
+    matches: dict[str, list[ast.Assign | ast.AnnAssign]] = {}
+    for node in nodes:
         if isinstance(node, (ast.Assign, ast.AnnAssign)):
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            if any(
-                isinstance(target, ast.Name) and target.id == name for target in targets
-            ):
-                matches.append(node)
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    matches.setdefault(target.id, []).append(node)
+    return {name: tuple(items) for name, items in matches.items()}
+
+
+def _assignment(
+    assignments: dict[str, tuple[ast.Assign | ast.AnnAssign, ...]], name: str
+) -> ast.Assign | ast.AnnAssign | None:
+    matches = assignments.get(name, ())
     return matches[0] if len(matches) == 1 else None
 
 
@@ -284,8 +296,10 @@ def _call_name(node: ast.AST) -> str | None:
     return None
 
 
-def _positive_ids(tree: ast.Module) -> tuple[str, ...]:
-    values = _tuple_values(_assignment(tree, "positives"))
+def _positive_ids(
+    assignments: dict[str, tuple[ast.Assign | ast.AnnAssign, ...]],
+) -> tuple[str, ...]:
+    values = _tuple_values(_assignment(assignments, "positives"))
     if values is None:
         return ()
     result: list[str] = []
@@ -407,9 +421,9 @@ def _audit_observer(
 
 
 def _audit_translation_and_semantics(
-    tree: ast.Module, blockers: list[HFImplementationAuditBlocker]
+    nodes: tuple[ast.AST, ...], blockers: list[HFImplementationAuditBlocker]
 ) -> None:
-    for node in ast.walk(tree):
+    for node in nodes:
         if isinstance(node, ast.FunctionDef) and node.name in _TRANSLATION_NAMES:
             _add(blockers, "forbidden_expected_translation", node.name)
         if isinstance(node, ast.Call):
@@ -465,22 +479,30 @@ def _audit_production_imports(
         relative = path.relative_to(source_root)
         if not relative.parts or relative.parts[0] not in _PRODUCTION_OWNERS:
             continue
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        imports = [
-            node
-            for node in ast.walk(tree)
-            if isinstance(node, (ast.Import, ast.ImportFrom))
-        ]
-        for node in imports:
-            names = (
-                [alias.name for alias in node.names]
-                if isinstance(node, ast.Import)
-                else [node.module or ""]
-            )
+        source = path.read_text(encoding="utf-8")
+        # An AST import spelling that violates this policy must contain one of
+        # these literal module fragments.  Preserve AST confirmation for every
+        # candidate while avoiding whole-tree walks for unrelated production
+        # modules.
+        if not any(marker in source for marker in _PROTECTED_GATE_IMPORT_MARKERS):
+            continue
+        tree = ast.parse(source, filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Import, ast.ImportFrom)):
+                continue
+            if isinstance(node, ast.Import):
+                names = [alias.name for alias in node.names]
+            else:
+                module = node.module or ""
+                names = [module]
+                names.extend(
+                    f"{module}.{alias.name}" if module else alias.name
+                    for alias in node.names
+                )
             if any(
-                "p3_12b_hf_descriptor_authority" in name
-                or "implementation_audit" in name
+                marker in name
                 for name in names
+                for marker in _PROTECTED_GATE_IMPORT_MARKERS
             ):
                 _add(blockers, "production_imports_gate_code", str(relative))
 
@@ -496,6 +518,8 @@ def audit_gate_source(
 
     source = path.read_text(encoding="utf-8")
     tree = ast.parse(source, filename=str(path))
+    nodes = tuple(ast.walk(tree))
+    assignments = _assignment_index(nodes)
     definitions = {
         node.name: node
         for node in tree.body
@@ -503,10 +527,10 @@ def audit_gate_source(
     }
     blockers: list[HFImplementationAuditBlocker] = []
     gate_source = expected_adversarial_case_ids == ADVERSARIAL_CASE_IDS
-    functions = _tuple_values(_assignment(tree, "_FUNCTIONS"))
+    functions = _tuple_values(_assignment(assignments, "_FUNCTIONS"))
     if functions is None or not all(isinstance(item, ast.Name) for item in functions):
         names: tuple[str, ...] = ()
-        registry = _assignment(tree, "_FUNCTIONS")
+        registry = _assignment(assignments, "_FUNCTIONS")
         flattened = tuple(ast.walk(registry)) if registry is not None else ()
         if any(isinstance(item, ast.Lambda) for item in flattened):
             _add(blockers, "lambda_canonical_experiment", "_FUNCTIONS")
@@ -539,6 +563,12 @@ def audit_gate_source(
             )
     if len(set(names)) != len(names):
         _add(blockers, "duplicate_adversarial_function", "_FUNCTIONS")
+    line_offsets: tuple[int, ...] = ()
+    if source.isascii():
+        offsets = [0]
+        for line in source.splitlines(keepends=True):
+            offsets.append(offsets[-1] + len(line))
+        line_offsets = tuple(offsets)
     entries: list[HFImplementationAuditEntry] = []
     for case_id, name in zip(case_ids, names, strict=True):
         function = definitions.get(name)
@@ -546,7 +576,15 @@ def audit_gate_source(
             _add(blockers, "missing_adversarial_function", name)
             continue
         _audit_function(function, source, blockers)
-        segment = ast.get_source_segment(source, function) or ""
+        if line_offsets and function.end_lineno is not None:
+            segment = source[
+                line_offsets[function.lineno - 1] + function.col_offset : line_offsets[
+                    function.end_lineno - 1
+                ]
+                + function.end_col_offset
+            ]
+        else:
+            segment = ast.get_source_segment(source, function) or ""
         entries.append(
             HFImplementationAuditEntry(
                 case_id, name, hashlib.sha256(segment.encode()).hexdigest()
@@ -555,22 +593,24 @@ def audit_gate_source(
     if len({item.source_digest for item in entries}) != len(entries):
         _add(blockers, "reused_semantic_handler", "duplicate experiment source")
     if gate_source:
-        codes = _literal_strings(_assignment(tree, "_CODES"))
-        boundaries = _boundary_count(_tuple_values(_assignment(tree, "_BOUNDARIES")))
+        codes = _literal_strings(_assignment(assignments, "_CODES"))
+        boundaries = _boundary_count(
+            _tuple_values(_assignment(assignments, "_BOUNDARIES"))
+        )
         if codes is None or len(codes) != len(names):
             _add(blockers, "parallel_inventory_length_mismatch", "_CODES")
         if boundaries is None or boundaries != len(names):
             _add(blockers, "parallel_inventory_length_mismatch", "_BOUNDARIES")
         if "zip(_FUNCTIONS, _BOUNDARIES, _CODES, strict=True)" not in source:
             _add(blockers, "parallel_inventory_mapping_unproven", "SPECS")
-    positives = _positive_ids(tree)
+    positives = _positive_ids(assignments)
     if positives != expected_positive_case_ids:
         _add(blockers, "positive_inventory_mismatch", "canonical ordered positive IDs")
     if gate_source or "def _observe" in source:
         _audit_observer(tree, blockers)
     if gate_source or "observed_boundary" in source:
         _audit_observed_boundary(source, blockers)
-    _audit_translation_and_semantics(tree, blockers)
+    _audit_translation_and_semantics(nodes, blockers)
     inferred_root = repository_root
     if inferred_root is None:
         parents = path.resolve().parents

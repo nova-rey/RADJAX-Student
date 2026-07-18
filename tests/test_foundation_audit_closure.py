@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -121,6 +122,21 @@ def test_production_owners_include_cli_and_test_support_beats_competitors() -> N
     assert audit_source_fixture(
         "from radjax_student import learning\n", relative_path="runtime/x.py"
     ) == ("runtime_learning_import",)
+    assert audit_source_fixture(
+        "__import__('radjax_student.steps')\n", relative_path="runtime/x.py"
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
+        "import importlib\nimportlib.import_module('radjax_student.validation')\n",
+        relative_path="reports/x.py",
+    ) == ("production_validation_import",)
+    assert audit_source_fixture(
+        "if True:\n    def execute_p3_99_proof(): pass\n",
+        relative_path="learning/module.py",
+    ) == ("new_production_proof_module:learning/module.py",)
+    assert audit_source_fixture(
+        "def enclosing():\n    class NestedAcceptance: pass\n",
+        relative_path="runtime/module.py",
+    ) == ("new_production_proof_module:runtime/module.py",)
 
 
 def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
@@ -149,6 +165,26 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "if expected_hf_descriptor is None:", "if False:"
     )
     assert audit_hf_authority_fixture(checkpoint) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
+    unreachable_guard = dict(sources)
+    unreachable_guard["checkpoints/v3.py"] = unreachable_guard[
+        "checkpoints/v3.py"
+    ].replace(
+        """if expected_hf_descriptor is None:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_missing",
+            "caller-bound continuation requires expected HF descriptor",
+        )""",
+        """if False:
+        if expected_hf_descriptor is None:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_missing",
+                "caller-bound continuation requires expected HF descriptor",
+            )""",
+    )
+    assert audit_hf_authority_fixture(unreachable_guard) == (
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
@@ -361,6 +397,54 @@ def test_foundation_rejects_invalid_p312b_receipt_without_jax(tmp_path: Path) ->
         json.dumps(receipt), encoding="utf-8"
     )
     assert not _p312b_recorded_evidence_current(tmp_path)
+
+
+def test_foundation_rejects_stale_p312b_descriptor_attestation_without_jax(
+    tmp_path: Path,
+) -> None:
+    receipt = json.loads(
+        (ROOT / "docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
+    )
+    receipt["descriptor_digest"] = "0" * 64
+    receipt["checkpoint_hf_descriptor_digest"] = "0" * 64
+    shutil.copytree(ROOT / "src", tmp_path / "src")
+    shutil.copytree(ROOT / "tests", tmp_path / "tests")
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    shutil.copyfile(
+        ROOT / "docs/RADJAX_DEVELOPMENT_ROADMAP.md",
+        docs / "RADJAX_DEVELOPMENT_ROADMAP.md",
+    )
+    (docs / "P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").write_text(
+        json.dumps(receipt), encoding="utf-8"
+    )
+    script = "\n".join(
+        (
+            "import importlib.abc",
+            "import sys",
+            "from pathlib import Path",
+            "class BlockJax(importlib.abc.MetaPathFinder):",
+            "    def find_spec(self, fullname, path=None, target=None):",
+            "        if fullname in {'jax', 'jaxlib'} or fullname.startswith(",
+            "('jax.', 'jaxlib.')):",
+            "            raise ModuleNotFoundError(",
+            "'simulated missing JAX: ' + fullname)",
+            "        return None",
+            "sys.meta_path.insert(0, BlockJax())",
+            "from radjax_student.validation import foundation_audit_closure",
+            "report = foundation_audit_closure.build_foundation_audit(Path.cwd())",
+            "assert report.status == 'fail', report.blockers",
+            "assert report.blockers == ('p312b_recorded_evidence_stale',)",
+        )
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=tmp_path,
+        env={**os.environ, "PYTHONPATH": str(tmp_path / "src")},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_foundation_audit_remains_jax_free_when_jax_imports_are_blocked() -> None:

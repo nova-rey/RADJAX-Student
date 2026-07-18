@@ -15,6 +15,9 @@ from pathlib import Path
 from typing import Any
 
 from radjax_student.validation.p3_12b_hf_descriptor_authority import (
+    implementation_audit as p312b_implementation_audit,
+)
+from radjax_student.validation.p3_12b_hf_descriptor_authority import (
     models as p312b_models,
 )
 
@@ -87,6 +90,23 @@ CLAIMS_NOT_MADE = (
     "model_quality_not_measured",
 )
 
+# This frozen source-byte attestation binds the recorded P3.12B descriptor to
+# the JAX-free contract and proof sources that define it.  Refreshing it is a
+# deliberate receipt-review operation, never a schema-validity fallback.
+P312B_SOURCE_ATTESTATION_PATHS = (
+    "contracts/hf.py",
+    "validation/p3_11_9_replay/runner_jax.py",
+    "validation/p3_12b_hf_descriptor_authority/implementation_audit.py",
+    "validation/p3_12b_hf_descriptor_authority/models.py",
+    "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
+)
+P312B_SOURCE_ATTESTATION_DIGEST = (
+    "2a63a3c05b3876172761905bba41c2dcccea5f0d3ec65bc4a5cf885fae427878"
+)
+P312B_ATTESTED_DESCRIPTOR_DIGEST = (
+    "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
+)
+
 
 def _digest(value: object) -> str:
     return hashlib.sha256(
@@ -120,6 +140,15 @@ def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ..
             names.update(item.name for item in node.names)
         elif isinstance(node, ast.ImportFrom):
             names.update(_normalized_from_imports(node, relative_path=relative_path))
+        elif isinstance(node, ast.Call) and node.args:
+            callee = _call_name(node.func)
+            target = node.args[0]
+            if (
+                callee in {"__import__", "importlib.import_module"}
+                and isinstance(target, ast.Constant)
+                and isinstance(target.value, str)
+            ):
+                names.add(target.value)
     return tuple(sorted(names))
 
 
@@ -154,11 +183,11 @@ def _has_proof_shape(path: Path) -> bool:
             or node.name.endswith("_acceptance")
             or node.name.endswith("_proof")
         )
-        for node in tree.body
+        for node in ast.walk(tree)
     ) or any(
         isinstance(node, ast.ClassDef)
         and ("Acceptance" in node.name or node.name.endswith("Proof"))
-        for node in tree.body
+        for node in ast.walk(tree)
     )
 
 
@@ -179,6 +208,38 @@ def _function(tree: ast.Module, name: str) -> ast.FunctionDef | None:
         ),
         None,
     )
+
+
+def _reachable_statements(statements: tuple[ast.stmt, ...]) -> tuple[ast.stmt, ...]:
+    """Return AST statements not hidden behind a statically dead branch."""
+    reachable: list[ast.stmt] = []
+
+    def visit(items: tuple[ast.stmt, ...]) -> None:
+        for statement in items:
+            reachable.append(statement)
+            if isinstance(statement, ast.If):
+                if isinstance(statement.test, ast.Constant) and isinstance(
+                    statement.test.value, bool
+                ):
+                    visit(
+                        tuple(
+                            statement.body if statement.test.value else statement.orelse
+                        )
+                    )
+                else:
+                    visit(tuple(statement.body))
+                    visit(tuple(statement.orelse))
+            elif isinstance(statement, ast.Try):
+                visit(tuple(statement.body))
+                visit(tuple(statement.orelse))
+                visit(tuple(statement.finalbody))
+                for handler in statement.handlers:
+                    visit(tuple(handler.body))
+            elif isinstance(statement, (ast.With, ast.AsyncWith)):
+                visit(tuple(statement.body))
+
+    visit(statements)
+    return tuple(reachable)
 
 
 def _call_keywords(function: ast.FunctionDef, callee: str) -> set[str]:
@@ -392,6 +453,9 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
     checkpoint = tree("checkpoints/v3.py")
     if checkpoint is not None:
         restore = _function(checkpoint, "load_learning_checkpoint_v3")
+        reachable_statements = _reachable_statements(
+            tuple(restore.body) if restore is not None else ()
+        )
         has_required_guard = any(
             isinstance(node, ast.If)
             and isinstance(node.test, ast.Compare)
@@ -402,7 +466,8 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
             and len(node.test.comparators) == 1
             and isinstance(node.test.comparators[0], ast.Constant)
             and node.test.comparators[0].value is None
-            for node in ast.walk(restore or checkpoint)
+            and any(isinstance(statement, ast.Raise) for statement in node.body)
+            for node in reachable_statements
         )
         mismatch_rejects = any(
             isinstance(node, ast.If)
@@ -415,7 +480,10 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
             and isinstance(node.test.comparators[0], ast.Name)
             and node.test.comparators[0].id == "expected_hf_descriptor"
             and any(isinstance(statement, ast.Raise) for statement in node.body)
-            for node in ast.walk(restore or checkpoint)
+            # Required validation must be reachable from the public restore
+            # function; a syntactically present ``if False`` branch is not a
+            # validation path.
+            for node in reachable_statements
         )
         mismatch_is_swallowed = any(
             any(
@@ -635,7 +703,29 @@ def _p312b_recorded_evidence_current(root: Path) -> bool:
         p312b_models.validate_receipt(payload)
     except (OSError, ValueError, json.JSONDecodeError):
         return False
-    return True
+    source = _source_root(root)
+    try:
+        source_digests = {
+            relative: hashlib.sha256((source / relative).read_bytes()).hexdigest()
+            for relative in P312B_SOURCE_ATTESTATION_PATHS
+        }
+        audit = p312b_implementation_audit.audit_gate_source(
+            source / "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
+            repository_root=root,
+        )
+        recorded_audit = payload["implementation_audit"]
+    except (KeyError, OSError, TypeError, ValueError):
+        return False
+    return (
+        _digest(source_digests) == P312B_SOURCE_ATTESTATION_DIGEST
+        and audit.status == "pass"
+        and recorded_audit["source_evidence_digest"] == audit.source_evidence_digest
+        and recorded_audit["implementation_audit_digest"]
+        == audit.implementation_audit_digest
+        and payload["descriptor_digest"] == P312B_ATTESTED_DESCRIPTOR_DIGEST
+        and payload["checkpoint_hf_descriptor_digest"]
+        == P312B_ATTESTED_DESCRIPTOR_DIGEST
+    )
 
 
 def _test_support_is_hermetic(repository: Path) -> bool:
@@ -753,11 +843,11 @@ def _has_proof_shape_from_tree(tree: ast.Module) -> bool:
             or node.name.endswith("_acceptance")
             or node.name.endswith("_proof")
         )
-        for node in tree.body
+        for node in ast.walk(tree)
     ) or any(
         isinstance(node, ast.ClassDef)
         and ("Acceptance" in node.name or node.name.endswith("Proof"))
-        for node in tree.body
+        for node in ast.walk(tree)
     )
 
 

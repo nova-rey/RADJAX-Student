@@ -1272,6 +1272,16 @@
 - Formatted the source-revision guard in the audit writer so the provenance
   contract remains part of the repository-wide checked formatting surface.
 
+## 2026-07-18 - Foundation audit source-attestation closure
+
+- The JAX-free foundation audit now binds P3.12B's recorded descriptor and
+  checkpoint evidence to a reviewed source-byte attestation and a freshly
+  measured implementation audit, rejecting stale schema-valid substitutions
+  without importing the runner. Checkpoint AST validation ignores statically
+  dead branches; protected dynamic imports, nested proof shapes, and bound
+  protected-import aliases are all rejected. The frozen 22-positive/77-case
+  P3.12B evidence inventory remains unchanged.
+
 ## 2026-07-18 - Architecture audit formatter evidence refresh
 
 - Refreshed generated acceptance evidence from the formatted source-revision
