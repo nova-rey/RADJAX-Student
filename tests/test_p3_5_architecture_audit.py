@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 from radjax_student.validation.architecture_audit import (
@@ -19,6 +20,14 @@ def test_p3_5_audit_artifact_is_deterministic():
         REPO_ROOT, accepted_commit=recorded["accepted_commit"]
     )
     assert len(recorded["accepted_commit"]) == 40
+    resolved = subprocess.run(
+        ["git", "rev-parse", "--verify", recorded["accepted_commit"] + "^{commit}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.strip()
+    assert resolved == recorded["accepted_commit"]
 
 
 def test_p3_5_audit_schema_and_module_inventory_are_complete():

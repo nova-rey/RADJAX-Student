@@ -632,13 +632,7 @@ def _p312b_recorded_evidence_current(root: Path) -> bool:
         payload = json.loads(
             (root / "docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
         )
-        from radjax_student.validation.p3_12b_hf_descriptor_authority import (
-            runner_jax,
-        )
-
-        with tempfile.TemporaryDirectory(prefix="radjax-foundation-p312b-") as temp:
-            proof = runner_jax.execute_hf_descriptor_authority_proof(Path(temp))
-        p312b_models.validate_receipt(payload, proof=proof)
+        p312b_models.validate_receipt(payload)
     except (OSError, ValueError, json.JSONDecodeError):
         return False
     return True

@@ -31,6 +31,15 @@ def main() -> int:
         text=True,
         check=True,
     ).stdout.strip()
+    source_matches_commit = subprocess.run(
+        ["git", "diff", "--quiet", commit, "--", "src/radjax_student"],
+        cwd=root,
+        check=False,
+    ).returncode == 0
+    if not source_matches_commit:
+        raise RuntimeError(
+            "P3.5 dependency audit must be generated from the accepted source revision"
+        )
     audit = build_architecture_audit(root, accepted_commit=commit)
     args.output.write_text(
         json.dumps(audit, indent=2, sort_keys=True) + "\n", encoding="utf-8"

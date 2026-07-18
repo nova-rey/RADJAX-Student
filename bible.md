@@ -1253,3 +1253,10 @@
   syntax.
 - Foundation test-support evidence now proves local `tests.support` wins over
   a competing third-party `tests` package placed earlier on `PYTHONPATH`.
+
+## 2026-07-18 - Architecture audit source provenance closure
+
+- The P3.5 dependency-audit writer now refuses to serialize an accepted commit
+  unless its audited source tree exactly matches the worktree. Generated
+  evidence therefore records the actual audited source revision rather than a
+  merely adjacent predecessor.

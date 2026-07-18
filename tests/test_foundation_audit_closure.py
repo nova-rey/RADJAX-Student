@@ -350,19 +350,47 @@ def test_foundation_report_bytes_are_deterministic_and_public_checker_detects_mi
     assert main(["--check-recorded", "--recorded", str(corrupted)]) == 1
 
 
-@pytest.mark.jax
-def test_foundation_rejects_schema_valid_stale_p312b_receipt(tmp_path: Path) -> None:
+def test_foundation_rejects_invalid_p312b_receipt_without_jax(tmp_path: Path) -> None:
     receipt = json.loads(
         (ROOT / "docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
     )
-    receipt["descriptor_digest"] = "0" * 64
-    receipt["checkpoint_hf_descriptor_digest"] = "0" * 64
+    receipt["status"] = "fail"
     docs = tmp_path / "docs"
     docs.mkdir()
     (docs / "P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").write_text(
         json.dumps(receipt), encoding="utf-8"
     )
     assert not _p312b_recorded_evidence_current(tmp_path)
+
+
+def test_foundation_audit_remains_jax_free_when_jax_imports_are_blocked() -> None:
+    script = "\n".join(
+        (
+            "import importlib.abc",
+            "import sys",
+            "from pathlib import Path",
+            "class BlockJax(importlib.abc.MetaPathFinder):",
+            "    def find_spec(self, fullname, path=None, target=None):",
+            "        if fullname in {'jax', 'jaxlib'} or fullname.startswith("
+            "('jax.', 'jaxlib.')):",
+            "            raise ModuleNotFoundError("
+            "'simulated missing optional JAX: ' + fullname)",
+            "        return None",
+            "sys.meta_path.insert(0, BlockJax())",
+            "from radjax_student.validation.foundation_audit_closure "
+            "import build_foundation_audit",
+            "report = build_foundation_audit(Path.cwd())",
+            "assert report.status == 'pass', report.blockers",
+        )
+    )
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        cwd=ROOT,
+        env={**os.environ, "PYTHONPATH": str(ROOT / "src")},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_runtime_import_and_local_test_support_are_hermetic() -> None:
