@@ -129,10 +129,41 @@ __all__ = [
     "run_p3_9_synthetic_learning_smoke",
     "P310LearningCoreAcceptanceReceipt",
     "run_p3_10_learning_core_acceptance",
+    "JaxLearningAssemblyRequest",
+    "JaxLearningAssemblyRegistries",
+    "JaxLearningAssemblyResult",
+    "LearningAssemblyError",
+    "assemble_jax_learning_lifecycle",
+    "LEARNING_ASSEMBLY_ERROR_CODES",
 ]
 
 
 def __getattr__(name):
+    if name in {
+        "JaxLearningAssemblyRequest",
+        "JaxLearningAssemblyRegistries",
+        "JaxLearningAssemblyResult",
+        "LearningAssemblyError",
+        "assemble_jax_learning_lifecycle",
+        "LEARNING_ASSEMBLY_ERROR_CODES",
+    }:
+        from radjax_student.learning.assembly import (
+            LEARNING_ASSEMBLY_ERROR_CODES,
+            JaxLearningAssemblyRegistries,
+            JaxLearningAssemblyRequest,
+            JaxLearningAssemblyResult,
+            LearningAssemblyError,
+            assemble_jax_learning_lifecycle,
+        )
+
+        return {
+            "JaxLearningAssemblyRequest": JaxLearningAssemblyRequest,
+            "JaxLearningAssemblyRegistries": JaxLearningAssemblyRegistries,
+            "JaxLearningAssemblyResult": JaxLearningAssemblyResult,
+            "LearningAssemblyError": LearningAssemblyError,
+            "assemble_jax_learning_lifecycle": assemble_jax_learning_lifecycle,
+            "LEARNING_ASSEMBLY_ERROR_CODES": LEARNING_ASSEMBLY_ERROR_CODES,
+        }[name]
     if name in {
         "P38ObservabilityAcceptanceReceipt",
         "run_p3_8_observability_acceptance",

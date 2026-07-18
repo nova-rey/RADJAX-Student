@@ -1076,3 +1076,36 @@
   entries and blocks metadata-driven semantics, permissive blocker translation,
   generic fallback registration, free-standing observed boundaries, and any
   production import of the P3.12B gate.
+
+## 2026-07-17 - P3.12C lifecycle assembly
+
+- Added the learning-owned typed assembly boundary so callers select only
+  identities/configuration and production registries retain executable owners.
+- Migrated P3.11.9's successful lifecycle path to the production assembler;
+  final P3.12C receipt closure remains conditional on its frozen diagnostics.
+
+## 2026-07-17 - P3.12C production lifecycle assembly closure
+
+- P3.12C now has one public production assembler,
+  `radjax_student.learning.assemble_jax_learning_lifecycle`. Typed requests
+  carry identities and configuration only; architecture, objective registry,
+  optimizer, runtime, and learning each retain their owned construction work.
+- The accepted receipt schema is
+  `radjax.p3_12c_production_lifecycle_assembly_receipt.v1`, with assembly
+  digest `add7080a34ed2c81d4f5ae93fe8ec74783f3ce1b9823c5cb32cb92da5661bda7`
+  and evidence digest
+  `34b6716f0899c619cb55372da9ef2b161bb41cb33b5108306e79a58d94e07bce`.
+  It records the exact ordered 17 positives and 36 adversaries; each adversary
+  executes twice from fresh inputs with exact blocker and callable-bound
+  boundary equality, and all six tolerance counts are zero.
+- The JAX-free one-authority audit schema is
+  `radjax.p3_12c_one_authority_audit.v1`, with digest
+  `c0c925014e26538b48245eb45bd6f67967cefe1c00c3220da9531e4f36eb5899`.
+  Its real-source pass and 24 focused bad-source fixtures exclude competing
+  assembly, expected-result translation, executable injection, production gate
+  imports, raw device selection, and fabricated component identity.
+- The P3.11.9 successful replay conveyor now invokes the production assembler.
+  The assembled product path performs a real JAX step, advances parameters and
+  owner state, and emits caller-bound checkpoint/report evidence. P3.12D and
+  Phase 4 remain unstarted; this closure makes no RWKV, export, model-quality,
+  multi-device, TPU, performance, CLI, or resume-assembly claim.

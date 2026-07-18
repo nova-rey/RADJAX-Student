@@ -117,6 +117,9 @@ Start here for Phase 0 foundation context.
   checkpoint restore, replay, metrics, and reports.
 - [P3.5 Architecture Integrity Roadmap](P3_5_ARCHITECTURE_INTEGRITY_ROADMAP.md):
   ordered cleanup checkpoints required before Phase 4.
+- [P3.12C Production Lifecycle Assembly](P3_12C_PRODUCTION_LIFECYCLE_ASSEMBLY.md):
+  the learning-owned production assembly boundary for registry-selected JAX
+  lifecycle construction.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
 - [P3.5.3 JAX-Native Learning](P3_5_3_JAX_NATIVE_LEARNING.md)
 - [P3.5.4 Architecture Namespace Consolidation](P3_5_4_ARCHITECTURE_NAMESPACE_CONSOLIDATION.md)
@@ -192,7 +195,10 @@ P3.12B locally accepted
 P3.12B.3 closes the validation-owned anti-cheat audit; the exact 22-positive
 and 77-adversarial inventories remain mandatory with no production gate import.
 
-P3.12C next and unstarted
+P3.12C locally accepted: the learning-owned assembler accepts identities and
+typed configuration while registries retain executable component selection.
+
+P3.12D next and unstarted
 
 Phase 4 remains unstarted
 

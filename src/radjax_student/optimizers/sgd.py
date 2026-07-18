@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from importlib import import_module
 from typing import Any
 
@@ -258,8 +258,12 @@ class SgdOptimizer:
             ) from exc
         from radjax_student.optimizers.jax import JaxOptimizerState
 
+        # The JAX lifecycle persists the declared envelope plus opaque JAX
+        # arrays.  The legacy Python-only backend cache is deliberately not a
+        # part of that portable execution identity; that decision belongs to
+        # the optimizer backend, not a learning caller.
         state = JaxOptimizerState(
-            envelope=optimizer_state,
+            envelope=replace(optimizer_state, backend_state=None),
             descriptor=self.jax_state_descriptor(parameter_layout),
             arrays={
                 "step": jnp.asarray(optimizer_state.step, dtype=jnp.int32),

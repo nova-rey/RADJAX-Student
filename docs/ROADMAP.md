@@ -79,7 +79,9 @@ P3.12A locally accepted
 
 P3.12B locally accepted
 
-P3.12C next and unstarted
+P3.12C locally accepted
+
+P3.12D next and unstarted
 
 Phase 4 remains unstarted
 

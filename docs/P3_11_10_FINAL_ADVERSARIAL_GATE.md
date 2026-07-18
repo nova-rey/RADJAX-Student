@@ -20,7 +20,7 @@ generated closure receipt.
 The generated receipt is
 [`P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json`](P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json),
 schema `radjax.p3_11_10_final_adversarial_gate.v1`, with final gate evidence
-digest `7147829923b44674f090dec0b646f0c558558c26e671162216962ae0d5ec3b83`.
+digest `37a75a36893558b95ad8767dc13ef8e8174228e59bf558de5c7b901fd28aaa68`.
 
 P3.11.1-P3.11.10 locally accepted
 
@@ -30,7 +30,9 @@ P3.12A locally accepted
 
 P3.12B locally accepted
 
-P3.12C next and unstarted
+P3.12C locally accepted
+
+P3.12D next and unstarted
 
 Phase 4 remains unstarted
 

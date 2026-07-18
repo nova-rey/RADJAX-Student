@@ -1,7 +1,7 @@
 # P3.12A Objective Identity Contract
 
 Current P3.12A evidence digest:
-`8772242cb80fefd4ed8c089f5dce297b75b284fe94fa20063ded22d5fb00ffa1`.
+`615164a22c60b6ba2d4043cf0c7d7e5076f36d1f54128e5600a246290d6057c4`.
 
 P3.12A closes the hole where a caller could historically pair an arbitrary
 objective implementation with a free-standing objective string. The canonical
@@ -36,7 +36,7 @@ consumption, distillation, Hugging Face export, model quality, multi-device or
 accelerator-scale training, performance, or Phase 4 implementation.
 
 The current executed evidence digest is
-`8772242cb80fefd4ed8c089f5dce297b75b284fe94fa20063ded22d5fb00ffa1`.
+`615164a22c60b6ba2d4043cf0c7d7e5076f36d1f54128e5600a246290d6057c4`.
 
 ## P3.12A.1 Authority Closure
 
@@ -62,7 +62,9 @@ P3.12A locally accepted
 
 P3.12B locally accepted
 
-P3.12C next and unstarted
+P3.12C locally accepted
+
+P3.12D next and unstarted
 
 Phase 4 remains unstarted
 
@@ -71,4 +73,4 @@ Phase 4 requires successful required remote base/JAX CI or an explicit repositor
 
 > Post-closure note: P3.12B now binds the HF lifecycle descriptor independently
 > of objective identity. Objective selection and mathematics remain unchanged;
-> P3.12C is next and unstarted.
+> P3.12C is locally accepted and P3.12D is next and unstarted.

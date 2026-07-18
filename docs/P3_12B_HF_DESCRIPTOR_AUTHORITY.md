@@ -34,11 +34,12 @@ source evidence, observer independence, callable-derived observed boundaries,
 receipt authority, and one-way production-import purity. There is no permissive
 blocker-family translation and production code has no gate dependency.
 
-Current status: P3.12B is locally accepted only after the v2 recorded receipt
-and required local gates pass. P3.12C remains next and unstarted. Phase 4
-remains unstarted.
+Current status: P3.12B is locally accepted after the v2 recorded receipt and
+required local gates pass. P3.12C is locally accepted with one production
+lifecycle assembler; P3.12D remains next and unstarted. Phase 4 remains
+unstarted.
 
 The recorded receipt is
 [P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json](P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json)
 under schema `radjax.p3_12b_hf_descriptor_authority.v2`. Its current evidence
-digest is `e88efa4f0289249186b0ecd2dd2f7aa56c17f3be485e536096f7c78f9c882c26`.
+digest is `c2de2a9a5de8060cef347bb37203e01348a9d3e6174db8bcef60c7c8558944c4`.

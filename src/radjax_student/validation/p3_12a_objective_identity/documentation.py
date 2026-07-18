@@ -16,7 +16,8 @@ _STATUS_MARKERS = (
     "P3.11 integration closure complete",
     "P3.12A locally accepted",
     "P3.12B locally accepted",
-    "P3.12C next and unstarted",
+    "P3.12C locally accepted",
+    "P3.12D next and unstarted",
     "Phase 4 remains unstarted",
     "Phase 4 requires successful required remote base/JAX CI or an explicit "
     "repository-owner waiver",

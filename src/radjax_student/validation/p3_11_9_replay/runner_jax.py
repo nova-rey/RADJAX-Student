@@ -45,17 +45,18 @@ from radjax_student.contracts import (
     ObjectiveConfig,
     ParameterTreeLayout,
     ParameterTreeLayoutEntry,
-    ResolvedObjectiveSelection,
 )
 from radjax_student.learning import (
     HookResult,
+    JaxLearningAssemblyRegistries,
+    JaxLearningAssemblyRequest,
     LearningBatch,
     LearningState,
     MetricRecord,
     ObjectiveScope,
     UpdateScope,
+    assemble_jax_learning_lifecycle,
 )
-from radjax_student.learning.jax_batch import FiniteJsonJaxBatchMaterializer
 from radjax_student.objectives import (
     CANONICAL_MSE_IDENTITY,
     build_default_objective_registry,
@@ -63,17 +64,11 @@ from radjax_student.objectives import (
 from radjax_student.optimizers import (
     OptimizerConfig,
     OptimizerRegistry,
-    OptimizerState,
     SgdOptimizer,
 )
 from radjax_student.runtime import (
-    CompilationOptions,
-    ExecutionRequest,
     RuntimeConfig,
-    RuntimeKeys,
     build_default_runtime_registry,
-    inspect_runtime_environment,
-    select_runtime_backend,
 )
 from radjax_student.steps import (
     JaxLearningLifecycle,
@@ -363,56 +358,21 @@ def _batch(index: int) -> LearningBatch:
     )
 
 
-def _request(mode: str):
-    def factory(state: LearningState) -> ExecutionRequest:
-        return ExecutionRequest(
-            request_id=f"p3119.{mode}.{state.global_step}",
-            function_id="p3119.stateful_complete_step",
-            mode=mode,
-            compilation_options=CompilationOptions(mode=mode, synchronize_results=True),
-        )
-
-    return factory
-
-
-def _new_lifecycle(mode: str, objects: list[object]) -> JaxLearningLifecycle:
+def _new_assembly(mode: str, objects: list[object]):
+    """Validation invokes the production assembly authority, never a local recipe."""
     architecture_registry = ArchitectureRegistry()
     architecture = StatefulLinearJaxArchitecture(architecture_id=ARCHITECTURE_ID)
     architecture_registry.register(architecture)
     architecture = architecture_registry.get(ARCHITECTURE_ID)
     config = ArchitectureConfig(ARCHITECTURE_ID, vocab_size=8, dtype_intent="float32")
-    initialized = architecture.initialize_parameters(
-        ArchitectureInitRequest(config, "runtime_keys.v1:initialization:17", "float32")
-    )
     optimizer_registry = OptimizerRegistry()
     optimizer_registry.register(SgdOptimizer())
     optimizer = optimizer_registry.get("sgd.v1")
     optimizer_config = OptimizerConfig("sgd.v1", learning_rate=0.25)
-    optimizer_state = optimizer.initialize_jax_state(
-        config=optimizer_config,
-        parameter_layout=initialized.parameter_layout,
-        optimizer_state=OptimizerState(
-            "sgd.v1", initialized.parameter_layout.logical_paths
-        ),
-    )
     objective_registry = build_default_objective_registry()
-    objective_selection = objective_registry.select(CANONICAL_MSE_IDENTITY)
     objective_config = ObjectiveConfig(
         CANONICAL_MSE_IDENTITY,
         {"reduction": "mean"},
-    )
-    resolved_objective_selection = architecture.resolve_objective_scope(
-        ObjectiveScope(),
-        architecture.architecture_metadata(),
-    )
-    if not isinstance(resolved_objective_selection, ResolvedObjectiveSelection):
-        raise RuntimeError(
-            "stateful architecture did not return a resolved objective selection"
-        )
-    objective_descriptor = objective_registry.execution_descriptor(
-        selection=objective_selection,
-        config=objective_config,
-        resolved_selection=resolved_objective_selection,
     )
     runtime_config = RuntimeConfig(
         backend_id="jax",
@@ -424,19 +384,32 @@ def _new_lifecycle(mode: str, objects: list[object]) -> JaxLearningLifecycle:
         fallback_policy="disallowed",
         seed=17,
     )
-    inspection = inspect_runtime_environment()
     registry = build_default_runtime_registry()
-    selection = select_runtime_backend(runtime_config, inspection, registry)
-    if not selection.ok or selection.selected_platform != "cpu":
-        raise RuntimeError("P3.11.9 requires the selected public JAX CPU path")
-    backend = registry.get("jax")
-    device = next(
-        item for item in inspection.device_inventory.devices if item.platform == "cpu"
+    request = JaxLearningAssemblyRequest(
+        architecture_id=ARCHITECTURE_ID,
+        architecture_version=architecture.architecture_version,
+        architecture_config=config,
+        objective_identity=CANONICAL_MSE_IDENTITY,
+        objective_config=objective_config,
+        optimizer_id="sgd.v1",
+        optimizer_version=optimizer.optimizer_version,
+        optimizer_config=optimizer_config,
+        runtime_backend_id="jax",
+        runtime_implementation_version="p2.9",
+        runtime_config=runtime_config,
+        root_seed=17,
+        learning_state=LearningState(
+            "p3119",
+            active_update_scope=UpdateScope("named_region", "trunk"),
+            active_objective_scope=ObjectiveScope(),
+        ),
     )
-    context = backend.initialize_portability_context(
-        runtime_config, inspection, selection, device
+    assembled = assemble_jax_learning_lifecycle(
+        request,
+        registries=JaxLearningAssemblyRegistries(
+            architecture_registry, objective_registry, optimizer_registry, registry
+        ),
     )
-    stream = RuntimeKeys.from_seed(runtime_config.seed).dropout
     objects.extend(
         (
             architecture_registry,
@@ -444,39 +417,22 @@ def _new_lifecycle(mode: str, objects: list[object]) -> JaxLearningLifecycle:
             optimizer_registry,
             optimizer,
             objective_registry,
-            objective_selection,
             registry,
-            context,
-            stream,
+            assembled,
         )
     )
-    return JaxLearningLifecycle(
-        architecture=architecture,
-        architecture_config=config,
-        architecture_state=initialized.architecture_state,
-        architecture_carry=initialized.architecture_carry,
-        parameter_catalog=initialized.parameter_catalog,
-        parameter_layout=initialized.parameter_layout,
-        hf_descriptor=initialized.hf_descriptor,
-        hf_reference=initialized.hf_reference,
-        objective_selection=objective_selection,
-        objective_config=objective_config,
-        resolved_objective_selection=resolved_objective_selection,
-        objective_descriptor=objective_descriptor,
-        optimizer=optimizer,
-        optimizer_config=optimizer_config,
-        optimizer_state=optimizer_state,
-        parameters=initialized.parameters,
-        learning_state=LearningState(
-            "p3119",
-            active_update_scope=UpdateScope("named_region", "trunk"),
-            active_objective_scope=ObjectiveScope(),
-        ),
-        runtime_context=context,
-        runtime_backend=backend,
-        runtime_key_stream=stream,
-        architecture_carry_descriptor=initialized.architecture_carry_descriptor,
-    )
+    return assembled
+
+
+def _new_lifecycle(mode: str, objects: list[object]) -> JaxLearningLifecycle:
+    """Compatibility projection for historical validators.
+
+    This is intentionally not a second construction recipe: P3.11.9, P3.12A,
+    and P3.12B all receive the lifecycle produced by the one learning-owned
+    production assembler above.
+    """
+
+    return _new_assembly(mode, objects).lifecycle
 
 
 class _RecordingExecutor:
@@ -687,16 +643,12 @@ class _ExecutedArm:
 def _run_arm(
     mode: str, arm: str, directory: Path, objects: list[object]
 ) -> _ExecutedArm:
-    lifecycle = _new_lifecycle(mode, objects)
+    assembled = _new_assembly(mode, objects)
+    lifecycle = assembled.lifecycle
     initial_identity = _identity(lifecycle)
     hook = EventHook()
     records: list[tuple[LearningBatch, Any]] = []
-    inner = JaxLoopExecutor(
-        lifecycle,
-        FiniteJsonJaxBatchMaterializer(),
-        _request(mode),
-        precision_policy="float32",
-    )
+    inner = assembled.loop_executor
     executor = _RecordingExecutor(inner, hook, records)
     source = SyntheticBatchSource(tuple(_batch(index) for index in range(6)))
     objects.extend((hook, inner, executor, source))
@@ -715,7 +667,7 @@ def _run_arm(
         )
         checkpoint_manifest_digest = _digest(dict(saved.manifest))
         if arm == "resumed":
-            fresh = _new_lifecycle(mode, objects)
+            fresh = _new_assembly(mode, objects).lifecycle
             inner.lifecycle = fresh.restore_from_checkpoint(destination)
             restored = True
         return "p3119-checkpoint"

@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "947e0479163e5c3db2ee20a410ed05830b29ed7b",
+  "accepted_commit": "6d2c2fe5b19e3c3354d80f63d68cc1cc5e082f59",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -298,6 +298,50 @@
     {
       "source": "radjax_student.learning._json",
       "target": "radjax_student.contracts._json"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.architecture.protocols"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.learning.jax_batch"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.learning.models"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.objectives"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.optimizers"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.optimizers.protocols"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.runtime"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.runtime.registry"
+    },
+    {
+      "source": "radjax_student.learning.assembly",
+      "target": "radjax_student.steps.jax_loop"
     },
     {
       "source": "radjax_student.learning.errors",
@@ -765,6 +809,10 @@
     },
     {
       "source": "radjax_student.runtime",
+      "target": "radjax_student.runtime.lifecycle"
+    },
+    {
+      "source": "radjax_student.runtime",
       "target": "radjax_student.runtime.models"
     },
     {
@@ -834,6 +882,26 @@
     {
       "source": "radjax_student.runtime.jax_bridge",
       "target": "radjax_student.runtime.keys"
+    },
+    {
+      "source": "radjax_student.runtime.lifecycle",
+      "target": "radjax_student.runtime.inspection"
+    },
+    {
+      "source": "radjax_student.runtime.lifecycle",
+      "target": "radjax_student.runtime.keys"
+    },
+    {
+      "source": "radjax_student.runtime.lifecycle",
+      "target": "radjax_student.runtime.models"
+    },
+    {
+      "source": "radjax_student.runtime.lifecycle",
+      "target": "radjax_student.runtime.registry"
+    },
+    {
+      "source": "radjax_student.runtime.lifecycle",
+      "target": "radjax_student.runtime.selection"
     },
     {
       "source": "radjax_student.runtime.models",
@@ -1465,10 +1533,6 @@
     },
     {
       "source": "radjax_student.validation.p3_11_9_replay.runner_jax",
-      "target": "radjax_student.learning.jax_batch"
-    },
-    {
-      "source": "radjax_student.validation.p3_11_9_replay.runner_jax",
       "target": "radjax_student.objectives"
     },
     {
@@ -1608,6 +1672,86 @@
       "target": "radjax_student.validation.p3_11_9_replay.verifier"
     },
     {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.experiments",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.experiments",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.experiments",
+      "target": "radjax_student.learning"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.experiments",
+      "target": "radjax_student.optimizers"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.experiments",
+      "target": "radjax_student.runtime"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.experiments",
+      "target": "radjax_student.validation.p3_11_9_replay.runner_jax"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.fixtures",
+      "target": "radjax_student.architecture"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.fixtures",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.fixtures",
+      "target": "radjax_student.learning"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.fixtures",
+      "target": "radjax_student.objectives"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.fixtures",
+      "target": "radjax_student.optimizers"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.fixtures",
+      "target": "radjax_student.runtime"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.fixtures",
+      "target": "radjax_student.validation.p3_11_9_replay.runner_jax"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.runner_jax",
+      "target": "radjax_student.checkpoints"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.runner_jax",
+      "target": "radjax_student.checkpoints.npz_codec"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.runner_jax",
+      "target": "radjax_student.learning"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.runner_jax",
+      "target": "radjax_student.steps"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.runner_jax",
+      "target": "radjax_student.steps.loop"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.runner_jax",
+      "target": "radjax_student.validation.architecture_audit"
+    },
+    {
+      "source": "radjax_student.validation.p3_12c_production_lifecycle_assembly.runner_jax",
+      "target": "radjax_student.validation.p3_11_9_replay.runner_jax"
+    },
+    {
       "source": "radjax_student.validation.profile_registry",
       "target": "radjax_student.validation.compatibility"
     },
@@ -1637,7 +1781,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 154,
+  "module_count": 166,
   "modules": [
     {
       "classification": "core",
@@ -2733,6 +2877,7 @@
       "forbidden_imports": [],
       "has_dynamic_exports": true,
       "imports": [
+        "radjax_student.learning.assembly",
         "radjax_student.learning.errors",
         "radjax_student.learning.hooks",
         "radjax_student.learning.models",
@@ -2767,9 +2912,14 @@
         "HookContext",
         "HookPolicy",
         "HookResult",
+        "JaxLearningAssemblyRegistries",
+        "JaxLearningAssemblyRequest",
+        "JaxLearningAssemblyResult",
+        "LEARNING_ASSEMBLY_ERROR_CODES",
         "LEARNING_CLAIMS_NOT_MADE",
         "LEARNING_ERROR_CODES",
         "LEARNING_STATE_SCHEMA_VERSION",
+        "LearningAssemblyError",
         "LearningBatch",
         "LearningConfig",
         "LearningContractError",
@@ -2811,6 +2961,7 @@
         "UpdateScopeResolver",
         "WEIGHTING_POLICIES",
         "WeightingPolicy",
+        "assemble_jax_learning_lifecycle",
         "build_learning_run_report",
         "canonical_learning_json",
         "canonical_objective_json",
@@ -2835,6 +2986,64 @@
       "owner": "learning_contracts",
       "path": "src/radjax_student/learning/_json.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "JaxLearningAssemblyRegistries",
+        "JaxLearningAssemblyRequest",
+        "JaxLearningAssemblyResult",
+        "LearningAssemblyError"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "radjax_student.architecture",
+        "radjax_student.architecture.protocols",
+        "radjax_student.contracts",
+        "radjax_student.learning.jax_batch",
+        "radjax_student.learning.models",
+        "radjax_student.objectives",
+        "radjax_student.optimizers",
+        "radjax_student.optimizers.protocols",
+        "radjax_student.runtime",
+        "radjax_student.runtime.registry",
+        "radjax_student.steps.jax_loop",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture",
+        "radjax_student.architecture.protocols",
+        "radjax_student.contracts",
+        "radjax_student.learning.jax_batch",
+        "radjax_student.learning.models",
+        "radjax_student.objectives",
+        "radjax_student.optimizers",
+        "radjax_student.optimizers.protocols",
+        "radjax_student.runtime",
+        "radjax_student.runtime.registry",
+        "radjax_student.steps.jax_loop"
+      ],
+      "module": "radjax_student.learning.assembly",
+      "owner": "learning_contracts",
+      "path": "src/radjax_student/learning/assembly.py",
+      "public_exports": [
+        "ASSEMBLY_SCHEMA_VERSION",
+        "JaxLearningAssemblyRegistries",
+        "JaxLearningAssemblyRequest",
+        "JaxLearningAssemblyResult",
+        "LEARNING_ASSEMBLY_ERROR_CODES",
+        "LearningAssemblyError",
+        "REQUEST_SCHEMA_VERSION",
+        "RESULT_SCHEMA_VERSION",
+        "assemble_jax_learning_lifecycle"
+      ]
     },
     {
       "classification": "core",
@@ -4106,6 +4315,7 @@
         "radjax_student.runtime.execution",
         "radjax_student.runtime.inspection",
         "radjax_student.runtime.keys",
+        "radjax_student.runtime.lifecycle",
         "radjax_student.runtime.models",
         "radjax_student.runtime.placement",
         "radjax_student.runtime.portability",
@@ -4121,6 +4331,7 @@
         "radjax_student.runtime.execution",
         "radjax_student.runtime.inspection",
         "radjax_student.runtime.keys",
+        "radjax_student.runtime.lifecycle",
         "radjax_student.runtime.models",
         "radjax_student.runtime.placement",
         "radjax_student.runtime.portability",
@@ -4224,6 +4435,7 @@
         "RuntimeIssue",
         "RuntimeKeyStream",
         "RuntimeKeys",
+        "RuntimeLifecycleBinding",
         "RuntimePortabilityReceipt",
         "RuntimePortabilityTimings",
         "RuntimeReport",
@@ -4240,6 +4452,7 @@
         "SUPPORTED_RUNTIME_PLATFORMS",
         "SelectionStatus",
         "ValuePlacementSpec",
+        "bind_runtime_for_learning",
         "build_default_runtime_registry",
         "canonical_runtime_state_json",
         "default_cpu_smoke_config",
@@ -4448,6 +4661,38 @@
       "owner": "runtime_execution",
       "path": "src/radjax_student/runtime/keys.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "RuntimeLifecycleBinding"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "radjax_student.runtime.inspection",
+        "radjax_student.runtime.keys",
+        "radjax_student.runtime.models",
+        "radjax_student.runtime.registry",
+        "radjax_student.runtime.selection",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.runtime.inspection",
+        "radjax_student.runtime.keys",
+        "radjax_student.runtime.models",
+        "radjax_student.runtime.registry",
+        "radjax_student.runtime.selection"
+      ],
+      "module": "radjax_student.runtime.lifecycle",
+      "owner": "runtime_execution",
+      "path": "src/radjax_student/runtime/lifecycle.py",
+      "public_exports": [
+        "RuntimeLifecycleBinding",
+        "bind_runtime_for_learning"
+      ]
     },
     {
       "classification": "core",
@@ -6047,7 +6292,6 @@
         "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning",
-        "radjax_student.learning.jax_batch",
         "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
@@ -6063,7 +6307,6 @@
         "radjax_student.checkpoints.npz_codec",
         "radjax_student.contracts",
         "radjax_student.learning",
-        "radjax_student.learning.jax_batch",
         "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
@@ -6450,6 +6693,297 @@
       "public_exports": [
         "SPECS",
         "execute_hf_descriptor_authority_proof"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".inventory",
+        ".models"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/__init__.py",
+      "public_exports": [
+        "ADVERSARIAL_CASE_IDS",
+        "LifecycleAssemblyProof",
+        "POSITIVE_CASE_IDS",
+        "build_receipt",
+        "validate_receipt"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".models",
+        ".runner_jax",
+        "__future__",
+        "argparse",
+        "json",
+        "pathlib",
+        "tempfile"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly.__main__",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/__main__.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "SourceAuditFixture"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly.audit_fixtures",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/audit_fixtures.py",
+      "public_exports": [
+        "REQUIRED_BAD_SOURCE_FIXTURES",
+        "SourceAuditFixture"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "Invocation",
+        "Observation"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly.diagnostic",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/diagnostic.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "_ContextBackendMismatchRuntime",
+        "_ContextSeedMismatchRuntime",
+        "_IncompleteInitArchitecture",
+        "_InconsistentHFArchitecture",
+        "_KeyStreamMismatchRuntime",
+        "_UnsupportedSurfaceArchitecture",
+        "_WrongIdentityOptimizer",
+        "_WrongStateOptimizer"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".diagnostic",
+        ".fixtures",
+        ".implementation_audit",
+        "__future__",
+        "dataclasses",
+        "radjax_student.architecture",
+        "radjax_student.contracts",
+        "radjax_student.learning",
+        "radjax_student.optimizers",
+        "radjax_student.runtime",
+        "radjax_student.validation.p3_11_9_replay.runner_jax"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture",
+        "radjax_student.contracts",
+        "radjax_student.learning",
+        "radjax_student.optimizers",
+        "radjax_student.runtime",
+        "radjax_student.validation.p3_11_9_replay.runner_jax"
+      ],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly.experiments",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/experiments.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "radjax_student.architecture",
+        "radjax_student.contracts",
+        "radjax_student.learning",
+        "radjax_student.objectives",
+        "radjax_student.optimizers",
+        "radjax_student.runtime",
+        "radjax_student.validation.p3_11_9_replay.runner_jax"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture",
+        "radjax_student.contracts",
+        "radjax_student.learning",
+        "radjax_student.objectives",
+        "radjax_student.optimizers",
+        "radjax_student.runtime",
+        "radjax_student.validation.p3_11_9_replay.runner_jax"
+      ],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly.fixtures",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/fixtures.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "AssemblyAuditBlocker",
+        "AssemblyAuditFailure",
+        "AssemblyAuditSourceEntry",
+        "AssemblyAuthorityAudit"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".inventory",
+        "__future__",
+        "ast",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly.implementation_audit",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/implementation_audit.py",
+      "public_exports": [
+        "AssemblyAuditBlocker",
+        "AssemblyAuditFailure",
+        "AssemblyAuditSourceEntry",
+        "AssemblyAuthorityAudit",
+        "SCHEMA_VERSION",
+        "audit_assembly_authority",
+        "audit_synthetic_source",
+        "require_clean_assembly_authority",
+        "require_clean_synthetic_source"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "AdversarialCaseSpec"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly.inventory",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/inventory.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "AdversarialResult",
+        "LifecycleAssemblyProof",
+        "PositiveResult"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".implementation_audit",
+        ".inventory",
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly.models",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/models.py",
+      "public_exports": [
+        "ADVERSARIAL_CASE_IDS",
+        "ASSEMBLY_SCHEMA_VERSION",
+        "AdversarialResult",
+        "LifecycleAssemblyProof",
+        "NON_CLAIMS",
+        "POSITIVE_CASE_IDS",
+        "PositiveResult",
+        "REQUEST_SCHEMA_VERSION",
+        "RESULT_SCHEMA_VERSION",
+        "SCHEMA_VERSION",
+        "build_receipt",
+        "digest",
+        "error_counts",
+        "validate_receipt"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".",
+        ".diagnostic",
+        ".fixtures",
+        ".implementation_audit",
+        ".inventory",
+        ".models",
+        "__future__",
+        "collections.abc",
+        "hashlib",
+        "math",
+        "pathlib",
+        "radjax_student.checkpoints",
+        "radjax_student.checkpoints.npz_codec",
+        "radjax_student.learning",
+        "radjax_student.steps",
+        "radjax_student.steps.loop",
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p3_11_9_replay.runner_jax",
+        "tempfile",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.checkpoints",
+        "radjax_student.checkpoints.npz_codec",
+        "radjax_student.learning",
+        "radjax_student.steps",
+        "radjax_student.steps.loop",
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p3_11_9_replay.runner_jax"
+      ],
+      "module": "radjax_student.validation.p3_12c_production_lifecycle_assembly.runner_jax",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12c_production_lifecycle_assembly/runner_jax.py",
+      "public_exports": [
+        "execute_in_temporary_directory",
+        "execute_lifecycle_assembly_proof",
+        "execute_raw_diagnostic",
+        "raw_diagnostic_failures"
       ]
     },
     {

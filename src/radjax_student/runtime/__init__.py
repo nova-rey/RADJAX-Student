@@ -43,6 +43,10 @@ from radjax_student.runtime.keys import (
     RuntimeKeys,
     RuntimeKeyStream,
 )
+from radjax_student.runtime.lifecycle import (
+    RuntimeLifecycleBinding,
+    bind_runtime_for_learning,
+)
 from radjax_student.runtime.models import (
     COMPILATION_POLICIES,
     DISTRIBUTED_POLICIES,
@@ -248,6 +252,7 @@ __all__ = [
     "RuntimeInspection",
     "RuntimeKeys",
     "RuntimeKeyStream",
+    "RuntimeLifecycleBinding",
     "RuntimeReport",
     "RuntimePortabilityReceipt",
     "RuntimePortabilityTimings",
@@ -264,6 +269,7 @@ __all__ = [
     "SelectionStatus",
     "ValuePlacementSpec",
     "build_default_runtime_registry",
+    "bind_runtime_for_learning",
     "canonical_runtime_state_json",
     "default_cpu_smoke_config",
     "default_portability_config",
