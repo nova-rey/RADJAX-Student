@@ -90,15 +90,35 @@ def _digest(value: object) -> str:
     ).hexdigest()
 
 
-def _imports(path: Path) -> tuple[str, ...]:
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+def _normalized_from_imports(
+    node: ast.ImportFrom, *, relative_path: str
+) -> tuple[str, ...]:
+    """Resolve a relative import from a source-relative module path."""
+    if not node.level:
+        return (node.module,) if node.module else ()
+    package = ("radjax_student", *Path(relative_path).parent.parts)
+    parent_count = node.level - 1
+    if parent_count >= len(package):
+        return ()
+    base = ".".join(package[: len(package) - parent_count])
+    if node.module:
+        return (f"{base}.{node.module}",)
+    return tuple(f"{base}.{item.name}" for item in node.names)
+
+
+def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ...]:
     names: set[str] = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             names.update(item.name for item in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            names.add(node.module)
+        elif isinstance(node, ast.ImportFrom):
+            names.update(_normalized_from_imports(node, relative_path=relative_path))
     return tuple(sorted(names))
+
+
+def _imports(path: Path, *, relative_path: str) -> tuple[str, ...]:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    return _imports_from_tree(tree, relative_path=relative_path)
 
 
 def _source_root(root: Path) -> Path:
@@ -201,7 +221,7 @@ def _has_operational_report_validation(function: ast.FunctionDef) -> bool:
             return False
         if isinstance(statement, ast.Try):
             for item in statement.body:
-                if isinstance(item, (ast.Return, ast.Raise)):
+                if isinstance(item, ast.Raise) or _may_return(item):
                     return False
                 if (
                     isinstance(item, ast.Expr)
@@ -218,12 +238,47 @@ def _has_operational_report_validation(function: ast.FunctionDef) -> bool:
     return False
 
 
+def _may_return(statement: ast.stmt) -> bool:
+    """Conservatively detect an outer-function return before the matcher."""
+    if isinstance(statement, ast.Return):
+        return True
+    if isinstance(statement, ast.If):
+        if isinstance(statement.test, ast.Constant) and isinstance(
+            statement.test.value, bool
+        ):
+            branches = statement.body if statement.test.value else statement.orelse
+        else:
+            branches = (*statement.body, *statement.orelse)
+        return any(_may_return(item) for item in branches)
+    if isinstance(
+        statement, (ast.For, ast.AsyncFor, ast.While, ast.With, ast.AsyncWith)
+    ):
+        return any(_may_return(item) for item in statement.body)
+    if isinstance(statement, ast.Try):
+        return any(
+            _may_return(item)
+            for item in (*statement.body, *statement.orelse, *statement.finalbody)
+        ) or any(
+            _may_return(item) for handler in statement.handlers for item in handler.body
+        )
+    return False
+
+
 def _handler_swallows_checkpoint_mismatch(handler: ast.ExceptHandler) -> bool:
-    caught = handler.type
-    catches_checkpoint_error = isinstance(caught, ast.Name) and caught.id == (
-        "CheckpointValidationError"
-    )
-    return catches_checkpoint_error and not any(
+    def catches_checkpoint_error(caught: ast.expr | None) -> bool:
+        if caught is None:
+            return True
+        if isinstance(caught, ast.Name):
+            return caught.id in {
+                "CheckpointValidationError",
+                "Exception",
+                "BaseException",
+            }
+        if isinstance(caught, ast.Tuple):
+            return any(catches_checkpoint_error(item) for item in caught.elts)
+        return False
+
+    return catches_checkpoint_error(handler.type) and not any(
         isinstance(statement, ast.Raise) for statement in handler.body
     )
 
@@ -475,7 +530,7 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
     runtime_imports = tuple(
         name
         for path in sorted((source / "runtime").rglob("*.py"))
-        for name in _imports(path)
+        for name in _imports(path, relative_path=_relative(repository, path))
     )
     runtime_steps = sum(
         name.startswith("radjax_student.steps") for name in runtime_imports
@@ -491,7 +546,7 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
     validation_imports = 0
     for path in _production_paths(repository):
         relative = _relative(repository, path)
-        imports = _imports(path)
+        imports = _imports(path, relative_path=relative)
         if relative not in HISTORICAL_PROOF_EXCEPTIONS:
             validation_imports += sum(
                 name.startswith("radjax_student.validation") for name in imports
@@ -516,7 +571,7 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
     )
     for relative in CANONICAL_TRAINING_PATHS:
         path = source / relative
-        imports = _imports(path)
+        imports = _imports(path, relative_path=relative)
         canonical_loss_imports += sum(
             name.startswith("radjax_student.legacy.losses") for name in imports
         )
@@ -620,12 +675,7 @@ def _phase4_policy_locked(root: Path) -> bool:
 def audit_source_fixture(source: str, *, relative_path: str) -> tuple[str, ...]:
     """Apply the closure's structural policy to one literal source fixture."""
     tree = ast.parse(source, filename=relative_path)
-    imports: set[str] = set()
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Import):
-            imports.update(item.name for item in node.names)
-        elif isinstance(node, ast.ImportFrom) and node.module:
-            imports.add(node.module)
+    imports = _imports_from_tree(tree, relative_path=relative_path)
     blockers: list[str] = []
     if relative_path.startswith("runtime/"):
         if any(name.startswith("radjax_student.steps") for name in imports):

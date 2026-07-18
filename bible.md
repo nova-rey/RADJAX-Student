@@ -1225,3 +1225,13 @@
   early return before the canonical matcher. These bounded control-flow checks
   preserve the same architecture-owned descriptor route and add no runtime
   product behavior.
+
+## 2026-07-18 - Foundation audit declared-boundary closure
+
+- P3.12A documentation now parses each of its three declared receipt-digest
+  markers exactly once and requires every value to equal the typed receipt
+  evidence. The canonical writer remains the sole generated-digest updater.
+- Foundation import policy now normalizes relative imports before applying
+  runtime, validation, and canonical-loss rules. Its HF source audit also
+  rejects swallowed checkpoint mismatches through broad or tuple exception
+  handlers and reachable conditional returns before the report matcher.

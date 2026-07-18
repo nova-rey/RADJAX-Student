@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "3149a741b73a5158edb0da6ed77b7e8ecce6b50d",
+  "accepted_commit": "3c32106028e1b344d78a311938e62cd717a715bc",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -6632,7 +6632,8 @@
       "path": "src/radjax_student/validation/p3_12a_objective_identity/documentation.py",
       "public_exports": [
         "ObjectiveDocumentationCheck",
-        "check_documentation"
+        "check_documentation",
+        "write_contract_evidence_digest"
       ]
     },
     {

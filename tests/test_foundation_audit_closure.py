@@ -40,8 +40,14 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "from radjax_student.steps import jax_step\n", relative_path="runtime/x.py"
     ) == ("runtime_steps_import",)
     assert audit_source_fixture(
+        "from ..steps import jax_step\n", relative_path="runtime/x.py"
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
         "from radjax_student.validation import compatibility\n",
         relative_path="reports/x.py",
+    ) == ("production_validation_import",)
+    assert audit_source_fixture(
+        "from ..validation import compatibility\n", relative_path="runtime/x.py"
     ) == ("production_validation_import",)
     assert audit_source_fixture(
         "import numpy\n", relative_path="steps/jax_step.py"
@@ -50,6 +56,16 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "from radjax_student.legacy.losses import dense_kl_loss\n",
         relative_path="learning/assembly.py",
     ) == ("canonical_numpy_loss_import",)
+    assert audit_source_fixture(
+        "from ..legacy.losses import dense_kl_loss\n",
+        relative_path="learning/assembly.py",
+    ) == ("canonical_numpy_loss_import",)
+    assert (
+        audit_source_fixture(
+            "from ..contracts import ObjectiveConfig\n", relative_path="runtime/x.py"
+        )
+        == ()
+    )
     assert audit_source_fixture(
         "from radjax_student.validation import gate\n",
         relative_path="cli/inspect.py",
@@ -142,6 +158,54 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
+    for handler in (
+        "except:",
+        "except Exception:",
+        "except BaseException:",
+        "except (CheckpointValidationError, RuntimeError):",
+    ):
+        broadly_swallowed = dict(sources)
+        broadly_swallowed["checkpoints/v3.py"] = broadly_swallowed[
+            "checkpoints/v3.py"
+        ].replace(
+            """    if hf_descriptor != expected_hf_descriptor:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+            f"""    try:
+        if hf_descriptor != expected_hf_descriptor:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_mismatch",
+                "checkpoint HF descriptor does not match caller expectation",
+            )
+    {handler}
+        pass""",
+        )
+        assert audit_hf_authority_fixture(broadly_swallowed) == (
+            "hf_checkpoint_descriptor_validation_bypassed",
+        )
+
+    irrelevant_handler = dict(sources)
+    irrelevant_handler["checkpoints/v3.py"] = irrelevant_handler[
+        "checkpoints/v3.py"
+    ].replace(
+        """    if hf_descriptor != expected_hf_descriptor:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+        """    try:
+        if hf_descriptor != expected_hf_descriptor:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_mismatch",
+                "checkpoint HF descriptor does not match caller expectation",
+            )
+    except RuntimeError:
+        pass""",
+    )
+    assert audit_hf_authority_fixture(irrelevant_handler) == ()
+
     lifecycle = dict(sources)
     lifecycle["steps/jax_loop.py"] = lifecycle["steps/jax_loop.py"].replace(
         "expected_hf_descriptor=self.hf_descriptor",
@@ -198,6 +262,22 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
     assert audit_hf_authority_fixture(early_return_report) == (
         "hf_report_descriptor_validation_bypassed",
     )
+
+    for condition in ("True", "may_return"):
+        conditional_return_report = dict(sources)
+        conditional_return_report["learning/run_report.py"] = conditional_return_report[
+            "learning/run_report.py"
+        ].replace(
+            "        validate_hf_descriptor_match("
+            "executed_descriptor, summary.descriptor)",
+            f"        if {condition}:\n"
+            "            return\n"
+            "        validate_hf_descriptor_match("
+            "executed_descriptor, summary.descriptor)",
+        )
+        assert audit_hf_authority_fixture(conditional_return_report) == (
+            "hf_report_descriptor_validation_bypassed",
+        )
 
 
 @pytest.mark.jax

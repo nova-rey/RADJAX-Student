@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import os
+import re
+import shutil
 import subprocess
 import sys
 from dataclasses import replace
@@ -187,6 +189,34 @@ def test_p312a_contract_writer_refreshes_all_generated_digest_references(tmp_pat
     )
     write_contract_evidence_digest(contract, evidence_digest=receipt["evidence_digest"])
     assert contract.read_text(encoding="utf-8").count(receipt["evidence_digest"]) == 3
+
+
+def test_p312a_documentation_rejects_one_stale_declared_digest(tmp_path: Path) -> None:
+    maintained = (
+        "README.md",
+        "docs/INDEX.md",
+        "docs/ROADMAP.md",
+        "docs/RADJAX_DEVELOPMENT_ROADMAP.md",
+        "docs/RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md",
+        "docs/P3_11_INTEGRATION_CLOSURE.md",
+        "docs/P3_12_FOUNDATION_IDENTITY_POLISH.md",
+        "docs/P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md",
+        "docs/P3_12A_OBJECTIVE_IDENTITY_RECEIPT.json",
+    )
+    for relative in maintained:
+        destination = tmp_path / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / relative, destination)
+    contract = tmp_path / "docs/P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md"
+    text = contract.read_text(encoding="utf-8")
+    text, replacements = re.subn(
+        r"(Current P3\.12A receipt evidence digest:\s*\n`)[0-9a-f]{64}(`)",
+        rf"\g<1>{'0' * 64}\g<2>",
+        text,
+    )
+    assert replacements == 1
+    contract.write_text(text, encoding="utf-8")
+    assert check_documentation(tmp_path).errors == ("receipt:digest",)
 
 
 @pytest.mark.jax

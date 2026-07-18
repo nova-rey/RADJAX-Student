@@ -73,6 +73,18 @@ def write_contract_evidence_digest(contract: Path, *, evidence_digest: str) -> N
     contract.write_text(text, encoding="utf-8")
 
 
+def _contract_evidence_digests(text: str) -> tuple[str, ...] | None:
+    """Parse each generated contract digest marker exactly once."""
+    values: list[str] = []
+    for label in _CONTRACT_DIGEST_LABELS:
+        pattern = rf"{re.escape(label)}\s*\n`([0-9a-f]{{64}})`"
+        matches = re.findall(pattern, text)
+        if len(matches) != 1:
+            return None
+        values.extend(matches)
+    return tuple(values)
+
+
 def check_documentation(repository_root: Path) -> ObjectiveDocumentationCheck:
     """Validate an explicit maintained-status set without natural-language scans."""
 
@@ -104,11 +116,19 @@ def check_documentation(repository_root: Path) -> ObjectiveDocumentationCheck:
         else:
             if receipt["schema_version"] != SCHEMA_VERSION:
                 errors.append("receipt:schema")
-            elif contract.is_file() and receipt[
-                "evidence_digest"
-            ] not in contract.read_text(encoding="utf-8"):
-                errors.append("receipt:digest")
+            elif contract.is_file():
+                declared = _contract_evidence_digests(
+                    contract.read_text(encoding="utf-8")
+                )
+                if declared != (receipt["evidence_digest"],) * len(
+                    _CONTRACT_DIGEST_LABELS
+                ):
+                    errors.append("receipt:digest")
     return ObjectiveDocumentationCheck(not errors, tuple(sorted(errors)))
 
 
-__all__ = ["ObjectiveDocumentationCheck", "check_documentation"]
+__all__ = [
+    "ObjectiveDocumentationCheck",
+    "check_documentation",
+    "write_contract_evidence_digest",
+]
