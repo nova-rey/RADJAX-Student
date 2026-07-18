@@ -42,4 +42,4 @@ unstarted.
 The recorded receipt is
 [P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json](P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json)
 under schema `radjax.p3_12b_hf_descriptor_authority.v2`. Its current evidence
-digest is `c2de2a9a5de8060cef347bb37203e01348a9d3e6174db8bcef60c7c8558944c4`.
+digest is `1dbd39ab705ececd6f912de7755f0505103f419dc76c522d679b568e229cefa3`.

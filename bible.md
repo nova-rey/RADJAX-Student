@@ -1117,3 +1117,33 @@
   base-suite boundary on CI, where pytest collection occurs before marker
   deselection. A JAX-free subprocess regression test proves the module skips
   cleanly when JAX is unavailable.
+
+## 2026-07-17 - P3.12C JAX-free learning wildcard boundary correction
+
+- The optional P3.12C JAX assembly public attributes remain direct lazy exports
+  from `radjax_student.learning`, but are intentionally excluded from that
+  package's wildcard export list so a base-suite wildcard import cannot load
+  JAX transitively.
+- The learning import-isolation regression now exercises the wildcard path
+  under a JAX import guard; the production assembler remains available through
+  its explicit public name and canonical module path.
+- The normal receipt writer regenerated the P3.12C evidence twice
+  byte-identically after this audited source-boundary correction. The current
+  evidence digest is
+  `fffff62866a30f96afbeafc23e3b0d7aa9e641cb3c978acd2a8ba0a97f4eb98e`
+  and the current one-authority audit digest is
+  `2886ef483837590bd66ed5882b3d1ecaa1de6e1f461b6fca881384f0a0c42b26`.
+- Regenerated the affected P3.12A and P3.5 recorded evidence through their
+  normal writers after the same source-boundary correction. P3.12A now records
+  `c6bde1b4a274783833b0d29e95403f71edd390716ebfc2374087813bc81724f9`;
+  P3.5 records deterministic first/second evidence digest
+  `c1dcab4e8dd7af3892f968e1844fa9fbcfa7298c58989e623725280da79ed258`.
+- Regenerated the source-dependent P3.12B receipt twice byte-identically; its
+  current evidence digest is
+  `1dbd39ab705ececd6f912de7755f0505103f419dc76c522d679b568e229cefa3`
+  and its typed implementation-audit digest is
+  `99448cc32629963c0d811d7110607c6bc79767c15d6d2685c8051ecf3d7b2112`.
+- Regenerated the P3.5 dependency audit and its dependent P3.11.10 final gate
+  receipt through their normal deterministic writers. The updated P3.11.10
+  gate evidence digest is
+  `1669d4204dfdb2438e15cf334b540d131dd14f179e6ef79538b187362126135f`.

@@ -54,7 +54,7 @@ prefix matcher, or expected-to-observed translation.
 The recorded assembly digest is
 `add7080a34ed2c81d4f5ae93fe8ec74783f3ce1b9823c5cb32cb92da5661bda7`; the
 receipt evidence digest is
-`34b6716f0899c619cb55372da9ef2b161bb41cb33b5108306e79a58d94e07bce`.
+`fffff62866a30f96afbeafc23e3b0d7aa9e641cb3c978acd2a8ba0a97f4eb98e`.
 
 The JAX-free one-authority audit uses schema
 `radjax.p3_12c_one_authority_audit.v1`. It rejects a second assembler,
@@ -64,7 +64,7 @@ device selection, parameter/optimizer leaf inspection, caller success flags,
 and permissive observation. Its 24 synthetic source fixtures execute the real
 audit independently. Production code imports no P3.12C validation gate code.
 Its recorded implementation-audit digest is
-`c0c925014e26538b48245eb45bd6f67967cefe1c00c3220da9531e4f36eb5899`.
+`2886ef483837590bd66ed5882b3d1ecaa1de6e1f461b6fca881384f0a0c42b26`.
 
 The product-path proof executes one real generic JAX step through the assembled
 executor, verifies finite loss, metrics, and exposed gradients, parameter

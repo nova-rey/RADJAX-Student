@@ -5,7 +5,7 @@ runtime, generic loop, checkpoint v3, Hugging Face lifecycle identity, and
 deterministic replay. The final gate is recorded in
 [`P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json`](P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json).
 Its schema is `radjax.p3_11_10_final_adversarial_gate.v1`; final gate evidence
-digest: `37a75a36893558b95ad8767dc13ef8e8174228e59bf558de5c7b901fd28aaa68`.
+digest: `1669d4204dfdb2438e15cf334b540d131dd14f179e6ef79538b187362126135f`.
 The referenced P3.11.9 replay evidence digest is
 `e95217d0cba2457731dcf7f6ea7849ea70866f24c73f4716e3dc4da0ecad907b`.
 

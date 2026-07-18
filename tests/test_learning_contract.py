@@ -165,6 +165,9 @@ assert LearningConfig().update_scope.kind == "whole_student"
 assert LearningState(run_id="isolated").global_step == 0
 assert not any(name.startswith("radjax_student.architecture") for name in sys.modules)
 assert not any(name.startswith("radjax_student.training") for name in sys.modules)
+public_namespace = {}
+exec("from radjax_student.learning import *", public_namespace)
+assert public_namespace["LearningConfig"] is LearningConfig
 """
     result = subprocess.run(
         [sys.executable, "-c", script],

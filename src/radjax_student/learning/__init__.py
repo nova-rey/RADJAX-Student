@@ -129,24 +129,26 @@ __all__ = [
     "run_p3_9_synthetic_learning_smoke",
     "P310LearningCoreAcceptanceReceipt",
     "run_p3_10_learning_core_acceptance",
-    "JaxLearningAssemblyRequest",
-    "JaxLearningAssemblyRegistries",
-    "JaxLearningAssemblyResult",
-    "LearningAssemblyError",
-    "assemble_jax_learning_lifecycle",
-    "LEARNING_ASSEMBLY_ERROR_CODES",
 ]
 
 
-def __getattr__(name):
-    if name in {
+# The production assembler remains a direct lazy public attribute below. It is
+# intentionally absent from ``__all__`` so ``from radjax_student.learning import
+# *`` remains usable in the base, JAX-free contract suite.
+_OPTIONAL_JAX_ASSEMBLY_PUBLIC_NAMES = frozenset(
+    {
         "JaxLearningAssemblyRequest",
         "JaxLearningAssemblyRegistries",
         "JaxLearningAssemblyResult",
         "LearningAssemblyError",
         "assemble_jax_learning_lifecycle",
         "LEARNING_ASSEMBLY_ERROR_CODES",
-    }:
+    }
+)
+
+
+def __getattr__(name):
+    if name in _OPTIONAL_JAX_ASSEMBLY_PUBLIC_NAMES:
         from radjax_student.learning.assembly import (
             LEARNING_ASSEMBLY_ERROR_CODES,
             JaxLearningAssemblyRegistries,
