@@ -1271,3 +1271,8 @@
 
 - Formatted the source-revision guard in the audit writer so the provenance
   contract remains part of the repository-wide checked formatting surface.
+
+## 2026-07-18 - Architecture audit formatter evidence refresh
+
+- Refreshed generated acceptance evidence from the formatted source-revision
+  guard, preserving the exact source commit as the P3.5 audit provenance.
