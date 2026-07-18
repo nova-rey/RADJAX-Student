@@ -1,4 +1,4 @@
-"""Focused P3.12C assembly tests; this module imports JAX only in test bodies."""
+"""Focused P3.12C tests for the optional JAX production product path."""
 
 from __future__ import annotations
 
@@ -7,6 +7,11 @@ from dataclasses import replace
 from pathlib import Path
 
 import pytest
+
+# This module exercises the actual JAX product path.  Collection in the base
+# CI environment must skip before importing the JAX-dependent public assembly
+# surface, because pytest markers are applied after module import.
+pytest.importorskip("jax", reason="P3.12C product-path tests require JAX")
 
 from radjax_student.architecture import ArchitectureConfig, ArchitectureRegistry
 from radjax_student.contracts import ObjectiveConfig

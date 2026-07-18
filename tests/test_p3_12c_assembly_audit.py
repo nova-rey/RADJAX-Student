@@ -58,6 +58,40 @@ def test_inventory_and_real_source_audit_are_jax_free():
     assert result.returncode == 0, result.stderr
 
 
+def test_jax_product_path_module_skips_before_importing_jax_surfaces():
+    """Keep base CI collection independent of the optional JAX dependency."""
+
+    test_path = Path(__file__).with_name("test_p3_12c_production_lifecycle_assembly.py")
+    script = f"""
+import builtins
+import importlib.util
+import pytest
+
+real_import = builtins.__import__
+def guarded(name, *args, **kwargs):
+    if name == "jax" or name.startswith("jax."):
+        raise ModuleNotFoundError("blocked optional JAX import")
+    return real_import(name, *args, **kwargs)
+
+builtins.__import__ = guarded
+module_path = {str(test_path)!r}
+spec = importlib.util.spec_from_file_location(
+    "p312c_product_path_without_jax", module_path
+)
+module = importlib.util.module_from_spec(spec)
+try:
+    spec.loader.exec_module(module)
+except pytest.skip.Exception:
+    pass
+else:
+    raise AssertionError("JAX product-path module did not skip before import")
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script], check=False, capture_output=True, text=True
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_all_required_synthetic_bad_sources_execute_the_real_audit():
     assert len(audit_fixtures.REQUIRED_BAD_SOURCE_FIXTURES) == 24
     for fixture in audit_fixtures.REQUIRED_BAD_SOURCE_FIXTURES:

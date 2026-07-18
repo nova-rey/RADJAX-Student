@@ -1109,3 +1109,11 @@
   owner state, and emits caller-bound checkpoint/report evidence. P3.12D and
   Phase 4 remain unstarted; this closure makes no RWKV, export, model-quality,
   multi-device, TPU, performance, CLI, or resume-assembly claim.
+
+## 2026-07-17 - P3.12C base CI collection correction
+
+- The JAX product-path test module now calls `pytest.importorskip("jax")`
+  before importing the public assembly surface. This preserves the JAX-free
+  base-suite boundary on CI, where pytest collection occurs before marker
+  deselection. A JAX-free subprocess regression test proves the module skips
+  cleanly when JAX is unavailable.
