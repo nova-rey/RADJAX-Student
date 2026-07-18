@@ -261,6 +261,8 @@ def _may_return(statement: ast.stmt) -> bool:
         ) or any(
             _may_return(item) for handler in statement.handlers for item in handler.body
         )
+    if isinstance(statement, ast.Match):
+        return any(_may_return(item) for case in statement.cases for item in case.body)
     return False
 
 
@@ -271,6 +273,7 @@ def _handler_swallows_checkpoint_mismatch(handler: ast.ExceptHandler) -> bool:
         if isinstance(caught, ast.Name):
             return caught.id in {
                 "CheckpointValidationError",
+                "ValueError",
                 "Exception",
                 "BaseException",
             }

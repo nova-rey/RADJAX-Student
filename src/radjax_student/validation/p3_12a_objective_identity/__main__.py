@@ -8,6 +8,7 @@ import tempfile
 from pathlib import Path
 
 from radjax_student.validation.p3_12a_objective_identity.documentation import (
+    check_documentation,
     write_contract_evidence_digest,
 )
 from radjax_student.validation.p3_12a_objective_identity.models import build_receipt
@@ -46,6 +47,10 @@ def main(argv: list[str] | None = None) -> int:
     recorded = Path("docs/P3_12A_OBJECTIVE_IDENTITY_RECEIPT.json").read_bytes()
     if generated != recorded:
         print("p312a_receipt_mismatch")
+        return 1
+    documentation = check_documentation(Path.cwd())
+    if not documentation.ok:
+        print("p312a_documentation_mismatch:" + ",".join(documentation.errors))
         return 1
     print("P3.12A objective identity receipt matches executed proof")
     return 0

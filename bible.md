@@ -1235,3 +1235,12 @@
   runtime, validation, and canonical-loss rules. Its HF source audit also
   rejects swallowed checkpoint mismatches through broad or tuple exception
   handlers and reachable conditional returns before the report matcher.
+
+## 2026-07-18 - Maintained documentation checker closure
+
+- The normal P3.12A and P3.11.10 recorded checkers now require the typed
+  P3.12A maintained-document check, so each declared contract digest remains
+  current evidence rather than an unchecked explanatory marker.
+- The fixed-source foundation audit now recognizes `ValueError` superclass
+  handlers and structural `match` case returns as paths that could swallow a
+  checkpoint mismatch or bypass report descriptor validation.

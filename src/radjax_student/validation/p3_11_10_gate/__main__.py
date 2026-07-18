@@ -14,6 +14,9 @@ from radjax_student.validation.p3_11_10_gate.implementations import (
     CASE_IMPLEMENTATIONS,
 )
 from radjax_student.validation.p3_11_10_gate.models import FinalAdversarialGateReceipt
+from radjax_student.validation.p3_12a_objective_identity.documentation import (
+    check_documentation as check_p312a_documentation,
+)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -73,6 +76,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     if replay.returncode:
         print("P3.11.10 replay prerequisite failed: " + replay.stdout + replay.stderr)
+        return 1
+    p312a_documentation = check_p312a_documentation(root)
+    if not p312a_documentation.ok:
+        print(
+            "P3.11.10 P3.12A documentation prerequisite failed: "
+            + ",".join(p312a_documentation.errors)
+        )
         return 1
     recorded_path = root / "docs/P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json"
     if not recorded_path.is_file():

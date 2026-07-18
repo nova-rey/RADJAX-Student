@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "3c32106028e1b344d78a311938e62cd717a715bc",
+  "accepted_commit": "3cfe61e81f16e5ffaba6f52236a3b543943476e1",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -1274,6 +1274,10 @@
     {
       "source": "radjax_student.validation.p3_11_10_gate.__main__",
       "target": "radjax_student.validation.p3_11_10_gate.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_11_10_gate.__main__",
+      "target": "radjax_student.validation.p3_12a_objective_identity.documentation"
     },
     {
       "source": "radjax_student.validation.p3_11_10_gate.documentation",
@@ -5622,13 +5626,15 @@
         "radjax_student.validation.p3_11_10_gate.gate",
         "radjax_student.validation.p3_11_10_gate.implementations",
         "radjax_student.validation.p3_11_10_gate.models",
+        "radjax_student.validation.p3_12a_objective_identity.documentation",
         "subprocess",
         "sys"
       ],
       "internal_edges": [
         "radjax_student.validation.p3_11_10_gate.gate",
         "radjax_student.validation.p3_11_10_gate.implementations",
-        "radjax_student.validation.p3_11_10_gate.models"
+        "radjax_student.validation.p3_11_10_gate.models",
+        "radjax_student.validation.p3_12a_objective_identity.documentation"
       ],
       "module": "radjax_student.validation.p3_11_10_gate.__main__",
       "owner": "compatibility_validation",

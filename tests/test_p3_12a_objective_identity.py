@@ -46,6 +46,22 @@ from radjax_student.validation.p3_12a_objective_identity.models import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+_P312A_DOCUMENTATION_FIXTURE_PATHS = (
+    "README.md",
+    "docs/INDEX.md",
+    "docs/ROADMAP.md",
+    "docs/RADJAX_DEVELOPMENT_ROADMAP.md",
+    "docs/RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md",
+    "docs/P3_11_INTEGRATION_CLOSURE.md",
+    "docs/P3_12_FOUNDATION_IDENTITY_POLISH.md",
+    "docs/P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md",
+    "docs/P3_12A_OBJECTIVE_IDENTITY_RECEIPT.json",
+)
+_P312A_CONTRACT_DIGEST_LABELS = (
+    "Current P3.12A evidence digest:",
+    "The current executed evidence digest is",
+    "Current P3.12A receipt evidence digest:",
+)
 
 
 class _AlternativeMseObjective(MeanSquaredErrorObjective):
@@ -73,6 +89,21 @@ def _selection():
         selection=selection, config=config, resolved_selection=resolved
     )
     return registry, selection, config, resolved, descriptor
+
+
+def _copy_p312a_documentation_fixture(destination_root: Path) -> None:
+    for relative in _P312A_DOCUMENTATION_FIXTURE_PATHS:
+        destination = destination_root / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(ROOT / relative, destination)
+
+
+def _copy_repository_fixture(destination_root: Path) -> None:
+    shutil.copytree(
+        ROOT,
+        destination_root,
+        ignore=shutil.ignore_patterns(".git", ".venv", ".pytest_cache", "__pycache__"),
+    )
 
 
 def test_neutral_objective_contract_and_registry_imports_do_not_load_jax():
@@ -192,21 +223,7 @@ def test_p312a_contract_writer_refreshes_all_generated_digest_references(tmp_pat
 
 
 def test_p312a_documentation_rejects_one_stale_declared_digest(tmp_path: Path) -> None:
-    maintained = (
-        "README.md",
-        "docs/INDEX.md",
-        "docs/ROADMAP.md",
-        "docs/RADJAX_DEVELOPMENT_ROADMAP.md",
-        "docs/RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md",
-        "docs/P3_11_INTEGRATION_CLOSURE.md",
-        "docs/P3_12_FOUNDATION_IDENTITY_POLISH.md",
-        "docs/P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md",
-        "docs/P3_12A_OBJECTIVE_IDENTITY_RECEIPT.json",
-    )
-    for relative in maintained:
-        destination = tmp_path / relative
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(ROOT / relative, destination)
+    _copy_p312a_documentation_fixture(tmp_path)
     contract = tmp_path / "docs/P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md"
     text = contract.read_text(encoding="utf-8")
     text, replacements = re.subn(
@@ -217,6 +234,82 @@ def test_p312a_documentation_rejects_one_stale_declared_digest(tmp_path: Path) -
     assert replacements == 1
     contract.write_text(text, encoding="utf-8")
     assert check_documentation(tmp_path).errors == ("receipt:digest",)
+
+
+@pytest.mark.jax
+def test_p312a_cli_rejects_each_stale_declared_contract_digest(tmp_path: Path) -> None:
+    environment = {**os.environ, "PYTHONPATH": str(ROOT / "src")}
+    for index, label in enumerate(_P312A_CONTRACT_DIGEST_LABELS):
+        repository = tmp_path / str(index)
+        _copy_p312a_documentation_fixture(repository)
+        shutil.copytree(ROOT / "src", repository / "src")
+        receipt = repository / "docs/P3_12A_OBJECTIVE_IDENTITY_RECEIPT.json"
+        generated = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "radjax_student.validation.p3_12a_objective_identity",
+                "--write",
+                str(receipt),
+            ],
+            cwd=repository,
+            env=environment,
+            capture_output=True,
+            text=True,
+        )
+        assert generated.returncode == 0, generated.stderr
+        contract = repository / "docs/P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md"
+        text, replacements = re.subn(
+            rf"({re.escape(label)}\s*\n`)[0-9a-f]{{64}}(`)",
+            rf"\g<1>{'0' * 64}\g<2>",
+            contract.read_text(encoding="utf-8"),
+        )
+        assert replacements == 1
+        contract.write_text(text, encoding="utf-8")
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "radjax_student.validation.p3_12a_objective_identity",
+                "--check-recorded",
+            ],
+            cwd=repository,
+            env=environment,
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 1
+        assert "p312a_documentation_mismatch:receipt:digest" in result.stdout
+
+
+@pytest.mark.jax
+def test_p31110_cli_rejects_stale_p312a_contract_digest(tmp_path: Path) -> None:
+    repository = tmp_path / "repository"
+    _copy_repository_fixture(repository)
+    contract = repository / "docs/P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md"
+    text, replacements = re.subn(
+        r"(Current P3\.12A receipt evidence digest:\s*\n`)[0-9a-f]{64}(`)",
+        rf"\g<1>{'0' * 64}\g<2>",
+        contract.read_text(encoding="utf-8"),
+    )
+    assert replacements == 1
+    contract.write_text(text, encoding="utf-8")
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "radjax_student.validation.p3_11_10_gate",
+            "--check-recorded",
+        ],
+        cwd=repository,
+        env={**os.environ, "PYTHONPATH": str(repository / "src")},
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 1
+    assert "P3.11.10 P3.12A documentation prerequisite failed: receipt:digest" in (
+        result.stdout
+    )
 
 
 @pytest.mark.jax

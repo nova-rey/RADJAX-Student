@@ -160,9 +160,11 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
 
     for handler in (
         "except:",
+        "except ValueError:",
         "except Exception:",
         "except BaseException:",
         "except (CheckpointValidationError, RuntimeError):",
+        "except (ValueError, RuntimeError):",
     ):
         broadly_swallowed = dict(sources)
         broadly_swallowed["checkpoints/v3.py"] = broadly_swallowed[
@@ -278,6 +280,21 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         assert audit_hf_authority_fixture(conditional_return_report) == (
             "hf_report_descriptor_validation_bypassed",
         )
+
+    match_return_report = dict(sources)
+    match_return_report["learning/run_report.py"] = match_return_report[
+        "learning/run_report.py"
+    ].replace(
+        "        validate_hf_descriptor_match(executed_descriptor, summary.descriptor)",
+        "        match summary:\n"
+        "            case _:\n"
+        "                return\n"
+        "        validate_hf_descriptor_match("
+        "executed_descriptor, summary.descriptor)",
+    )
+    assert audit_hf_authority_fixture(match_return_report) == (
+        "hf_report_descriptor_validation_bypassed",
+    )
 
 
 @pytest.mark.jax
