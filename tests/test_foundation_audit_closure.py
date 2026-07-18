@@ -108,6 +108,18 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
+    mismatch_noop = dict(sources)
+    mismatch_noop["checkpoints/v3.py"] = mismatch_noop["checkpoints/v3.py"].replace(
+        """        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+        "        pass",
+    )
+    assert audit_hf_authority_fixture(mismatch_noop) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
     lifecycle = dict(sources)
     lifecycle["steps/jax_loop.py"] = lifecycle["steps/jax_loop.py"].replace(
         "expected_hf_descriptor=self.hf_descriptor",
@@ -137,6 +149,19 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "validate_hf_descriptor_match(foreign_descriptor, foreign_summary)",
     )
     assert audit_hf_authority_fixture(report_operands) == (
+        "hf_report_descriptor_validation_bypassed",
+    )
+
+    dead_report_validation = dict(sources)
+    dead_report_validation["learning/run_report.py"] = dead_report_validation[
+        "learning/run_report.py"
+    ].replace(
+        "        validate_hf_descriptor_match(executed_descriptor, summary.descriptor)",
+        "        if False:\n"
+        "            validate_hf_descriptor_match("
+        "executed_descriptor, summary.descriptor)",
+    )
+    assert audit_hf_authority_fixture(dead_report_validation) == (
         "hf_report_descriptor_validation_bypassed",
     )
 

@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "8bac3ff445ff580ca8bf88aa3fbfa323be4c2163",
+  "accepted_commit": "84baf6d1533496148f2f5eb80b5610eea4f708a8",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -1630,6 +1630,10 @@
     {
       "source": "radjax_student.validation.p3_12a_objective_identity",
       "target": "radjax_student.validation.p3_12a_objective_identity.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_12a_objective_identity.__main__",
+      "target": "radjax_student.validation.p3_12a_objective_identity.documentation"
     },
     {
       "source": "radjax_student.validation.p3_12a_objective_identity.__main__",
@@ -6591,11 +6595,13 @@
         "argparse",
         "json",
         "pathlib",
+        "radjax_student.validation.p3_12a_objective_identity.documentation",
         "radjax_student.validation.p3_12a_objective_identity.models",
         "radjax_student.validation.p3_12a_objective_identity.runner_jax",
         "tempfile"
       ],
       "internal_edges": [
+        "radjax_student.validation.p3_12a_objective_identity.documentation",
         "radjax_student.validation.p3_12a_objective_identity.models"
       ],
       "module": "radjax_student.validation.p3_12a_objective_identity.__main__",
@@ -6615,7 +6621,8 @@
         "dataclasses",
         "json",
         "pathlib",
-        "radjax_student.validation.p3_12a_objective_identity.models"
+        "radjax_student.validation.p3_12a_objective_identity.models",
+        "re"
       ],
       "internal_edges": [
         "radjax_student.validation.p3_12a_objective_identity.models"

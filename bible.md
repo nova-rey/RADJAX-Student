@@ -1209,3 +1209,11 @@
   as current. Its HF source audit also proves lifecycle-owned checkpoint
   operands, the active checkpoint comparison, and canonical run-report
   comparison operands rather than only finding a guard or callee name.
+
+## 2026-07-18 - Foundation audit operational-path closure
+
+- The fixed-source HF audit now requires the checkpoint descriptor mismatch
+  branch to raise and the report descriptor comparison to remain in its direct
+  reachable validation path. A P3.12A contract-digest writer now derives all
+  maintained contract references from the typed receipt evidence, keeping the
+  documented receipt consistent without hand-editing generated digests.

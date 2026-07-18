@@ -187,15 +187,31 @@ def _call_keyword_attribute(
     )
 
 
-def _call_arguments_are(
-    function: ast.FunctionDef, callee: str, *arguments: str
-) -> bool:
-    return any(
+def _call_arguments_are(node: ast.Call, callee: str, *arguments: str) -> bool:
+    return (
         _call_name(node.func) == callee
         and tuple(_call_name(argument) for argument in node.args) == arguments
-        for node in ast.walk(function)
-        if isinstance(node, ast.Call)
     )
+
+
+def _has_operational_report_validation(function: ast.FunctionDef) -> bool:
+    """Require the fixed direct try-path; dead calls do not prove validation."""
+    for statement in function.body:
+        if isinstance(statement, (ast.Return, ast.Raise)):
+            return False
+        if isinstance(statement, ast.Try):
+            return any(
+                isinstance(item, ast.Expr)
+                and isinstance(item.value, ast.Call)
+                and _call_arguments_are(
+                    item.value,
+                    "validate_hf_descriptor_match",
+                    "executed_descriptor",
+                    "summary.descriptor",
+                )
+                for item in statement.body
+            )
+    return False
 
 
 def _call_name(node: ast.AST) -> str | None:
@@ -309,18 +325,20 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
             and node.test.comparators[0].value is None
             for node in ast.walk(restore or checkpoint)
         )
-        has_exact_comparison = any(
-            isinstance(node, ast.Compare)
-            and len(node.ops) == 1
-            and isinstance(node.ops[0], ast.NotEq)
-            and isinstance(node.left, ast.Name)
-            and node.left.id == "hf_descriptor"
-            and len(node.comparators) == 1
-            and isinstance(node.comparators[0], ast.Name)
-            and node.comparators[0].id == "expected_hf_descriptor"
+        mismatch_rejects = any(
+            isinstance(node, ast.If)
+            and isinstance(node.test, ast.Compare)
+            and len(node.test.ops) == 1
+            and isinstance(node.test.ops[0], ast.NotEq)
+            and isinstance(node.test.left, ast.Name)
+            and node.test.left.id == "hf_descriptor"
+            and len(node.test.comparators) == 1
+            and isinstance(node.test.comparators[0], ast.Name)
+            and node.test.comparators[0].id == "expected_hf_descriptor"
+            and any(isinstance(statement, ast.Raise) for statement in node.body)
             for node in ast.walk(restore or checkpoint)
         )
-        if restore is None or not has_required_guard or not has_exact_comparison:
+        if restore is None or not has_required_guard or not mismatch_rejects:
             blockers.append("hf_checkpoint_descriptor_validation_bypassed")
 
     replay = tree("validation/p3_11_9_replay/runner_jax.py")
@@ -335,12 +353,7 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
     report = tree("learning/run_report.py")
     if report is not None:
         validate = _function(report, "validate_run_hf_summary")
-        if validate is None or not _call_arguments_are(
-            validate,
-            "validate_hf_descriptor_match",
-            "executed_descriptor",
-            "summary.descriptor",
-        ):
+        if validate is None or not _has_operational_report_validation(validate):
             blockers.append("hf_report_descriptor_validation_bypassed")
     return tuple(sorted(set(blockers)))
 

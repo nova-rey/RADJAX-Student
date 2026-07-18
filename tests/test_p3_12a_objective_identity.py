@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import sys
@@ -32,6 +33,7 @@ from radjax_student.objectives.legacy import (
 from radjax_student.validation.architecture_audit import build_architecture_audit
 from radjax_student.validation.p3_12a_objective_identity.documentation import (
     check_documentation,
+    write_contract_evidence_digest,
 )
 from radjax_student.validation.p3_12a_objective_identity.models import (
     ObjectiveIdentityProof,
@@ -172,6 +174,19 @@ def test_dependency_audit_requires_one_registered_objective_authority():
 def test_p312a_documentation_status_and_recorded_receipt_are_consistent():
     check = check_documentation(ROOT)
     assert check.ok, check.errors
+
+
+def test_p312a_contract_writer_refreshes_all_generated_digest_references(tmp_path):
+    contract = tmp_path / "P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md"
+    contract.write_text(
+        (ROOT / "docs/P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md").read_text(),
+        encoding="utf-8",
+    )
+    receipt = json.loads(
+        (ROOT / "docs/P3_12A_OBJECTIVE_IDENTITY_RECEIPT.json").read_text()
+    )
+    write_contract_evidence_digest(contract, evidence_digest=receipt["evidence_digest"])
+    assert contract.read_text(encoding="utf-8").count(receipt["evidence_digest"]) == 3
 
 
 @pytest.mark.jax
