@@ -1260,3 +1260,9 @@
   unless its audited source tree exactly matches the worktree. Generated
   evidence therefore records the actual audited source revision rather than a
   merely adjacent predecessor.
+
+## 2026-07-18 - Architecture audit provenance evidence refresh
+
+- Regenerated the dependent P3.5 and P3.11/P3.12 receipts from the exact
+  source-provenance commit, binding the architecture audit artifact to that
+  audited source revision without a self-referential commit claim.
