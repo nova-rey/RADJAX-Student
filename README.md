@@ -144,7 +144,9 @@ gate-to-production dependency is permitted.
 P3.12C locally accepted: one learning-owned production assembler now binds
 registry-selected components into the executable JAX lifecycle.
 
-P3.12D next and unstarted
+P3.12D locally accepted: runtime binds the actual declared generic JAX-step
+callable, its source-derived identity, and all compilation-relevant prepared
+execution identity fields. P3.12 is closed; Phase 4 is next and unstarted.
 
 Phase 4 remains unstarted
 

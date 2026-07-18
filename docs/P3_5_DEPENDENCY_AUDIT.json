@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "ed00630f4a4fe16c489af9c2bfbca863a0d9258b",
+  "accepted_commit": "973a7f66a1cccf120c0ece0e845c6491e2dfa435",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -793,6 +793,10 @@
     },
     {
       "source": "radjax_student.runtime",
+      "target": "radjax_student.runtime.callables"
+    },
+    {
+      "source": "radjax_student.runtime",
       "target": "radjax_student.runtime.errors"
     },
     {
@@ -861,6 +865,10 @@
     },
     {
       "source": "radjax_student.runtime.execution",
+      "target": "radjax_student.runtime.callables"
+    },
+    {
+      "source": "radjax_student.runtime.execution",
       "target": "radjax_student.runtime.errors"
     },
     {
@@ -914,6 +922,10 @@
     {
       "source": "radjax_student.runtime.placement",
       "target": "radjax_student.runtime.models"
+    },
+    {
+      "source": "radjax_student.runtime.portability",
+      "target": "radjax_student.runtime.callables"
     },
     {
       "source": "radjax_student.runtime.portability",
@@ -1106,6 +1118,10 @@
     {
       "source": "radjax_student.steps.jax_step",
       "target": "radjax_student.runtime"
+    },
+    {
+      "source": "radjax_student.steps.jax_step",
+      "target": "radjax_student.runtime.callables"
     },
     {
       "source": "radjax_student.steps.jax_step",
@@ -1752,6 +1768,22 @@
       "target": "radjax_student.validation.p3_11_9_replay.runner_jax"
     },
     {
+      "source": "radjax_student.validation.p3_12d_runtime_callable_identity.experiments",
+      "target": "radjax_student.runtime.callables"
+    },
+    {
+      "source": "radjax_student.validation.p3_12d_runtime_callable_identity.experiments",
+      "target": "radjax_student.runtime.execution"
+    },
+    {
+      "source": "radjax_student.validation.p3_12d_runtime_callable_identity.experiments",
+      "target": "radjax_student.runtime.models"
+    },
+    {
+      "source": "radjax_student.validation.p3_12d_runtime_callable_identity.experiments",
+      "target": "radjax_student.runtime.portability"
+    },
+    {
       "source": "radjax_student.validation.profile_registry",
       "target": "radjax_student.validation.compatibility"
     },
@@ -1781,7 +1813,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 166,
+  "module_count": 176,
   "modules": [
     {
       "classification": "core",
@@ -4305,6 +4337,7 @@
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
+        "radjax_student.runtime.callables",
         "radjax_student.runtime.errors",
         "radjax_student.runtime.execution",
         "radjax_student.runtime.inspection",
@@ -4321,6 +4354,7 @@
         "radjax_student.runtime.state"
       ],
       "internal_edges": [
+        "radjax_student.runtime.callables",
         "radjax_student.runtime.errors",
         "radjax_student.runtime.execution",
         "radjax_student.runtime.inspection",
@@ -4342,6 +4376,9 @@
       "public_exports": [
         "AUTOMATIC_PLATFORM_PREFERENCE",
         "BackendAvailabilityStatus",
+        "CALLABLE_DECLARATION_SCHEMA_VERSION",
+        "CALLABLE_IDENTITY_SCHEMA_VERSION",
+        "CALLABLE_REFERENCE_SCHEMA_VERSION",
         "COMMON_LOGICAL_AXIS_NAMES",
         "COMPILATION_POLICIES",
         "CPU_RUNTIME_SMOKE_CLAIMS_NOT_MADE",
@@ -4388,6 +4425,7 @@
         "PORTABILITY_PLATFORMS",
         "PORTABILITY_WARNING_CODES",
         "PRECISION_POLICIES",
+        "PREPARED_IDENTITY_SCHEMA_VERSION",
         "PlacementContractError",
         "PlacementIntent",
         "PlacementPlan",
@@ -4399,6 +4437,7 @@
         "PortabilityStatus",
         "PrecisionPolicy",
         "PreparedExecution",
+        "PreparedExecutionIdentityCache",
         "RUNTIME_CAPABILITY_VOCABULARY",
         "RUNTIME_ERROR_CODES",
         "RUNTIME_INSPECTION_CLAIMS_NOT_MADE",
@@ -4420,11 +4459,18 @@
         "RuntimeBackendAvailability",
         "RuntimeBackendDescriptor",
         "RuntimeBackendRegistry",
+        "RuntimeCallableBinding",
+        "RuntimeCallableDeclaration",
+        "RuntimeCallableError",
+        "RuntimeCallableIdentity",
+        "RuntimeCallableReference",
+        "RuntimeCallableRegistry",
         "RuntimeCapabilityProfile",
         "RuntimeConfig",
         "RuntimeContractError",
         "RuntimeEnvironment",
         "RuntimeErrorCode",
+        "RuntimeInitializationKeyReference",
         "RuntimeInspection",
         "RuntimeIssue",
         "RuntimeKeyStream",
@@ -4432,6 +4478,7 @@
         "RuntimeLifecycleBinding",
         "RuntimePortabilityReceipt",
         "RuntimePortabilityTimings",
+        "RuntimePreparedExecutionIdentity",
         "RuntimeReport",
         "RuntimeResumeCompatibilityReport",
         "RuntimeSelectionResult",
@@ -4446,7 +4493,9 @@
         "SUPPORTED_RUNTIME_PLATFORMS",
         "SelectionStatus",
         "ValuePlacementSpec",
+        "bind_runtime_callable",
         "bind_runtime_for_learning",
+        "build_default_runtime_callable_registry",
         "build_default_runtime_registry",
         "canonical_runtime_state_json",
         "default_cpu_smoke_config",
@@ -4456,6 +4505,9 @@
         "execute_function",
         "execute_prepared",
         "execution_capabilities",
+        "final_prepared_execution_identity",
+        "finalize_prepared_execution_identity",
+        "initialization_reference_from_root_seed",
         "inspect_runtime_environment",
         "load_runtime_state",
         "load_runtime_state_bundle",
@@ -4497,6 +4549,37 @@
     {
       "classification": "core",
       "defined_classes": [
+        "RuntimeCallableBinding",
+        "RuntimeCallableDeclaration",
+        "RuntimeCallableError",
+        "RuntimeCallableIdentity",
+        "RuntimeCallableReference",
+        "RuntimeCallableRegistry",
+        "RuntimePreparedExecutionIdentity"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "ast",
+        "collections.abc",
+        "dataclasses",
+        "functools",
+        "hashlib",
+        "inspect",
+        "json",
+        "radjax_student.steps.jax_step",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.runtime.callables",
+      "owner": "runtime_execution",
+      "path": "src/radjax_student/runtime/callables.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
         "RuntimeContractError",
         "RuntimeIssue"
       ],
@@ -4525,16 +4608,20 @@
         "ExecutionBoundaryError",
         "ExecutionRequest",
         "ExecutionResult",
-        "PreparedExecution"
+        "PreparedExecution",
+        "PreparedExecutionIdentityCache"
       ],
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
+        "ast",
         "collections.abc",
         "dataclasses",
+        "hashlib",
         "inspect",
         "math",
+        "radjax_student.runtime.callables",
         "radjax_student.runtime.errors",
         "radjax_student.runtime.models",
         "time",
@@ -4542,6 +4629,7 @@
         "typing"
       ],
       "internal_edges": [
+        "radjax_student.runtime.callables",
         "radjax_student.runtime.errors",
         "radjax_student.runtime.models"
       ],
@@ -4637,6 +4725,7 @@
     {
       "classification": "core",
       "defined_classes": [
+        "RuntimeInitializationKeyReference",
         "RuntimeKeyStream",
         "RuntimeKeys"
       ],
@@ -4763,6 +4852,7 @@
         "collections.abc",
         "dataclasses",
         "pathlib",
+        "radjax_student.runtime.callables",
         "radjax_student.runtime.errors",
         "radjax_student.runtime.execution",
         "radjax_student.runtime.inspection",
@@ -4776,6 +4866,7 @@
         "typing"
       ],
       "internal_edges": [
+        "radjax_student.runtime.callables",
         "radjax_student.runtime.errors",
         "radjax_student.runtime.execution",
         "radjax_student.runtime.inspection",
@@ -5083,6 +5174,7 @@
         "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
+        "radjax_student.runtime.callables",
         "radjax_student.runtime.jax_bridge",
         "radjax_student.runtime.jax_inputs",
         "radjax_student.runtime.keys",
@@ -5099,6 +5191,7 @@
         "radjax_student.objectives",
         "radjax_student.optimizers",
         "radjax_student.runtime",
+        "radjax_student.runtime.callables",
         "radjax_student.runtime.jax_bridge",
         "radjax_student.runtime.jax_inputs",
         "radjax_student.runtime.keys"
@@ -5107,10 +5200,12 @@
       "owner": "learning_execution",
       "path": "src/radjax_student/steps/jax_step.py",
       "public_exports": [
+        "GENERIC_JAX_LEARNING_STEP_DECLARATION",
         "JaxBatchBindingError",
         "JaxLearningStepExecution",
         "JaxUpdateEvidenceError",
         "execute_jax_learning_step",
+        "execute_jax_learning_step_kernel",
         "validate_jax_batch_binding",
         "validate_jax_update_evidence"
       ]
@@ -6977,6 +7072,221 @@
         "execute_in_temporary_directory",
         "execute_lifecycle_assembly_proof",
         "execute_raw_diagnostic",
+        "raw_diagnostic_failures"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".inventory",
+        ".models"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12d_runtime_callable_identity",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12d_runtime_callable_identity/__init__.py",
+      "public_exports": [
+        "ADVERSARIAL_CASE_IDS",
+        "ADVERSARIAL_CASE_SPECS",
+        "AdversarialResult",
+        "POSITIVE_CASE_IDS",
+        "PositiveResult",
+        "RuntimeCallableIdentityProof",
+        "RuntimeCallableIdentityReceipt",
+        "build_receipt",
+        "validate_receipt"
+      ]
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".models",
+        ".runner_jax",
+        "__future__",
+        "argparse",
+        "json",
+        "pathlib",
+        "tempfile"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12d_runtime_callable_identity.__main__",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12d_runtime_callable_identity/__main__.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "BadSourceFixture"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12d_runtime_callable_identity.audit_fixtures",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12d_runtime_callable_identity/audit_fixtures.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "Invocation",
+        "Observation"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12d_runtime_callable_identity.diagnostic",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12d_runtime_callable_identity/diagnostic.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "_IdentityBackend"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".diagnostic",
+        ".implementation_audit",
+        "__future__",
+        "dataclasses",
+        "functools",
+        "hashlib",
+        "json",
+        "radjax_student.runtime.callables",
+        "radjax_student.runtime.execution",
+        "radjax_student.runtime.models",
+        "radjax_student.runtime.portability"
+      ],
+      "internal_edges": [
+        "radjax_student.runtime.callables",
+        "radjax_student.runtime.execution",
+        "radjax_student.runtime.models",
+        "radjax_student.runtime.portability"
+      ],
+      "module": "radjax_student.validation.p3_12d_runtime_callable_identity.experiments",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12d_runtime_callable_identity/experiments.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "CallableAuditBlocker",
+        "CallableAuditError",
+        "CallableAuditSourceEntry",
+        "RuntimeCallableIdentityAudit"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".inventory",
+        "__future__",
+        "ast",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12d_runtime_callable_identity.implementation_audit",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12d_runtime_callable_identity/implementation_audit.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "AdversarialCaseSpec"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12d_runtime_callable_identity.inventory",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12d_runtime_callable_identity/inventory.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [
+        "AdversarialResult",
+        "PositiveResult",
+        "RuntimeCallableIdentityProof",
+        "RuntimeCallableIdentityReceipt"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".implementation_audit",
+        ".inventory",
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "radjax_student.runtime.callables",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12d_runtime_callable_identity.models",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12d_runtime_callable_identity/models.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        ".",
+        ".diagnostic",
+        ".implementation_audit",
+        ".inventory",
+        ".models",
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib",
+        "radjax_student.learning",
+        "radjax_student.validation.p3_11_9_replay.runner_jax",
+        "radjax_student.validation.p3_12c_production_lifecycle_assembly"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p3_12d_runtime_callable_identity.runner_jax",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p3_12d_runtime_callable_identity/runner_jax.py",
+      "public_exports": [
+        "execute_raw_diagnostic",
+        "execute_runtime_callable_identity_proof",
         "raw_diagnostic_failures"
       ]
     },

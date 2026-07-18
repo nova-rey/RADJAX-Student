@@ -64,7 +64,7 @@ P3.12B locally accepted
 
 P3.12C locally accepted
 
-P3.12D next and unstarted
+P3.12D locally accepted
 
 Phase 4 remains unstarted
 
@@ -73,4 +73,8 @@ Phase 4 requires successful required remote base/JAX CI or an explicit repositor
 
 > Post-closure note: P3.12B now binds the HF lifecycle descriptor independently
 > of objective identity. Objective selection and mathematics remain unchanged;
-> P3.12C is locally accepted and P3.12D is next and unstarted.
+> P3.12C and P3.12D are locally accepted; P3.12 is closed and Phase 4
+> remains unstarted.
+
+Current P3.12A receipt evidence digest:
+`07681f60d67d0ee0b973856a66cf0dbef6e807fe45bbc05226f4c6abd84def27`.

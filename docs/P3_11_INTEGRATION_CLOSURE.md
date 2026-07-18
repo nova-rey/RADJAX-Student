@@ -39,7 +39,7 @@ authoritative and made the preservation reference a derived lifecycle value.
 
 P3.12C locally accepted
 
-P3.12D next and unstarted
+P3.12D locally accepted
 
 Phase 4 remains unstarted
 

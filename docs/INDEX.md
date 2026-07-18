@@ -109,7 +109,7 @@ Start here for Phase 0 foundation context.
   241 literal public-boundary experiments, an immutable implementation audit,
   and the local integration-closure receipt.
 - [P3.12 Foundation Identity Polish](P3_12_FOUNDATION_IDENTITY_POLISH.md):
-  post-closure canonical identity work, with P3.12A and P3.12B accepted.
+  post-closure canonical identity work, with P3.12A-D accepted.
 - [P3.12B HF Descriptor Authority](P3_12B_HF_DESCRIPTOR_AUTHORITY.md):
   architecture-owned descriptor and derived preservation-reference lifecycle.
 - [P3.12A Objective Identity Contract](P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md):
@@ -120,6 +120,9 @@ Start here for Phase 0 foundation context.
 - [P3.12C Production Lifecycle Assembly](P3_12C_PRODUCTION_LIFECYCLE_ASSEMBLY.md):
   the learning-owned production assembly boundary for registry-selected JAX
   lifecycle construction.
+- [P3.12D Runtime Callable Identity](P3_12D_RUNTIME_CALLABLE_IDENTITY.md):
+  runtime-owned actual-callable binding, final prepared identity, and exact
+  eager/JIT execution identity evidence.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
 - [P3.5.3 JAX-Native Learning](P3_5_3_JAX_NATIVE_LEARNING.md)
 - [P3.5.4 Architecture Namespace Consolidation](P3_5_4_ARCHITECTURE_NAMESPACE_CONSOLIDATION.md)
@@ -198,7 +201,8 @@ and 77-adversarial inventories remain mandatory with no production gate import.
 P3.12C locally accepted: the learning-owned assembler accepts identities and
 typed configuration while registries retain executable component selection.
 
-P3.12D next and unstarted
+P3.12D locally accepted: actual runtime callable binding and exact prepared
+execution identity close P3.12. Phase 4 is next and unstarted.
 
 Phase 4 remains unstarted
 

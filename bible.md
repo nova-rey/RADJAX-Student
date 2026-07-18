@@ -1147,3 +1147,19 @@
   receipt through their normal deterministic writers. The updated P3.11.10
   gate evidence digest is
   `1669d4204dfdb2438e15cf334b540d131dd14f179e6ef79538b187362126135f`.
+
+## 2026-07-18 - P3.12D runtime callable identity closure
+
+- Runtime now owns the exact declaration, registration, source-derived
+  callable identity, request reference, final compile-bound prepared identity,
+  and in-process exact cache identity for the canonical generic JAX learning
+  step. Steps owns the extracted kernel but does not manufacture trusted
+  identity material.
+- The P3.12C assembler and generic loop dispatch through the runtime binding.
+  Eager and JIT executions share callable identity while recording distinct
+  prepared identities; static contracts and actual static values are separate
+  digest inputs. Initialization identity is derived by runtime authority.
+- The typed P3.12D receipt requires the exact ordered 18-positive/40-adversary
+  inventory, two fresh runs per adversary, exact blocker and callable-bound
+  boundary equality, JAX-free authority audit, checkpoint/report evidence, and
+  byte-identical regeneration. P3.12 is closed. Phase 4 remains unstarted.

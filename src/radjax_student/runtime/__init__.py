@@ -5,6 +5,22 @@ protocol, state-envelope, and reporting concepts. It does not select or execute
 a backend.
 """
 
+from radjax_student.runtime.callables import (
+    CALLABLE_DECLARATION_SCHEMA_VERSION,
+    CALLABLE_IDENTITY_SCHEMA_VERSION,
+    CALLABLE_REFERENCE_SCHEMA_VERSION,
+    PREPARED_IDENTITY_SCHEMA_VERSION,
+    RuntimeCallableBinding,
+    RuntimeCallableDeclaration,
+    RuntimeCallableError,
+    RuntimeCallableIdentity,
+    RuntimeCallableReference,
+    RuntimeCallableRegistry,
+    RuntimePreparedExecutionIdentity,
+    bind_runtime_callable,
+    build_default_runtime_callable_registry,
+    final_prepared_execution_identity,
+)
 from radjax_student.runtime.errors import (
     RUNTIME_ERROR_CODES,
     RuntimeContractError,
@@ -24,9 +40,11 @@ from radjax_student.runtime.execution import (
     ExecutionResult,
     ExecutionStatus,
     PreparedExecution,
+    PreparedExecutionIdentityCache,
     execute_function,
     execute_prepared,
     execution_capabilities,
+    finalize_prepared_execution_identity,
     output_metadata_for,
     prepare_execution,
 )
@@ -40,8 +58,10 @@ from radjax_student.runtime.inspection import (
 from radjax_student.runtime.keys import (
     RUNTIME_KEY_STREAM_NAMES,
     RUNTIME_KEYS_VERSION,
+    RuntimeInitializationKeyReference,
     RuntimeKeys,
     RuntimeKeyStream,
+    initialization_reference_from_root_seed,
 )
 from radjax_student.runtime.lifecycle import (
     RuntimeLifecycleBinding,
@@ -162,6 +182,10 @@ from radjax_student.runtime.state import (
 )
 
 __all__ = [
+    "CALLABLE_DECLARATION_SCHEMA_VERSION",
+    "CALLABLE_IDENTITY_SCHEMA_VERSION",
+    "CALLABLE_REFERENCE_SCHEMA_VERSION",
+    "PREPARED_IDENTITY_SCHEMA_VERSION",
     "COMPILATION_POLICIES",
     "DISTRIBUTED_POLICIES",
     "FALLBACK_POLICIES",
@@ -170,6 +194,13 @@ __all__ = [
     "RUNTIME_CAPABILITY_VOCABULARY",
     "RUNTIME_STATE_SCHEMA_VERSION",
     "RUNTIME_ERROR_CODES",
+    "RuntimeCallableBinding",
+    "RuntimeCallableDeclaration",
+    "RuntimeCallableError",
+    "RuntimeCallableIdentity",
+    "RuntimeCallableReference",
+    "RuntimeCallableRegistry",
+    "RuntimePreparedExecutionIdentity",
     "EXECUTION_BLOCKER_CODES",
     "EXECUTION_CAPABILITY_MAPPING",
     "EXECUTION_CAPABILITY_MAPPING_VERSION",
@@ -239,6 +270,7 @@ __all__ = [
     "PortabilityStatus",
     "PrecisionPolicy",
     "PreparedExecution",
+    "PreparedExecutionIdentityCache",
     "RuntimeBackend",
     "RuntimeBackendAvailability",
     "RuntimeBackendDescriptor",
@@ -252,6 +284,7 @@ __all__ = [
     "RuntimeInspection",
     "RuntimeKeys",
     "RuntimeKeyStream",
+    "RuntimeInitializationKeyReference",
     "RuntimeLifecycleBinding",
     "RuntimeReport",
     "RuntimePortabilityReceipt",
@@ -276,7 +309,12 @@ __all__ = [
     "effective_placement",
     "evaluate_runtime_resume_compatibility",
     "execute_function",
+    "bind_runtime_callable",
+    "build_default_runtime_callable_registry",
+    "final_prepared_execution_identity",
+    "initialization_reference_from_root_seed",
     "execute_prepared",
+    "finalize_prepared_execution_identity",
     "execution_capabilities",
     "inspect_runtime_environment",
     "load_runtime_state",

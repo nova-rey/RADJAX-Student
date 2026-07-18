@@ -107,8 +107,8 @@ Implement the first architecture plugin:
 This phase validates the plugin system, not RWKV itself.
 
 > **Current integration status:** P3.11.1-P3.11.10 locally accepted; the
-> integration closure is complete. P3.12A, P3.12B, and P3.12C are locally
-> accepted; P3.12D is next and unstarted, and Phase 4 remains unstarted pending successful required
+> integration closure is complete. P3.12A-D are locally accepted; P3.12 is
+> closed. Phase 4 is next and remains unstarted pending successful required
 > remote base/JAX CI or an explicit repository-owner waiver.
 
 # Phase 5 - Behavior Compilation
@@ -245,7 +245,8 @@ evidence matrix.
 
 P3.12C locally accepted
 
-P3.12D next and unstarted
+P3.12D locally accepted: actual callable binding and final prepared identity
+close P3.12. Phase 4 is next and unstarted.
 
 Phase 4 remains unstarted
 

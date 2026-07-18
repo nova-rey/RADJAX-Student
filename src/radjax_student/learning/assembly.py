@@ -37,9 +37,12 @@ from radjax_student.optimizers.protocols import JaxOptimizerBackend
 from radjax_student.runtime import (
     CompilationOptions,
     ExecutionRequest,
+    RuntimeCallableReference,
     RuntimeConfig,
     bind_runtime_for_learning,
+    build_default_runtime_callable_registry,
     build_default_runtime_registry,
+    initialization_reference_from_root_seed,
 )
 from radjax_student.runtime.registry import RuntimeBackendRegistry
 from radjax_student.steps.jax_loop import JaxLearningLifecycle, JaxLoopExecutor
@@ -95,13 +98,16 @@ def _digest(value: Mapping[str, Any]) -> str:
     ).hexdigest()
 
 
-def _factory(mode: str) -> Callable[[LearningState], ExecutionRequest]:
+def _factory(
+    mode: str, callable_reference: RuntimeCallableReference
+) -> Callable[[LearningState], ExecutionRequest]:
     def make(state: LearningState) -> ExecutionRequest:
         return ExecutionRequest(
             request_id=f"assembly.{state.run_id}.{state.global_step}",
-            function_id="radjax.learning.generic_jax_step.v1",
+            function_id=callable_reference.callable_id,
             mode=mode,
             compilation_options=CompilationOptions(mode=mode, synchronize_results=True),
+            callable_reference=callable_reference,
         )
 
     return make
@@ -429,6 +435,9 @@ class JaxLearningAssemblyResult:
             "precision_policy",
             "schedule_digest",
             "rng_slot",
+            "runtime_callable_id",
+            "runtime_callable_version",
+            "runtime_callable_identity_digest",
         }
         if set(summary) != required_summary:
             raise LearningAssemblyError(
@@ -495,6 +504,17 @@ class JaxLearningAssemblyResult:
             raise LearningAssemblyError(
                 "assembly_identity_mismatch",
                 "executor orchestration identities do not match the result summary",
+            )
+        binding = self.loop_executor.runtime_callable_binding
+        if binding is None or (
+            summary["runtime_callable_id"] != binding.reference.callable_id
+            or summary["runtime_callable_version"] != binding.reference.callable_version
+            or summary["runtime_callable_identity_digest"]
+            != binding.reference.callable_identity_digest
+        ):
+            raise LearningAssemblyError(
+                "assembly_identity_mismatch",
+                "runtime callable identity does not match loop binding",
             )
         object.__setattr__(
             self,
@@ -573,7 +593,7 @@ def assemble_jax_learning_lifecycle(
         initialized = architecture.initialize_parameters(
             ArchitectureInitRequest(
                 request.architecture_config,
-                f"runtime_keys.v1:initialization:{request.root_seed}",
+                initialization_reference_from_root_seed(request.root_seed).identity,
                 request.precision_policy,
             )
         )
@@ -766,13 +786,20 @@ def assemble_jax_learning_lifecycle(
             "assembly_execution_factory_unknown", "unknown execution request factory"
         )
     try:
+        callable_binding = build_default_runtime_callable_registry().lookup(
+            "radjax.learning.generic_jax_step", 1
+        )
         executor = JaxLoopExecutor(
             lifecycle,
             FiniteJsonJaxBatchMaterializer(),
-            _factory(request.runtime_config.compilation_policy),
+            _factory(
+                request.runtime_config.compilation_policy,
+                callable_binding.reference,
+            ),
             request.precision_policy,
             request.schedule_values,
             request.rng_slot,
+            callable_binding,
         )
     except Exception as exc:
         raise LearningAssemblyError(
@@ -805,6 +832,11 @@ def assemble_jax_learning_lifecycle(
         "precision_policy": request.precision_policy,
         "schedule_digest": _digest(dict(request.schedule_values)),
         "rng_slot": request.rng_slot,
+        "runtime_callable_id": callable_binding.reference.callable_id,
+        "runtime_callable_version": callable_binding.reference.callable_version,
+        "runtime_callable_identity_digest": (
+            callable_binding.reference.callable_identity_digest
+        ),
     }
     return JaxLearningAssemblyResult(
         lifecycle,

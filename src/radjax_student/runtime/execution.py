@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import ast
+import hashlib
 import inspect
 import math
 import time
@@ -10,6 +12,12 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal, Protocol
 
+from radjax_student.runtime.callables import (
+    RuntimeCallableBinding,
+    RuntimeCallableReference,
+    RuntimePreparedExecutionIdentity,
+    final_prepared_execution_identity,
+)
 from radjax_student.runtime.errors import RuntimeIssue
 from radjax_student.runtime.models import (
     CompilationOptions,
@@ -43,6 +51,25 @@ EXECUTION_BLOCKER_CODES: tuple[str, ...] = (
     "execution_synchronization_failed",
     "execution_output_invalid",
     "execution_internal_error",
+    "execution_callable_declaration_invalid",
+    "execution_callable_unsupported",
+    "execution_callable_unregistered",
+    "execution_callable_identity_mismatch",
+    "execution_callable_source_unavailable",
+    "execution_callable_source_invalid",
+    "execution_callable_reference_invalid",
+    "execution_callable_request_mismatch",
+    "execution_prepared_identity_mismatch",
+    "execution_backend_identity_mismatch",
+    "execution_runtime_identity_mismatch",
+    "execution_compilation_identity_mismatch",
+    "execution_input_signature_mismatch",
+    "execution_static_argument_identity_mismatch",
+    "execution_donation_identity_mismatch",
+    "execution_placement_identity_mismatch",
+    "execution_cache_identity_mismatch",
+    "execution_result_identity_mismatch",
+    "execution_initialization_key_identity_mismatch",
 )
 EXECUTION_WARNING_CODES: tuple[str, ...] = (
     "execution_timings_not_benchmark",
@@ -117,6 +144,45 @@ class ExecutionBackend(Protocol):
     ) -> Any: ...
 
 
+class PreparedExecutionIdentityCache:
+    """In-process exact-identity cache authority; it stores no executable handle."""
+
+    def __init__(self) -> None:
+        self._identities: dict[str, RuntimePreparedExecutionIdentity] = {}
+
+    def record(
+        self,
+        identity: RuntimePreparedExecutionIdentity,
+        *,
+        cache_policy: str,
+    ) -> bool:
+        if not isinstance(identity, RuntimePreparedExecutionIdentity):
+            raise ExecutionBoundaryError(
+                "execution_cache_identity_mismatch",
+                "cache identity must be RuntimePreparedExecutionIdentity",
+            )
+        if cache_policy not in {"reuse", "disabled"}:
+            raise ExecutionBoundaryError(
+                "execution_cache_identity_mismatch", "cache policy is invalid"
+            )
+        key = identity.prepared_execution_digest
+        existing = self._identities.get(key)
+        if existing is not None and existing != identity:
+            raise ExecutionBoundaryError(
+                "execution_cache_identity_mismatch",
+                "prepared execution digest collides with different identity evidence",
+            )
+        if cache_policy == "disabled" and existing is not None:
+            raise ExecutionBoundaryError(
+                "execution_cache_identity_mismatch",
+                "disabled cache policy cannot claim reuse",
+            )
+        if existing is None:
+            self._identities[key] = identity
+            return False
+        return True
+
+
 @dataclass(frozen=True)
 class ExecutionRequest:
     """Serializable caller intent; the callable is deliberately separate."""
@@ -131,16 +197,25 @@ class ExecutionRequest:
     )
     required_capabilities: tuple[str, ...] = ()
     metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+    callable_reference: RuntimeCallableReference | None = None
 
     def __post_init__(self) -> None:
         _require_identifier(self.request_id, "request_id")
         _require_identifier(self.function_id, "function_id")
+        if self.callable_reference is not None:
+            if not isinstance(self.callable_reference, RuntimeCallableReference):
+                raise TypeError("callable_reference must be RuntimeCallableReference")
+            if self.function_id != self.callable_reference.callable_id:
+                raise ExecutionBoundaryError(
+                    "execution_callable_request_mismatch",
+                    "function_id must be derived from callable reference",
+                )
         _require_mode(self.mode)
         if not isinstance(self.compilation_options, CompilationOptions):
             raise TypeError("compilation_options must be CompilationOptions")
         if self.mode != self.compilation_options.mode:
             raise ExecutionBoundaryError(
-                "execution_request_invalid",
+                "execution_compilation_identity_mismatch",
                 "execution request mode must match compilation options mode",
                 request_mode=self.mode,
                 options_mode=self.compilation_options.mode,
@@ -174,10 +249,26 @@ class ExecutionRequest:
             "input_signature": json_value(self.input_signature),
             "required_capabilities": list(self.required_capabilities),
             "metadata": json_value(self.metadata),
+            "callable_reference": None
+            if self.callable_reference is None
+            else self.callable_reference.to_dict(),
         }
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> ExecutionRequest:
+        required = {
+            "request_id",
+            "function_id",
+            "mode",
+            "compilation_options",
+            "placement_plan_id",
+            "input_signature",
+            "required_capabilities",
+            "metadata",
+            "callable_reference",
+        }
+        if set(payload) != required:
+            raise ValueError("execution request fields are missing or unknown")
         return cls(
             request_id=_string(payload["request_id"], "request_id"),
             function_id=_string(payload["function_id"], "function_id"),
@@ -193,6 +284,13 @@ class ExecutionRequest:
                 payload.get("required_capabilities", ()), "required_capabilities"
             ),
             metadata=_mapping(payload.get("metadata", {}), "metadata"),
+            callable_reference=(
+                None
+                if payload.get("callable_reference") is None
+                else RuntimeCallableReference.from_dict(
+                    _mapping(payload["callable_reference"], "callable_reference")
+                )
+            ),
         )
 
 
@@ -208,6 +306,8 @@ class PreparedExecution:
     preparation_metadata: Mapping[str, Any]
     preparation_seconds: float
     warnings: tuple[RuntimeIssue, ...] = ()
+    callable_reference: RuntimeCallableReference | None = None
+    prepared_identity: RuntimePreparedExecutionIdentity | None = None
     _handle: Any = field(repr=False, compare=False, default=None)
     _backend: Any = field(repr=False, compare=False, default=None)
     _request: ExecutionRequest | None = field(repr=False, compare=False, default=None)
@@ -223,6 +323,16 @@ class PreparedExecution:
             raise TypeError("preparation_metadata must be a mapping")
         _require_duration(self.preparation_seconds, "preparation_seconds")
         warnings = _issues(self.warnings, "warnings", EXECUTION_WARNING_CODES)
+        if self.callable_reference is not None and not isinstance(
+            self.callable_reference, RuntimeCallableReference
+        ):
+            raise TypeError("callable_reference must be RuntimeCallableReference")
+        if self.prepared_identity is not None and not isinstance(
+            self.prepared_identity, RuntimePreparedExecutionIdentity
+        ):
+            raise TypeError(
+                "prepared_identity must be RuntimePreparedExecutionIdentity"
+            )
         object.__setattr__(self, "capabilities", capabilities)
         object.__setattr__(
             self,
@@ -241,10 +351,30 @@ class PreparedExecution:
             "preparation_metadata": json_value(self.preparation_metadata),
             "preparation_seconds": self.preparation_seconds,
             "warnings": [item.to_dict() for item in self.warnings],
+            "callable_reference": None
+            if self.callable_reference is None
+            else self.callable_reference.to_dict(),
+            "prepared_identity": None
+            if self.prepared_identity is None
+            else self.prepared_identity.to_dict(),
         }
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> PreparedExecution:
+        required = {
+            "backend_id",
+            "function_id",
+            "mode",
+            "compiled",
+            "capabilities",
+            "preparation_metadata",
+            "preparation_seconds",
+            "warnings",
+            "callable_reference",
+            "prepared_identity",
+        }
+        if set(payload) != required:
+            raise ValueError("prepared execution fields are missing or unknown")
         return cls(
             backend_id=_string(payload["backend_id"], "backend_id"),
             function_id=_string(payload["function_id"], "function_id"),
@@ -258,6 +388,20 @@ class PreparedExecution:
                 payload["preparation_seconds"], "preparation_seconds"
             ),
             warnings=_issues_from_payload(payload.get("warnings", ()), "warnings"),
+            callable_reference=(
+                None
+                if payload.get("callable_reference") is None
+                else RuntimeCallableReference.from_dict(
+                    _mapping(payload["callable_reference"], "callable_reference")
+                )
+            ),
+            prepared_identity=(
+                None
+                if payload.get("prepared_identity") is None
+                else RuntimePreparedExecutionIdentity.from_dict(
+                    _mapping(payload["prepared_identity"], "prepared_identity")
+                )
+            ),
         )
 
 
@@ -281,6 +425,8 @@ class ExecutionResult:
     blockers: tuple[RuntimeIssue, ...] = ()
     warnings: tuple[RuntimeIssue, ...] = ()
     claims_not_made: tuple[str, ...] = EXECUTION_CLAIMS_NOT_MADE
+    callable_reference: RuntimeCallableReference | None = None
+    prepared_execution_digest: str | None = None
 
     def __post_init__(self) -> None:
         if self.status not in ("pass", "fail"):
@@ -308,6 +454,20 @@ class ExecutionResult:
             raise ValueError("passing execution cannot contain blockers")
         if self.status == "fail" and not blockers:
             raise ValueError("failing execution must contain blockers")
+        if self.callable_reference is not None and not isinstance(
+            self.callable_reference, RuntimeCallableReference
+        ):
+            raise TypeError("callable_reference must be RuntimeCallableReference")
+        if self.prepared_execution_digest is not None:
+            _require_digest(self.prepared_execution_digest, "prepared_execution_digest")
+        if (
+            self.status == "pass"
+            and self.callable_reference is not None
+            and self.prepared_execution_digest is None
+        ):
+            raise ValueError(
+                "passing execution requires final prepared execution identity"
+            )
         object.__setattr__(
             self, "output_metadata", freeze_json_mapping(self.output_metadata)
         )
@@ -337,10 +497,36 @@ class ExecutionResult:
             "blockers": [item.to_dict() for item in self.blockers],
             "warnings": [item.to_dict() for item in self.warnings],
             "claims_not_made": list(self.claims_not_made),
+            "callable_reference": None
+            if self.callable_reference is None
+            else self.callable_reference.to_dict(),
+            "prepared_execution_digest": self.prepared_execution_digest,
         }
 
     @classmethod
     def from_dict(cls, payload: Mapping[str, Any]) -> ExecutionResult:
+        required = {
+            "status",
+            "request_id",
+            "backend_id",
+            "mode",
+            "compiled",
+            "dispatched",
+            "synchronized",
+            "output_metadata",
+            "preparation_seconds",
+            "compilation_seconds",
+            "dispatch_seconds",
+            "synchronization_seconds",
+            "total_seconds",
+            "blockers",
+            "warnings",
+            "claims_not_made",
+            "callable_reference",
+            "prepared_execution_digest",
+        }
+        if set(payload) != required:
+            raise ValueError("execution result fields are missing or unknown")
         return cls(
             status=_string(payload["status"], "status"),
             request_id=_string(payload["request_id"], "request_id"),
@@ -365,6 +551,16 @@ class ExecutionResult:
             warnings=_issues_from_payload(payload.get("warnings", ()), "warnings"),
             claims_not_made=_strings(
                 payload.get("claims_not_made", ()), "claims_not_made"
+            ),
+            callable_reference=(
+                None
+                if payload.get("callable_reference") is None
+                else RuntimeCallableReference.from_dict(
+                    _mapping(payload["callable_reference"], "callable_reference")
+                )
+            ),
+            prepared_execution_digest=_optional_string(
+                payload.get("prepared_execution_digest")
             ),
         )
 
@@ -391,12 +587,29 @@ def execution_capabilities(
 def prepare_execution(
     *,
     context: ExecutionContext,
-    function: Callable[..., Any],
+    function: Callable[..., Any] | None = None,
+    callable_binding: RuntimeCallableBinding | None = None,
     request: ExecutionRequest,
     backend: ExecutionBackend,
 ) -> PreparedExecution:
     """Validate policy and create an opaque backend preparation without executing."""
 
+    if callable_binding is not None:
+        function = callable_binding.callable
+        if request.callable_reference != callable_binding.reference:
+            raise ExecutionBoundaryError(
+                "execution_callable_request_mismatch",
+                "request callable reference does not match binding",
+            )
+    elif request.callable_reference is not None:
+        raise ExecutionBoundaryError(
+            "execution_callable_request_mismatch",
+            "a callable reference requires a runtime callable binding",
+        )
+    if function is None:
+        raise ExecutionBoundaryError(
+            "execution_function_missing", "execution function must be callable"
+        )
     _validate_preparation_inputs(context, function, request, backend)
     mode, warnings = _effective_mode(request)
     _validate_signature(function, request.compilation_options)
@@ -439,6 +652,7 @@ def prepare_execution(
         _handle=handle,
         _backend=backend,
         _request=request,
+        callable_reference=request.callable_reference,
     )
 
 
@@ -463,7 +677,11 @@ def execute_prepared(
             preparation_seconds=prepared.preparation_seconds,
             warnings=prepared.warnings,
             blocker=RuntimeIssue.create(
-                "execution_context_mismatch",
+                (
+                    "execution_runtime_identity_mismatch"
+                    if prepared.callable_reference is not None
+                    else "execution_context_mismatch"
+                ),
                 "prepared execution does not belong to the supplied runtime context",
             ),
         )
@@ -477,6 +695,43 @@ def execute_prepared(
     dispatched = False
     synchronized = False
     try:
+        prepared_identity = None
+        if request.callable_reference is not None:
+            try:
+                prepared_identity = _finalize_prepared_identity(
+                    context, prepared, arguments, keyword_arguments
+                )
+            except ExecutionBoundaryError as exc:
+                return None, _failure_result(
+                    request_id=request.request_id,
+                    backend_id=prepared.backend_id,
+                    mode=prepared.mode,
+                    preparation_seconds=prepared.preparation_seconds,
+                    warnings=prepared.warnings,
+                    blocker=exc.issue,
+                    callable_reference=prepared.callable_reference,
+                )
+            if (
+                prepared.prepared_identity is not None
+                and prepared.prepared_identity != prepared_identity
+            ):
+                return None, _failure_result(
+                    request_id=request.request_id,
+                    backend_id=prepared.backend_id,
+                    mode=prepared.mode,
+                    preparation_seconds=prepared.preparation_seconds,
+                    warnings=prepared.warnings,
+                    blocker=RuntimeIssue.create(
+                        _prepared_identity_mismatch_code(
+                            prepared.prepared_identity, prepared_identity
+                        ),
+                        "prepared execution identity no longer matches invocation",
+                    ),
+                    callable_reference=prepared.callable_reference,
+                )
+            prepared = PreparedExecution(
+                **{**prepared.__dict__, "prepared_identity": prepared_identity}
+            )
         if prepared.mode == "jit":
             start = time.perf_counter()
             try:
@@ -499,6 +754,12 @@ def execute_prepared(
                         "execution_compilation_failed",
                         "runtime backend could not compile the requested execution",
                         exc,
+                    ),
+                    callable_reference=prepared.callable_reference,
+                    prepared_execution_digest=(
+                        None
+                        if prepared_identity is None
+                        else prepared_identity.prepared_execution_digest
                     ),
                 )
             compilation_seconds = time.perf_counter() - start
@@ -526,6 +787,12 @@ def execute_prepared(
                     "runtime backend could not dispatch the prepared execution",
                     exc,
                 ),
+                callable_reference=prepared.callable_reference,
+                prepared_execution_digest=(
+                    None
+                    if prepared_identity is None
+                    else prepared_identity.prepared_execution_digest
+                ),
             )
         dispatch_seconds = time.perf_counter() - start
 
@@ -549,6 +816,12 @@ def execute_prepared(
                         "runtime backend could not synchronize execution output",
                         exc,
                     ),
+                    callable_reference=prepared.callable_reference,
+                    prepared_execution_digest=(
+                        None
+                        if prepared_identity is None
+                        else prepared_identity.prepared_execution_digest
+                    ),
                 )
             synchronization_seconds = time.perf_counter() - start
 
@@ -569,6 +842,12 @@ def execute_prepared(
                     "execution output could not be represented as metadata",
                     exc,
                 ),
+                callable_reference=prepared.callable_reference,
+                prepared_execution_digest=(
+                    None
+                    if prepared_identity is None
+                    else prepared_identity.prepared_execution_digest
+                ),
             )
         return output, ExecutionResult(
             status="pass",
@@ -586,6 +865,12 @@ def execute_prepared(
             total_seconds=prepared.preparation_seconds
             + (time.perf_counter() - start_total),
             warnings=_result_warnings(prepared.warnings, synchronized),
+            callable_reference=prepared.callable_reference,
+            prepared_execution_digest=(
+                None
+                if prepared_identity is None
+                else prepared_identity.prepared_execution_digest
+            ),
         )
     except Exception as exc:
         return None, _failure_result(
@@ -608,7 +893,8 @@ def execute_prepared(
 def execute_function(
     *,
     context: ExecutionContext,
-    function: Callable[..., Any],
+    function: Callable[..., Any] | None = None,
+    callable_binding: RuntimeCallableBinding | None = None,
     request: ExecutionRequest,
     backend: ExecutionBackend,
     args: tuple[Any, ...] = (),
@@ -620,6 +906,7 @@ def execute_function(
         prepared = prepare_execution(
             context=context,
             function=function,
+            callable_binding=callable_binding,
             request=request,
             backend=backend,
         )
@@ -701,13 +988,286 @@ def _validate_preparation_inputs(
         raise ExecutionBoundaryError(
             "execution_request_invalid", "execution request must be ExecutionRequest"
         )
+    if request.mode != request.compilation_options.mode:
+        raise ExecutionBoundaryError(
+            "execution_compilation_identity_mismatch",
+            "execution request mode does not match compilation options",
+        )
     if getattr(backend, "backend_id", None) != context.backend_id:
         raise ExecutionBoundaryError(
-            "execution_context_mismatch",
+            (
+                "execution_backend_identity_mismatch"
+                if request.callable_reference is not None
+                else "execution_context_mismatch"
+            ),
             "execution backend does not match runtime context backend",
             context_backend_id=context.backend_id,
             backend_id=getattr(backend, "backend_id", None),
         )
+
+
+def _finalize_prepared_identity(
+    context: ExecutionContext,
+    prepared: PreparedExecution,
+    args: tuple[Any, ...],
+    kwargs: Mapping[str, Any],
+) -> RuntimePreparedExecutionIdentity:
+    request = prepared._request
+    if request is None or request.callable_reference is None:
+        raise ExecutionBoundaryError(
+            "execution_callable_request_mismatch",
+            "runtime callable reference is required before dispatch",
+        )
+    options = request.compilation_options
+    _validate_input_signature(request.input_signature, args, kwargs)
+    static_contract = {
+        "names": list(options.static_arg_names),
+        "positions": list(options.static_arg_positions),
+    }
+    static_values = _static_argument_values(args, kwargs, options)
+    implicit_positions = [
+        position
+        for position, value in enumerate(args)
+        if _is_jax_callable_partial(value)
+    ]
+    if implicit_positions:
+        static_contract["implicit_jax_partial_positions"] = implicit_positions
+        static_values.update(
+            {
+                f"implicit_jax_partial:{position}": _canonical_static_value(
+                    args[position]
+                )
+                for position in implicit_positions
+            }
+        )
+    donation = {
+        "names": list(options.donate_arg_names),
+        "positions": list(options.donate_arg_positions),
+    }
+    version = getattr(prepared._backend, "implementation_version", None)
+    if not isinstance(version, str) or not version:
+        version = str(context.metadata.get("runtime_implementation_version", "unknown"))
+    return final_prepared_execution_identity(
+        reference=request.callable_reference,
+        backend_id=prepared.backend_id,
+        runtime_id=context.runtime_id,
+        runtime_implementation_version=version,
+        mode=prepared.mode,
+        compilation_options=options.to_dict(),
+        input_signature=dict(request.input_signature),
+        static_contract=static_contract,
+        static_values=static_values,
+        donation_contract=donation,
+        placement_plan_identity=request.placement_plan_id,
+        required_capabilities=request.required_capabilities,
+    )
+
+
+def finalize_prepared_execution_identity(
+    *,
+    context: ExecutionContext,
+    prepared: PreparedExecution,
+    args: tuple[Any, ...] = (),
+    kwargs: Mapping[str, Any] | None = None,
+) -> RuntimePreparedExecutionIdentity:
+    """Public runtime finalization authority for cache identity inspection.
+
+    The result is derived only when the actual invocation arguments exist; it
+    never creates a placeholder identity during preparation.
+    """
+    return _finalize_prepared_identity(
+        context,
+        prepared,
+        tuple(args),
+        {} if kwargs is None else dict(kwargs),
+    )
+
+
+def _validate_input_signature(
+    input_signature: Mapping[str, Any],
+    args: tuple[Any, ...],
+    kwargs: Mapping[str, Any],
+) -> None:
+    """Enforce optional structural invocation facts without hashing array values."""
+    expected_count = input_signature.get("argument_count")
+    if expected_count is not None and expected_count != len(args):
+        raise ExecutionBoundaryError(
+            "execution_input_signature_mismatch",
+            "runtime invocation argument count differs from input contract",
+        )
+    expected_keywords = input_signature.get("keyword_names")
+    if expected_keywords is not None and tuple(expected_keywords) != tuple(
+        sorted(kwargs)
+    ):
+        raise ExecutionBoundaryError(
+            "execution_input_signature_mismatch",
+            "runtime invocation keyword names differ from input contract",
+        )
+
+
+def _prepared_identity_mismatch_code(
+    previous: RuntimePreparedExecutionIdentity,
+    current: RuntimePreparedExecutionIdentity,
+) -> str:
+    if previous.backend_id != current.backend_id:
+        return "execution_backend_identity_mismatch"
+    if (
+        previous.runtime_id != current.runtime_id
+        or previous.runtime_implementation_version
+        != current.runtime_implementation_version
+    ):
+        return "execution_runtime_identity_mismatch"
+    if (
+        previous.static_argument_contract_digest
+        != current.static_argument_contract_digest
+    ):
+        return "execution_static_argument_identity_mismatch"
+    if previous.static_argument_value_digest != current.static_argument_value_digest:
+        return "execution_static_argument_identity_mismatch"
+    if previous.donation_contract_digest != current.donation_contract_digest:
+        return "execution_donation_identity_mismatch"
+    if previous.placement_plan_identity != current.placement_plan_identity:
+        return "execution_placement_identity_mismatch"
+    if previous.input_signature_digest != current.input_signature_digest:
+        return "execution_input_signature_mismatch"
+    if previous.compilation_options_digest != current.compilation_options_digest:
+        return "execution_compilation_identity_mismatch"
+    return "execution_prepared_identity_mismatch"
+
+
+def _static_argument_values(
+    args: tuple[Any, ...], kwargs: Mapping[str, Any], options: CompilationOptions
+) -> dict[str, Any]:
+    values: dict[str, Any] = {}
+    for position in options.static_arg_positions:
+        if position >= len(args):
+            raise ExecutionBoundaryError(
+                "execution_static_argument_identity_mismatch",
+                "declared static position is absent from invocation",
+            )
+        values[f"position:{position}"] = _canonical_static_value(args[position])
+    for name in options.static_arg_names:
+        if name not in kwargs:
+            raise ExecutionBoundaryError(
+                "execution_static_argument_identity_mismatch",
+                "declared static name is absent from invocation",
+            )
+        values[f"name:{name}"] = _canonical_static_value(kwargs[name])
+    return values
+
+
+def _canonical_static_value(value: Any) -> Any:
+    if value is None or isinstance(value, (bool, int, str)):
+        return value
+    if isinstance(value, float) and math.isfinite(value):
+        return value
+    if isinstance(value, tuple):
+        return ["tuple", [_canonical_static_value(item) for item in value]]
+    if isinstance(value, list):
+        return ["list", [_canonical_static_value(item) for item in value]]
+    if isinstance(value, Mapping) and all(isinstance(key, str) for key in value):
+        return {key: _canonical_static_value(value[key]) for key in sorted(value)}
+    if _is_jax_callable_partial(value):
+        function = value.func
+        if not inspect.isfunction(function):
+            raise ExecutionBoundaryError(
+                "execution_static_argument_identity_mismatch",
+                "JAX partial must wrap a Python function",
+            )
+        try:
+            source = inspect.getsource(function)
+            tree = ast.parse(inspect.cleandoc(source))
+        except (OSError, TypeError, SyntaxError) as exc:
+            raise ExecutionBoundaryError(
+                "execution_static_argument_identity_mismatch",
+                "JAX partial source is unavailable",
+            ) from exc
+        return {
+            "kind": "jax_tree_partial",
+            "function_module": function.__module__,
+            "function_qualname": function.__qualname__,
+            "function_source_digest": hashlib.sha256(
+                ast.dump(tree, annotate_fields=True, include_attributes=False).encode()
+            ).hexdigest(),
+            "closure_values": _closure_static_values(function),
+        }
+    raise ExecutionBoundaryError(
+        "execution_static_argument_identity_mismatch",
+        "static argument has no canonical identity",
+    )
+
+
+def _is_jax_callable_partial(value: Any) -> bool:
+    value_type = type(value)
+    return value_type.__module__ == "jax.tree_util" and value_type.__name__ == "Partial"
+
+
+def _closure_static_values(function: Callable[..., Any]) -> dict[str, Any]:
+    cells = function.__closure__ or ()
+    names = function.__code__.co_freevars
+    return {
+        name: _closure_static_value(cell.cell_contents)
+        for name, cell in zip(names, cells, strict=True)
+    }
+
+
+def _closure_static_value(value: Any) -> Any:
+    if value is None or isinstance(value, (bool, int, float, str, tuple, Mapping)):
+        return _canonical_static_value(value)
+    if inspect.isfunction(value):
+        try:
+            source = ast.parse(inspect.cleandoc(inspect.getsource(value)))
+        except (OSError, TypeError, SyntaxError) as exc:
+            raise ExecutionBoundaryError(
+                "execution_static_argument_identity_mismatch",
+                "nested static callable source is unavailable",
+            ) from exc
+        return {
+            "kind": "function",
+            "module": value.__module__,
+            "qualname": value.__qualname__,
+            "source_digest": hashlib.sha256(
+                ast.dump(
+                    source, annotate_fields=True, include_attributes=False
+                ).encode()
+            ).hexdigest(),
+            "closure_values": _closure_static_values(value),
+        }
+    if hasattr(value, "to_dict") and callable(value.to_dict):
+        return {"kind": "typed", "value": _canonical_static_value(value.to_dict())}
+    if (
+        type(value).__name__ == "JaxExecutionPlan"
+        and hasattr(value, "objective_selection")
+        and hasattr(value, "update_selection")
+        and hasattr(value, "parameter_layout")
+    ):
+        return {
+            "kind": "jax_execution_plan",
+            "objective_selection": value.objective_selection.digest,
+            "update_selection": _canonical_static_value(
+                value.update_selection.to_dict()
+            ),
+            "parameter_layout": value.parameter_layout.digest(),
+        }
+    identity = {
+        name: getattr(value, name)
+        for name in (
+            "architecture_id",
+            "architecture_version",
+            "objective_id",
+            "objective_version",
+            "optimizer_id",
+            "optimizer_version",
+        )
+        if hasattr(value, name) and isinstance(getattr(value, name), (str, int))
+    }
+    if identity:
+        return {"kind": "owner_identity", "value": identity}
+    raise ExecutionBoundaryError(
+        "execution_static_argument_identity_mismatch",
+        "static closure value has no canonical identity: "
+        f"{type(value).__module__}.{type(value).__name__}",
+    )
 
 
 def _effective_mode(
@@ -838,6 +1398,8 @@ def _failure_result(
     synchronization_seconds: float = 0.0,
     warnings: tuple[RuntimeIssue, ...] = (),
     blocker: RuntimeIssue,
+    callable_reference: RuntimeCallableReference | None = None,
+    prepared_execution_digest: str | None = None,
 ) -> ExecutionResult:
     return ExecutionResult(
         status="fail",
@@ -860,6 +1422,8 @@ def _failure_result(
         ),
         blockers=(blocker,),
         warnings=_result_warnings(warnings, False),
+        callable_reference=callable_reference,
+        prepared_execution_digest=prepared_execution_digest,
     )
 
 
@@ -916,6 +1480,15 @@ def _optional_string(value: object) -> str | None:
     if value is None:
         return None
     return _string(value, "value")
+
+
+def _require_digest(value: object, name: str) -> None:
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or set(value) - set("0123456789abcdef")
+    ):
+        raise ValueError(f"{name} must be a lowercase SHA-256 digest")
 
 
 def _bool(value: object, name: str) -> bool:

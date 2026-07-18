@@ -19,7 +19,8 @@ adversaries.
 
 P3.12C locally accepted
 
-P3.12D next and unstarted
+P3.12D locally accepted: runtime owns source-derived callable binding and
+compilation-relevant prepared execution identity. P3.12 is closed.
 
 Phase 4 remains unstarted
 
@@ -96,7 +97,8 @@ P3.12B locally accepted
 
 P3.12C locally accepted
 
-P3.12D next and unstarted
+P3.12D locally accepted: runtime owns source-derived callable binding and
+compilation-relevant prepared execution identity. P3.12 is closed.
 
 Phase 4 remains unstarted
 

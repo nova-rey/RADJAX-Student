@@ -10,6 +10,11 @@ from pathlib import Path
 from types import MappingProxyType
 from typing import Any, Literal
 
+from radjax_student.runtime.callables import (
+    CALLABLE_DECLARATION_SCHEMA_VERSION,
+    RuntimeCallableDeclaration,
+    bind_runtime_callable,
+)
 from radjax_student.runtime.errors import RuntimeIssue
 from radjax_student.runtime.execution import (
     ExecutionRequest,
@@ -355,16 +360,17 @@ def _run_selected_portability_smoke(
         if not blockers:
             request = ExecutionRequest(
                 request_id=f"portability-{platform}-{mode}-v1",
-                function_id="runtime.portability_scale_add",
+                function_id="radjax.runtime.portability_scale_add",
                 mode=mode,
                 compilation_options=CompilationOptions(
                     mode=mode,
                     synchronize_results=True,
                 ),
+                callable_reference=PORTABILITY_SCALE_ADD_BINDING.reference,
             )
             output, execution = execute_function(
                 context=context,
-                function=_scale_add,
+                callable_binding=PORTABILITY_SCALE_ADD_BINDING,
                 request=request,
                 backend=backend,
                 args=(placed,),
@@ -578,6 +584,21 @@ def _selected_device(
 
 def _scale_add(value: Any) -> Any:
     return value * 2 + 1
+
+
+PORTABILITY_SCALE_ADD_BINDING = bind_runtime_callable(
+    callable=_scale_add,
+    declaration=RuntimeCallableDeclaration(
+        schema_version=CALLABLE_DECLARATION_SCHEMA_VERSION,
+        callable_id="radjax.runtime.portability_scale_add",
+        callable_version=1,
+        owner="runtime",
+        implementation_module="radjax_student.runtime.portability",
+        implementation_qualname="_scale_add",
+        input_contract_id="radjax.runtime.portability_scale_add_input.v1",
+        output_contract_id="radjax.runtime.portability_scale_add_output.v1",
+    ),
+)
 
 
 def _expected_output(value: Any) -> bool:

@@ -45,7 +45,12 @@ from radjax_student.runtime import (
     ExecutionContext,
     ExecutionRequest,
     ExecutionResult,
+    RuntimeCallableBinding,
     execute_function,
+)
+from radjax_student.runtime.callables import (
+    CALLABLE_DECLARATION_SCHEMA_VERSION,
+    RuntimeCallableDeclaration,
 )
 from radjax_student.runtime.jax_bridge import (
     JAX_KEY_BRIDGE_VERSION,
@@ -55,6 +60,32 @@ from radjax_student.runtime.jax_bridge import (
 )
 from radjax_student.runtime.jax_inputs import prepare_jax_inputs
 from radjax_student.runtime.keys import RuntimeKeys, RuntimeKeyStream
+
+GENERIC_JAX_LEARNING_STEP_DECLARATION = RuntimeCallableDeclaration(
+    schema_version=CALLABLE_DECLARATION_SCHEMA_VERSION,
+    callable_id="radjax.learning.generic_jax_step",
+    callable_version=1,
+    owner="steps",
+    implementation_module="radjax_student.steps.jax_step",
+    implementation_qualname="execute_jax_learning_step_kernel",
+    input_contract_id="radjax.jax_learning_step_kernel_input.v1",
+    output_contract_id="radjax.jax_learning_step_kernel_output.v1",
+    claims_not_made=("transitive_dependency_semantics_not_fully_hashed",),
+)
+
+
+def execute_jax_learning_step_kernel(
+    kernel: Any,
+    *args: Any,
+) -> Any:
+    """Named generic runtime target; orchestration supplies the JAX kernel body.
+
+    P3.12D binds this production operation through runtime.  The callable body is
+    deliberately small: objective and optimizer semantics remain with their
+    existing owners and are never interpreted by runtime.
+    """
+
+    return kernel(*args)
 
 
 class JaxUpdateEvidenceError(ValueError):
@@ -217,8 +248,17 @@ def execute_jax_learning_step(
     execution_request: ExecutionRequest,
     precision_policy: str | None = None,
     schedule_values: Mapping[str, Any] | None = None,
+    runtime_callable_binding: RuntimeCallableBinding | None = None,
 ) -> JaxLearningStepExecution:
     """Run one full JAX update through runtime preparation, dispatch, and receipt."""
+
+    if runtime_callable_binding is not None:
+        if not isinstance(runtime_callable_binding, RuntimeCallableBinding):
+            raise TypeError("runtime_callable_binding must be RuntimeCallableBinding")
+        if execution_request.callable_reference != runtime_callable_binding.reference:
+            raise ValueError(
+                "execution request does not match runtime callable binding"
+            )
 
     if not isinstance(architecture, JaxArchitecturePlugin):
         raise TypeError("JAX learning requires a complete JaxArchitecturePlugin")
@@ -396,22 +436,36 @@ def execute_jax_learning_step(
             optimizer_step + 1,
         )
 
-    output, runtime_result = execute_function(
-        context=runtime_context,
-        function=complete_step,
-        request=execution_request,
-        backend=runtime_backend,
-        args=(
-            prepared_inputs.parameters,
-            prepared_inputs.architecture_carry,
-            prepared_inputs.optimizer_state,
-            prepared_inputs.batch,
-            rng_key,
-            learning_state.global_step,
-            learning_state.micro_step,
-            learning_state.optimizer_step,
-        ),
+    step_arguments = (
+        prepared_inputs.parameters,
+        prepared_inputs.architecture_carry,
+        prepared_inputs.optimizer_state,
+        prepared_inputs.batch,
+        rng_key,
+        learning_state.global_step,
+        learning_state.micro_step,
+        learning_state.optimizer_step,
     )
+    execution_kwargs: dict[str, Any] = {
+        "context": runtime_context,
+        "request": execution_request,
+        "backend": runtime_backend,
+        "args": step_arguments,
+    }
+    if runtime_callable_binding is None:
+        execution_kwargs["function"] = complete_step
+    else:
+        execution_kwargs["callable_binding"] = runtime_callable_binding
+        # JAX recognizes ``tree_util.Partial`` as a callable pytree.  This
+        # keeps the runtime-dispatched target top-level while preserving the
+        # owner-built JAX body without passing a raw Python function to JIT.
+        from importlib import import_module
+
+        execution_kwargs["args"] = (
+            import_module("jax").tree_util.Partial(complete_step),
+            *step_arguments,
+        )
+    output, runtime_result = execute_function(**execution_kwargs)
     if runtime_result.status != "pass" or output is None:
         blocker = runtime_result.blockers[0] if runtime_result.blockers else None
         detail = (
@@ -537,10 +591,12 @@ def _paths_for_mask(
 
 
 __all__ = [
+    "GENERIC_JAX_LEARNING_STEP_DECLARATION",
     "JaxLearningStepExecution",
     "JaxBatchBindingError",
     "JaxUpdateEvidenceError",
     "execute_jax_learning_step",
+    "execute_jax_learning_step_kernel",
     "validate_jax_batch_binding",
     "validate_jax_update_evidence",
 ]

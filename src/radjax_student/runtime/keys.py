@@ -30,6 +30,37 @@ JAX_KEY_SLOTS: tuple[str, ...] = (
 
 
 @dataclass(frozen=True)
+class RuntimeInitializationKeyReference:
+    """Serializable runtime-owned initialization-key identity, never a raw key."""
+
+    schema_version: str
+    stream: RuntimeKeyStream
+    slot: str = "initialization"
+
+    def __post_init__(self) -> None:
+        if self.schema_version != "runtime_initialization_key_reference.v1":
+            raise ValueError("unsupported initialization key reference schema")
+        if not isinstance(self.stream, RuntimeKeyStream):
+            raise TypeError("stream must be RuntimeKeyStream")
+        if self.slot != "initialization":
+            raise ValueError(
+                "initialization key reference must use initialization slot"
+            )
+
+    @property
+    def identity(self) -> str:
+        return f"runtime_keys.v1:initialization:{self.stream.root_seed}"
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "schema_version": self.schema_version,
+            "stream": self.stream.to_dict(),
+            "slot": self.slot,
+            "identity": self.identity,
+        }
+
+
+@dataclass(frozen=True)
 class RuntimeKeyStream:
     """A deterministic named seed derivation, not a backend key object."""
 
@@ -114,6 +145,12 @@ class RuntimeKeys:
         return self.stream("model_initialization")
 
     @property
+    def initialization_reference(self) -> RuntimeInitializationKeyReference:
+        return RuntimeInitializationKeyReference(
+            "runtime_initialization_key_reference.v1", self.model_initialization
+        )
+
+    @property
     def data_order(self) -> RuntimeKeyStream:
         return self.stream("data_order")
 
@@ -158,6 +195,13 @@ class RuntimeKeys:
                 for item in raw_streams
             ),
         )
+
+
+def initialization_reference_from_root_seed(
+    root_seed: int,
+) -> RuntimeInitializationKeyReference:
+    """Return the runtime-owned initialization reference without exposing a key."""
+    return RuntimeKeys.from_seed(root_seed).initialization_reference
 
 
 def _stream(root_seed: int, name: str) -> RuntimeKeyStream:

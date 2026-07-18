@@ -45,6 +45,7 @@ from radjax_student.optimizers import (
 from radjax_student.runtime import (
     ExecutionBackend,
     ExecutionContext,
+    RuntimeCallableBinding,
     RuntimeKeyStream,
 )
 from radjax_student.steps.jax_step import (
@@ -327,6 +328,7 @@ class JaxLoopExecutor:
     precision_policy: str | None = None
     schedule_values: Mapping[str, Any] | None = None
     rng_slot: str = "dropout"
+    runtime_callable_binding: RuntimeCallableBinding | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.batch_materializer, JaxBatchMaterializer):
@@ -335,6 +337,10 @@ class JaxLoopExecutor:
             raise TypeError("execution_request_factory must be callable")
         if not isinstance(self.rng_slot, str) or not self.rng_slot:
             raise ValueError("rng_slot must be nonempty")
+        if self.runtime_callable_binding is not None and not isinstance(
+            self.runtime_callable_binding, RuntimeCallableBinding
+        ):
+            raise TypeError("runtime_callable_binding must be RuntimeCallableBinding")
         self.schedule_values = MappingProxyType(dict(self.schedule_values or {}))
 
     def __call__(self, **kwargs: Any) -> JaxLearningStepExecution:
@@ -381,6 +387,7 @@ class JaxLoopExecutor:
             execution_request=self.execution_request_factory(lifecycle.learning_state),
             precision_policy=self.precision_policy,
             schedule_values=self.schedule_values,
+            runtime_callable_binding=self.runtime_callable_binding,
         )
         return self.accept_execution(execution)
 

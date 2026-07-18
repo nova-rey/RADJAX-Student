@@ -12,8 +12,11 @@ Tome payload consumption, export, or Phase 4 implementation.
   P3.12B.3 closes the JAX-free anti-cheat source audit.
 - P3.12C Production Lifecycle Assembly: locally accepted. The one
   learning-owned assembler takes typed identities/configuration, while
-  registries and component owners retain executable authority. P3.12D is next
-  and unstarted.
+  registries and component owners retain executable authority.
+- P3.12D Runtime Callable Identity: locally accepted. Runtime derives the
+  callable identity from the actual declared production callable, binds it to
+  request, prepared execution, eager/JIT result, and exact cache evidence.
+  P3.12 is closed; Phase 4 is next and remains unstarted.
 
 P3.12A adds one neutral objective identity/config/descriptor contract and one
 production registry. The registry-selected plugin, its capability profile,
@@ -42,7 +45,9 @@ P3.12B locally accepted
 
 P3.12C locally accepted
 
-P3.12D next and unstarted
+P3.12D locally accepted
+
+P3.12 is closed
 
 Phase 4 remains unstarted
 

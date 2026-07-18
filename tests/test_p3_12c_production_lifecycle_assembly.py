@@ -167,6 +167,45 @@ def test_assembled_executor_runs_one_real_jax_step():
     )
 
 
+def test_runtime_callable_identity_binds_eager_and_jit_product_dispatch():
+    eager_request, eager_registries = _request_and_registries()
+    jit_request, jit_registries = _request_and_registries()
+    jit_request = replace(
+        jit_request,
+        runtime_config=replace(jit_request.runtime_config, compilation_policy="jit"),
+    )
+
+    def execute(request, registries):
+        assembled = assemble_jax_learning_lifecycle(request, registries=registries)
+        before = assembled.lifecycle
+        result = assembled.loop_executor(
+            architecture=before.architecture,
+            architecture_config=before.architecture_config,
+            optimizer=before.optimizer,
+            optimizer_config=before.optimizer_config,
+            optimizer_state=before.optimizer_state,
+            learning_state=before.learning_state,
+            parameters=before.parameters,
+            objective=before.objective_selection,
+            batch=_batch(0),
+        )
+        return assembled, result.runtime_result
+
+    eager, eager_result = execute(eager_request, eager_registries)
+    jit, jit_result = execute(jit_request, jit_registries)
+    assert eager_result.callable_reference == jit_result.callable_reference
+    assert eager_result.prepared_execution_digest
+    assert jit_result.prepared_execution_digest
+    assert (
+        eager_result.prepared_execution_digest != jit_result.prepared_execution_digest
+    )
+    assert (
+        eager.summary["runtime_callable_identity_digest"]
+        == eager_result.callable_reference.callable_identity_digest
+        == jit.summary["runtime_callable_identity_digest"]
+    )
+
+
 def test_initial_literal_adversaries_observe_real_assembly_errors():
     cases = (
         (experiments.experiment_wrong_request_type, "assembly_request_invalid"),
