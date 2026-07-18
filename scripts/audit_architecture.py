@@ -31,11 +31,14 @@ def main() -> int:
         text=True,
         check=True,
     ).stdout.strip()
-    source_matches_commit = subprocess.run(
-        ["git", "diff", "--quiet", commit, "--", "src/radjax_student"],
-        cwd=root,
-        check=False,
-    ).returncode == 0
+    source_matches_commit = (
+        subprocess.run(
+            ["git", "diff", "--quiet", commit, "--", "src/radjax_student"],
+            cwd=root,
+            check=False,
+        ).returncode
+        == 0
+    )
     if not source_matches_commit:
         raise RuntimeError(
             "P3.5 dependency audit must be generated from the accepted source revision"

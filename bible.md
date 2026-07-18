@@ -1266,3 +1266,8 @@
 - Regenerated the dependent P3.5 and P3.11/P3.12 receipts from the exact
   source-provenance commit, binding the architecture audit artifact to that
   audited source revision without a self-referential commit claim.
+
+## 2026-07-18 - Architecture audit provenance formatter closure
+
+- Formatted the source-revision guard in the audit writer so the provenance
+  contract remains part of the repository-wide checked formatting surface.
