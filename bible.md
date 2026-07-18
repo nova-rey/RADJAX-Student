@@ -1217,3 +1217,11 @@
   reachable validation path. A P3.12A contract-digest writer now derives all
   maintained contract references from the typed receipt evidence, keeping the
   documented receipt consistent without hand-editing generated digests.
+
+## 2026-07-18 - Foundation audit non-swallowing closure
+
+- The fixed-source HF audit now rejects a checkpoint mismatch raise swallowed
+  by a matching exception handler and rejects a report-validation path with an
+  early return before the canonical matcher. These bounded control-flow checks
+  preserve the same architecture-owned descriptor route and add no runtime
+  product behavior.

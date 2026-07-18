@@ -200,18 +200,32 @@ def _has_operational_report_validation(function: ast.FunctionDef) -> bool:
         if isinstance(statement, (ast.Return, ast.Raise)):
             return False
         if isinstance(statement, ast.Try):
-            return any(
-                isinstance(item, ast.Expr)
-                and isinstance(item.value, ast.Call)
-                and _call_arguments_are(
-                    item.value,
-                    "validate_hf_descriptor_match",
-                    "executed_descriptor",
-                    "summary.descriptor",
-                )
-                for item in statement.body
-            )
+            for item in statement.body:
+                if isinstance(item, (ast.Return, ast.Raise)):
+                    return False
+                if (
+                    isinstance(item, ast.Expr)
+                    and isinstance(item.value, ast.Call)
+                    and _call_arguments_are(
+                        item.value,
+                        "validate_hf_descriptor_match",
+                        "executed_descriptor",
+                        "summary.descriptor",
+                    )
+                ):
+                    return True
+            return False
     return False
+
+
+def _handler_swallows_checkpoint_mismatch(handler: ast.ExceptHandler) -> bool:
+    caught = handler.type
+    catches_checkpoint_error = isinstance(caught, ast.Name) and caught.id == (
+        "CheckpointValidationError"
+    )
+    return catches_checkpoint_error and not any(
+        isinstance(statement, ast.Raise) for statement in handler.body
+    )
 
 
 def _call_name(node: ast.AST) -> str | None:
@@ -338,7 +352,32 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
             and any(isinstance(statement, ast.Raise) for statement in node.body)
             for node in ast.walk(restore or checkpoint)
         )
-        if restore is None or not has_required_guard or not mismatch_rejects:
+        mismatch_is_swallowed = any(
+            any(
+                _handler_swallows_checkpoint_mismatch(handler)
+                for handler in node.handlers
+            )
+            and any(
+                isinstance(descendant, ast.If)
+                and isinstance(descendant.test, ast.Compare)
+                and len(descendant.test.ops) == 1
+                and isinstance(descendant.test.ops[0], ast.NotEq)
+                and isinstance(descendant.test.left, ast.Name)
+                and descendant.test.left.id == "hf_descriptor"
+                and len(descendant.test.comparators) == 1
+                and isinstance(descendant.test.comparators[0], ast.Name)
+                and descendant.test.comparators[0].id == "expected_hf_descriptor"
+                for descendant in ast.walk(node)
+            )
+            for node in ast.walk(restore or checkpoint)
+            if isinstance(node, ast.Try)
+        )
+        if (
+            restore is None
+            or not has_required_guard
+            or not mismatch_rejects
+            or mismatch_is_swallowed
+        ):
             blockers.append("hf_checkpoint_descriptor_validation_bypassed")
 
     replay = tree("validation/p3_11_9_replay/runner_jax.py")

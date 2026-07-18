@@ -120,6 +120,28 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
+    swallowed_mismatch = dict(sources)
+    swallowed_mismatch["checkpoints/v3.py"] = swallowed_mismatch[
+        "checkpoints/v3.py"
+    ].replace(
+        """    if hf_descriptor != expected_hf_descriptor:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+        """    try:
+        if hf_descriptor != expected_hf_descriptor:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_mismatch",
+                "checkpoint HF descriptor does not match caller expectation",
+            )
+    except CheckpointValidationError:
+        pass""",
+    )
+    assert audit_hf_authority_fixture(swallowed_mismatch) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
     lifecycle = dict(sources)
     lifecycle["steps/jax_loop.py"] = lifecycle["steps/jax_loop.py"].replace(
         "expected_hf_descriptor=self.hf_descriptor",
@@ -162,6 +184,18 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "executed_descriptor, summary.descriptor)",
     )
     assert audit_hf_authority_fixture(dead_report_validation) == (
+        "hf_report_descriptor_validation_bypassed",
+    )
+
+    early_return_report = dict(sources)
+    early_return_report["learning/run_report.py"] = early_return_report[
+        "learning/run_report.py"
+    ].replace(
+        "        validate_hf_descriptor_match(executed_descriptor, summary.descriptor)",
+        "        return\n"
+        "        validate_hf_descriptor_match(executed_descriptor, summary.descriptor)",
+    )
+    assert audit_hf_authority_fixture(early_return_report) == (
         "hf_report_descriptor_validation_bypassed",
     )
 
