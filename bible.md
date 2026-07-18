@@ -1163,3 +1163,10 @@
   inventory, two fresh runs per adversary, exact blocker and callable-bound
   boundary equality, JAX-free authority audit, checkpoint/report evidence, and
   byte-identical regeneration. P3.12 is closed. Phase 4 remains unstarted.
+
+## 2026-07-18 - P3.12D AST fixture correction
+
+- Strengthened the P3.12D bad-source fixtures to be evaluated structurally by
+  the JAX-free AST audit rather than by source-text marker matching. The
+  correction preserves the frozen 28-fixture inventory and stable blocker
+  codes while making fixture evidence exercise the audited syntax boundary.

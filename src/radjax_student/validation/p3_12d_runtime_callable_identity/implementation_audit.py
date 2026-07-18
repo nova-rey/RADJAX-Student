@@ -339,49 +339,97 @@ def require_clean_runtime_callable_identity_audit(root: Path | None = None) -> N
 def audit_synthetic_source(
     source: str, *, path: str = "fixture.py"
 ) -> tuple[CallableAuditBlocker, ...]:
-    """Execute the same narrow source rules against one principal-defect fixture."""
+    """Execute structural source rules against one principal-defect fixture.
+
+    Fixtures deliberately contain executable Python fragments instead of magic
+    marker comments.  This keeps the fixture test on the same AST boundary as
+    the repository audit rather than merely testing fixture-file spelling.
+    """
     tree = ast.parse(source)
     blockers: list[CallableAuditBlocker] = []
     _inspect_tree(tree, path, blockers)
-    rules = (
-        ("id(function)", "callable_audit_unsafe_identity"),
-        ("repr(function)", "callable_audit_unsafe_identity"),
-        ("hash(function)", "callable_audit_unsafe_identity"),
-        ("def bind_runtime_callable_two", "callable_audit_competing_authority"),
-        ("validation.assembly", "callable_audit_validation_binder"),
-        (
-            "from radjax_student.validation",
-            "callable_audit_production_validation_import",
-        ),
-        ("raw_callable:", "callable_audit_request_raw_callable"),
-        ("function:", "callable_audit_request_function"),
-        ("caller_identity_digest", "callable_audit_caller_digest"),
-        ("caller_source_digest", "callable_audit_caller_source_digest"),
-        (
-            "module_qualname_only_identity",
-            "callable_audit_module_qualname_only_identity",
-        ),
-        ("module_only_identity", "callable_audit_module_only_identity"),
-        ("qualname_only_identity", "callable_audit_qualname_only_identity"),
-        ("filename_only_identity", "callable_audit_filename_only_identity"),
-        ("mtime_identity", "callable_audit_mtime_identity"),
-        ("validation_observed_identity", "callable_audit_validation_identity"),
-        ("expected_code", "callable_audit_observer_expected_metadata"),
-        ("_matches_expected", "callable_audit_permissive_matcher"),
-        ("missing_positive_inventory", "callable_audit_positive_inventory"),
-        ("missing_adversarial_inventory", "callable_audit_adversarial_inventory"),
-        ("dynamic_adversary_generator", "callable_audit_dynamic_adversary"),
-        ("reused_adversarial_callable", "callable_audit_reused_adversary"),
-        ("assembler_source_identity", "callable_audit_assembler_identity"),
-        ("backend_source_identity", "callable_audit_backend_identity"),
-        ("static_argument_omitted", "callable_audit_static_digest_missing"),
-        ("compilation_options_omitted", "callable_audit_compilation_digest_missing"),
-        ("input_signature_omitted", "callable_audit_input_signature_missing"),
-    )
-    for needle, code in rules:
-        if needle in source:
-            blockers.append(CallableAuditBlocker(code, path))
-            break
+    for node in ast.walk(tree):
+        if isinstance(node, ast.FunctionDef):
+            if (
+                node.name.startswith("bind_runtime_callable")
+                and node.name != "bind_runtime_callable"
+            ):
+                blockers.append(
+                    CallableAuditBlocker("callable_audit_competing_authority", path)
+                )
+            if node.name == "observe" and any(
+                argument.arg == "expected_code" for argument in node.args.args
+            ):
+                blockers.append(
+                    CallableAuditBlocker(
+                        "callable_audit_observer_expected_metadata", path
+                    )
+                )
+        if (
+            isinstance(node, ast.ImportFrom)
+            and node.module
+            and node.module.startswith("radjax_student.validation")
+        ):
+            blockers.append(
+                CallableAuditBlocker(
+                    "callable_audit_production_validation_import", path
+                )
+            )
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in {"id", "repr", "hash"}
+        ):
+            blockers.append(
+                CallableAuditBlocker("callable_audit_unsafe_identity", path)
+            )
+        if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name):
+            annotation_target = node.target.id
+            annotation_codes = {
+                "raw_callable": "callable_audit_request_raw_callable",
+                "function": "callable_audit_request_function",
+                "caller_identity_digest": "callable_audit_caller_digest",
+                "caller_source_digest": "callable_audit_caller_source_digest",
+            }
+            if annotation_target in annotation_codes:
+                blockers.append(
+                    CallableAuditBlocker(annotation_codes[annotation_target], path)
+                )
+        if isinstance(node, ast.Assign) and any(
+            isinstance(target, ast.Name) for target in node.targets
+        ):
+            names = {
+                target.id for target in node.targets if isinstance(target, ast.Name)
+            }
+            assignment_codes = {
+                "module_only_identity": "callable_audit_module_only_identity",
+                "qualname_only_identity": "callable_audit_qualname_only_identity",
+                "module_qualname_only_identity": (
+                    "callable_audit_module_qualname_only_identity"
+                ),
+                "filename_only_identity": "callable_audit_filename_only_identity",
+                "mtime_identity": "callable_audit_mtime_identity",
+                "validation_observed_identity": "callable_audit_validation_identity",
+                "missing_positive_inventory": "callable_audit_positive_inventory",
+                "missing_adversarial_inventory": "callable_audit_adversarial_inventory",
+                "dynamic_adversary_generator": "callable_audit_dynamic_adversary",
+                "reused_adversarial_callable": "callable_audit_reused_adversary",
+                "assembler_source_identity": "callable_audit_assembler_identity",
+                "backend_source_identity": "callable_audit_backend_identity",
+                "static_argument_omitted": "callable_audit_static_digest_missing",
+                "compilation_options_omitted": (
+                    "callable_audit_compilation_digest_missing"
+                ),
+                "input_signature_omitted": "callable_audit_input_signature_missing",
+            }
+            for name in names:
+                if name in assignment_codes:
+                    blockers.append(CallableAuditBlocker(assignment_codes[name], path))
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            if node.value.id == "validation" and node.attr == "assembly":
+                blockers.append(
+                    CallableAuditBlocker("callable_audit_validation_binder", path)
+                )
     result: list[CallableAuditBlocker] = []
     for blocker in blockers:
         if blocker.code not in {item.code for item in result}:
