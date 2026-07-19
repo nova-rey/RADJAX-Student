@@ -1532,6 +1532,12 @@
   canonical JAX-purity audit tracks destructured scalar-cast aliases before
   trainable state can cross a host-conversion boundary.
 
+## 2026-07-18 - Container alias closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `3d10034`
+  and the dependent P3.11.10 receipt twice byte-identically. The recorded
+  provenance now attests the container and default alias closure.
+
 ## 2026-07-18 - Portable reflection closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `8b87d13`
