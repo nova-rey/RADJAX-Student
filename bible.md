@@ -1438,6 +1438,8 @@
 - The protected import analysis now resolves mapping access through
   `__dict__.get(...)` and `vars(module)[...]`, and fails closed when a
   runtime/builtins mapping member is computed rather than literal.
+- Refreshed the P3.12B source attestation after the matching JAX-free source
+  audit update; its executed receipt again regenerated twice byte-identically.
 
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
