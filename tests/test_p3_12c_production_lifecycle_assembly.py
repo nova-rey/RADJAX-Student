@@ -12,6 +12,7 @@ import pytest
 # CI environment must skip before importing the JAX-dependent public assembly
 # surface, because pytest markers are applied after module import.
 pytest.importorskip("jax", reason="P3.12C product-path tests require JAX")
+import jax
 
 from radjax_student.architecture import ArchitectureConfig, ArchitectureRegistry
 from radjax_student.contracts import ObjectiveConfig
@@ -61,9 +62,11 @@ def _receipt_bytes(value):
     return (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
 
 
-def _request_and_registries():
+def _request_and_registries(architecture=None):
     architecture_registry = ArchitectureRegistry()
-    architecture_registry.register(StatefulLinearJaxArchitecture(ARCHITECTURE_ID))
+    architecture_registry.register(
+        architecture or StatefulLinearJaxArchitecture(ARCHITECTURE_ID)
+    )
     optimizer_registry = OptimizerRegistry()
     optimizer_registry.register(SgdOptimizer())
     request = JaxLearningAssemblyRequest(
@@ -132,6 +135,29 @@ def test_assembler_is_deterministic_and_audit_passes():
     assert first.assembly_digest == second.assembly_digest
     assert first.loop_executor.lifecycle is first.lifecycle
     assert implementation_audit.audit_assembly_authority(Path.cwd()).status == "pass"
+
+
+def test_assembly_routes_runtime_owned_initialization_material_to_architecture():
+    captured = {}
+
+    class CapturingStatefulLinearJaxArchitecture(StatefulLinearJaxArchitecture):
+        def initialize_parameters(self, request):
+            captured["reference"] = request.runtime_keys_reference
+            captured["material"] = request.runtime_initialization_material
+            return super().initialize_parameters(request)
+
+    request, registries = _request_and_registries(
+        CapturingStatefulLinearJaxArchitecture(ARCHITECTURE_ID)
+    )
+    assemble_jax_learning_lifecycle(request, registries=registries)
+
+    from radjax_student.runtime.jax_bridge import materialize_initialization_jax_key
+
+    assert captured["reference"] == "runtime_keys.v1:initialization:17"
+    assert jax.numpy.array_equal(
+        jax.random.key_data(captured["material"]),
+        jax.random.key_data(materialize_initialization_jax_key(captured["reference"])),
+    )
 
 
 def test_result_summary_is_derived_from_selected_lifecycle_components():

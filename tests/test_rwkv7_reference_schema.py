@@ -341,8 +341,8 @@ def test_executable_assembly_rejects_static_rwkv_before_execution() -> None:
     assert calls == {"initializer": 0, "forward": 0}
 
 
-def test_rwkv_subpackage_has_no_forbidden_owner_imports() -> None:
-    forbidden_prefixes = (
+def test_rwkv_subpackage_keeps_base_imports_jax_and_owner_free() -> None:
+    forbidden_owner_prefixes = (
         "radjax_student.learning",
         "radjax_student.runtime",
         "radjax_student.optimizers",
@@ -359,19 +359,31 @@ def test_rwkv_subpackage_has_no_forbidden_owner_imports() -> None:
             else:
                 continue
             for name in names:
-                if name in forbidden_prefixes or name.startswith(
-                    tuple(f"{prefix}." for prefix in forbidden_prefixes)
+                if name in forbidden_owner_prefixes or name.startswith(
+                    tuple(f"{prefix}." for prefix in forbidden_owner_prefixes)
                 ):
+                    offenders.append(f"{path.name}:{node.lineno} imports {name}")
+
+        for node in tree.body:
+            if isinstance(node, ast.Import):
+                names = (alias.name for alias in node.names)
+            elif isinstance(node, ast.ImportFrom) and node.module is not None:
+                names = (node.module,)
+            else:
+                continue
+            for name in names:
+                if name == "jax" or name.startswith("jax."):
                     offenders.append(f"{path.name}:{node.lineno} imports {name}")
 
     assert offenders == []
 
     script = """
 import builtins
+import sys
 real_import = builtins.__import__
 forbidden = {
     'radjax_student.learning', 'radjax_student.runtime',
-    'radjax_student.optimizers', 'radjax_student.validation',
+    'radjax_student.optimizers', 'radjax_student.validation', 'jax', 'jaxlib',
 }
 def guarded(name, *args, **kwargs):
     if name in forbidden or name.startswith(tuple(item + '.' for item in forbidden)):
@@ -379,6 +391,7 @@ def guarded(name, *args, **kwargs):
     return real_import(name, *args, **kwargs)
 builtins.__import__ = guarded
 import radjax_student.architecture.rwkv7_reference
+assert 'jax' not in sys.modules and 'jaxlib' not in sys.modules
 """
     result = subprocess.run(
         [sys.executable, "-c", script],

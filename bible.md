@@ -1225,3 +1225,14 @@
 - Recorded the literal pinned-NumPy source-prefix order and all direct,
   transformed, and first-block-omitted parameter representations without
   claiming initialization, equation parity, weight compatibility, or execution.
+
+## 2026-07-19 - P4.3 runtime-bound RWKV initialization
+
+- Runtime alone validates the serialized initialization identity and lazily
+  materializes its JAX key; learning passes that opaque value through the
+  neutral, nonserialized architecture initialization request seam.
+- RWKV initializes every declared float32 leaf and zeroed persistent carry from
+  supplied material without a runtime import, seed parser, host conversion, or
+  initialization-parity claim; JAX forward remains unavailable.
+- The only Phase 4 generic changes are sparse CE, the runtime materializer, and
+  the architecture-neutral runtime-supplied initialization-material request seam.

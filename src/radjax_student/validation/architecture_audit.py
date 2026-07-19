@@ -27,6 +27,16 @@ _JAX_EXCEPTIONS = {
     "radjax_student.validation.p3_12a_objective_identity.runner_jax",
     "radjax_student.validation.p3_12b_hf_descriptor_authority.runner_jax",
 }
+_CONCRETE_PLUGIN_JAX_ENTRYPOINTS = {
+    "initialize_parameters",
+    "forward",
+    "apply_jax",
+}
+_CONCRETE_PLUGIN_STATIC_MODULES = {
+    "config",
+    "registration",
+    "schema",
+}
 _COMPATIBILITY_MODULES = {
     "radjax_student.learning.p3_5_acceptance",
     "radjax_student.learning.p3_10_acceptance",
@@ -161,10 +171,61 @@ def _top_level_internal_edges(tree: ast.Module) -> tuple[str, ...]:
     return tuple(sorted(names))
 
 
+def _concrete_plugin_jax_imports(
+    module: str, path: Path, tree: ast.Module
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return permitted and rejected JAX imports for a concrete plugin module."""
+
+    parts = module.split(".")
+    if (
+        parts[:2] != ["radjax_student", "architecture"]
+        or len(parts) < 4
+        or path.name == "__init__.py"
+    ):
+        return (), ()
+    implementation_module = parts[-1]
+    if implementation_module in _CONCRETE_PLUGIN_STATIC_MODULES:
+        return (), ()
+    parents = {
+        child: parent
+        for parent in ast.walk(tree)
+        for child in ast.iter_child_nodes(parent)
+    }
+    allowed: set[str] = set()
+    rejected: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            if node.module and node.module.startswith("jax"):
+                rejected.add(node.module)
+            continue
+        if not isinstance(node, ast.Import):
+            continue
+        names = {alias.name for alias in node.names}
+        jax_names = {name for name in names if name == "jax" or name.startswith("jax.")}
+        if not jax_names:
+            continue
+        if not names <= {"jax", "jax.numpy"}:
+            rejected.update(jax_names)
+            continue
+        parent = parents.get(node)
+        while parent is not None and not isinstance(
+            parent, (ast.FunctionDef, ast.AsyncFunctionDef)
+        ):
+            parent = parents.get(parent)
+        if parent is None or parent.name not in _CONCRETE_PLUGIN_JAX_ENTRYPOINTS:
+            rejected.update(jax_names)
+            continue
+        allowed.update(jax_names)
+    return tuple(sorted(allowed)), tuple(sorted(rejected))
+
+
 def collect_module_record(path: Path, source_root: Path) -> dict[str, Any]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     module = _module_name(path, source_root)
     imports = _imports(tree)
+    allowed_lazy_jax, rejected_lazy_jax = _concrete_plugin_jax_imports(
+        module, path, tree
+    )
     return {
         "module": module,
         "path": str(path.relative_to(source_root.parent.parent)),
@@ -175,6 +236,8 @@ def collect_module_record(path: Path, source_root: Path) -> dict[str, Any]:
         "forbidden_imports": sorted(
             name for name in imports if name.split(".", 1)[0] in FORBIDDEN_IMPORTS
         ),
+        "concrete_plugin_lazy_jax_imports": list(allowed_lazy_jax),
+        "concrete_plugin_rejected_jax_imports": list(rejected_lazy_jax),
         "public_exports": list(_literal_exports(tree)),
         "defined_classes": list(_defined_classes(tree)),
         "has_dynamic_exports": any(
@@ -368,6 +431,17 @@ def find_architecture_blockers(
         forbidden = tuple(str(item) for item in record["forbidden_imports"])
         if module in _JAX_EXCEPTIONS:
             forbidden = tuple(item for item in forbidden if not item.startswith("jax"))
+        allowed_lazy_jax = tuple(
+            str(item) for item in record.get("concrete_plugin_lazy_jax_imports", ())
+        )
+        rejected_lazy_jax = tuple(
+            str(item) for item in record.get("concrete_plugin_rejected_jax_imports", ())
+        )
+        forbidden = tuple(
+            item
+            for item in forbidden
+            if item not in allowed_lazy_jax or item in rejected_lazy_jax
+        )
         if forbidden:
             add(
                 "forbidden_import", path, "forbidden optional import", imports=forbidden
@@ -402,6 +476,14 @@ def find_architecture_blockers(
             item.startswith("radjax_student.runtime") for item in imports
         ):
             add("architecture_imports_runtime", path, "architecture imports runtime")
+        if module.startswith("radjax_student.architecture") and any(
+            item == "numpy" or item.startswith("numpy.") for item in imports
+        ):
+            add(
+                "architecture_imports_numpy_model_math",
+                path,
+                "architecture imports NumPy model math",
+            )
         if module.startswith("radjax_student.runtime") and any(
             item.startswith("radjax_student.architecture") for item in imports
         ):

@@ -49,13 +49,36 @@ def test_base_package_imports_are_pure_in_fresh_subprocesses():
 def test_jax_isolated_to_explicit_adapter_source():
     for path in SOURCE_ROOT.rglob("*.py"):
         source = path.read_text(encoding="utf-8")
-        if path.relative_to(SOURCE_ROOT).as_posix() in {
+        relative = path.relative_to(SOURCE_ROOT).as_posix()
+        if relative in {
             "learning/jax_core.py",
             "learning/p3_5_acceptance.py",
             "steps/jax_step.py",
             "validation/p3_11_9_replay/runner_jax.py",
             "validation/p3_11_10_gate/runner_jax.py",
         }:
+            continue
+        if relative == "architecture/rwkv7_reference/plugin.py":
+            tree = ast.parse(source)
+            parents = {
+                child: parent
+                for parent in ast.walk(tree)
+                for child in ast.iter_child_nodes(parent)
+            }
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Import):
+                    continue
+                names = {alias.name for alias in node.names}
+                if not names & {"jax", "jax.numpy"}:
+                    continue
+                assert names <= {"jax", "jax.numpy"}
+                parent = parents.get(node)
+                while parent is not None and not isinstance(
+                    parent, (ast.FunctionDef, ast.AsyncFunctionDef)
+                ):
+                    parent = parents.get(parent)
+                assert parent is not None
+                assert parent.name in {"initialize_parameters", "forward", "apply_jax"}
             continue
         assert "import jax" not in source
         assert "from jax" not in source

@@ -112,11 +112,16 @@ No generic change is made in P4.1. The only pre-authorized later changes are:
 | --- | --- | --- | --- |
 | Sparse categorical cross-entropy objective | P4.5 | `objectives` | Any token-logit architecture can provide `[B,T,V]` logits and integer `[B,T]` token targets. |
 | Initialization-key materializer | P4.3, only if required | `runtime.keys` | Any JAX architecture can consume a runtime-owned initialization reference without parsing seed identity. |
+| Runtime-supplied initialization material on `ArchitectureInitRequest` | P4.3 | `architecture.models` | Any JAX architecture can consume runtime-materialized initialization entropy without importing runtime or deriving a seed. |
 
-Any other generic change requires a recorded actual requirement, a non-RWKV
-basis, an owner, a future non-RWKV use, and proof that the minimal alternative
-is insufficient. Otherwise Phase 4 stops for human direction. Generic owners
-must contain no RWKV branch, import, identifier, or policy.
+The third row is the authorized P4.3 foundation-contract correction: runtime
+owns reference validation and JAX-key materialization, learning composes the
+opaque value into the request, and the concrete architecture consumes it. It is
+nonserialized and does not authorize an architecture-to-runtime import. Any
+other generic change requires a recorded actual requirement, a non-RWKV basis,
+an owner, a future non-RWKV use, and proof that the minimal alternative is
+insufficient. Otherwise Phase 4 stops for human direction. Generic owners must
+contain no RWKV branch, import, identifier, or policy.
 
 ## Advisory qrwkv-xla review log
 

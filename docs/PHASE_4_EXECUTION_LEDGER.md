@@ -41,3 +41,27 @@ already-known prior SHA.
   through runtime-owned key material only; P4.4 must prove the mapping against
   a deterministic pinned-source parity fixture.
 - **Next checkpoint:** P4.3 — Parameter and Carry Initialization.
+
+## P4.3 — Parameter and Carry Initialization
+
+- **Status:** complete
+- **Changed files:** runtime-owned initialization materializer; neutral
+  `ArchitectureInitRequest` seam; learning assembly composition; RWKV
+  initialization/carry implementation; bounded audit rule; focused proofs;
+  P4.3 documentation; this ledger; and `bible.md`.
+- **Tests and verification:** canonical-reference/materializer, complete
+  initialization, import-isolation, P3.12C assembly, architecture contract,
+  and P3.12C source-audit tests passed; changed-file Ruff, format, compile,
+  and diff checks passed.
+- **Evidence or receipts changed:** regenerated P3.5 dependency audit records
+  the bounded concrete-plugin JAX allowance; P4.3 docs record initialization,
+  carry, layout, and descriptor evidence without serializing key material.
+- **Generic-change decision:** exactly three approved architecture-neutral
+  changes: sparse categorical cross-entropy; runtime-owned initialization-key
+  materializer; and runtime-supplied initialization material on
+  `ArchitectureInitRequest`. No other generic change was made.
+- **Unresolved non-blocking risks:** P4.4 must prove the pinned NumPy equations
+  only on the declared tiny float32 fixture domain and keep `v0` token-local;
+  P4.8 must reconcile the stale P3.11 recorded-gate closure wording before its
+  final verification ladder.
+- **Next checkpoint:** P4.4 — RWKV Recurrent Forward Kernel.

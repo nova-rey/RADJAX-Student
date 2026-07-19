@@ -20,7 +20,7 @@ P1.10 Production golden acceptance gate             COMPLETE
 PHASE 1 - CONTRACT LAYER                            COMPLETE
 PHASE 2 - STUDENT RUNTIME                           COMPLETE
 PHASE 3 - GENERIC LEARNING CORE                     COMPLETE
-PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.2)
+PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.3)
 ```
 
 ## Phase 2 Status
@@ -84,10 +84,10 @@ P3.12C locally accepted
 
 P3.12D locally accepted
 
-P4.2 adds the static RWKV reference configuration, schema, registry entry, and
-literal mapping only. It makes no parameter-initialization, executable-forward,
-equation-parity, or remote-CI claim; see
-[P4.2 RWKV-7 Reference Parameter Mapping](P4_2_RWKV7_PARAMETER_MAPPING.md).
+P4.3 adds complete deterministic RWKV parameter and persistent-carry
+initialization using only runtime-supplied opaque material. It makes no
+executable-forward, equation-parity, or remote-CI claim; see
+[P4.3 RWKV-7 Parameter and Carry Initialization](P4_3_RWKV7_INITIALIZATION.md).
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

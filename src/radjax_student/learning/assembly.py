@@ -46,6 +46,7 @@ from radjax_student.runtime import (
     build_default_runtime_registry,
     initialization_reference_from_root_seed,
 )
+from radjax_student.runtime.jax_bridge import materialize_initialization_jax_key
 from radjax_student.runtime.registry import RuntimeBackendRegistry
 from radjax_student.steps.jax_loop import JaxLearningLifecycle, JaxLoopExecutor
 
@@ -592,11 +593,17 @@ def assemble_jax_learning_lifecycle(
             cause=exc,
         ) from exc
     try:
+        initialization_reference = initialization_reference_from_root_seed(
+            request.root_seed
+        )
         initialized = architecture.initialize_parameters(
             ArchitectureInitRequest(
                 request.architecture_config,
-                initialization_reference_from_root_seed(request.root_seed).identity,
+                initialization_reference.identity,
                 request.precision_policy,
+                runtime_initialization_material=materialize_initialization_jax_key(
+                    initialization_reference.identity
+                ),
             )
         )
     except Exception as exc:

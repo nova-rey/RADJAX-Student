@@ -492,10 +492,15 @@ class ArchitectureState:
 
 @dataclass(frozen=True)
 class ArchitectureInitRequest:
+    """Architecture initialization intent plus nonserialized runtime material."""
+
     config: ArchitectureConfig
     runtime_keys_reference: str
     precision_policy: str = "unspecified"
     metadata: Mapping[str, Any] = field(default_factory=lambda: MappingProxyType({}))
+    runtime_initialization_material: Any = field(
+        default=None, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         if not isinstance(self.config, ArchitectureConfig):

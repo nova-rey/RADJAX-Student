@@ -96,3 +96,91 @@ def test_p3_5_audit_cycle_reporting_is_deterministic():
     assert find_dependency_cycles(records) == [
         ["radjax_student.alpha", "radjax_student.beta"]
     ]
+
+
+def _audit_source(tmp_path: Path, relative: str, source: str) -> dict:
+    path = tmp_path / "src" / "radjax_student" / relative
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(source, encoding="utf-8")
+    return build_architecture_audit(tmp_path)
+
+
+def test_concrete_plugin_local_jax_imports_are_the_only_new_allowance(
+    tmp_path: Path,
+) -> None:
+    audit = _audit_source(
+        tmp_path,
+        "architecture/example_plugin/plugin.py",
+        "def initialize_parameters():\n    import jax\n    import jax.numpy\n",
+    )
+
+    assert audit["status"] == "pass"
+    assert audit["modules"][0]["concrete_plugin_lazy_jax_imports"] == [
+        "jax",
+        "jax.numpy",
+    ]
+    assert audit["modules"][0]["concrete_plugin_rejected_jax_imports"] == []
+
+
+def test_concrete_plugin_jax_allowance_cannot_mask_other_jax_imports(
+    tmp_path: Path,
+) -> None:
+    for source in (
+        "def metadata():\n    import jax\n",
+        "import jax\ndef initialize_parameters():\n    import jax\n",
+    ):
+        audit = _audit_source(
+            tmp_path,
+            "architecture/example_plugin/plugin.py",
+            source,
+        )
+        codes = {item["code"] for item in audit["blockers"]}
+        assert "forbidden_import" in codes
+
+
+@pytest.mark.parametrize(
+    ("relative", "source", "expected_code"),
+    (
+        (
+            "architecture/example_plugin/plugin.py",
+            "import jax\n",
+            "forbidden_import",
+        ),
+        (
+            "architecture/example_plugin/config.py",
+            "def initialize_parameters():\n    import jax\n",
+            "forbidden_import",
+        ),
+        (
+            "architecture/models.py",
+            "def initialize_parameters():\n    import jax\n",
+            "forbidden_import",
+        ),
+        (
+            "architecture/testing.py",
+            "def initialize_parameters():\n    import jax\n",
+            "forbidden_import",
+        ),
+        (
+            "architecture/example_plugin/__init__.py",
+            "def initialize_parameters():\n    import jax\n",
+            "forbidden_import",
+        ),
+        (
+            "architecture/example_plugin/plugin.py",
+            "def initialize_parameters():\n    import numpy\n",
+            "architecture_imports_numpy_model_math",
+        ),
+        (
+            "architecture/example_plugin/plugin.py",
+            "def initialize_parameters():\n    import torch\n",
+            "forbidden_import",
+        ),
+    ),
+)
+def test_concrete_plugin_jax_allowance_does_not_extend_to_other_boundaries(
+    tmp_path: Path, relative: str, source: str, expected_code: str
+) -> None:
+    audit = _audit_source(tmp_path, relative, source)
+
+    assert expected_code in {item["code"] for item in audit["blockers"]}

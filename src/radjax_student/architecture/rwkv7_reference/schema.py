@@ -52,6 +52,11 @@ STATIC_CAPABILITIES = (
     "architecture.update_scope.whole_student_v1",
 )
 
+INITIALIZATION_CAPABILITIES = (
+    *STATIC_CAPABILITIES,
+    "architecture.parameter_initialization_v1",
+)
+
 
 def _digest(value: object) -> str:
     return hashlib.sha256(
@@ -344,6 +349,12 @@ def parameter_layout() -> ParameterTreeLayout:
     )
 
 
+def initialization_parameter_slots() -> tuple[str, ...]:
+    """Return fixed architecture-owned slots for deterministic initialization."""
+
+    return parameter_catalog().paths
+
+
 def carry_descriptor() -> dict[str, object]:
     """Describe persistent recurrence state without materializing it in P4.2."""
 
@@ -376,12 +387,9 @@ def capability_profile() -> ArchitectureCapabilityProfile:
     return ArchitectureCapabilityProfile(
         architecture_id=RWKV7_REFERENCE_ARCHITECTURE_ID,
         version=RWKV7_REFERENCE_ARCHITECTURE_VERSION,
-        capabilities=STATIC_CAPABILITIES,
-        non_capabilities=(
-            "architecture.jax_execution_v1",
-            "architecture.parameter_initialization_v1",
-        ),
-        metadata={"phase": "P4.2", "static_only": True},
+        capabilities=INITIALIZATION_CAPABILITIES,
+        non_capabilities=("architecture.jax_execution_v1",),
+        metadata={"phase": "P4.3", "jax_forward_available": False},
     )
 
 
@@ -422,16 +430,16 @@ def architecture_metadata() -> ArchitectureMetadata:
         ),
         warnings=(
             ArchitectureIssue(
-                code="rwkv7_reference_static_only",
+                code="rwkv7_reference_forward_unavailable",
                 message=(
-                    "P4.2 declares schema only; initialization and forward are "
-                    "unavailable."
+                    "P4.3 provides initialization only; JAX forward remains "
+                    "unavailable until P4.4."
                 ),
             ),
         ),
         claims_not_made=(
             "jax_forward_not_available_until_p4_4",
-            "parameter_initialization_not_available_until_p4_3",
+            "initialization_parity_not_claimed",
             "weight_file_compatibility_not_claimed",
         ),
     )
@@ -497,16 +505,21 @@ def hf_descriptor(config: ArchitectureConfig) -> HFCompatibilityDescriptor:
             "save_pretrained_not_implemented",
             "weight_file_compatibility_not_claimed",
         ),
-        notes="Static P4.2 descriptor only; no HF conversion or weight-file support.",
+        notes=(
+            "P4.3 descriptor only; no HF conversion, weight-file support, or "
+            "forward execution."
+        ),
     )
 
 
 __all__ = [
     "STATIC_CAPABILITIES",
+    "INITIALIZATION_CAPABILITIES",
     "architecture_metadata",
     "capability_profile",
     "carry_descriptor",
     "hf_descriptor",
+    "initialization_parameter_slots",
     "parameter_catalog",
     "parameter_layout",
     "pinned_numpy_parameter_order",

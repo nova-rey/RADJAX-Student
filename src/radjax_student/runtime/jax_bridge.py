@@ -8,6 +8,8 @@ from typing import Any
 
 from radjax_student.runtime.keys import (
     JAX_KEY_BRIDGE_VERSION,
+    RuntimeInitializationKeyReference,
+    RuntimeKeys,
     RuntimeKeyStream,
     jax_key_words,
 )
@@ -21,6 +23,55 @@ class RuntimeJaxBridgeError(ValueError):
     def __init__(self, code: str, message: str) -> None:
         self.code = code
         super().__init__(f"{code}: {message}")
+
+
+def materialize_initialization_jax_key(reference: str) -> Any:
+    """Materialize the JAX key represented by a canonical runtime reference.
+
+    The serialized identity is intentionally parsed only at the runtime-owned
+    boundary.  Architectures receive the resulting key, never seed material or
+    key derivation coordinates.
+    """
+
+    initialization_reference = _initialization_reference_from_identity(reference)
+    return derive_jax_key(
+        initialization_reference.stream,
+        global_step=0,
+        micro_step=0,
+        slot=initialization_reference.slot,
+        invocation_index=0,
+    )
+
+
+def _initialization_reference_from_identity(
+    identity: str,
+) -> RuntimeInitializationKeyReference:
+    prefix = "runtime_keys.v1:initialization:"
+    if not isinstance(identity, str) or not identity.startswith(prefix):
+        raise RuntimeJaxBridgeError(
+            "runtime_jax_initialization_reference_invalid",
+            "initialization key reference must use the canonical runtime identity",
+        )
+    root_seed_text = identity.removeprefix(prefix)
+    if (
+        not root_seed_text
+        or (root_seed_text != "0" and root_seed_text.startswith("0"))
+        or not root_seed_text.isascii()
+        or not root_seed_text.isdecimal()
+    ):
+        raise RuntimeJaxBridgeError(
+            "runtime_jax_initialization_reference_invalid",
+            "initialization key reference must contain a canonical nonnegative seed",
+        )
+    initialization_reference = RuntimeKeys.from_seed(
+        int(root_seed_text)
+    ).initialization_reference
+    if initialization_reference.identity != identity:
+        raise RuntimeJaxBridgeError(
+            "runtime_jax_initialization_reference_invalid",
+            "initialization key reference does not match runtime derivation",
+        )
+    return initialization_reference
 
 
 def validate_runtime_jax_key_request(
@@ -195,6 +246,7 @@ __all__ = [
     "JAX_PRNG_IMPLEMENTATION",
     "RuntimeJaxBridgeError",
     "derive_jax_key",
+    "materialize_initialization_jax_key",
     "validate_runtime_execution_evidence",
     "validate_runtime_jax_key_request",
     "validate_runtime_source_ownership",
