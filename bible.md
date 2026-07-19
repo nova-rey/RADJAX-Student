@@ -1538,6 +1538,12 @@
   for reflection primitives. The JAX-purity audit now follows scalar-cast
   carriers through list, mapping, class, and factory boundaries.
 
+## 2026-07-18 - Mapping and factory closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `ae6bf0e`
+  and the dependent P3.11.10 receipt twice byte-identically. The recorded
+  provenance now attests the mapping and factory alias closure.
+
 ## 2026-07-18 - Container alias closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `3d10034`
