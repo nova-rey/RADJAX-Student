@@ -74,6 +74,7 @@ def _json_value(value: object) -> object:
     return value
 
 
+@pytest.mark.jax
 def test_equal_runtime_references_reproduce_complete_initialization_evidence() -> None:
     jax = pytest.importorskip("jax")
 
@@ -104,6 +105,7 @@ def test_equal_runtime_references_reproduce_complete_initialization_evidence() -
         ), name
 
 
+@pytest.mark.jax
 def test_changed_runtime_reference_changes_the_initialized_parameter_values() -> None:
     jax = pytest.importorskip("jax")
 
@@ -122,6 +124,7 @@ def test_changed_runtime_reference_changes_the_initialized_parameter_values() ->
     )
 
 
+@pytest.mark.jax
 def test_initialized_tree_carry_and_hf_reference_match_declared_contracts() -> None:
     jax = pytest.importorskip("jax")
 
@@ -162,7 +165,9 @@ def test_initialized_tree_carry_and_hf_reference_match_declared_contracts() -> N
     )
 
 
+@pytest.mark.jax
 def test_initialization_rejects_non_float32_precision_with_jax_execution() -> None:
+    pytest.importorskip("jax")
     plugin = RWKV7ReferencePlugin()
 
     assert isinstance(plugin, JaxArchitecturePlugin)
@@ -191,6 +196,7 @@ def test_malformed_initialization_references_fail_at_runtime_owner(
     assert direct.value.code == "runtime_jax_initialization_reference_invalid"
 
 
+@pytest.mark.jax
 def test_plugin_uses_only_runtime_supplied_initialization_material() -> None:
     jax = pytest.importorskip("jax")
     supplied = materialize_initialization_jax_key("runtime_keys.v1:initialization:17")
@@ -216,7 +222,9 @@ def test_plugin_uses_only_runtime_supplied_initialization_material() -> None:
 
 
 def test_initialization_material_is_never_serialized() -> None:
-    request = _request("runtime_keys.v1:initialization:17")
+    request = _request(
+        "runtime_keys.v1:initialization:17", initialization_material=None
+    )
     payload = request.to_dict()
 
     assert "runtime_initialization_material" not in payload

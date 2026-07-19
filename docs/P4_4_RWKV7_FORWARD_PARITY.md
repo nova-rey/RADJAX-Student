@@ -36,10 +36,12 @@ schema, and registration stay JAX-free. Architecture code imports neither
 
 ## Fixture provenance and verification
 
-The checked-in test-only generator creates one deterministic fixture using an
+The checked-in test-only generator created the frozen fixture using an
 independent NumPy oracle rather than plugin helpers. Normal execution needs no
-network, and tests regenerate/byte-compare checked-in data without fetching the
-authority source. The provenance file records all source identities and digests:
+network. Tests bind the exact checked-in bytes to their provenance digest, then
+compare logits and carry from the independent oracle using the declared float32
+tolerance; they do not assume platform-independent byte-identical NumPy output.
+The provenance file records all source identities and digests:
 
 | Item | Path | SHA-256 |
 | --- | --- | --- |
@@ -49,8 +51,8 @@ authority source. The provenance file records all source identities and digests:
 
 The frozen fixture is float32 with vocabulary 16, hidden width 8, two blocks,
 head count 2, head size 4, FFN width 16, and four token positions `[1, 7, 3,
-5]`. Focused tests regenerate and byte-compare the fixture/provenance, compare
-all logits and all persistent carry leaves to the independent oracle with
+5]`. Focused tests byte-verify fixture provenance, compare all logits and all
+persistent carry leaves to the independent oracle with
 `rtol=1e-5` and `atol=2e-5`, prove step/scan agreement, finiteness, carry
 change, token-order sensitivity, parameter-perturbation sensitivity, malformed
 token/carry rejection, JAX capability registration, and P3.12C import audit

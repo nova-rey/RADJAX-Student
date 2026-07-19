@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+# JAX availability is checked before importing JAX-bearing production modules.
+# ruff: noqa: E402
 import math
 
-import jax
-import jax.numpy as jnp
 import pytest
+
+jax = pytest.importorskip(
+    "jax", reason="Sparse categorical cross-entropy tests require JAX"
+)
+jnp = pytest.importorskip(
+    "jax.numpy", reason="Sparse categorical cross-entropy tests require JAX"
+)
 
 from radjax_student.contracts import (
     ObjectiveConfig,

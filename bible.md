@@ -1283,3 +1283,11 @@
   it preserves the P4.4 pinned tiny float32 equation domain and all stated non-claims.
 - Reconciled current P3/foundation receipts and status gates without expanding generic
   behavior; exactly sparse CE, runtime key materialization, and request initialization material remain approved.
+
+## 2026-07-19 - CI JAX test-isolation correction
+
+- JAX-only P4 test modules and initialization cases now skip at collection when
+  JAX is absent and carry the `jax` marker, so base CI can run non-JAX tests.
+- Frozen parity-fixture bytes remain provenance-bound; independent-oracle values
+  use the declared float32 tolerance rather than platform-specific byte equality.
+- No production behavior or approved Phase 4 generic change was altered.

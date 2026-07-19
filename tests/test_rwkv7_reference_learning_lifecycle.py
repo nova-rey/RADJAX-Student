@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-import jax
-import jax.numpy as jnp
+# JAX availability is checked before importing JAX-bearing production modules.
+# ruff: noqa: E402
 import pytest
+
+jax = pytest.importorskip("jax", reason="RWKV-7 lifecycle tests require JAX")
+jnp = pytest.importorskip("jax.numpy", reason="RWKV-7 lifecycle tests require JAX")
 
 from radjax_student.architecture.rwkv7_reference import (
     RWKV7ReferencePlugin,

@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+# JAX availability is checked before importing JAX-bearing production modules.
+# ruff: noqa: E402
 import json
 from dataclasses import replace
 from pathlib import Path
 
-import jax
-import jax.numpy as jnp
 import pytest
+
+jax = pytest.importorskip("jax", reason="RWKV-7 checkpoint replay tests require JAX")
+jnp = pytest.importorskip(
+    "jax.numpy", reason="RWKV-7 checkpoint replay tests require JAX"
+)
 
 from radjax_student.checkpoints import (
     CheckpointValidationError,
