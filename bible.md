@@ -1601,3 +1601,12 @@
   Canonical training-path purity also rejects host scalar casts reached through
   class dictionaries, conditional/list carriers, numeric-type call paths, and
   source-constructed trainable attribute names.
+
+## 2026-07-18 - Narrow dynamic-import audit authority
+
+- The production import audit now distinguishes ordinary product reflection
+  from reflection that can reach an import primitive. It preserves strict
+  carrier checks for protected imports without treating typed serialization and
+  metadata access as dynamic-import behavior. The P3.5 audit and dependent
+  P3.11.10 receipt were regenerated twice byte-identically from accepted source
+  commit `a48f303`.
