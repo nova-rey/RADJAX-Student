@@ -1430,6 +1430,8 @@
 - Source-local audit aliases now also retain modules returned by
   `__import__`, closing multi-stage module-to-member-to-call indirection in
   both the foundation and P3.12B protected import checks.
+- Refreshed the P3.12B source attestation after the corresponding source-audit
+  update; the deterministic P3.12B receipt stayed byte-identical.
 
 ## 2026-07-18 - Transitive-control closure evidence refresh
 
