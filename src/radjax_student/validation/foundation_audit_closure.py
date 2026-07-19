@@ -159,6 +159,10 @@ def _importlib_aliases(tree: ast.Module) -> dict[str, str]:
             for item in node.names:
                 if item.name == "import_module":
                     aliases[item.asname or item.name] = "importlib.import_module"
+        elif isinstance(node, ast.ImportFrom) and node.module == "builtins":
+            for item in node.names:
+                if item.name == "__import__":
+                    aliases[item.asname or item.name] = "__import__"
     return aliases
 
 
@@ -250,6 +254,28 @@ def _has_import_segment(name: str, segment: str) -> bool:
     return any(part.lower() == segment for part in name.split("."))
 
 
+def _has_trainable_host_conversion(tree: ast.AST) -> bool:
+    """Reject scalar casts whose source names claim trainable numerical state."""
+    trainable_tokens = (
+        "gradient",
+        "optimizer_state",
+        "parameter",
+        "trainable",
+    )
+    return any(
+        isinstance(node, ast.Call)
+        and _call_name(node.func) in {"float", "int"}
+        and any(
+            token in name.id.lower()
+            for argument in node.args
+            for name in ast.walk(argument)
+            if isinstance(name, ast.Name)
+            for token in trainable_tokens
+        )
+        for node in ast.walk(tree)
+    )
+
+
 def _imports(path: Path, *, relative_path: str) -> tuple[str, ...]:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
     return _imports_from_tree(tree, relative_path=relative_path)
@@ -338,6 +364,9 @@ def _reachable_statements(statements: tuple[ast.stmt, ...]) -> tuple[ast.stmt, .
     reachable: list[ast.stmt] = []
 
     def literal_truth_value(node: ast.AST) -> bool | None:
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+            nested = literal_truth_value(node.operand)
+            return None if nested is None else not nested
         try:
             return bool(ast.literal_eval(node))
         except (TypeError, ValueError):
@@ -861,7 +890,7 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
         if any(name.split(".", 1)[0] in forbidden for name in imports):
             purity_failures.append(relative)
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        if any(
+        if _has_trainable_host_conversion(tree) or any(
             isinstance(node, ast.Attribute)
             and node.attr in {"device_get", "item", "numpy", "tolist"}
             for node in ast.walk(tree)
@@ -1042,10 +1071,13 @@ def audit_source_fixture(source: str, *, relative_path: str) -> tuple[str, ...]:
         name.startswith("radjax_student.legacy.losses") for name in imports
     ):
         blockers.append("canonical_numpy_loss_import")
-    if relative_path in CANONICAL_TRAINING_PATHS and any(
-        isinstance(node, ast.Attribute)
-        and node.attr in {"device_get", "item", "numpy", "tolist"}
-        for node in ast.walk(tree)
+    if relative_path in CANONICAL_TRAINING_PATHS and (
+        _has_trainable_host_conversion(tree)
+        or any(
+            isinstance(node, ast.Attribute)
+            and node.attr in {"device_get", "item", "numpy", "tolist"}
+            for node in ast.walk(tree)
+        )
     ):
         blockers.append("canonical_jax_purity")
     if (

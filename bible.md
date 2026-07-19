@@ -1383,3 +1383,10 @@
 - Regenerated P3.5 from accepted source commit `4cd2427` and regenerated the
   dependent P3.11.10 receipt twice byte-identically. The recorded evidence
   retains exact source provenance after the handler-reachability correction.
+
+## 2026-07-18 - Foundation audit literal-form closure
+
+- The source audit now resolves `from builtins import __import__` aliases,
+  treats `not True` as a falsey branch, and rejects scalar casts of explicitly
+  trainable parameter, gradient, or optimizer-state expressions in the
+  reviewed canonical path. Each form has a focused JAX-free fixture.

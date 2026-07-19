@@ -154,6 +154,10 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         relative_path="runtime/x.py",
     ) == ("runtime_steps_import",)
     assert audit_source_fixture(
+        "from builtins import __import__ as load\nload('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
         "from importlib import import_module as load\n"
         "load('radjax_student.validation')\n",
         relative_path="reports/x.py",
@@ -165,6 +169,9 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     assert audit_source_fixture(
         "import jax\nvalue.item()\n",
         relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "float(trainable_array)\n", relative_path="steps/jax_step.py"
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(
         "SCHEMA = 'radjax.p3_99_neutral_gate.v1'\ndef run(): pass\n",
@@ -248,7 +255,7 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
-    for falsey_guard in ("0", "1 == 0"):
+    for falsey_guard in ("0", "1 == 0", "not True"):
         falsey_required_guard = dict(sources)
         falsey_required_guard["checkpoints/v3.py"] = falsey_required_guard[
             "checkpoints/v3.py"
