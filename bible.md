@@ -1433,6 +1433,12 @@
 - Refreshed the P3.12B source attestation after the corresponding source-audit
   update; the deterministic P3.12B receipt stayed byte-identical.
 
+## 2026-07-18 - Multi-stage import closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `55f8f09`
+  and regenerated the dependent P3.11.10 receipt twice byte-identically. The
+  recorded provenance now attests the final multi-stage import audit closure.
+
 ## 2026-07-18 - Transitive-control closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `7ebb50b`
