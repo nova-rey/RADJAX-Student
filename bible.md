@@ -1593,3 +1593,11 @@
   and regenerated the dependent P3.11.10 receipt twice byte-identically. The
   recorded provenance now covers the complete transitive import and exception
   suppression audit closure.
+
+## 2026-07-18 - Import-holder and scalar-type closure
+
+- The JAX-free source audits now reject reflection and mapping carriers through
+  defaults, conditional expressions, containers, calls, and import holders.
+  Canonical training-path purity also rejects host scalar casts reached through
+  class dictionaries, conditional/list carriers, numeric-type call paths, and
+  source-constructed trainable attribute names.

@@ -494,7 +494,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     def carries_reflection_value(value: ast.AST | None) -> bool:
         if value is None:
             return False
-        if _call_name(value) == "getattr":
+        if isinstance(value, ast.Name) and _call_name(value) == "getattr":
             return True
         if isinstance(value, ast.Attribute):
             return value.attr in {"__getattribute__", "__getitem__"}
@@ -510,6 +510,8 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return any(carries_reflection_value(item) for item in value.elts)
         if isinstance(value, ast.Dict):
             return any(carries_reflection_value(item) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return carries_reflection_value(value.value)
         if isinstance(value, ast.GeneratorExp):
             return carries_reflection_value(value.elt)
         if isinstance(value, ast.Call):
@@ -518,6 +520,27 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return any(carries_reflection_value(item) for item in value.args) or any(
                 carries_reflection_value(item.value) for item in value.keywords
             )
+        return False
+
+    def carries_mapping_type(value: ast.AST | None) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, ast.Name) and _call_name(value) in {"dict", "object"}:
+            return True
+        if isinstance(value, ast.IfExp):
+            return carries_mapping_type(value.body) or carries_mapping_type(
+                value.orelse
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(carries_mapping_type(item) for item in value.values)
+        if isinstance(value, ast.Lambda):
+            return carries_mapping_type(value.body)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(carries_mapping_type(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(carries_mapping_type(item) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return carries_mapping_type(value.value)
         return False
 
     if (
@@ -536,7 +559,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         or any(
             isinstance(node, (ast.Assign, ast.AnnAssign))
             and node.value is not None
-            and _call_name(node.value) in {"dict", "object"}
+            and carries_mapping_type(node.value)
             for node in ast.walk(tree)
         )
     ):
@@ -571,6 +594,14 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                         aliases[item.asname or item.name] = "__import__"
 
     if any(_source_literal_string(node) == "__builtins__" for node in ast.walk(tree)):
+        return True
+    if any(
+        isinstance(node, ast.Call)
+        and _call_name(node.func) == "getattr"
+        and len(node.args) >= 2
+        and _source_literal_string(node.args[1]) == "import_module"
+        for node in ast.walk(tree)
+    ):
         return True
     if any(
         isinstance(node, ast.Attribute)
@@ -643,9 +674,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     if any(
         isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         and any(
-            _call_name(default) == "getattr"
-            or isinstance(default, ast.Attribute)
-            and default.attr in {"__getattribute__", "__getitem__"}
+            carries_reflection_value(default) or carries_mapping_type(default)
             for default in (*node.args.defaults, *node.args.kw_defaults)
             if default is not None
         )

@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "b36495616f9ba592eff68891a6e44ac86a5c86ac95fe78bdac8bec02630fb3cd"
+    "5c371c3e39760b9e247cbe0fda70b97b69a213056b22e076c47f45bc6cae5f36"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -409,7 +409,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
     def carries_reflection_value(value: ast.AST | None) -> bool:
         if value is None:
             return False
-        if _call_name(value) == "getattr":
+        if isinstance(value, ast.Name) and _call_name(value) == "getattr":
             return True
         if isinstance(value, ast.Attribute):
             return value.attr in {"__getattribute__", "__getitem__"}
@@ -425,6 +425,8 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
             return any(carries_reflection_value(item) for item in value.elts)
         if isinstance(value, ast.Dict):
             return any(carries_reflection_value(item) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return carries_reflection_value(value.value)
         if isinstance(value, ast.GeneratorExp):
             return carries_reflection_value(value.elt)
         if isinstance(value, ast.Call):
@@ -433,6 +435,27 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
             return any(carries_reflection_value(item) for item in value.args) or any(
                 carries_reflection_value(item.value) for item in value.keywords
             )
+        return False
+
+    def carries_mapping_type(value: ast.AST | None) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, ast.Name) and _call_name(value) in {"dict", "object"}:
+            return True
+        if isinstance(value, ast.IfExp):
+            return carries_mapping_type(value.body) or carries_mapping_type(
+                value.orelse
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(carries_mapping_type(item) for item in value.values)
+        if isinstance(value, ast.Lambda):
+            return carries_mapping_type(value.body)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(carries_mapping_type(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(carries_mapping_type(item) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return carries_mapping_type(value.value)
         return False
 
     if (
@@ -451,7 +474,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         or any(
             isinstance(node, (ast.Assign, ast.AnnAssign))
             and node.value is not None
-            and _call_name(node.value) in {"dict", "object"}
+            and carries_mapping_type(node.value)
             for node in ast.walk(tree)
         )
     ):
@@ -474,6 +497,14 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
     ):
         return True
     if any(_literal_string(node) == "__builtins__" for node in ast.walk(tree)):
+        return True
+    if any(
+        isinstance(node, ast.Call)
+        and _call_name(node.func) == "getattr"
+        and len(node.args) >= 2
+        and _literal_string(node.args[1]) == "import_module"
+        for node in ast.walk(tree)
+    ):
         return True
     if any(
         isinstance(node, ast.Attribute)
@@ -546,9 +577,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
     if any(
         isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
         and any(
-            _call_name(default) == "getattr"
-            or isinstance(default, ast.Attribute)
-            and default.attr in {"__getattribute__", "__getitem__"}
+            carries_reflection_value(default) or carries_mapping_type(default)
             for default in (*node.args.defaults, *node.args.kw_defaults)
             if default is not None
         )
@@ -747,27 +776,35 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         ):
             return True
         if isinstance(value, ast.Subscript):
-            return resolved_name(value.value) in {
-                "builtins.__dict__",
-                "__builtins__.__dict__",
-            } and _literal_string(value.slice) in {"float", "int"}
+            return (
+                resolved_name(value.value)
+                in {
+                    "builtins.__dict__",
+                    "__builtins__.__dict__",
+                }
+                and _literal_string(value.slice) in {"float", "int"}
+                or (scalar_cast_expression(value.value))
+            )
         if (
             isinstance(value, ast.Call)
             and _call_name(value.func) == "type"
             and len(value.args) == 1
-            and isinstance(value.args[0], ast.Constant)
-            and isinstance(value.args[0].value, (float, int))
-            and not isinstance(value.args[0].value, bool)
         ):
             return True
-        if (
-            isinstance(value, ast.Attribute)
-            and value.attr == "__class__"
-            and isinstance(value.value, ast.Constant)
-            and isinstance(value.value.value, (float, int))
-            and not isinstance(value.value.value, bool)
-        ):
+        if isinstance(value, ast.Attribute) and value.attr == "__class__":
             return True
+        if isinstance(value, ast.IfExp):
+            return scalar_cast_expression(value.body) or scalar_cast_expression(
+                value.orelse
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(scalar_cast_expression(item) for item in value.values)
+        if isinstance(value, ast.Lambda):
+            return scalar_cast_expression(value.body)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(scalar_cast_expression(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(scalar_cast_expression(item) for item in value.values)
         return False
 
     def target_names(target: ast.AST) -> tuple[str, ...]:
@@ -795,10 +832,14 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
     )
 
     def value_aliases_scalar(value: ast.AST) -> bool:
+        def has_scalar_owner(expression: ast.AST) -> bool:
+            name = _call_name(expression)
+            return name is not None and name.split(".", 1)[0] in aliases
+
         if isinstance(value, ast.Subscript):
-            return (_call_name(value.value) or "") in aliases
+            return has_scalar_owner(value.value) or value_aliases_scalar(value.value)
         if isinstance(value, ast.Attribute):
-            return (_call_name(value.value) or "") in aliases
+            return has_scalar_owner(value) or value_aliases_scalar(value.value)
         if isinstance(value, ast.Call):
             if (
                 _call_name(value.func) == "getattr"
@@ -854,6 +895,22 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                         aliases.add(name)
                         changed = True
 
+    def trainable_expression(value: ast.AST) -> bool:
+        return any(
+            token
+            in (
+                name.id.lower()
+                if isinstance(name, ast.Name)
+                else name.attr.lower()
+                if isinstance(name, ast.Attribute)
+                else literal.lower()
+            )
+            for name in ast.walk(value)
+            for literal in (_literal_string(name),)
+            if isinstance(name, (ast.Name, ast.Attribute)) or literal is not None
+            for token in trainable_tokens
+        )
+
     return any(
         isinstance(node, ast.Call)
         and (
@@ -861,24 +918,13 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             or value_aliases_scalar(node.func)
             or isinstance(node.func, ast.Attribute)
             and node.func.attr in {"__call__", "__new__"}
-            and any(scalar_cast_expression(argument) for argument in node.args)
-        )
-        and any(
-            token
-            in (
-                name.id.lower()
-                if isinstance(name, ast.Name)
-                else name.attr.lower()
-                if isinstance(name, ast.Attribute)
-                else name.value.lower()
+            and (
+                scalar_cast_expression(node.func.value)
+                or value_aliases_scalar(node.func.value)
+                or any(scalar_cast_expression(argument) for argument in node.args)
             )
-            for argument in node.args
-            for name in ast.walk(argument)
-            if isinstance(name, (ast.Name, ast.Attribute))
-            or isinstance(name, ast.Constant)
-            and isinstance(name.value, str)
-            for token in trainable_tokens
         )
+        and any(trainable_expression(argument) for argument in node.args)
         for node in ast.walk(tree)
     )
 
