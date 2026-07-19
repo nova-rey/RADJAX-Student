@@ -1520,6 +1520,12 @@
   imported builtin scalar casts before those paths can supply gate or training
   authority. Focused fixtures cover every rejected spelling.
 
+## 2026-07-18 - Portable reflection closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `8b87d13`
+  and the dependent P3.11.10 receipt twice byte-identically. The recorded
+  provenance now attests the portable reflection alias closure.
+
 ## 2026-07-18 - Portable builtins closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `2df9b73`
