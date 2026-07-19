@@ -1451,6 +1451,13 @@
   hardening; the exact executed receipt stayed byte-identical across fresh
   writes.
 
+## 2026-07-18 - Opaque-reflection closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `f9559a2`
+  and regenerated the dependent P3.11.10 receipt twice byte-identically. The
+  recorded provenance now includes opaque-reflection and attribute host-cast
+  audit coverage.
+
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `55f8f09`
