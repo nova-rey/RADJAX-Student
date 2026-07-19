@@ -153,13 +153,13 @@ composition, makes NumPy losses legacy-only, locks proof-owned validation
 namespaces, and defines Phase 4 as architecture-plugin ingestion with RWKV only
 as the first reference architecture.
 
-Phase 4 P4.5 runs one real RWKV sequence through the generic sparse categorical
-cross-entropy, P3.12C assembled lifecycle, and P3.12D callable binding in both
-eager and JIT modes. Its gradient claim is within one tiny fixture sequence;
-carry at separate learning-step boundaries is stop-gradient state. It makes no
-broader equation-parity, initialization-parity, training-recipe, cross-step
-BPTT, weight-file, HF-conversion, remote-CI, or compatibility claim. See the
-[P4.5 RWKV-7 Generic Learning Lifecycle](docs/P4_5_RWKV7_LEARNING_LIFECYCLE.md).
+Phase 4 P4.6 saves a real trained RWKV lifecycle through generic v3 persistence,
+restores it into a fresh assembly, and replays the next tiny-domain step without
+an RWKV checkpoint branch. V3 stores configuration identity by digest and does
+not serialize the runtime callable. It makes no broader equation-parity,
+initialization-parity, training-recipe, cross-step BPTT, weight-file,
+HF-conversion, remote-CI, or compatibility claim. See the
+[P4.6 RWKV-7 Checkpoint, Restore, and Replay](docs/P4_6_RWKV7_CHECKPOINT_REPLAY.md).
 
 P3.4 establishes the [Generic Batch and Objective Contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
 behavior-neutral batch metadata, objective request/result models, and explicit

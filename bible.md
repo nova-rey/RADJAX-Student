@@ -1256,3 +1256,12 @@
   is stop-gradient across them. No BPTT, training-recipe, or long-context claim.
 - Regenerated source-dependent P3.5/P3.12C/P3.12D evidence without changing
   their frozen proof inventories or adding RWKV behavior to generic owners.
+
+## 2026-07-19 - P4.6 RWKV checkpoint and replay identity
+
+- Generic v3 persists a trained RWKV parameter/carry/optimizer lifecycle and
+  restores it into a fresh explicit registry assembly without a format fork.
+- Existing checkpoint owners reject foreign config, layout, HF, and carry
+  identities; source/restored direct forward and next generic step agree.
+- Callable identity remains assembly/execution evidence, not checkpoint data;
+  no new generic change, training-recipe, BPTT, or portability claim is made.

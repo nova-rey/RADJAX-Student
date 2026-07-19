@@ -2,44 +2,33 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import jax
 import jax.numpy as jnp
 import pytest
 
-from radjax_student.architecture import ArchitectureRegistry
 from radjax_student.architecture.rwkv7_reference import (
-    RWKV7_REFERENCE_ARCHITECTURE_ID,
-    RWKV7_REFERENCE_ARCHITECTURE_VERSION,
     RWKV7ReferencePlugin,
     reference_architecture_config,
-    register_rwkv7_reference,
 )
-from radjax_student.contracts import ObjectiveConfig, ObjectiveScope, UpdateScope
-from radjax_student.learning import (
-    JaxLearningAssemblyRegistries,
-    JaxLearningAssemblyRequest,
-    LearningBatch,
-    LearningState,
-    assemble_jax_learning_lifecycle,
-)
+from radjax_student.learning import LearningBatch
 from radjax_student.learning.jax_batch import FiniteJsonJaxBatchMaterializer
 from radjax_student.learning.jax_core import (
     build_registered_jax_loss_fn,
     build_value_and_grad_fn,
 )
-from radjax_student.objectives import (
-    SPARSE_CROSS_ENTROPY_IDENTITY,
-    build_default_objective_registry,
+from tests.support.rwkv7_learning import (
+    TARGETS,
+    TOKENS,
+    all_finite,
+    assembled,
+    batch,
+    execute,
+    tree_allclose,
+    tree_changed,
 )
-from radjax_student.optimizers import OptimizerConfig, OptimizerRegistry, SgdOptimizer
-from radjax_student.runtime import RuntimeConfig, build_default_runtime_registry
 
 pytestmark = pytest.mark.jax
 
-_TOKENS = (1, 7, 3, 5)
-_TARGETS = (7, 3, 5, 1)
 GRADIENT_BOUNDARY = (
     "Gradients differentiate through multiple token positions within one fixture "
     "sequence.",
@@ -50,129 +39,34 @@ GRADIENT_BOUNDARY = (
 )
 
 
-def _batch(tokens: tuple[int, ...] = _TOKENS) -> LearningBatch:
-    return LearningBatch(
-        "p45-rwkv7",
-        inputs={"token_ids": [list(tokens)]},
-        targets={"token_ids": [list(_TARGETS)]},
-    )
-
-
-def _assembled(compilation_policy: str):
-    architecture_registry = ArchitectureRegistry()
-    register_rwkv7_reference(architecture_registry)
-    optimizer_registry = OptimizerRegistry()
-    optimizer_registry.register(SgdOptimizer())
-    request = JaxLearningAssemblyRequest(
-        architecture_id=RWKV7_REFERENCE_ARCHITECTURE_ID,
-        architecture_version=RWKV7_REFERENCE_ARCHITECTURE_VERSION,
-        architecture_config=reference_architecture_config(),
-        objective_identity=SPARSE_CROSS_ENTROPY_IDENTITY,
-        objective_config=ObjectiveConfig(
-            SPARSE_CROSS_ENTROPY_IDENTITY, {"reduction": "mean"}
-        ),
-        optimizer_id="sgd.v1",
-        optimizer_version=1,
-        optimizer_config=OptimizerConfig("sgd.v1", learning_rate=0.05),
-        runtime_backend_id="jax",
-        runtime_implementation_version="p2.9",
-        runtime_config=RuntimeConfig(
-            backend_id="jax",
-            platform_preference="cpu",
-            precision_policy="float32",
-            placement_policy="single_device",
-            compilation_policy=compilation_policy,
-            distributed_policy="disabled",
-            fallback_policy="disallowed",
-            seed=17,
-        ),
-        root_seed=17,
-        learning_state=LearningState(
-            "p45-rwkv7",
-            active_update_scope=UpdateScope("whole_student"),
-            active_objective_scope=ObjectiveScope(),
-        ),
-    )
-    return assemble_jax_learning_lifecycle(
-        request,
-        registries=JaxLearningAssemblyRegistries(
-            architecture_registry,
-            build_default_objective_registry(),
-            optimizer_registry,
-            build_default_runtime_registry(),
-        ),
-    )
-
-
-def _execute(assembled, batch: LearningBatch):
-    lifecycle = assembled.loop_executor.lifecycle
-    return assembled.loop_executor(
-        architecture=lifecycle.architecture,
-        architecture_config=lifecycle.architecture_config,
-        optimizer=lifecycle.optimizer,
-        optimizer_config=lifecycle.optimizer_config,
-        optimizer_state=lifecycle.optimizer_state,
-        learning_state=lifecycle.learning_state,
-        parameters=lifecycle.parameters,
-        objective=lifecycle.objective_selection,
-        batch=batch,
-    )
-
-
-def _tree_allclose(first: Any, second: Any) -> bool:
-    first_leaves, first_tree = jax.tree_util.tree_flatten(first)
-    second_leaves, second_tree = jax.tree_util.tree_flatten(second)
-    return first_tree == second_tree and all(
-        bool(jnp.allclose(a, b, rtol=1e-5, atol=2e-5))
-        for a, b in zip(first_leaves, second_leaves, strict=True)
-    )
-
-
-def _tree_changed(first: Any, second: Any) -> bool:
-    return any(
-        not bool(jnp.array_equal(a, b))
-        for a, b in zip(
-            jax.tree_util.tree_leaves(first),
-            jax.tree_util.tree_leaves(second),
-            strict=True,
-        )
-    )
-
-
-def _all_finite(value: Any) -> bool:
-    return all(
-        bool(jnp.all(jnp.isfinite(leaf))) for leaf in jax.tree_util.tree_leaves(value)
-    )
-
-
 def test_rwkv_batch_validation_accepts_only_the_finite_json_tiny_domain() -> None:
     plugin = RWKV7ReferencePlugin()
     config = reference_architecture_config()
 
-    assert plugin.validate_batch(_batch(), config).status == "pass"
+    assert plugin.validate_batch(batch(), config).status == "pass"
     for malformed in (
         ((1, 7, 3),),
         ((1, 7, 3, 16),),
         ((1, 7, 3, True),),
     ):
-        batch = LearningBatch(
+        malformed_batch = LearningBatch(
             "p45-rwkv7",
             inputs={"token_ids": [list(malformed[0])]},
-            targets={"token_ids": [list(_TARGETS)]},
+            targets={"token_ids": [list(TARGETS)]},
         )
-        validation = plugin.validate_batch(batch, config)
+        validation = plugin.validate_batch(malformed_batch, config)
         assert validation.status == "fail"
         assert validation.blockers[0].code == "architecture_batch_incompatible"
 
 
 def test_eager_and_jit_registered_lifecycles_agree_and_advance_state() -> None:
-    eager = _assembled("eager")
-    compiled = _assembled("jit")
+    eager = assembled("eager")
+    compiled = assembled("jit")
     eager_before = eager.lifecycle
     compiled_before = compiled.lifecycle
 
-    eager_execution = _execute(eager, _batch())
-    compiled_execution = _execute(compiled, _batch())
+    eager_execution = execute(eager, batch())
+    compiled_execution = execute(compiled, batch())
     eager_after = eager.loop_executor.lifecycle
     compiled_after = compiled.loop_executor.lifecycle
 
@@ -187,11 +81,11 @@ def test_eager_and_jit_registered_lifecycles_agree_and_advance_state() -> None:
             "objective.sparse_cross_entropy",
             "objective.token_accuracy",
         }
-        assert _all_finite(execution.gradients)
+        assert all_finite(execution.gradients)
         assert execution.result.changed_parameter_paths
-        assert _tree_changed(before.parameters, after.parameters)
-        assert _tree_changed(before.architecture_carry, after.architecture_carry)
-        assert _all_finite(after.architecture_carry)
+        assert tree_changed(before.parameters, after.parameters)
+        assert tree_changed(before.architecture_carry, after.architecture_carry)
+        assert all_finite(after.architecture_carry)
         assert after.learning_state.global_step == before.learning_state.global_step + 1
         assert (
             after.learning_state.optimizer_step
@@ -224,8 +118,8 @@ def test_eager_and_jit_registered_lifecycles_agree_and_advance_state() -> None:
         eager_execution.runtime_result.prepared_execution_digest
         != compiled_execution.runtime_result.prepared_execution_digest
     )
-    assert _tree_allclose(eager_after.parameters, compiled_after.parameters)
-    assert _tree_allclose(
+    assert tree_allclose(eager_after.parameters, compiled_after.parameters)
+    assert tree_allclose(
         eager_after.architecture_carry, compiled_after.architecture_carry
     )
     assert eager_execution.result.loss.loss == pytest.approx(
@@ -233,10 +127,10 @@ def test_eager_and_jit_registered_lifecycles_agree_and_advance_state() -> None:
     )
 
     later_before = eager.loop_executor.lifecycle
-    assert _tree_allclose(
+    assert tree_allclose(
         later_before.architecture_carry, eager_after.architecture_carry
     )
-    later = _execute(eager, _batch((5, 3, 7, 1)))
+    later = execute(eager, batch((5, 3, 7, 1)))
     later_after = eager.loop_executor.lifecycle
     assert later.result.status == "pass"
     assert later_after.learning_state.global_step == 2
@@ -246,8 +140,8 @@ def test_eager_and_jit_registered_lifecycles_agree_and_advance_state() -> None:
 
 
 def test_within_sequence_gradients_and_cross_step_carry_boundary() -> None:
-    assembled = _assembled("eager")
-    lifecycle = assembled.lifecycle
+    lifecycle_result = assembled("eager")
+    lifecycle = lifecycle_result.lifecycle
     loss_fn = build_registered_jax_loss_fn(
         architecture=lifecycle.architecture,
         objective_selection=lifecycle.objective_selection,
@@ -256,25 +150,25 @@ def test_within_sequence_gradients_and_cross_step_carry_boundary() -> None:
         resolved_selection=lifecycle.resolved_objective_selection,
     )
     materializer = FiniteJsonJaxBatchMaterializer()
-    base_batch = materializer.materialize(_batch())
+    base_batch = materializer.materialize(batch())
     value_and_grad = build_value_and_grad_fn(loss_fn)
 
     def gradient_for(tokens: tuple[int, ...]):
-        batch = materializer.materialize(_batch(tokens))
+        materialized_batch = materializer.materialize(batch(tokens))
         (_, _), gradients = value_and_grad(
             lifecycle.parameters,
             lifecycle.architecture_carry,
-            batch,
+            materialized_batch,
             None,
         )
         return gradients
 
-    base = gradient_for(_TOKENS)
+    base = gradient_for(TOKENS)
     changed_first = gradient_for((2, 7, 3, 5))
     changed_third = gradient_for((1, 7, 4, 5))
-    assert _all_finite(base)
-    assert _tree_changed(base, changed_first)
-    assert _tree_changed(base, changed_third)
+    assert all_finite(base)
+    assert tree_changed(base, changed_first)
+    assert tree_changed(base, changed_third)
 
     def loss_from_input_carry(carry):
         return loss_fn(lifecycle.parameters, carry, base_batch, None)[0]

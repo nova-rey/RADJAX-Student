@@ -116,3 +116,32 @@ already-known prior SHA.
   BPTT, truncated scheduling, and long-context recurrent training are not
   proven.
 - **Next checkpoint:** P4.6 — Checkpoint, Restore, and Replay Identity.
+
+## P4.6 — Checkpoint, Restore, and Replay Identity
+
+- **Status:** complete
+- **Changed files:** focused RWKV checkpoint/restore/replay proof and shared
+  test-only lifecycle fixture; P4.6 documentation, status pages, this ledger,
+  and `bible.md`. No production persistence format or generic source changed.
+- **Tests and verification:** after a real sparse-CE step, generic v3 save,
+  fresh lifecycle restore, direct logits/carry equality, and equal next generic
+  step; current-owner configuration/layout/HF/carry mismatch rejection;
+  existing v3/P3.12C/P3.12D regression, changed-file Ruff/format/compile/diff,
+  and source-boundary checks.
+- **Evidence or receipts changed:** P4.6 typed test/documentation evidence;
+  no v3 format fork, receipt refresh, or raw key/callable serialization.
+- **Generic-change decision:** none; the approved ledger remains exactly sparse
+  categorical cross-entropy, runtime-owned initialization-key materialization,
+  and architecture-neutral runtime-supplied initialization material.
+- **Unresolved non-blocking risks:** callable identity is only compared where
+  existing assembly/execution artifacts record it, not claimed checkpoint
+  persisted; P4.8 retains recorded P3.11/P3.12A reconciliation, including the
+  frozen P3.12A receipt's dependency/evidence digest mismatch against the
+  Phase-4 surface, and the historical P3.5 acceptance runner's pre-P4.3
+  all-JAX/Phase-4-unstarted assumptions. P4.6 changes no production source
+  and does not cause that
+  historical runner conflict; its public restore path has positive replay
+  coverage while mutated-artifact rejection is exercised at the generic v3
+  owner loader it delegates to.
+- **Next checkpoint:** P4.7 — Architecture Ingestion Procedure and
+  Anti-Contamination Proof.

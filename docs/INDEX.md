@@ -140,6 +140,9 @@ Start here for Phase 0 foundation context.
 - [P4.5 RWKV-7 Generic Learning Lifecycle](P4_5_RWKV7_LEARNING_LIFECYCLE.md):
   explicit registry-selected sparse-CE eager/JIT steps with the frozen
   within-sequence and stop-gradient carry boundary.
+- [P4.6 RWKV-7 Checkpoint, Restore, and Replay](P4_6_RWKV7_CHECKPOINT_REPLAY.md):
+  real v3 checkpoint/restore and next-step replay through unchanged generic
+  persistence owners.
 - [Phase 4 Execution Ledger](PHASE_4_EXECUTION_LEDGER.md): append-only
   checkpoint status, verification, evidence, generic-change, risk, and next-step record.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
