@@ -1610,3 +1610,11 @@
   metadata access as dynamic-import behavior. The P3.5 audit and dependent
   P3.11.10 receipt were regenerated twice byte-identically from accepted source
   commit `a48f303`.
+
+## 2026-07-18 - Receiver and neutral-value audit closure
+
+- The source auditors now follow import receivers and nonliteral members across
+  identity, mapping, factory, lambda, and container carriers. The canonical
+  JAX-purity audit follows trainable-value aliases and scalar callees through
+  equivalent carrier forms while keeping ordinary post-execution counters out
+  of the trainable-state boundary.

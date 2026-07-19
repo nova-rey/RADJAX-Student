@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "5c371c3e39760b9e247cbe0fda70b97b69a213056b22e076c47f45bc6cae5f36"
+    "3ac6f9456d476fa65209df43c81236f083bec1af57b24529b35cb3ae300d7a2e"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -405,6 +405,206 @@ def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ..
 def _has_dynamic_import_target(tree: ast.Module) -> bool:
     """Detect a source-computed import target without importing the module."""
     aliases = _importlib_aliases(tree)
+    identity_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and len(node.args.args) == 1
+        and len(node.body) == 1
+        and isinstance(node.body[0], ast.Return)
+        and isinstance(node.body[0].value, ast.Name)
+        and node.body[0].value.id == node.args.args[0].arg
+    }
+    identity_names.update(
+        target.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Lambda)
+        and len(node.value.args.args) == 1
+        and isinstance(node.value.body, ast.Name)
+        and node.value.body.id == node.value.args.args[0].arg
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    )
+
+    def protected_holder(value: ast.AST | None) -> bool:
+        """Follow source-local carriers of an import-module holder.
+
+        This is intentionally limited to reflection sites.  It does not label
+        ordinary values as imports merely because they flow through a helper;
+        it establishes whether a value handed to reflection can be an import
+        module/builtins holder.
+        """
+        if value is None:
+            return False
+        if isinstance(value, ast.Name):
+            return aliases.get(value.id, value.id) in {
+                "importlib",
+                "builtins",
+                "__builtins__",
+            }
+        if isinstance(value, ast.Attribute):
+            return protected_holder(value.value)
+        if isinstance(value, (ast.IfExp, ast.BoolOp)):
+            values = (
+                (value.body, value.orelse)
+                if isinstance(value, ast.IfExp)
+                else value.values
+            )
+            return any(protected_holder(item) for item in values)
+        if isinstance(value, ast.Lambda):
+            return protected_holder(value.body)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(protected_holder(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(protected_holder(item) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return protected_holder(value.value)
+        if isinstance(value, ast.Call):
+            name = _call_name(value.func)
+            if name in {"__import__", "builtins.__import__"} and value.args:
+                return _literal_string(value.args[0]) in {"importlib", "builtins"}
+            if isinstance(value.func, ast.Lambda):
+                return protected_holder(value.func.body)
+            return any(protected_holder(item) for item in value.args) or any(
+                protected_holder(item.value) for item in value.keywords
+            )
+        return False
+
+    def mapping_carrier(value: ast.AST | None, names: set[str]) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, ast.Name):
+            return value.id in names
+        if isinstance(value, ast.Call):
+            if _call_name(value.func) == "type" and value.args:
+                return isinstance(value.args[0], (ast.Dict, ast.List, ast.Set))
+            if isinstance(value.func, ast.Lambda):
+                return mapping_carrier(value.func.body, names)
+            name = _call_name(value.func)
+            if name in {*identity_names, "next", "iter"}:
+                return any(mapping_carrier(item, names) for item in value.args)
+            return name in names
+        if isinstance(value, ast.IfExp):
+            return mapping_carrier(value.body, names) or mapping_carrier(
+                value.orelse, names
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(mapping_carrier(item, names) for item in value.values)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(mapping_carrier(item, names) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(mapping_carrier(item, names) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return mapping_carrier(value.value, names)
+        return False
+
+    def reflection_carrier(value: ast.AST | None, mapping_names: set[str]) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, ast.Name):
+            return value.id == "getattr"
+        if isinstance(value, ast.Attribute):
+            return value.attr in {"__getattribute__", "__getitem__"} or (
+                value.attr in {"get", "setdefault"}
+                and mapping_carrier(value.value, mapping_names)
+            )
+        if isinstance(value, ast.Call):
+            if isinstance(value.func, ast.Lambda):
+                return reflection_carrier(value.func.body, mapping_names)
+            return _call_name(value.func) in reflection_names
+        if isinstance(value, ast.IfExp):
+            return reflection_carrier(value.body, mapping_names) or reflection_carrier(
+                value.orelse, mapping_names
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(reflection_carrier(item, mapping_names) for item in value.values)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(reflection_carrier(item, mapping_names) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(reflection_carrier(item, mapping_names) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return reflection_carrier(value.value, mapping_names)
+        return False
+
+    holder_names = {
+        name
+        for name, target in aliases.items()
+        if target in {"importlib", "builtins", "__builtins__"}
+    }
+    mapping_names = {"dict", "object"}
+    reflection_names: set[str] = set()
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            if protected_holder(node.value):
+                for target in targets:
+                    if isinstance(target, ast.Name) and target.id not in holder_names:
+                        holder_names.add(target.id)
+                        aliases[target.id] = "importlib"
+                        changed = True
+            if mapping_carrier(node.value, mapping_names):
+                for target in targets:
+                    if isinstance(target, ast.Name) and target.id not in mapping_names:
+                        mapping_names.add(target.id)
+                        changed = True
+            if reflection_carrier(node.value, mapping_names):
+                for target in targets:
+                    if (
+                        isinstance(target, ast.Name)
+                        and target.id not in reflection_names
+                    ):
+                        reflection_names.add(target.id)
+                        changed = True
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            returns = [
+                item.value
+                for item in ast.walk(node)
+                if isinstance(item, ast.Return) and item.value is not None
+            ]
+            if any(protected_holder(value) for value in returns):
+                aliases[node.name] = "importlib"
+                holder_names.add(node.name)
+            if any(mapping_carrier(value, mapping_names) for value in returns):
+                mapping_names.add(node.name)
+            if any(reflection_carrier(value, mapping_names) for value in returns):
+                reflection_names.add(node.name)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "getattr"
+                and node.args
+                and protected_holder(node.args[0])
+            ):
+                return True
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr in {"get", "setdefault", "__getitem__"}
+                and protected_holder(node.func.value)
+            ):
+                return True
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id in reflection_names
+                and any(protected_holder(argument) for argument in node.args)
+            ):
+                return True
+        elif (
+            isinstance(node, ast.Attribute)
+            and node.attr in {"get", "setdefault", "__getitem__"}
+            and protected_holder(node.value)
+        ):
+            return True
+        elif isinstance(node, ast.Subscript) and protected_holder(node.value):
+            return True
 
     def carries_reflection_value(value: ast.AST | None) -> bool:
         if value is None:
@@ -747,6 +947,17 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
     )
 
     import_aliases = _importlib_aliases(tree) if isinstance(tree, ast.Module) else {}
+    identity_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and len(node.args.args) == 1
+        and len(node.body) == 1
+        and isinstance(node.body[0], ast.Return)
+        and isinstance(node.body[0].value, ast.Name)
+        and node.body[0].value.id == node.args.args[0].arg
+    }
+    scalar_function_names: set[str] = set()
 
     def resolved_name(value: ast.AST) -> str | None:
         raw = _call_name(value)
@@ -766,15 +977,34 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             "__builtins__.int",
         }:
             return True
-        if (
-            isinstance(value, ast.Call)
-            and isinstance(value.func, ast.Name)
-            and value.func.id == "getattr"
-            and len(value.args) >= 2
-            and resolved_name(value.args[0]) in {"builtins", "__builtins__"}
-            and _literal_string(value.args[1]) in {"float", "int"}
-        ):
-            return True
+        if isinstance(value, ast.Call):
+            if (
+                isinstance(value.func, ast.Name)
+                and value.func.id == "getattr"
+                and len(value.args) >= 2
+                and (
+                    resolved_name(value.args[0]) in {"builtins", "__builtins__"}
+                    or scalar_cast_expression(value.args[0])
+                )
+                and _literal_string(value.args[1])
+                in {"float", "int", "__call__", "__new__"}
+            ):
+                return True
+            if isinstance(value.func, ast.Lambda):
+                return scalar_cast_expression(value.func.body)
+            if _call_name(value.func) in scalar_function_names:
+                return True
+            if _call_name(value.func) in {*identity_names, "next", "iter"}:
+                return any(scalar_cast_expression(item) for item in value.args)
+            if (
+                isinstance(value.func, ast.Attribute)
+                and value.func.attr in {"get", "setdefault"}
+                and isinstance(value.func.value, ast.Dict)
+                and any(
+                    scalar_cast_expression(item) for item in value.func.value.values
+                )
+            ):
+                return True
         if isinstance(value, ast.Subscript):
             return (
                 resolved_name(value.value)
@@ -783,7 +1013,10 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                     "__builtins__.__dict__",
                 }
                 and _literal_string(value.slice) in {"float", "int"}
-                or (scalar_cast_expression(value.value))
+                or scalar_cast_expression(value.value)
+                or isinstance(value.value, ast.Attribute)
+                and value.value.attr == "__dict__"
+                and scalar_cast_expression(value.value.value)
             )
         if (
             isinstance(value, ast.Call)
@@ -791,8 +1024,11 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             and len(value.args) == 1
         ):
             return True
-        if isinstance(value, ast.Attribute) and value.attr == "__class__":
-            return True
+        if isinstance(value, ast.Attribute):
+            return value.attr == "__class__" or (
+                value.attr in {"__call__", "__new__"}
+                and scalar_cast_expression(value.value)
+            )
         if isinstance(value, ast.IfExp):
             return scalar_cast_expression(value.body) or scalar_cast_expression(
                 value.orelse
@@ -805,6 +1041,10 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             return any(scalar_cast_expression(item) for item in value.elts)
         if isinstance(value, ast.Dict):
             return any(scalar_cast_expression(item) for item in value.values)
+        if isinstance(value, ast.GeneratorExp):
+            return scalar_cast_expression(value.elt) or any(
+                scalar_cast_expression(generator.iter) for generator in value.generators
+            )
         return False
 
     def target_names(target: ast.AST) -> tuple[str, ...]:
@@ -813,6 +1053,24 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         if isinstance(target, (ast.Tuple, ast.List)):
             return tuple(name for item in target.elts for name in target_names(item))
         return ()
+
+    scalar_function_names.update(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and (
+            any(
+                default is not None and scalar_cast_expression(default)
+                for default in (*node.args.defaults, *node.args.kw_defaults)
+            )
+            or any(
+                isinstance(item, ast.Return)
+                and item.value is not None
+                and scalar_cast_expression(item.value)
+                for item in ast.walk(node)
+            )
+        )
+    )
 
     aliases = {
         name
@@ -834,7 +1092,13 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
     def value_aliases_scalar(value: ast.AST) -> bool:
         def has_scalar_owner(expression: ast.AST) -> bool:
             name = _call_name(expression)
-            return name is not None and name.split(".", 1)[0] in aliases
+            return (
+                name is not None
+                and name.split(".", 1)[0] in aliases
+                or isinstance(expression, ast.Attribute)
+                and expression.attr == "__dict__"
+                and scalar_cast_expression(expression.value)
+            )
 
         if isinstance(value, ast.Subscript):
             return has_scalar_owner(value.value) or value_aliases_scalar(value.value)
@@ -844,10 +1108,51 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             if (
                 _call_name(value.func) == "getattr"
                 and value.args
-                and value_aliases_scalar(value.args[0])
+                and (
+                    value_aliases_scalar(value.args[0])
+                    or scalar_cast_expression(value.args[0])
+                )
             ):
                 return True
+            if isinstance(value.func, ast.Lambda):
+                return value_aliases_scalar(value.func.body) or scalar_cast_expression(
+                    value.func.body
+                )
+            if _call_name(value.func) in {*identity_names, "next", "iter"}:
+                return any(
+                    value_aliases_scalar(item) or scalar_cast_expression(item)
+                    for item in value.args
+                )
+            if (
+                isinstance(value.func, ast.Attribute)
+                and value.func.attr in {"get", "setdefault"}
+                and isinstance(value.func.value, ast.Dict)
+            ):
+                return any(
+                    value_aliases_scalar(item) or scalar_cast_expression(item)
+                    for item in value.func.value.values
+                )
             return value_aliases_scalar(value.func)
+        if isinstance(value, ast.IfExp):
+            return value_aliases_scalar(value.body) or value_aliases_scalar(
+                value.orelse
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(value_aliases_scalar(item) for item in value.values)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(value_aliases_scalar(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(value_aliases_scalar(item) for item in value.values)
+        if isinstance(value, ast.GeneratorExp):
+            return (
+                value_aliases_scalar(value.elt)
+                or scalar_cast_expression(value.elt)
+                or any(
+                    value_aliases_scalar(generator.iter)
+                    or scalar_cast_expression(generator.iter)
+                    for generator in value.generators
+                )
+            )
         return (_call_name(value) or "") in aliases
 
     aliases.update(
@@ -895,21 +1200,61 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                         aliases.add(name)
                         changed = True
 
+    trainable_aliases: set[str] = set()
+
     def trainable_expression(value: ast.AST) -> bool:
-        return any(
-            token
-            in (
-                name.id.lower()
-                if isinstance(name, ast.Name)
-                else name.attr.lower()
-                if isinstance(name, ast.Attribute)
-                else literal.lower()
+        if isinstance(value, ast.Name):
+            return value.id in trainable_aliases or any(
+                token in value.id.lower() for token in trainable_tokens
             )
-            for name in ast.walk(value)
-            for literal in (_literal_string(name),)
-            if isinstance(name, (ast.Name, ast.Attribute)) or literal is not None
-            for token in trainable_tokens
-        )
+        if isinstance(value, ast.Attribute):
+            return any(token in value.attr.lower() for token in trainable_tokens) or (
+                value.attr == "__dict__" and trainable_expression(value.value)
+            )
+        if (literal := _literal_string(value)) is not None:
+            return any(token in literal.lower() for token in trainable_tokens)
+        if isinstance(value, ast.Subscript):
+            return trainable_expression(value.value)
+        if isinstance(value, ast.IfExp):
+            return trainable_expression(value.body) or trainable_expression(
+                value.orelse
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(trainable_expression(item) for item in value.values)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(trainable_expression(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(trainable_expression(item) for item in value.values)
+        if isinstance(value, ast.GeneratorExp):
+            return trainable_expression(value.elt) or any(
+                trainable_expression(generator.iter) for generator in value.generators
+            )
+        if isinstance(value, ast.Call):
+            if isinstance(value.func, ast.Lambda):
+                return trainable_expression(value.func.body)
+            if _call_name(value.func) in {*identity_names, "next", "iter"}:
+                return any(trainable_expression(item) for item in value.args)
+            if _call_name(value.func) == "getattr" and value.args:
+                return trainable_expression(value.args[0]) or any(
+                    trainable_expression(item) for item in value.args[1:]
+                )
+        return False
+
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+                continue
+            if not trainable_expression(node.value):
+                continue
+            for target in (
+                node.targets if isinstance(node, ast.Assign) else (node.target,)
+            ):
+                for name in target_names(target):
+                    if name not in trainable_aliases:
+                        trainable_aliases.add(name)
+                        changed = True
 
     return any(
         isinstance(node, ast.Call)

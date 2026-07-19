@@ -386,6 +386,23 @@ def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
         "load = factory()\n",
         "holder = {'module': importlib}['module']\n"
         "load = getattr(holder, 'import_' + 'module')\n",
+        "holder = {'module': importlib}['module']\n"
+        "member = 'import_module'\n"
+        "load = getattr(holder, member)\n",
+        "mapping_type = type({})\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n",
+        "def map_factory():\n    return dict\n"
+        "mapping_type = map_factory()\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n",
+        "mapping_type = (lambda: dict)()\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n",
+        "def identity(value):\n    return value\n"
+        "mapping_type = identity(dict)\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n",
     ),
 )
 def test_production_import_audit_rejects_reflection_alias_gate_import(

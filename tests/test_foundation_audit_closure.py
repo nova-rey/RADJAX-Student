@@ -175,7 +175,7 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "load = importlib.__dict__['import_module']\n"
         "load('radjax_student.steps')\n",
         relative_path="runtime/x.py",
-    ) == ("runtime_steps_import",)
+    ) == ("runtime_dynamic_import", "runtime_steps_import")
     assert audit_source_fixture(
         "loader = __import__('importlib')\n"
         "load = getattr(loader, 'import_module')\n"
@@ -193,7 +193,7 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "load = importlib.__dict__.get('import_module')\n"
         "load('radjax_student.steps')\n",
         relative_path="runtime/x.py",
-    ) == ("runtime_steps_import",)
+    ) == ("runtime_dynamic_import", "runtime_steps_import")
     assert audit_source_fixture(
         "import importlib\n"
         "load = vars(importlib)['import_module']\n"
@@ -313,6 +313,31 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "import importlib\n"
         "holder = {'module': importlib}['module']\n"
         "load = getattr(holder, 'import_' + 'module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "holder = {'module': importlib}['module']\n"
+        "member = 'import_module'\n"
+        "load = getattr(holder, member)\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "mapping_type = type({})\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "def identity(value):\n    return value\n"
+        "mapping_type = identity(dict)\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n"
         "load('radjax_student.steps')\n",
         relative_path="runtime/x.py",
     ) == ("runtime_dynamic_import",)
@@ -462,6 +487,35 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(
         "float(getattr(prepared_inputs, 'param' + 'eters'))\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "value = prepared_inputs.parameters\nfloat(value)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "cast = float if True else int\n"
+        "value = prepared_inputs.parameters\ncast(value)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "value = prepared_inputs.parameters\n(lambda: float)()(value)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "value = prepared_inputs.parameters\nnext(cast for cast in (float,))(value)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "value = prepared_inputs.parameters\n{'cast': float}.get('cast')(value)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "value = prepared_inputs.parameters\ngetattr(float, '__new__')(float, value)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "value = prepared_inputs.parameters\nfloat.__dict__['__new__'](float, value)\n",
         relative_path="steps/jax_step.py",
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(

@@ -490,6 +490,27 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     when source uses reflection to compute a protected target.
     """
     aliases: dict[str, str] = {}
+    identity_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and len(node.args.args) == 1
+        and len(node.body) == 1
+        and isinstance(node.body[0], ast.Return)
+        and isinstance(node.body[0].value, ast.Name)
+        and node.body[0].value.id == node.args.args[0].arg
+    }
+    identity_names.update(
+        target.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Lambda)
+        and len(node.value.args.args) == 1
+        and isinstance(node.value.body, ast.Name)
+        and node.value.body.id == node.value.args.args[0].arg
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    )
 
     def carries_reflection_value(value: ast.AST | None) -> bool:
         if value is None:
@@ -592,6 +613,182 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 for item in node.names:
                     if item.name == "__import__":
                         aliases[item.asname or item.name] = "__import__"
+
+    def protected_holder(value: ast.AST | None) -> bool:
+        """Follow local import-module carriers only at reflection boundaries."""
+        if value is None:
+            return False
+        if isinstance(value, ast.Name):
+            return aliases.get(value.id, value.id) in {
+                "importlib",
+                "builtins",
+                "__builtins__",
+            }
+        if isinstance(value, ast.Attribute):
+            return protected_holder(value.value)
+        if isinstance(value, (ast.IfExp, ast.BoolOp)):
+            values = (
+                (value.body, value.orelse)
+                if isinstance(value, ast.IfExp)
+                else value.values
+            )
+            return any(protected_holder(item) for item in values)
+        if isinstance(value, ast.Lambda):
+            return protected_holder(value.body)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(protected_holder(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(protected_holder(item) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return protected_holder(value.value)
+        if isinstance(value, ast.Call):
+            name = _call_name(value.func)
+            if name in {"__import__", "builtins.__import__"} and value.args:
+                return _source_literal_string(value.args[0]) in {
+                    "importlib",
+                    "builtins",
+                }
+            if isinstance(value.func, ast.Lambda):
+                return protected_holder(value.func.body)
+            return any(protected_holder(item) for item in value.args) or any(
+                protected_holder(item.value) for item in value.keywords
+            )
+        return False
+
+    def mapping_carrier(value: ast.AST | None, names: set[str]) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, ast.Name):
+            return value.id in names
+        if isinstance(value, ast.Call):
+            if _call_name(value.func) == "type" and value.args:
+                return isinstance(value.args[0], (ast.Dict, ast.List, ast.Set))
+            if isinstance(value.func, ast.Lambda):
+                return mapping_carrier(value.func.body, names)
+            name = _call_name(value.func)
+            if name in {*identity_names, "next", "iter"}:
+                return any(mapping_carrier(item, names) for item in value.args)
+            return name in names
+        if isinstance(value, ast.IfExp):
+            return mapping_carrier(value.body, names) or mapping_carrier(
+                value.orelse, names
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(mapping_carrier(item, names) for item in value.values)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(mapping_carrier(item, names) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(mapping_carrier(item, names) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return mapping_carrier(value.value, names)
+        return False
+
+    def reflection_carrier(value: ast.AST | None, mapping_names: set[str]) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, ast.Name):
+            return value.id == "getattr"
+        if isinstance(value, ast.Attribute):
+            return value.attr in {"__getattribute__", "__getitem__"} or (
+                value.attr in {"get", "setdefault"}
+                and mapping_carrier(value.value, mapping_names)
+            )
+        if isinstance(value, ast.Call):
+            if isinstance(value.func, ast.Lambda):
+                return reflection_carrier(value.func.body, mapping_names)
+            return _call_name(value.func) in reflection_names
+        if isinstance(value, ast.IfExp):
+            return reflection_carrier(value.body, mapping_names) or reflection_carrier(
+                value.orelse, mapping_names
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(reflection_carrier(item, mapping_names) for item in value.values)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(reflection_carrier(item, mapping_names) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(reflection_carrier(item, mapping_names) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return reflection_carrier(value.value, mapping_names)
+        return False
+
+    holder_names = {
+        name
+        for name, target in aliases.items()
+        if target in {"importlib", "builtins", "__builtins__"}
+    }
+    mapping_names = {"dict", "object"}
+    reflection_names: set[str] = set()
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            if protected_holder(node.value):
+                for target in targets:
+                    if isinstance(target, ast.Name) and target.id not in holder_names:
+                        holder_names.add(target.id)
+                        aliases[target.id] = "importlib"
+                        changed = True
+            if mapping_carrier(node.value, mapping_names):
+                for target in targets:
+                    if isinstance(target, ast.Name) and target.id not in mapping_names:
+                        mapping_names.add(target.id)
+                        changed = True
+            if reflection_carrier(node.value, mapping_names):
+                for target in targets:
+                    if (
+                        isinstance(target, ast.Name)
+                        and target.id not in reflection_names
+                    ):
+                        reflection_names.add(target.id)
+                        changed = True
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                continue
+            returns = [
+                item.value
+                for item in ast.walk(node)
+                if isinstance(item, ast.Return) and item.value is not None
+            ]
+            if any(protected_holder(value) for value in returns):
+                aliases[node.name] = "importlib"
+                holder_names.add(node.name)
+            if any(mapping_carrier(value, mapping_names) for value in returns):
+                mapping_names.add(node.name)
+            if any(reflection_carrier(value, mapping_names) for value in returns):
+                reflection_names.add(node.name)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Call):
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "getattr"
+                and node.args
+                and protected_holder(node.args[0])
+            ):
+                return True
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr in {"get", "setdefault", "__getitem__"}
+                and protected_holder(node.func.value)
+            ):
+                return True
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id in reflection_names
+                and any(protected_holder(argument) for argument in node.args)
+            ):
+                return True
+        elif (
+            isinstance(node, ast.Attribute)
+            and node.attr in {"get", "setdefault", "__getitem__"}
+            and protected_holder(node.value)
+        ):
+            return True
+        elif isinstance(node, ast.Subscript) and protected_holder(node.value):
+            return True
 
     if any(_source_literal_string(node) == "__builtins__" for node in ast.walk(tree)):
         return True
