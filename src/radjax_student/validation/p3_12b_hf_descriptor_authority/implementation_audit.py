@@ -74,11 +74,20 @@ _MODULE_EXECUTION_AUTHORITIES = frozenset(
         "_frozen_importlib",
         "_frozen_importlib_external",
         "cffi",
+        "code",
+        "codeop",
+        "cloudpickle",
         "ctypes",
+        "dill",
+        "doctest",
         "imp",
+        "marshal",
         "pkgutil",
+        "pickle",
         "pydoc",
         "runpy",
+        "timeit",
+        "unittest",
         "zipimport",
     }
 )
@@ -87,9 +96,10 @@ _MODULE_EXECUTION_AUTHORITIES = frozenset(
 def _is_module_execution_authority(name: str) -> bool:
     """Whether an import spelling exposes the standard module executor."""
     return (
-        name in _MODULE_EXECUTION_AUTHORITIES
+        name.split(".", 1)[0] in _MODULE_EXECUTION_AUTHORITIES
         or name.startswith("importlib._")
         or name == "importlib.machinery"
+        or name == "importlib.resources"
     )
 
 
@@ -519,6 +529,21 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         and any(_is_module_execution_authority(item.name) for item in node.names)
         or isinstance(node, ast.ImportFrom)
         and _is_module_execution_authority(node.module or "")
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in {"compile", "eval", "exec"}
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, ast.Attribute)
+        and node.attr == "modules"
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "sys"
         for node in ast.walk(tree)
     ):
         return True

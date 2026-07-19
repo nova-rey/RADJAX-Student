@@ -21,6 +21,19 @@ from radjax_student.runtime.models import (
 
 InspectionStatus: TypeAlias = Literal["pass", "fail"]
 
+
+def _find_module_spec(name: str) -> object | None:
+    """Narrow optional-runtime discovery seam used by metadata-only inspection."""
+    return importlib.util.find_spec(name)
+
+
+def _import_module(name: Literal["jax", "jaxlib"]) -> ModuleType:
+    """Load only the two reviewed optional runtime modules."""
+    if name == "jax":
+        return importlib.import_module("jax")
+    return importlib.import_module("jaxlib")
+
+
 RUNTIME_INSPECTION_FINDING_CODES: tuple[str, ...] = (
     "device_memory_unknown",
     "device_normalization_failed",
@@ -167,7 +180,7 @@ def _inspect_runtime_environment() -> RuntimeInspection:
         )
 
     try:
-        jax_module = importlib.import_module("jax")
+        jax_module = _import_module("jax")
     except Exception as exc:
         warnings.append(
             RuntimeIssue.create(
@@ -305,7 +318,7 @@ def _inspection_result(
 
 def _module_available(name: str, warnings: list[RuntimeIssue]) -> bool | None:
     try:
-        return importlib.util.find_spec(name) is not None
+        return _find_module_spec(name) is not None
     except (ImportError, AttributeError, ValueError) as exc:
         warnings.append(
             RuntimeIssue.create(
@@ -319,7 +332,7 @@ def _module_available(name: str, warnings: list[RuntimeIssue]) -> bool | None:
 
 def _inspect_jaxlib_version(warnings: list[RuntimeIssue]) -> str | None:
     try:
-        available = importlib.util.find_spec("jaxlib") is not None
+        available = _find_module_spec("jaxlib") is not None
     except (ImportError, AttributeError, ValueError) as exc:
         warnings.append(
             RuntimeIssue.create(
@@ -339,7 +352,7 @@ def _inspect_jaxlib_version(warnings: list[RuntimeIssue]) -> str | None:
         )
         return None
     try:
-        module = importlib.import_module("jaxlib")
+        module = _import_module("jaxlib")
     except Exception as exc:
         warnings.append(
             RuntimeIssue.create(

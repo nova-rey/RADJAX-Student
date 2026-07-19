@@ -89,11 +89,20 @@ _MODULE_EXECUTION_AUTHORITIES = frozenset(
         "_frozen_importlib",
         "_frozen_importlib_external",
         "cffi",
+        "code",
+        "codeop",
+        "cloudpickle",
         "ctypes",
+        "dill",
+        "doctest",
         "imp",
+        "marshal",
         "pkgutil",
+        "pickle",
         "pydoc",
         "runpy",
+        "timeit",
+        "unittest",
         "zipimport",
     }
 )
@@ -102,9 +111,10 @@ _MODULE_EXECUTION_AUTHORITIES = frozenset(
 def _is_module_execution_authority(name: str) -> bool:
     """Whether an import spelling exposes a module-execution authority."""
     return (
-        name in _MODULE_EXECUTION_AUTHORITIES
+        name.split(".", 1)[0] in _MODULE_EXECUTION_AUTHORITIES
         or name.startswith("importlib._")
         or name == "importlib.machinery"
+        or name == "importlib.resources"
     )
 
 
@@ -141,7 +151,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "4fb0034e201af45a3af438363dd4144bf88b0bb2d63495db8f60a7fa0095e68c"
+    "7cc222ae397b560b02a468f1e7d4696212dae19de7e5171f4827317c3857e5f3"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -443,6 +453,21 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         and any(_is_module_execution_authority(item.name) for item in node.names)
         or isinstance(node, ast.ImportFrom)
         and _is_module_execution_authority(node.module or "")
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in {"compile", "eval", "exec"}
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, ast.Attribute)
+        and node.attr == "modules"
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "sys"
         for node in ast.walk(tree)
     ):
         return True
@@ -1534,6 +1559,20 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             "__reversed__",
         }
     )
+
+    def is_carrier_transform_method(method: ast.AST) -> bool:
+        if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return False
+        return (
+            method.name in carrier_transform_methods
+            or method.name.startswith("__")
+            and method.name.endswith("__")
+            or any(
+                isinstance(decorator, ast.Name) and decorator.id == "property"
+                for decorator in method.decorator_list
+            )
+        )
+
     partial_names = {"partial", "functools.partial"}
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -1554,7 +1593,23 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         return owner if not separator else f"{owner}.{tail}"
 
     def transformed_instance(value: ast.AST, classes: set[str]) -> bool:
-        return isinstance(value, ast.Call) and _call_name(value.func) in classes
+        return (
+            isinstance(value, ast.Name)
+            and value.id in classes
+            or isinstance(value, ast.Call)
+            and _call_name(value.func) in classes
+        )
+
+    def transformed_attribute(value: ast.AST, names: set[str]) -> bool:
+        if not isinstance(value, ast.Attribute):
+            return False
+        if (_call_name(value) or "") in names:
+            return True
+        return (
+            isinstance(value.value, ast.Call)
+            and isinstance(value.value.func, ast.Name)
+            and f"{value.value.func.id}.{value.attr}" in names
+        )
 
     def scalar_cast_expression(value: ast.AST) -> bool:
         if resolved_name(value) in {
@@ -1575,6 +1630,11 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             return True
         if isinstance(value, ast.UnaryOp):
             return transformed_instance(value.operand, scalar_transform_classes)
+        if isinstance(value, ast.Compare):
+            return transformed_instance(value.left, scalar_transform_classes) or any(
+                transformed_instance(item, scalar_transform_classes)
+                for item in value.comparators
+            )
         if isinstance(value, ast.Call):
             if (
                 isinstance(value.func, ast.Call)
@@ -1601,7 +1661,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 return True
             if _call_name(value.func) in partial_names:
                 return any(scalar_cast_expression(item) for item in value.args)
-            if _call_name(value.func) in {*identity_names, "next", "iter"}:
+            if _call_name(value.func) in {*identity_names, "next", "iter", "round"}:
                 return any(
                     scalar_cast_expression(item)
                     or transformed_instance(item, scalar_transform_classes)
@@ -1650,7 +1710,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             return True
         if isinstance(value, ast.Attribute):
             return (
-                (_call_name(value) or "") in scalar_attribute_names
+                transformed_attribute(value, scalar_attribute_names)
                 or transformed_instance(value.value, scalar_transform_classes)
                 or value.attr == "__class__"
                 or (
@@ -1667,13 +1727,29 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         if isinstance(value, ast.NamedExpr):
             return scalar_cast_expression(value.value)
         if isinstance(value, ast.BinOp):
-            return scalar_cast_expression(value.left) or scalar_cast_expression(
-                value.right
+            return (
+                scalar_cast_expression(value.left)
+                or scalar_cast_expression(value.right)
+                or transformed_instance(value.left, scalar_transform_classes)
+                or transformed_instance(value.right, scalar_transform_classes)
             )
         if isinstance(value, ast.Lambda):
             return scalar_cast_expression(value.body)
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(scalar_cast_expression(item) for item in value.elts)
+        if isinstance(value, (ast.ListComp, ast.SetComp)):
+            return scalar_cast_expression(value.elt) or any(
+                scalar_cast_expression(generator.iter) for generator in value.generators
+            )
+        if isinstance(value, ast.DictComp):
+            return (
+                scalar_cast_expression(value.key)
+                or scalar_cast_expression(value.value)
+                or any(
+                    scalar_cast_expression(generator.iter)
+                    for generator in value.generators
+                )
+            )
         if isinstance(value, ast.Dict):
             return any(scalar_cast_expression(item) for item in value.values)
         if isinstance(value, ast.GeneratorExp):
@@ -1710,8 +1786,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         for class_node in ast.walk(tree)
         if isinstance(class_node, ast.ClassDef)
         and any(
-            isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and method.name in carrier_transform_methods
+            is_carrier_transform_method(method)
             and any(
                 isinstance(item, (ast.Return, ast.Yield))
                 and item.value is not None
@@ -1720,6 +1795,47 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             )
             for method in class_node.body
         )
+    )
+    changed_transforms = True
+    while changed_transforms:
+        changed_transforms = False
+        for class_node in ast.walk(tree):
+            if not isinstance(class_node, ast.ClassDef):
+                continue
+            metaclass = next(
+                (
+                    keyword.value
+                    for keyword in class_node.keywords
+                    if keyword.arg == "metaclass"
+                ),
+                None,
+            )
+            if (
+                isinstance(metaclass, ast.Name)
+                and metaclass.id in scalar_transform_classes
+                and class_node.name not in scalar_transform_classes
+            ):
+                scalar_transform_classes.add(class_node.name)
+                changed_transforms = True
+    scalar_attribute_names.update(
+        _call_name(target) or ""
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Call)
+        and _call_name(node.value.func) in scalar_transform_classes
+        for target in node.targets
+        if isinstance(target, ast.Attribute)
+    )
+    scalar_attribute_names.update(
+        f"{class_node.name}.{target.id}"
+        for class_node in ast.walk(tree)
+        if isinstance(class_node, ast.ClassDef)
+        for node in class_node.body
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Call)
+        and _call_name(node.value.func) in scalar_transform_classes
+        for target in node.targets
+        if isinstance(target, ast.Name)
     )
     scalar_callable_classes.update(
         target.value.id
@@ -1945,8 +2061,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         for class_node in ast.walk(tree)
         if isinstance(class_node, ast.ClassDef)
         and any(
-            isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
-            and method.name in carrier_transform_methods
+            is_carrier_transform_method(method)
             and any(
                 isinstance(item, (ast.Return, ast.Yield))
                 and item.value is not None
@@ -1956,6 +2071,47 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             for method in class_node.body
         )
     }
+    changed_trainable_transforms = True
+    while changed_trainable_transforms:
+        changed_trainable_transforms = False
+        for class_node in ast.walk(tree):
+            if not isinstance(class_node, ast.ClassDef):
+                continue
+            metaclass = next(
+                (
+                    keyword.value
+                    for keyword in class_node.keywords
+                    if keyword.arg == "metaclass"
+                ),
+                None,
+            )
+            if (
+                isinstance(metaclass, ast.Name)
+                and metaclass.id in trainable_transform_classes
+                and class_node.name not in trainable_transform_classes
+            ):
+                trainable_transform_classes.add(class_node.name)
+                changed_trainable_transforms = True
+    trainable_attribute_transform_names = {
+        _call_name(target) or ""
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Call)
+        and _call_name(node.value.func) in trainable_transform_classes
+        for target in node.targets
+        if isinstance(target, ast.Attribute)
+    }
+    trainable_attribute_transform_names.update(
+        f"{class_node.name}.{target.id}"
+        for class_node in ast.walk(tree)
+        if isinstance(class_node, ast.ClassDef)
+        for node in class_node.body
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Call)
+        and _call_name(node.value.func) in trainable_transform_classes
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    )
 
     trainable_aliases: set[str] = set()
     callable_relay_classes = {
@@ -2059,6 +2215,25 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             return callable_relay_expression(value.value)
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(callable_relay_expression(item) for item in value.elts)
+        if isinstance(value, (ast.ListComp, ast.SetComp)):
+            return callable_relay_expression(value.elt) or any(
+                callable_relay_expression(generator.iter)
+                for generator in value.generators
+            )
+        if isinstance(value, ast.DictComp):
+            return (
+                callable_relay_expression(value.key)
+                or callable_relay_expression(value.value)
+                or any(
+                    callable_relay_expression(generator.iter)
+                    for generator in value.generators
+                )
+            )
+        if isinstance(value, ast.GeneratorExp):
+            return callable_relay_expression(value.elt) or any(
+                callable_relay_expression(generator.iter)
+                for generator in value.generators
+            )
         if isinstance(value, ast.IfExp):
             return callable_relay_expression(value.body) or callable_relay_expression(
                 value.orelse
@@ -2107,6 +2282,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 any(token in value.attr.lower() for token in trainable_tokens)
                 or (value.attr == "__dict__" and trainable_expression(value.value))
                 or transformed_instance(value.value, trainable_transform_classes)
+                or transformed_attribute(value, trainable_attribute_transform_names)
             )
         if (literal := _literal_string(value)) is not None:
             return any(token in literal.lower() for token in trainable_tokens)
@@ -2131,15 +2307,39 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         if isinstance(value, ast.BoolOp):
             return any(trainable_expression(item) for item in value.values)
         if isinstance(value, ast.Compare):
-            return trainable_expression(value.left) or any(
-                trainable_expression(item) for item in value.comparators
+            return (
+                trainable_expression(value.left)
+                or any(trainable_expression(item) for item in value.comparators)
+                or transformed_instance(value.left, trainable_transform_classes)
+                or any(
+                    transformed_instance(item, trainable_transform_classes)
+                    for item in value.comparators
+                )
             )
         if isinstance(value, ast.NamedExpr):
             return trainable_expression(value.value)
         if isinstance(value, ast.BinOp):
-            return trainable_expression(value.left) or trainable_expression(value.right)
+            return (
+                trainable_expression(value.left)
+                or trainable_expression(value.right)
+                or transformed_instance(value.left, trainable_transform_classes)
+                or transformed_instance(value.right, trainable_transform_classes)
+            )
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(trainable_expression(item) for item in value.elts)
+        if isinstance(value, (ast.ListComp, ast.SetComp)):
+            return trainable_expression(value.elt) or any(
+                trainable_expression(generator.iter) for generator in value.generators
+            )
+        if isinstance(value, ast.DictComp):
+            return (
+                trainable_expression(value.key)
+                or trainable_expression(value.value)
+                or any(
+                    trainable_expression(generator.iter)
+                    for generator in value.generators
+                )
+            )
         if isinstance(value, ast.Dict):
             return any(trainable_expression(item) for item in value.values)
         if isinstance(value, ast.GeneratorExp):
@@ -2163,7 +2363,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 return any(trainable_expression(item) for item in value.args) or any(
                     trainable_expression(item.value) for item in value.keywords
                 )
-            if name in {*identity_names, "next", "iter"}:
+            if name in {*identity_names, "next", "iter", "round"}:
                 return any(
                     trainable_expression(item)
                     or transformed_instance(item, trainable_transform_classes)
@@ -2233,6 +2433,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 is_runtime_trainable_attribute(value)
                 or (value.attr == "__dict__" and host_truth_expression(value.value))
                 or transformed_instance(value.value, trainable_transform_classes)
+                or transformed_attribute(value, trainable_attribute_transform_names)
             )
         if isinstance(value, ast.UnaryOp):
             return transformed_instance(value.operand, trainable_transform_classes)
@@ -2249,13 +2450,39 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         if isinstance(value, ast.Starred):
             return host_truth_expression(value.value)
         if isinstance(value, ast.Compare):
-            return host_truth_expression(value.left) or any(
-                host_truth_expression(item) for item in value.comparators
+            return (
+                host_truth_expression(value.left)
+                or any(host_truth_expression(item) for item in value.comparators)
+                or transformed_instance(value.left, trainable_transform_classes)
+                or any(
+                    transformed_instance(item, trainable_transform_classes)
+                    for item in value.comparators
+                )
             )
         if isinstance(value, ast.BoolOp):
             return any(host_truth_expression(item) for item in value.values)
+        if isinstance(value, ast.BinOp):
+            return (
+                host_truth_expression(value.left)
+                or host_truth_expression(value.right)
+                or transformed_instance(value.left, trainable_transform_classes)
+                or transformed_instance(value.right, trainable_transform_classes)
+            )
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(host_truth_expression(item) for item in value.elts)
+        if isinstance(value, (ast.ListComp, ast.SetComp)):
+            return host_truth_expression(value.elt) or any(
+                host_truth_expression(generator.iter) for generator in value.generators
+            )
+        if isinstance(value, ast.DictComp):
+            return (
+                host_truth_expression(value.key)
+                or host_truth_expression(value.value)
+                or any(
+                    host_truth_expression(generator.iter)
+                    for generator in value.generators
+                )
+            )
         if isinstance(value, ast.Dict):
             return any(host_truth_expression(item) for item in value.values)
         if isinstance(value, ast.GeneratorExp):

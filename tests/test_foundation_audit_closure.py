@@ -708,6 +708,15 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "import _frozen_importlib as bootstrap\nbootstrap._gcd_import(target)\n",
         "import ctypes\n"
         "loader = ctypes.pythonapi.PyImport_ImportModule\nloader(target.encode())\n",
+        "import importlib.resources\nimportlib.resources.files(target)\n",
+        "import pickle\npickle.loads(payload)\n",
+        "import unittest.mock\nunittest.mock.patch(target).start()\n",
+        "import timeit\ntimeit.timeit('import ' + target, number=1)\n",
+        "import code\ncode.InteractiveInterpreter().runsource('import ' + target)\n",
+        "exec('import ' + target)\n",
+        "import sys\n"
+        "bootstrap = sys.modules['_frozen_importlib']\n"
+        "load = getattr(bootstrap, '_gcd_import')\nload(target)\n",
     ),
 )
 def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> None:
@@ -803,6 +812,47 @@ def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> No
         "result = next(iter(Cast()))(prepared_inputs.parameters)\n",
         "class Cast:\n    def __getattr__(self, name):\n        return float\n"
         "result = Cast().anything(prepared_inputs.parameters)\n",
+        "class Cast:\n    def __add__(self, value):\n        return float\n"
+        "result = (Cast() + 1)(prepared_inputs.parameters)\n",
+        "class Cast:\n    def __eq__(self, value):\n        return float\n"
+        "result = (Cast() == 1)(prepared_inputs.parameters)\n",
+        "class Cast:\n    def __round__(self, digits=None):\n        return float\n"
+        "result = round(Cast())(prepared_inputs.parameters)\n",
+        "class Cast:\n    def __class_getitem__(cls, item):\n        return float\n"
+        "result = Cast[int](prepared_inputs.parameters)\n",
+        "class Meta(type):\n    def __getattr__(cls, name):\n        return float\n"
+        "class Cast(metaclass=Meta):\n    pass\n"
+        "result = Cast.anything(prepared_inputs.parameters)\n",
+        "class Descriptor:\n    def __get__(self, instance, owner):\n"
+        "        return float\n"
+        "class Cast:\n    value = Descriptor()\n"
+        "result = Cast().value(prepared_inputs.parameters)\n",
+        "class Relay:\n    def __add__(self, value):\n"
+        "        return prepared_inputs.parameters\n"
+        "value = Relay() + 1\nfloat(value)\n",
+        "class Relay:\n    def __eq__(self, value):\n"
+        "        return prepared_inputs.parameters\n"
+        "value = Relay() == 1\nfloat(value)\n",
+        "class Relay:\n    @property\n    def value(self):\n"
+        "        return prepared_inputs.parameters\n"
+        "value = Relay().value\nfloat(value)\n",
+        "class Descriptor:\n    def __get__(self, instance, owner):\n"
+        "        return prepared_inputs.parameters\n"
+        "class Relay:\n    value = Descriptor()\n"
+        "value = Relay().value\nfloat(value)\n",
+        "value = [item for item in (prepared_inputs.parameters,)][0]\nfloat(value)\n",
+        "value = next(item for item in (prepared_inputs.parameters,))\nfloat(value)\n",
+        "value = {'p': item for item in (prepared_inputs.parameters,)}['p']\n"
+        "float(value)\n",
+        "def relay(value):\n    return value\n"
+        "value = [item for item in (relay,)][0](prepared_inputs.parameters)\n"
+        "float(value)\n",
+        "def relay(value):\n    return value\n"
+        "value = next(item for item in (relay,))(prepared_inputs.parameters)\n"
+        "float(value)\n",
+        "def relay(value):\n    return value\n"
+        "value = {'r': item for item in (relay,)}['r'](prepared_inputs.parameters)\n"
+        "float(value)\n",
     ),
 )
 def test_literal_trainable_carriers_fail_closed(source: str) -> None:

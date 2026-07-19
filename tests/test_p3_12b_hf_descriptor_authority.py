@@ -596,6 +596,22 @@ def test_production_import_audit_rejects_indirect_runpy_execution(
         "import ctypes\n"
         "loader = ctypes.pythonapi.PyImport_ImportModule\n"
         "loader(b'radjax_student.validation.fixture')\n",
+        "import importlib.resources\n"
+        "importlib.resources.files('radjax_student.validation.fixture')\n",
+        "import pickle\npickle.loads(payload)\n",
+        "import unittest.mock\n"
+        "unittest.mock.patch('radjax_student.validation.fixture').start()\n",
+        "import timeit\n"
+        "timeit.timeit('import radjax_student.validation.fixture', number=1)\n",
+        "import code\n"
+        "code.InteractiveInterpreter().runsource(\n"
+        "    'import radjax_student.validation.fixture'\n"
+        ")\n",
+        "exec('import radjax_student.validation.fixture')\n",
+        "import sys\n"
+        "bootstrap = sys.modules['_frozen_importlib']\n"
+        "load = getattr(bootstrap, '_gcd_import')\n"
+        "load('radjax_student.validation.fixture')\n",
     ),
 )
 def test_production_import_audit_rejects_module_execution_authorities(

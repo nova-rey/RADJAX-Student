@@ -1695,3 +1695,11 @@
   receipts twice byte-identically through their normal writers after the
   closure audit changed their source-dependent one-authority evidence. All
   P3.12A-D recorded checks then remained read-only.
+
+## 2026-07-18 - Closed executor and descriptor audit hardening
+
+- The Foundation and P3.12B audits now reject reviewed bootstrap, interpreter,
+  serialization, resource, FFI, and module-cache execution authorities. The
+  canonical JAX-purity analysis follows scalar and trainable values through
+  operator, descriptor, metaclass, and comprehension carriers. Runtime
+  inspection retains its narrow literal optional-JAX seams for hermetic tests.
