@@ -1377,3 +1377,9 @@
   return as unreachable, so a broad handler cannot claim to preserve the
   caller-bound descriptor rejection merely by leaving dead `raise` syntax in
   its body. The exact mutation is covered by the JAX-free source fixture.
+
+## 2026-07-18 - Foundation audit handler evidence refresh
+
+- Regenerated P3.5 from accepted source commit `4cd2427` and regenerated the
+  dependent P3.11.10 receipt twice byte-identically. The recorded evidence
+  retains exact source provenance after the handler-reachability correction.
