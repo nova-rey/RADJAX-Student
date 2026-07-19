@@ -1466,6 +1466,12 @@
   update; its full executed receipt remained byte-identical across fresh
   writers.
 
+## 2026-07-18 - Standard reflection closure
+
+- The fail-closed import policy now covers dictionary, operator, object, and
+  evaluation-based reflective extraction. The JAX-purity audit also covers
+  `builtins.float` and attribute lookup before scalar conversion.
+
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `55f8f09`

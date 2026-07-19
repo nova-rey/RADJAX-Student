@@ -674,6 +674,10 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "importlib",
                 "import_module",
                 "builtins",
+                "operator",
+                "object",
+                "dict",
+                "eval",
             }
             if any(
                 isinstance(descendant, ast.Name)
@@ -681,6 +685,22 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 or isinstance(descendant, ast.Constant)
                 and isinstance(descendant.value, str)
                 and descendant.value in import_markers
+                for descendant in ast.walk(node.func)
+            ):
+                return True
+            if any(
+                isinstance(descendant, ast.Attribute)
+                and descendant.attr
+                in {
+                    "get",
+                    "getitem",
+                    "__getitem__",
+                    "attrgetter",
+                    "__getattribute__",
+                    "setdefault",
+                    "__import__",
+                    "import_module",
+                }
                 for descendant in ast.walk(node.func)
             ):
                 return True

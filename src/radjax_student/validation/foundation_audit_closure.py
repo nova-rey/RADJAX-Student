@@ -442,6 +442,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
             if isinstance(descendant, ast.Name) and descendant.id in {
                 "__import__",
                 "import_module",
+                "eval",
             }:
                 return True
             if (
@@ -463,10 +464,28 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
                 return True
             if (
                 isinstance(descendant, ast.Attribute)
-                and descendant.attr in {"get", "__import__", "import_module"}
+                and descendant.attr
+                in {
+                    "get",
+                    "getitem",
+                    "__getitem__",
+                    "attrgetter",
+                    "__getattribute__",
+                    "setdefault",
+                    "__import__",
+                    "import_module",
+                }
                 and any(
                     isinstance(value, ast.Name)
-                    and value.id in {"importlib", "builtins", "__builtins__"}
+                    and value.id
+                    in {
+                        "importlib",
+                        "builtins",
+                        "__builtins__",
+                        "operator",
+                        "object",
+                        "dict",
+                    }
                     for value in ast.walk(descendant.value)
                 )
             ):
@@ -488,13 +507,21 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
     )
     return any(
         isinstance(node, ast.Call)
-        and _call_name(node.func) in {"float", "int"}
+        and _call_name(node.func) in {"float", "int", "builtins.float", "builtins.int"}
         and any(
             token
-            in (name.id.lower() if isinstance(name, ast.Name) else name.attr.lower())
+            in (
+                name.id.lower()
+                if isinstance(name, ast.Name)
+                else name.attr.lower()
+                if isinstance(name, ast.Attribute)
+                else name.value.lower()
+            )
             for argument in node.args
             for name in ast.walk(argument)
             if isinstance(name, (ast.Name, ast.Attribute))
+            or isinstance(name, ast.Constant)
+            and isinstance(name.value, str)
             for token in trainable_tokens
         )
         for node in ast.walk(tree)
