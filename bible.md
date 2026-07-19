@@ -1447,6 +1447,9 @@
   primitives while preserving literal optional-JAX imports and the frozen
   historical acceptance exceptions. JAX-purity host-cast detection now follows
   attribute expressions such as `prepared_inputs.parameters`.
+- Refreshed the P3.12B source attestation after the opaque-reflection audit
+  hardening; the exact executed receipt stayed byte-identical across fresh
+  writes.
 
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
