@@ -1320,3 +1320,9 @@
   production owner. Its owner inventory is constrained by an explicit test
   oracle and a dedicated CLI import fixture, preventing validation-gate
   imports from escaping the production boundary through command entrypoints.
+
+## 2026-07-18 - Protected CLI attestation refresh
+
+- Refreshed the frozen JAX-free P3.12B source-byte attestation after extending
+  the reviewed protected-owner inventory, keeping Foundation's recorded-proof
+  check bound to the exact audit source it evaluates.
