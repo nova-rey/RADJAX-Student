@@ -1720,3 +1720,10 @@
   `cached_property`/`property` forms, and map/filter transport. Cold-process
   and eager/JIT regressions prove the added authorities and carrier classes are
   executable hazards rather than decorative source patterns.
+
+## 2026-07-18 - Execution-authority closure evidence refresh
+
+- Regenerated Foundation, P3.5, and P3.11.10 evidence through their normal
+  writers twice byte-identically from accepted source commit `74df5bd`. The
+  P3.11 closure document now binds the regenerated final-gate evidence digest;
+  recorded checks remain read-only.
