@@ -1291,3 +1291,9 @@
 - Frozen parity-fixture bytes remain provenance-bound; independent-oracle values
   use the declared float32 tolerance rather than platform-specific byte equality.
 - No production behavior or approved Phase 4 generic change was altered.
+
+## 2026-07-19 - Verified JAX packaging pin
+
+- The public JAX extra and the dedicated test extra now both pin CPU JAX 0.4.38,
+  the version exercised by Phase 4 verification.
+- A packaging test keeps those runtime and test constraints aligned.

@@ -19,7 +19,7 @@ radjax-student = "radjax_student.cli.main:main"
 
 [project.optional-dependencies]
 jax = [
-  "jax[cpu]>=0.4.0",
+  "jax[cpu]==0.4.38",
 ]
 dev = [
   "pytest>=8.0",
