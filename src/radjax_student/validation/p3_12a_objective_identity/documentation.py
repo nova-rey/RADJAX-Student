@@ -18,9 +18,8 @@ _STATUS_MARKERS = (
     "P3.12B locally accepted",
     "P3.12C locally accepted",
     "P3.12D locally accepted",
-    "Phase 4 remains unstarted",
-    "Phase 4 requires successful required remote base/JAX CI or an explicit "
-    "repository-owner waiver",
+    "Phase 4 architecture-plugin ingestion locally accepted",
+    "Phase 4 local acceptance does not claim remote CI success",
 )
 _ALLOWLIST = (
     "README.md",
@@ -64,7 +63,7 @@ def check_documentation(repository_root: Path) -> ObjectiveDocumentationCheck:
         text = path.read_text(encoding="utf-8")
         if any(marker not in text for marker in _STATUS_MARKERS):
             errors.append(f"status:{relative}")
-        if "remote CI passed" in text or "Phase 4 already begun" in text:
+        if "remote CI passed" in text or "Phase 4 remains unstarted" in text:
             errors.append(f"unsupported_claim:{relative}")
     contract = repository_root / "docs/P3_12A_OBJECTIVE_IDENTITY_CONTRACT.md"
     if contract.is_file():

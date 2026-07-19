@@ -25,8 +25,8 @@ _ALLOWLIST = (
 _MARKERS = (
     "P3.11.1-P3.11.10 locally accepted",
     "P3.11 integration closure complete",
-    "Phase 4 remains unstarted",
-    "Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver",
+    "Phase 4 architecture-plugin ingestion locally accepted",
+    "Phase 4 local acceptance does not claim remote CI success",
 )
 _NON_CLAIMS = (
     "no production architecture",
@@ -46,7 +46,7 @@ _PROHIBITED_CLAIMS = {
     "P3.11.9 pending": "p311_status_pending_claim",
     "P3.11.10 unstarted": "p31110_unstarted_claim",
     "remote CI passed": "unsupported_remote_ci_claim",
-    "Phase 4 already begun": "phase4_started_claim",
+    "Phase 4 remains unstarted": "phase4_unstarted_claim",
     "production model trained": "production_model_claim",
     "cross-environment bitwise replay": "cross_environment_replay_claim",
 }

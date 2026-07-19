@@ -34,11 +34,12 @@ P3.12A locally accepted
 
 P3.12B locally accepted
 
-P3.12C next and unstarted
+P3.12C and P3.12D locally accepted; Phase 4 architecture-plugin ingestion is
+locally accepted and does not alter this historical P3.11.7 checkpoint.
 
-Phase 4 remains unstarted
+Phase 4 architecture-plugin ingestion locally accepted
 
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+Phase 4 local acceptance does not claim remote CI success
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

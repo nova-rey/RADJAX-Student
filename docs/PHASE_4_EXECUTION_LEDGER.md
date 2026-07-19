@@ -168,3 +168,23 @@ already-known prior SHA.
   recursion; P4.8 retains P3.11/P3.12A reconciliation and the historical P3.5
   acceptance-runner conflict recorded by P4.6.
 - **Next checkpoint:** P4.8 — Phase 4 End-to-End Acceptance.
+
+## P4.8 — Phase 4 End-to-End Acceptance
+
+- **Status:** complete
+- **Changed files:** P4.8 validation runner/models/tests; the canonical Phase 4
+  report and acceptance document; bounded P3.5/P3.11/P3.12/foundation status
+  and receipt reconciliation; source-audit allowance; index/roadmap, ledger,
+  and `bible.md` updates.
+- **Tests and verification:** fresh-directory byte-identical P4.8 report,
+  focused P4.8 tests, current P3.5/P3.11/P3.12A-D/foundation gates, final
+  base/JAX suites, static checks, documentation/index checks, and two audits.
+- **Evidence or receipts changed:** generated P4.8 report, P3.5 dependency
+  audit, P3.11.10, P3.12A-D, and foundation receipts reflect current sources;
+  no raw initialization key or callable value is serialized.
+- **Generic-change decision:** none; exactly the three approved
+  architecture-neutral changes remain sparse CE, runtime key materialization,
+  and runtime-supplied `ArchitectureInitRequest` initialization material.
+- **Unresolved non-blocking risks:** equation evidence remains the declared
+  pinned tiny float32 fixture domain; remote CI remains unclaimed.
+- **Next checkpoint:** none — Phase 4 is complete; do not begin P4.9 or Phase 5.

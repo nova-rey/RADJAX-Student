@@ -101,14 +101,14 @@ def experiment_k_p31110_unstarted_after_closure(
     )
 
 
-def experiment_k_phase4_already_begun_claim(
+def experiment_k_phase4_unstarted_claim(
     context: GateExecutionContext,
 ) -> ExperimentExecution:
     baseline = _create_documents(context.temporary_root / "phase4-baseline")
     mutated = _create_documents(context.temporary_root / "phase4-mutated")
-    _append(mutated, "docs/ROADMAP.md", "Phase 4 already begun")
+    _append(mutated, "docs/ROADMAP.md", "Phase 4 remains unstarted")
     return _record(
-        context, baseline, mutated, "docs/ROADMAP.md", "append_phase4_started_claim"
+        context, baseline, mutated, "docs/ROADMAP.md", "append_phase4_unstarted_claim"
     )
 
 
@@ -171,8 +171,8 @@ SECTION_IMPLEMENTATIONS = {
     "K.reject.p31110_unstarted_after_closure": GateCaseImplementation(
         experiment_k_p31110_unstarted_after_closure
     ),
-    "K.reject.phase4_already_begun_claim": GateCaseImplementation(
-        experiment_k_phase4_already_begun_claim
+    "K.reject.phase4_unstarted_claim": GateCaseImplementation(
+        experiment_k_phase4_unstarted_claim
     ),
     "K.reject.unsupported_remote_ci_pass_claim": GateCaseImplementation(
         experiment_k_unsupported_remote_ci_pass_claim

@@ -35,11 +35,11 @@ receipt authority, and one-way production-import purity. There is no permissive
 blocker-family translation and production code has no gate dependency.
 
 Current status: P3.12B is locally accepted after the v2 recorded receipt and
-required local gates pass. P3.12C is locally accepted with one production
-lifecycle assembler; P3.12D remains next and unstarted. Phase 4 remains
-unstarted.
+required local gates pass. P3.12C and P3.12D are locally accepted; Phase 4
+architecture-plugin ingestion is locally accepted and does not alter this
+historical P3.12B checkpoint.
 
 The recorded receipt is
 [P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json](P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json)
 under schema `radjax.p3_12b_hf_descriptor_authority.v2`. Its current evidence
-digest is `1dbd39ab705ececd6f912de7755f0505103f419dc76c522d679b568e229cefa3`.
+digest is `0eafdc26136d045566c868f8d50ec3ee5cb1ba7560de71f50b1c11acecc2000b`.

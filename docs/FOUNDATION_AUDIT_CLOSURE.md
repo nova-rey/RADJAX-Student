@@ -1,7 +1,8 @@
 # Foundation Audit Closure
 
-This closure resolves the focused post-P3.12 foundation findings without adding
-new product capability or beginning Phase 4.
+This closure resolves the focused post-P3.12 foundation findings. It records
+the foundation constraints that Phase 4 architecture-plugin ingestion later
+uses; it is not itself a Phase 4 product capability claim.
 
 ## Ownership corrections
 
@@ -72,4 +73,4 @@ serving, full HF export, or a second architecture before ingestion acceptance.
 
 ## Claims not made
 
-`historical_acceptance_modules_not_fully_relocated`; `validation_namespace_not_fully_split`; `arbitrary_architecture_ingestion_not_yet_proven`; `rwkv_not_implemented`; `phase4_not_started`; `full_hf_export_not_implemented`; `save_pretrained_not_implemented`; `from_pretrained_not_implemented`; `teacher_inference_not_implemented`; `tome_training_not_started`; `distributed_training_not_proven`; `multi_device_training_not_proven`; `tpu_training_not_proven`; `pallas_optimization_not_started`; `production_cli_not_implemented`; `model_quality_not_measured`.
+`historical_acceptance_modules_not_fully_relocated`; `validation_namespace_not_fully_split`; `arbitrary_architecture_compatibility_not_proven`; `remote_ci_success_not_claimed`; `full_hf_export_not_implemented`; `save_pretrained_not_implemented`; `from_pretrained_not_implemented`; `teacher_inference_not_implemented`; `tome_training_not_started`; `distributed_training_not_proven`; `multi_device_training_not_proven`; `tpu_training_not_proven`; `pallas_optimization_not_started`; `production_cli_not_implemented`; `model_quality_not_measured`.

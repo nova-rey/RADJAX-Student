@@ -23,17 +23,27 @@ FORBIDDEN_DEFAULT_IMPORTS = (
     "datasets",
     "accelerate",
 )
+_PHASE4_LOCAL_JAX_IMPORT_PATHS = {
+    "architecture/rwkv7_reference/kernels.py",
+    "architecture/rwkv7_reference/plugin.py",
+    "validation/p4_8_architecture_ingestion/runner_jax.py",
+}
 
 
 def test_default_source_has_no_optional_or_producer_imports() -> None:
     source_root = REPO_ROOT / "src" / "radjax_student"
     offenders: list[str] = []
     for path in source_root.rglob("*.py"):
-        if path.relative_to(source_root).as_posix() in {
-            "learning/jax_core.py",
-            "learning/p3_5_acceptance.py",
-            "validation/p3_11_9_replay/runner_jax.py",
-        }:
+        relative = path.relative_to(source_root).as_posix()
+        if (
+            relative
+            in {
+                "learning/jax_core.py",
+                "learning/p3_5_acceptance.py",
+                "validation/p3_11_9_replay/runner_jax.py",
+            }
+            | _PHASE4_LOCAL_JAX_IMPORT_PATHS
+        ):
             continue
         source = path.read_text(encoding="utf-8")
         for dependency in FORBIDDEN_DEFAULT_IMPORTS:

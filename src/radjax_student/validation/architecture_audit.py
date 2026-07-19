@@ -27,6 +27,7 @@ _JAX_EXCEPTIONS = {
     "radjax_student.validation.p3_11_10_gate.runner_jax",
     "radjax_student.validation.p3_12a_objective_identity.runner_jax",
     "radjax_student.validation.p3_12b_hf_descriptor_authority.runner_jax",
+    "radjax_student.validation.p4_8_architecture_ingestion.runner_jax",
 }
 _CONCRETE_PLUGIN_STATIC_MODULES = {
     "config",

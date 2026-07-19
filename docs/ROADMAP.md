@@ -20,7 +20,7 @@ P1.10 Production golden acceptance gate             COMPLETE
 PHASE 1 - CONTRACT LAYER                            COMPLETE
 PHASE 2 - STUDENT RUNTIME                           COMPLETE
 PHASE 3 - GENERIC LEARNING CORE                     COMPLETE
-PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.7)
+PHASE 4 - ARCHITECTURE PLUGIN INGESTION             LOCALLY ACCEPTED (P4.8)
 ```
 
 ## Phase 2 Status
@@ -84,12 +84,11 @@ P3.12C locally accepted
 
 P3.12D locally accepted
 
-P4.7 documents a future-plugin procedure and proves, with a fixed literal AST
-audit, that generic owners have no RWKV policy/import, the RWKV plugin has no
-validation import, and no second architecture is registered. It makes no
-arbitrary-plugin-safety, equation-parity, training-recipe, BPTT, weight-file,
-HF-conversion, or remote-CI claim; see
-[P4.7 Architecture Ingestion Guide](P4_7_ARCHITECTURE_INGESTION_GUIDE.md).
+Phase 4 architecture-plugin ingestion locally accepted. P4.8 runs the RWKV-7
+reference through the generic lifecycle, including checkpoint restore and
+replay, while P4.7's literal source-boundary audit remains clean. It makes no
+arbitrary-plugin-safety, initialization-parity, training-recipe, BPTT,
+weight-file, HF-conversion, or remote-CI claim. Phase 4 local acceptance does not claim remote CI success.
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

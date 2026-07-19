@@ -26,9 +26,9 @@ Foundation audit closure: runtime callable registration is composed by learning,
 legacy NumPy losses are noncanonical, proof namespace policy is locked, and
 Phase 4 is defined as architecture-plugin ingestion rather than RWKV-only work.
 
-Phase 4 remains unstarted
+Phase 4 architecture-plugin ingestion locally accepted
 
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+Phase 4 local acceptance does not claim remote CI success
 
 **Status:** Locked  
 **Phase:** 3 - Generic Learning Core  
@@ -104,9 +104,9 @@ P3.12C locally accepted
 P3.12D locally accepted: runtime owns source-derived callable binding and
 compilation-relevant prepared execution identity. P3.12 is closed.
 
-Phase 4 remains unstarted
+Phase 4 architecture-plugin ingestion locally accepted
 
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+Phase 4 local acceptance does not claim remote CI success
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

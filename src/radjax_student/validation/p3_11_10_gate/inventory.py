@@ -203,7 +203,7 @@ _EXPECTED_FAILURE_OVERRIDES = {
     "J.reject.dependency_cycle_introduction": "dependency_cycle",
     "K.reject.p3117_8_or_9_pending_claim": "p311_status_pending_claim",
     "K.reject.p31110_unstarted_after_closure": "p31110_unstarted_claim",
-    "K.reject.phase4_already_begun_claim": "phase4_started_claim",
+    "K.reject.phase4_unstarted_claim": "phase4_unstarted_claim",
     "K.reject.unsupported_remote_ci_pass_claim": "unsupported_remote_ci_claim",
     "K.reject.production_model_trained_claim": "production_model_claim",
     "K.reject.unsupported_cross_environment_replay_claim": "cross_environment_replay_claim",
@@ -529,7 +529,7 @@ _SECTION_CASES = {
         (
             "p3117_8_or_9_pending_claim",
             "p31110_unstarted_after_closure",
-            "phase4_already_begun_claim",
+            "phase4_unstarted_claim",
             "unsupported_remote_ci_pass_claim",
             "production_model_trained_claim",
             "unsupported_cross_environment_replay_claim",

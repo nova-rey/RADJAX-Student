@@ -57,6 +57,7 @@ def test_jax_isolated_to_explicit_adapter_source():
             "steps/jax_step.py",
             "validation/p3_11_9_replay/runner_jax.py",
             "validation/p3_11_10_gate/runner_jax.py",
+            "validation/p4_8_architecture_ingestion/runner_jax.py",
         }:
             continue
         parts = Path(relative).parts

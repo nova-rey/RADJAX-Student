@@ -5,7 +5,7 @@ runtime, generic loop, checkpoint v3, Hugging Face lifecycle identity, and
 deterministic replay. The final gate is recorded in
 [`P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json`](P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json).
 Its schema is `radjax.p3_11_10_final_adversarial_gate.v1`; final gate evidence
-digest: `1669d4204dfdb2438e15cf334b540d131dd14f179e6ef79538b187362126135f`.
+digest: `f033e528bb6e405e4f0f610f25d7e07f6b17f4aef4273bbd0155750441ddeb1e`.
 The referenced P3.11.9 replay evidence digest is
 `e95217d0cba2457731dcf7f6ea7849ea70866f24c73f4716e3dc4da0ecad907b`.
 
@@ -41,9 +41,9 @@ P3.12C locally accepted
 
 P3.12D locally accepted
 
-Phase 4 remains unstarted
+Phase 4 architecture-plugin ingestion locally accepted
 
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+Phase 4 local acceptance does not claim remote CI success
 
 ## Non-Claims
 

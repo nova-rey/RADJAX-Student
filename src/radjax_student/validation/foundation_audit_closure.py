@@ -56,9 +56,8 @@ HISTORICAL_PROOF_EXCEPTIONS = (
 CLAIMS_NOT_MADE = (
     "historical_acceptance_modules_not_fully_relocated",
     "validation_namespace_not_fully_split",
-    "arbitrary_architecture_ingestion_not_yet_proven",
-    "rwkv_not_implemented",
-    "phase4_not_started",
+    "arbitrary_architecture_compatibility_not_proven",
+    "remote_ci_success_not_claimed",
     "full_hf_export_not_implemented",
     "save_pretrained_not_implemented",
     "from_pretrained_not_implemented",
@@ -339,7 +338,7 @@ def _phase4_policy_locked(root: Path) -> bool:
             "Architecture Plugin Ingestion and First Real Architecture",
             "P4.1 — Architecture Ingestion Contract Freeze",
             "runtime RWKV mode",
-            "Phase 4 remains unstarted",
+            "Phase 4 architecture-plugin ingestion locally accepted",
         )
     )
 

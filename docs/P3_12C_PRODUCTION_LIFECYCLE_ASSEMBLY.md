@@ -52,9 +52,9 @@ the callable actually invoked. There is no permissive blocker-family matcher,
 prefix matcher, or expected-to-observed translation.
 
 The recorded assembly digest is
-`add7080a34ed2c81d4f5ae93fe8ec74783f3ce1b9823c5cb32cb92da5661bda7`; the
+`d371c75f4c5df60f00b0c6eae960148a64016cd1b1eebdf8fb55289ef8e6a4ca`; the
 receipt evidence digest is
-`fffff62866a30f96afbeafc23e3b0d7aa9e641cb3c978acd2a8ba0a97f4eb98e`.
+`5d6ffa4eb72a8ba2818b3307dc6dc57c19b3b461ead6192fa9dac2f1d8c5a645`.
 
 The JAX-free one-authority audit uses schema
 `radjax.p3_12c_one_authority_audit.v1`. It rejects a second assembler,
@@ -64,7 +64,7 @@ device selection, parameter/optimizer leaf inspection, caller success flags,
 and permissive observation. Its 24 synthetic source fixtures execute the real
 audit independently. Production code imports no P3.12C validation gate code.
 Its recorded implementation-audit digest is
-`2886ef483837590bd66ed5882b3d1ecaa1de6e1f461b6fca881384f0a0c42b26`.
+`3494df2979be36385771db4b9546a7509d3eb3be50e6fb09734281d331d4514d`.
 
 The product-path proof executes one real generic JAX step through the assembled
 executor, verifies finite loss, metrics, and exposed gradients, parameter
@@ -87,7 +87,8 @@ identities.
 | `src/radjax_student/validation/p3_12c_production_lifecycle_assembly/runner_jax.py` | Canonical P3.12C product path | Must migrate | Yes | It calls the public assembler directly and never reproduces the construction sequence. |
 
 P3.12C is locally accepted only from its typed executed evidence and local
-gates. P3.12D is next and unstarted. Phase 4 remains unstarted. This checkpoint
-does not claim RWKV, Tome consumption, distillation, HF export, model quality,
-multi-device or TPU execution, performance, a production CLI, or resume
-assembly.
+gates. P3.12D is also locally accepted. Phase 4 architecture-plugin ingestion
+is locally accepted; that later checkpoint does not alter this P3.12C receipt.
+P3.12C itself does not claim RWKV, Tome consumption, distillation, HF export,
+model quality, multi-device or TPU execution, performance, a production CLI,
+or resume assembly.

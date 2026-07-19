@@ -1274,3 +1274,12 @@
   and declared non-claims explicit; it does not promise arbitrary-plugin safety.
 - The approved generic ledger remains exactly sparse CE, runtime key material,
   and runtime-supplied architecture initialization material.
+
+## 2026-07-19 - P4.8 first architecture ingestion acceptance
+
+- Executed the first RWKV-7 plugin through explicit registration, generic eager/JIT
+  lifecycle, finite forward/loss/gradient evidence, generic v3 restore, and equal replay.
+- The typed Phase 4 report was byte-identical from two fresh execution directories;
+  it preserves the P4.4 pinned tiny float32 equation domain and all stated non-claims.
+- Reconciled current P3/foundation receipts and status gates without expanding generic
+  behavior; exactly sparse CE, runtime key materialization, and request initialization material remain approved.

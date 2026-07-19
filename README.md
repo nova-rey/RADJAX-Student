@@ -153,12 +153,12 @@ composition, makes NumPy losses legacy-only, locks proof-owned validation
 namespaces, and defines Phase 4 as architecture-plugin ingestion with RWKV only
 as the first reference architecture.
 
-Phase 4 P4.7 records a future-plugin ingestion checklist and audits the literal
-production source boundary: generic owners contain no RWKV import or policy,
-the RWKV plugin imports no validation, and its explicit registration is the only
-one. It does not prove arbitrary-plugin safety, broaden equation parity, or make
-a second-architecture, training-recipe, BPTT, HF-conversion, or remote-CI claim.
-See the [P4.7 Architecture Ingestion Guide](docs/P4_7_ARCHITECTURE_INGESTION_GUIDE.md).
+Phase 4 architecture-plugin ingestion locally accepted. P4.8 executes the
+registered RWKV-7 reference through the generic lifecycle and records its
+configuration, forward, objective, checkpoint, replay, and source-boundary
+evidence. It does not prove arbitrary-plugin safety, broaden equation parity,
+or make a second-architecture, training-recipe, BPTT, HF-conversion, or
+remote-CI claim. See the [Phase 4 Architecture Plugin Ingestion](docs/PHASE_4_ARCHITECTURE_PLUGIN_INGESTION.md).
 
 P3.4 establishes the [Generic Batch and Objective Contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
 behavior-neutral batch metadata, objective request/result models, and explicit
@@ -273,8 +273,7 @@ codebase. The normative Phase 0 docs are:
 
 ## Closure Scope
 
-The current integration status above is local evidence only. Required remote
-base/JAX CI remains an external Phase 4 prerequisite.
+The current integration status above is local evidence only. Phase 4 local acceptance does not claim remote CI success.
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

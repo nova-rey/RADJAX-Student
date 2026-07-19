@@ -145,6 +145,9 @@ Start here for Phase 0 foundation context.
   persistence owners.
 - [P4.7 Architecture Ingestion Guide](P4_7_ARCHITECTURE_INGESTION_GUIDE.md):
   practical future-plugin checklist and literal, bounded no-contamination audit.
+- [Phase 4 Architecture Plugin Ingestion](PHASE_4_ARCHITECTURE_PLUGIN_INGESTION.md):
+  Phase 4 architecture-plugin ingestion locally accepted RWKV-7
+  reference-plugin execution, replay, and non-claim evidence; Phase 4 local acceptance does not claim remote CI success.
 - [Phase 4 Execution Ledger](PHASE_4_EXECUTION_LEDGER.md): append-only
   checkpoint status, verification, evidence, generic-change, risk, and next-step record.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
@@ -226,9 +229,11 @@ P3.12C locally accepted: the learning-owned assembler accepts identities and
 typed configuration while registries retain executable component selection.
 
 P3.12D locally accepted: actual runtime callable binding and exact prepared
-execution identity close P3.12. P4.7 records the future-plugin procedure and
-literal no-contamination audit; it makes no arbitrary-plugin-safety,
-equation-parity, or remote-CI claim.
+execution identity close P3.12. Phase 4 architecture-plugin ingestion locally
+accepted: P4.8 records the first RWKV-7 generic lifecycle, checkpoint, replay,
+and literal no-contamination evidence. It makes no arbitrary-plugin-safety,
+initialization-parity, training-recipe, BPTT, weight-file, HF-conversion, or
+remote-CI claim. Phase 4 local acceptance does not claim remote CI success.
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

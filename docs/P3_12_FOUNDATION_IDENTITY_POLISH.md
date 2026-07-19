@@ -16,7 +16,7 @@ Tome payload consumption, export, or Phase 4 implementation.
 - P3.12D Runtime Callable Identity: locally accepted. Runtime derives the
   callable identity from the actual declared production callable, binds it to
   request, prepared execution, eager/JIT result, and exact cache evidence.
-  P3.12 is closed; Phase 4 is next and remains unstarted.
+  P3.12 is closed; Phase 4 architecture-plugin ingestion is locally accepted.
 
 P3.12A adds one neutral objective identity/config/descriptor contract and one
 production registry. The registry-selected plugin, its capability profile,
@@ -49,9 +49,9 @@ P3.12D locally accepted
 
 P3.12 is closed
 
-Phase 4 remains unstarted
+Phase 4 architecture-plugin ingestion locally accepted
 
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+Phase 4 local acceptance does not claim remote CI success
 
 ## Non-Claims
 

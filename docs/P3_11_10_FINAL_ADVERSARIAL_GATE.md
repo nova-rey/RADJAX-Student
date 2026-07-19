@@ -20,7 +20,7 @@ generated closure receipt.
 The generated receipt is
 [`P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json`](P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json),
 schema `radjax.p3_11_10_final_adversarial_gate.v1`, with final gate evidence
-digest `1669d4204dfdb2438e15cf334b540d131dd14f179e6ef79538b187362126135f`.
+digest `f033e528bb6e405e4f0f610f25d7e07f6b17f4aef4273bbd0155750441ddeb1e`.
 
 P3.11.1-P3.11.10 locally accepted
 
@@ -34,9 +34,9 @@ P3.12C locally accepted
 
 P3.12D next and unstarted
 
-Phase 4 remains unstarted
+Phase 4 architecture-plugin ingestion locally accepted
 
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+Phase 4 local acceptance does not claim remote CI success
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

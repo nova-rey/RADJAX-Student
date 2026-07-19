@@ -17,11 +17,8 @@ class DocumentationCheck:
 _CURRENT_MARKERS = (
     "P3.11.1-P3.11.10 locally accepted",
     "P3.11 integration closure complete",
-    "Phase 4 remains unstarted",
-    (
-        "Phase 4 requires successful required remote base/JAX CI or an explicit "
-        "repository-owner waiver"
-    ),
+    "Phase 4 architecture-plugin ingestion locally accepted",
+    "Phase 4 local acceptance does not claim remote CI success",
 )
 _ALLOWLIST = (
     "README.md",
@@ -54,7 +51,7 @@ def check_documentation(
         content = path.read_text(encoding="utf-8")
         if not all(marker in content for marker in _CURRENT_MARKERS):
             errors.append(f"status_markers:{relative}")
-        if "Phase 4 unblocked" in content or "Phase 4 already begun" in content:
+        if "Phase 4 unblocked" in content or "Phase 4 remains unstarted" in content:
             errors.append(f"stale_status:{relative}")
         if "remote CI passed" in content:
             errors.append(f"unsupported_remote_ci_claim:{relative}")

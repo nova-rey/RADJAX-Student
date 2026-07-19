@@ -1898,6 +1898,22 @@
     {
       "source": "radjax_student.validation.p3_12d_runtime_callable_identity.experiments",
       "target": "radjax_student.runtime.portability"
+    },
+    {
+      "source": "radjax_student.validation.p4_8_architecture_ingestion",
+      "target": "radjax_student.validation.p4_8_architecture_ingestion.models"
+    },
+    {
+      "source": "radjax_student.validation.p4_8_architecture_ingestion",
+      "target": "radjax_student.validation.p4_8_architecture_ingestion.runner_jax"
+    },
+    {
+      "source": "radjax_student.validation.p4_8_architecture_ingestion.runner_jax",
+      "target": "radjax_student.validation.architecture_audit"
+    },
+    {
+      "source": "radjax_student.validation.p4_8_architecture_ingestion.runner_jax",
+      "target": "radjax_student.validation.p4_8_architecture_ingestion.models"
     }
   ],
   "forbidden_imports": [
@@ -1909,7 +1925,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 184,
+  "module_count": 188,
   "modules": [
     {
       "classification": "core",
@@ -8059,6 +8075,111 @@
         "execute_runtime_callable_identity_proof",
         "raw_diagnostic_failures"
       ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "radjax_student.validation.p4_8_architecture_ingestion.models",
+        "radjax_student.validation.p4_8_architecture_ingestion.runner_jax"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.p4_8_architecture_ingestion.models",
+        "radjax_student.validation.p4_8_architecture_ingestion.runner_jax"
+      ],
+      "module": "radjax_student.validation.p4_8_architecture_ingestion",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p4_8_architecture_ingestion/__init__.py",
+      "public_exports": [
+        "SCHEMA_VERSION",
+        "canonical_report_bytes",
+        "generate_phase4_report",
+        "write_phase4_report"
+      ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "argparse",
+        "pathlib",
+        "radjax_student.validation.p4_8_architecture_ingestion.runner_jax"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p4_8_architecture_ingestion.__main__",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p4_8_architecture_ingestion/__main__.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "hashlib",
+        "json",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.validation.p4_8_architecture_ingestion.models",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p4_8_architecture_ingestion/models.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [
+        "jax",
+        "jax.numpy"
+      ],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "hashlib",
+        "jax",
+        "jax.numpy",
+        "json",
+        "math",
+        "pathlib",
+        "radjax_student.architecture",
+        "radjax_student.architecture.rwkv7_reference",
+        "radjax_student.checkpoints",
+        "radjax_student.contracts",
+        "radjax_student.learning",
+        "radjax_student.learning.jax_batch",
+        "radjax_student.objectives",
+        "radjax_student.optimizers",
+        "radjax_student.runtime",
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p4_8_architecture_ingestion.models",
+        "tempfile",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.validation.architecture_audit",
+        "radjax_student.validation.p4_8_architecture_ingestion.models"
+      ],
+      "module": "radjax_student.validation.p4_8_architecture_ingestion.runner_jax",
+      "owner": "compatibility_validation",
+      "path": "src/radjax_student/validation/p4_8_architecture_ingestion/runner_jax.py",
+      "public_exports": []
     }
   ],
   "repository": "RADJAX-Student",
