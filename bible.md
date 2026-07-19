@@ -1703,3 +1703,9 @@
   canonical JAX-purity analysis follows scalar and trainable values through
   operator, descriptor, metaclass, and comprehension carriers. Runtime
   inspection retains its narrow literal optional-JAX seams for hermetic tests.
+
+## 2026-07-18 - Closed executor audit evidence refresh
+
+- Regenerated Foundation, P3.5, P3.11.10, P3.12C, and P3.12D evidence through
+  their normal writers, with fresh independent writer runs byte-identical. The
+  recorded check chain is current against source commit `f0491a3`.
