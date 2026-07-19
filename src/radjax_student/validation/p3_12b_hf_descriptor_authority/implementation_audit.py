@@ -522,6 +522,35 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     if any(_source_literal_string(node) == "__builtins__" for node in ast.walk(tree)):
         return True
     if any(
+        isinstance(node, ast.Attribute)
+        and node.attr in {"__getattribute__", "__getitem__"}
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, (ast.Tuple, ast.List, ast.Set))
+        and any(
+            _call_name(item) == "getattr"
+            or isinstance(item, ast.Attribute)
+            and item.attr in {"__getattribute__", "__getitem__"}
+            for item in node.elts
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and any(
+            _call_name(default) == "getattr"
+            or isinstance(default, ast.Attribute)
+            and default.attr in {"__getattribute__", "__getitem__"}
+            for default in (*node.args.defaults, *node.args.kw_defaults)
+            if default is not None
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
         isinstance(node, ast.Call)
         and _call_name(node.func) in {"__import__", "builtins.__import__"}
         and node.args

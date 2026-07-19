@@ -1526,6 +1526,12 @@
   `operator` module, eliminating the remaining application-reachable mapping
   alias route into protected validation code.
 
+## 2026-07-18 - Container and default alias closure
+
+- The source audits now reject tuple/default reflection aliases, while the
+  canonical JAX-purity audit tracks destructured scalar-cast aliases before
+  trainable state can cross a host-conversion boundary.
+
 ## 2026-07-18 - Portable reflection closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `8b87d13`

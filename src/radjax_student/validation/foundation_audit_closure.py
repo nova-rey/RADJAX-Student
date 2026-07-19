@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "69fd0ea168229422ef9ba6ba6a8a58feac5fe352f699d43bfee4ec957c8f8e09"
+    "549d9119564da155b3d2f6b78c5fe1347bdfd170225c3f249fdb141712b9df35"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -424,6 +424,35 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         return True
     if any(_literal_string(node) == "__builtins__" for node in ast.walk(tree)):
         return True
+    if any(
+        isinstance(node, ast.Attribute)
+        and node.attr in {"__getattribute__", "__getitem__"}
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, (ast.Tuple, ast.List, ast.Set))
+        and any(
+            _call_name(item) == "getattr"
+            or isinstance(item, ast.Attribute)
+            and item.attr in {"__getattribute__", "__getitem__"}
+            for item in node.elts
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and any(
+            _call_name(default) == "getattr"
+            or isinstance(default, ast.Attribute)
+            and default.attr in {"__getattribute__", "__getitem__"}
+            for default in (*node.args.defaults, *node.args.kw_defaults)
+            if default is not None
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
     # Do not let an import primitive be hidden behind a standard reflection
     # alias.  The reviewed production owners do not need aliases for these
     # exact operations, and an alias defeats the direct-call resolver below.
@@ -622,13 +651,21 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             } and _literal_string(value.slice) in {"float", "int"}
         return False
 
+    def target_names(target: ast.AST) -> tuple[str, ...]:
+        if isinstance(target, ast.Name):
+            return (target.id,)
+        if isinstance(target, (ast.Tuple, ast.List)):
+            return tuple(name for item in target.elts for name in target_names(item))
+        return ()
+
     aliases = {
-        target.id
+        name
         for node in ast.walk(tree)
         if isinstance(node, (ast.Assign, ast.AnnAssign))
-        and scalar_cast_expression(node.value)
+        and node.value is not None
+        and any(scalar_cast_expression(value) for value in ast.walk(node.value))
         for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
-        if isinstance(target, ast.Name)
+        for name in target_names(target)
     }
     aliases.update(
         item.asname or item.name

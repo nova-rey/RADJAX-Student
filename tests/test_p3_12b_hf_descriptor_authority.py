@@ -343,6 +343,8 @@ def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
         "reflect = getattr\nload = reflect(importlib, 'import_module')\n",
         "getter_type = object\n"
         "load = getter_type.__getattribute__(importlib, 'import_module')\n",
+        "reflect, = (object.__getattribute__,)\n"
+        "load = reflect(importlib, 'import_module')\n",
         "base = __builtins__\n"
         "members = base if isinstance(base, dict) else vars(base)\n"
         "fetch = dict.__getitem__\n"
