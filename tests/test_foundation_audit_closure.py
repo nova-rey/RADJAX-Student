@@ -717,12 +717,81 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "import sys\n"
         "bootstrap = sys.modules['_frozen_importlib']\n"
         "load = getattr(bootstrap, '_gcd_import')\nload(target)\n",
+        "import logging.config\n"
+        "logging.config.BaseConfigurator({}).resolve(\n"
+        "    target + '.POSITIVE_CASE_IDS'\n"
+        ")\n",
+        "import importlib.metadata\n"
+        "importlib.metadata.EntryPoint(\n"
+        "    'x', target + ':POSITIVE_CASE_IDS', 'x'\n"
+        ").load()\n",
+        "import multiprocessing.reduction\n"
+        "multiprocessing.reduction.ForkingPickler.loads(payload)\n",
+        "import cProfile\ncProfile.Profile().runctx('import ' + target, {}, {})\n",
+        "import profile\nprofile.Profile().runctx('import ' + target, {}, {})\n",
+        "import bdb\nbdb.Bdb().run('import ' + target)\n",
+        "import trace\ntrace.Trace().runctx('import ' + target, {}, {})\n",
+        "import site\nsite.addsitedir(path)\n",
     ),
 )
 def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> None:
     assert audit_source_fixture(source, relative_path="runtime/x.py") == (
         "runtime_dynamic_import",
     )
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        "import logging.config\n"
+        "logging.config.BaseConfigurator({}).resolve(target + '.marker')\n",
+        "import importlib.metadata\n"
+        "importlib.metadata.EntryPoint('x', target + ':marker', 'x').load()\n",
+        "import multiprocessing.reduction\n"
+        "multiprocessing.reduction.ForkingPickler.loads(payload)\n",
+        "import cProfile\ncProfile.Profile().runctx('import ' + target, {}, {})\n",
+        "import profile\nprofile.Profile().runctx('import ' + target, {}, {})\n",
+        "import bdb\nbdb.Bdb().run('import ' + target)\n",
+        "import trace\ntrace.Trace().runctx('import ' + target, {}, {})\n",
+        "import site\nsite.addsitedir(probe_dir)\n",
+    ),
+)
+def test_module_execution_authorities_load_in_a_cold_interpreter(
+    tmp_path: Path, source: str
+) -> None:
+    """Pin that each forbidden carrier is a real import capability, not a name.
+
+    The audit is intentionally source-only and must reject the authority before
+    a protected target is observed.  This child process demonstrates the
+    capability itself with a module absent from its initial interpreter state.
+    """
+    target = "audit_execution_probe"
+    (tmp_path / f"{target}.py").write_text("marker = object()\n", encoding="utf-8")
+    (tmp_path / "audit_execution_probe.pth").write_text(
+        f"import {target}\n", encoding="utf-8"
+    )
+    assert audit_source_fixture(source, relative_path="runtime/x.py") == (
+        "runtime_dynamic_import",
+    )
+    environment = dict(os.environ)
+    environment["PYTHONPATH"] = str(tmp_path)
+    payload = ("c" + target + "\nmarker\n.").encode()
+    child = (
+        "import sys; "
+        f"target = {target!r}; "
+        f"payload = {payload!r}; "
+        f"probe_dir = {str(tmp_path)!r}; "
+        f"exec({source!r}); "
+        f"assert target in sys.modules, target"
+    )
+    completed = subprocess.run(
+        [sys.executable, "-c", child],
+        check=False,
+        capture_output=True,
+        text=True,
+        env=environment,
+    )
+    assert completed.returncode == 0, completed.stderr
 
 
 @pytest.mark.parametrize(
@@ -853,12 +922,104 @@ def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> No
         "def relay(value):\n    return value\n"
         "value = {'r': item for item in (relay,)}['r'](prepared_inputs.parameters)\n"
         "float(value)\n",
+        "class Cast:\n    @classmethod\n"
+        "    def make(cls): return float\n"
+        "Cast.make()(prepared_inputs.parameters)\n",
+        "class Cast:\n    @staticmethod\n"
+        "    def make(): return float\n"
+        "Cast.make()(prepared_inputs.parameters)\n",
+        "class Descriptor:\n"
+        "    def __get__(self, instance, owner): return float\n"
+        "class Cast: pass\nsetattr(Cast, 'value', Descriptor())\n"
+        "Cast().value(prepared_inputs.parameters)\n",
+        "class Descriptor:\n"
+        "    def __get__(self, instance, owner): return float\n"
+        "class Cast:\n    value: object = Descriptor()\n"
+        "Cast().value(prepared_inputs.parameters)\n",
+        "class Base:\n    def __add__(self, value): return float\n"
+        "class Cast(Base): pass\n(Cast() + 1)(prepared_inputs.parameters)\n",
+        "class Base:\n    def __call__(self): return float\n"
+        "class Cast(Base): pass\nCast()()(prepared_inputs.parameters)\n",
+        "cast = next(map(lambda item: item, (float,)))\n"
+        "cast(prepared_inputs.parameters)\n",
+        "cast = next(filter(lambda item: True, (float,)))\n"
+        "cast(prepared_inputs.parameters)\n",
+        "from functools import cached_property\nclass Relay:\n"
+        "    @cached_property\n"
+        "    def value(self): return prepared_inputs.parameters\n"
+        "float(Relay().value)\n",
+        "class Relay:\n"
+        "    value = property(lambda self: prepared_inputs.parameters)\n"
+        "float(Relay().value)\n",
+        "class Descriptor:\n"
+        "    def __get__(self, instance, owner): return prepared_inputs.parameters\n"
+        "class Relay: pass\nsetattr(Relay, 'value', Descriptor())\n"
+        "float(Relay().value)\n",
+        "class Base:\n    @property\n"
+        "    def value(self): return prepared_inputs.parameters\n"
+        "class Relay(Base): pass\nfloat(Relay().value)\n",
+        "def relay(value): return value\n"
+        "value = next(map(relay, (prepared_inputs.parameters,)))\nfloat(value)\n",
+        "def relay(value): return value\n"
+        "value = next(filter(relay, (prepared_inputs.parameters,)))\nfloat(value)\n",
     ),
 )
 def test_literal_trainable_carriers_fail_closed(source: str) -> None:
     assert audit_source_fixture(source, relative_path="steps/jax_step.py") == (
         "canonical_jax_purity",
     )
+
+
+@pytest.mark.jax
+@pytest.mark.parametrize(
+    "body",
+    (
+        "class Cast:\n"
+        "    @classmethod\n"
+        "    def make(cls): return float\n"
+        "return Cast.make()(parameters)",
+        "class Cast:\n"
+        "    @staticmethod\n"
+        "    def make(): return float\n"
+        "return Cast.make()(parameters)",
+        "class Descriptor:\n"
+        "    def __get__(self, instance, owner): return float\n"
+        "class Cast: pass\n"
+        "setattr(Cast, 'value', Descriptor())\n"
+        "return Cast().value(parameters)",
+        "class Base:\n"
+        "    def __add__(self, value): return float\n"
+        "class Cast(Base): pass\n"
+        "return (Cast() + 1)(parameters)",
+        "class Base:\n"
+        "    def __call__(self): return float\n"
+        "class Cast(Base): pass\n"
+        "return Cast()()(parameters)",
+        "cast = next(map(lambda item: item, (float,)))\nreturn cast(parameters)",
+        "cast = next(filter(lambda item: True, (float,)))\nreturn cast(parameters)",
+        "class Relay:\n"
+        "    value = property(lambda self: parameters)\n"
+        "return float(Relay().value)",
+    ),
+)
+def test_rejected_host_carriers_are_real_eager_jit_divergences(body: str) -> None:
+    """Exercise representative new carrier classes outside the source auditor."""
+    jax = pytest.importorskip("jax")
+    jnp = pytest.importorskip("jax.numpy")
+    source = "def bad(parameters):\n" + "\n".join(
+        f"    {line}" for line in body.splitlines()
+    )
+    assert audit_source_fixture(source, relative_path="steps/jax_step.py") == (
+        "canonical_jax_purity",
+    )
+    namespace: dict[str, object] = {}
+    exec(source, namespace)
+    bad = namespace["bad"]
+    assert callable(bad)
+    value = jnp.asarray(3.5)
+    assert bad(value) == 3.5
+    with pytest.raises(jax.errors.ConcretizationTypeError):
+        jax.jit(bad)(value)
 
 
 def test_production_owners_include_cli_and_test_support_beats_competitors() -> None:

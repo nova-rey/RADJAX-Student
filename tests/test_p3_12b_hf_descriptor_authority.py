@@ -612,6 +612,30 @@ def test_production_import_audit_rejects_indirect_runpy_execution(
         "bootstrap = sys.modules['_frozen_importlib']\n"
         "load = getattr(bootstrap, '_gcd_import')\n"
         "load('radjax_student.validation.fixture')\n",
+        "import logging.config\n"
+        "logging.config.BaseConfigurator({}).resolve(\n"
+        "    'radjax_student.validation.fixture.POSITIVE_CASE_IDS'\n"
+        ")\n",
+        "import importlib.metadata\n"
+        "importlib.metadata.EntryPoint(\n"
+        "    'x', 'radjax_student.validation.fixture:POSITIVE_CASE_IDS', 'x'\n"
+        ").load()\n",
+        "import multiprocessing.reduction\n"
+        "multiprocessing.reduction.ForkingPickler.loads(payload)\n",
+        "import cProfile\n"
+        "cProfile.Profile().runctx(\n"
+        "    'import radjax_student.validation.fixture', {}, {}\n"
+        ")\n",
+        "import profile\n"
+        "profile.Profile().runctx(\n"
+        "    'import radjax_student.validation.fixture', {}, {}\n"
+        ")\n",
+        "import bdb\nbdb.Bdb().run('import radjax_student.validation.fixture')\n",
+        "import trace\n"
+        "trace.Trace().runctx(\n"
+        "    'import radjax_student.validation.fixture', {}, {}\n"
+        ")\n",
+        "import site\nsite.addsitedir(path)\n",
     ),
 )
 def test_production_import_audit_rejects_module_execution_authorities(

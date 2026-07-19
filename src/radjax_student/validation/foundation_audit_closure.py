@@ -89,19 +89,26 @@ _MODULE_EXECUTION_AUTHORITIES = frozenset(
         "_frozen_importlib",
         "_frozen_importlib_external",
         "cffi",
+        "bdb",
         "code",
         "codeop",
         "cloudpickle",
+        "cProfile",
         "ctypes",
         "dill",
         "doctest",
         "imp",
+        "logging",
         "marshal",
+        "multiprocessing",
         "pkgutil",
         "pickle",
         "pydoc",
+        "profile",
         "runpy",
+        "site",
         "timeit",
+        "trace",
         "unittest",
         "zipimport",
     }
@@ -112,9 +119,8 @@ def _is_module_execution_authority(name: str) -> bool:
     """Whether an import spelling exposes a module-execution authority."""
     return (
         name.split(".", 1)[0] in _MODULE_EXECUTION_AUTHORITIES
-        or name.startswith("importlib._")
-        or name == "importlib.machinery"
-        or name == "importlib.resources"
+        or name.startswith("importlib.")
+        and name != "importlib.util"
     )
 
 
@@ -151,7 +157,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "7cc222ae397b560b02a468f1e7d4696212dae19de7e5171f4827317c3857e5f3"
+    "fadffeb734b40afdafb3859bccc51a094c37610334b19d723f0b984c48caaebb"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -1563,15 +1569,60 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
     def is_carrier_transform_method(method: ast.AST) -> bool:
         if not isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef)):
             return False
+
+        def descriptor_decorator(decorator: ast.AST) -> bool:
+            name = _call_name(
+                decorator.func if isinstance(decorator, ast.Call) else decorator
+            )
+            return name is not None and name.rsplit(".", 1)[-1] in {
+                "property",
+                "cached_property",
+            }
+
         return (
             method.name in carrier_transform_methods
             or method.name.startswith("__")
             and method.name.endswith("__")
             or any(
-                isinstance(decorator, ast.Name) and decorator.id == "property"
-                for decorator in method.decorator_list
+                descriptor_decorator(decorator) for decorator in method.decorator_list
             )
         )
+
+    def class_base_names(class_node: ast.ClassDef) -> set[str]:
+        return {
+            name for base in class_node.bases if (name := _call_name(base)) is not None
+        }
+
+    def propagated_class_names(names: set[str]) -> None:
+        """Close a carrier class set over explicit source-level inheritance."""
+        changed = True
+        while changed:
+            changed = False
+            for class_node in ast.walk(tree):
+                if (
+                    isinstance(class_node, ast.ClassDef)
+                    and class_node.name not in names
+                    and class_base_names(class_node) & names
+                ):
+                    names.add(class_node.name)
+                    changed = True
+
+    def propagated_attribute_names(names: set[str]) -> None:
+        """Carry known descriptor attributes through reviewed class inheritance."""
+        changed = True
+        while changed:
+            changed = False
+            for class_node in ast.walk(tree):
+                if not isinstance(class_node, ast.ClassDef):
+                    continue
+                for base_name in class_base_names(class_node):
+                    for name in tuple(names):
+                        prefix, dot, attribute = name.partition(".")
+                        if dot and prefix == base_name:
+                            inherited = f"{class_node.name}.{attribute}"
+                            if inherited not in names:
+                                names.add(inherited)
+                                changed = True
 
     partial_names = {"partial", "functools.partial"}
     for node in ast.walk(tree):
@@ -1657,7 +1708,12 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 return scalar_cast_expression(value.func.body) or any(
                     scalar_cast_expression(item) for item in value.args
                 )
-            if _call_name(value.func) in scalar_function_names:
+            function_name = _call_name(value.func)
+            if (
+                function_name in scalar_function_names
+                or function_name is not None
+                and function_name.rsplit(".", 1)[-1] in scalar_function_names
+            ):
                 return True
             if _call_name(value.func) in partial_names:
                 return any(scalar_cast_expression(item) for item in value.args)
@@ -1670,6 +1726,8 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             if _call_name(value.func) in {"any", "all", "bool", "complex"}:
                 return any(scalar_cast_expression(item) for item in value.args)
             if _call_name(value.func) in {"tuple", "list", "set", "reversed"}:
+                return any(scalar_cast_expression(item) for item in value.args)
+            if _call_name(value.func) in {"map", "filter"}:
                 return any(scalar_cast_expression(item) for item in value.args)
             if (
                 isinstance(value.func, ast.Attribute)
@@ -1796,6 +1854,8 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             for method in class_node.body
         )
     )
+    propagated_class_names(scalar_callable_classes)
+    propagated_class_names(scalar_transform_classes)
     changed_transforms = True
     while changed_transforms:
         changed_transforms = False
@@ -1817,13 +1877,14 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             ):
                 scalar_transform_classes.add(class_node.name)
                 changed_transforms = True
+        propagated_class_names(scalar_transform_classes)
     scalar_attribute_names.update(
         _call_name(target) or ""
         for node in ast.walk(tree)
-        if isinstance(node, ast.Assign)
+        if isinstance(node, (ast.Assign, ast.AnnAssign))
         and isinstance(node.value, ast.Call)
         and _call_name(node.value.func) in scalar_transform_classes
-        for target in node.targets
+        for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
         if isinstance(target, ast.Attribute)
     )
     scalar_attribute_names.update(
@@ -1831,12 +1892,24 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         for class_node in ast.walk(tree)
         if isinstance(class_node, ast.ClassDef)
         for node in class_node.body
-        if isinstance(node, ast.Assign)
+        if isinstance(node, (ast.Assign, ast.AnnAssign))
         and isinstance(node.value, ast.Call)
         and _call_name(node.value.func) in scalar_transform_classes
-        for target in node.targets
+        for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
         if isinstance(target, ast.Name)
     )
+    scalar_attribute_names.update(
+        f"{_call_name(node.args[0])}.{_literal_string(node.args[1])}"
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and _call_name(node.func) == "setattr"
+        and len(node.args) >= 3
+        and _call_name(node.args[0]) is not None
+        and _literal_string(node.args[1]) is not None
+        and isinstance(node.args[2], ast.Call)
+        and _call_name(node.args[2].func) in scalar_transform_classes
+    )
+    propagated_attribute_names(scalar_attribute_names)
     scalar_callable_classes.update(
         target.value.id
         for node in ast.walk(tree)
@@ -1853,6 +1926,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         and target.attr == "__call__"
         and isinstance(target.value, ast.Name)
     )
+    propagated_class_names(scalar_callable_classes)
     scalar_callable_instances.update(
         target.id
         for node in ast.walk(tree)
@@ -1964,6 +2038,11 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                     value_aliases_scalar(item) or scalar_cast_expression(item)
                     for item in value.args
                 )
+            if _call_name(value.func) in {"map", "filter"}:
+                return any(
+                    value_aliases_scalar(item) or scalar_cast_expression(item)
+                    for item in value.args
+                )
             if isinstance(value.func, ast.Attribute) and value.func.attr in {
                 "get",
                 "setdefault",
@@ -2071,6 +2150,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             for method in class_node.body
         )
     }
+    propagated_class_names(trainable_transform_classes)
     changed_trainable_transforms = True
     while changed_trainable_transforms:
         changed_trainable_transforms = False
@@ -2092,13 +2172,14 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             ):
                 trainable_transform_classes.add(class_node.name)
                 changed_trainable_transforms = True
+        propagated_class_names(trainable_transform_classes)
     trainable_attribute_transform_names = {
         _call_name(target) or ""
         for node in ast.walk(tree)
-        if isinstance(node, ast.Assign)
+        if isinstance(node, (ast.Assign, ast.AnnAssign))
         and isinstance(node.value, ast.Call)
         and _call_name(node.value.func) in trainable_transform_classes
-        for target in node.targets
+        for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
         if isinstance(target, ast.Attribute)
     }
     trainable_attribute_transform_names.update(
@@ -2106,12 +2187,37 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         for class_node in ast.walk(tree)
         if isinstance(class_node, ast.ClassDef)
         for node in class_node.body
-        if isinstance(node, ast.Assign)
+        if isinstance(node, (ast.Assign, ast.AnnAssign))
         and isinstance(node.value, ast.Call)
         and _call_name(node.value.func) in trainable_transform_classes
-        for target in node.targets
+        for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
         if isinstance(target, ast.Name)
     )
+    trainable_attribute_transform_names.update(
+        f"{class_node.name}.{target.id}"
+        for class_node in ast.walk(tree)
+        if isinstance(class_node, ast.ClassDef)
+        for node in class_node.body
+        if isinstance(node, (ast.Assign, ast.AnnAssign))
+        and isinstance(node.value, ast.Call)
+        and (_call_name(node.value.func) or "").rsplit(".", 1)[-1]
+        in {"property", "cached_property"}
+        and source_mentions_trainable(node.value)
+        for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
+        if isinstance(target, ast.Name)
+    )
+    trainable_attribute_transform_names.update(
+        f"{_call_name(node.args[0])}.{_literal_string(node.args[1])}"
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and _call_name(node.func) == "setattr"
+        and len(node.args) >= 3
+        and _call_name(node.args[0]) is not None
+        and _literal_string(node.args[1]) is not None
+        and isinstance(node.args[2], ast.Call)
+        and _call_name(node.args[2].func) in trainable_transform_classes
+    )
+    propagated_attribute_names(trainable_attribute_transform_names)
 
     trainable_aliases: set[str] = set()
     callable_relay_classes = {
@@ -2155,6 +2261,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         and target.attr == "__call__"
         and isinstance(target.value, ast.Name)
     )
+    propagated_class_names(callable_relay_classes)
     callable_relay_instances = {
         target.id
         for node in ast.walk(tree)
@@ -2250,7 +2357,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             name = _call_name(value.func)
             if name in callable_relay_factory_names:
                 return True
-            if name in {"next", "iter"}:
+            if name in {"next", "iter", "map", "filter"}:
                 return any(callable_relay_expression(item) for item in value.args)
             if name in partial_names:
                 return any(callable_relay_expression(item) for item in value.args)
@@ -2368,6 +2475,16 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                     trainable_expression(item)
                     or transformed_instance(item, trainable_transform_classes)
                     for item in value.args
+                )
+            if name in {"map", "filter"}:
+                return (
+                    bool(value.args)
+                    and callable_relay_expression(value.args[0])
+                    and any(
+                        trainable_expression(item)
+                        or transformed_instance(item, trainable_transform_classes)
+                        for item in value.args[1:]
+                    )
                 )
             if name in {"any", "all", "bool", "complex"}:
                 return any(trainable_expression(item) for item in value.args)
@@ -2511,6 +2628,16 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                     host_truth_expression(item)
                     or transformed_instance(item, trainable_transform_classes)
                     for item in value.args
+                )
+            if name in {"map", "filter"}:
+                return (
+                    bool(value.args)
+                    and callable_relay_expression(value.args[0])
+                    and any(
+                        host_truth_expression(item)
+                        or transformed_instance(item, trainable_transform_classes)
+                        for item in value.args[1:]
+                    )
                 )
             if name in {"deque", "collections.deque", "zip"}:
                 return any(host_truth_expression(item) for item in value.args)

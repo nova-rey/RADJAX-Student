@@ -74,19 +74,26 @@ _MODULE_EXECUTION_AUTHORITIES = frozenset(
         "_frozen_importlib",
         "_frozen_importlib_external",
         "cffi",
+        "bdb",
         "code",
         "codeop",
         "cloudpickle",
+        "cProfile",
         "ctypes",
         "dill",
         "doctest",
         "imp",
+        "logging",
         "marshal",
+        "multiprocessing",
         "pkgutil",
         "pickle",
         "pydoc",
+        "profile",
         "runpy",
+        "site",
         "timeit",
+        "trace",
         "unittest",
         "zipimport",
     }
@@ -97,9 +104,8 @@ def _is_module_execution_authority(name: str) -> bool:
     """Whether an import spelling exposes the standard module executor."""
     return (
         name.split(".", 1)[0] in _MODULE_EXECUTION_AUTHORITIES
-        or name.startswith("importlib._")
-        or name == "importlib.machinery"
-        or name == "importlib.resources"
+        or name.startswith("importlib.")
+        and name != "importlib.util"
     )
 
 

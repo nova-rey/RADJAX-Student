@@ -1709,3 +1709,14 @@
 - Regenerated Foundation, P3.5, P3.11.10, P3.12C, and P3.12D evidence through
   their normal writers, with fresh independent writer runs byte-identical. The
   recorded check chain is current against source commit `f0491a3`.
+
+## 2026-07-18 - Execution-authority and carrier closure
+
+- The Foundation and P3.12B source audits now fail closed on additional
+  standard-library module-execution authorities, including logging resolution,
+  entry-point loading, pickler globals, profiling/debug code execution, and
+  `.pth` processing. Canonical JAX-purity follows scalar and trainable values
+  through class/static factories, inheritance, descriptor installation,
+  `cached_property`/`property` forms, and map/filter transport. Cold-process
+  and eager/JIT regressions prove the added authorities and carrier classes are
+  executable hazards rather than decorative source patterns.
