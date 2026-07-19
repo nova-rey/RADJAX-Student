@@ -163,6 +163,20 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         relative_path="runtime/x.py",
     ) == ("runtime_steps_import",)
     assert audit_source_fixture(
+        "getattr(__import__('importlib'), 'import_module')('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
+        "__import__('builtins').__dict__['__import__']('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "load = importlib.__dict__['import_module']\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
         "from importlib import import_module as load\n"
         "load('radjax_student.validation')\n",
         relative_path="reports/x.py",
@@ -175,6 +189,13 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "import importlib\ngetattr(importlib, member_name)(target_name)\n",
         relative_path="reports/x.py",
     ) == ("production_dynamic_import:reports/x.py",)
+    assert audit_source_fixture(
+        "getattr(__import__('importlib'), 'import_module')(\n"
+        "    'radjax_student.validation.p3_12b_'\n"
+        "    + 'hf_descriptor_authority.implementation_audit'\n"
+        ")\n",
+        relative_path="cli/x.py",
+    ) == ("production_validation_import",)
     assert audit_source_fixture(
         "import jax\njax.device_get(value)\n",
         relative_path="steps/jax_step.py",
@@ -439,6 +460,50 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
             return None""",
     )
     assert audit_hf_authority_fixture(finally_swallows_reraise) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
+    outer_finally_swallows_reraise = dict(sources)
+    outer_finally_swallows_reraise["checkpoints/v3.py"] = (
+        outer_finally_swallows_reraise["checkpoints/v3.py"].replace(
+            """    if hf_descriptor != expected_hf_descriptor:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+            """    try:
+        if hf_descriptor != expected_hf_descriptor:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_mismatch",
+                "checkpoint HF descriptor does not match caller expectation",
+            )
+    except CheckpointValidationError:
+        raise
+    finally:
+        return None""",
+        )
+    )
+    assert audit_hf_authority_fixture(outer_finally_swallows_reraise) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
+    with_suppresses_mismatch = dict(sources)
+    with_suppresses_mismatch["checkpoints/v3.py"] = with_suppresses_mismatch[
+        "checkpoints/v3.py"
+    ].replace(
+        """    if hf_descriptor != expected_hf_descriptor:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+        """    with suppress(CheckpointValidationError):
+        if hf_descriptor != expected_hf_descriptor:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_mismatch",
+                "checkpoint HF descriptor does not match caller expectation",
+            )""",
+    )
+    assert audit_hf_authority_fixture(with_suppresses_mismatch) == (
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 

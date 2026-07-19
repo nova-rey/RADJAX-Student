@@ -505,12 +505,41 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     if item.name == "__import__":
                         aliases[item.asname or item.name] = "__import__"
 
-    def import_callee(callable_node: ast.AST) -> bool:
+    def holder_name(value: ast.AST) -> str | None:
+        if isinstance(value, ast.Name):
+            return aliases.get(value.id, value.id)
+        if isinstance(value, ast.Attribute):
+            parent = holder_name(value.value)
+            return f"{parent}.{value.attr}" if parent else None
+        if isinstance(value, ast.Call):
+            name = _call_name(value.func)
+            name = aliases.get(name, name) if name is not None else None
+            target = (
+                value.args[0]
+                if value.args
+                else next(
+                    (
+                        keyword.value
+                        for keyword in value.keywords
+                        if keyword.arg == "name"
+                    ),
+                    None,
+                )
+            )
+            imported = _source_literal_string(target)
+            if name in {"__import__", "builtins.__import__"} and imported in {
+                "importlib",
+                "builtins",
+            }:
+                return imported
+        return None
+
+    def import_callee_name(callable_node: ast.AST) -> str | None:
         name = _call_name(callable_node)
         if name in {"import_module", "__import__", "importlib.import_module"}:
-            return True
+            return "__import__" if name == "__import__" else "import_module"
         if name is not None and aliases.get(name) in {"import_module", "__import__"}:
-            return True
+            return aliases[name]
         if name is not None:
             head, separator, tail = name.partition(".")
             if (
@@ -518,25 +547,50 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 and aliases.get(head) == "importlib"
                 and tail == "import_module"
             ):
-                return True
+                return "import_module"
             if separator and aliases.get(head) == "builtins" and tail == "__import__":
-                return True
+                return "__import__"
         if (
             isinstance(callable_node, ast.Call)
             and isinstance(callable_node.func, ast.Name)
             and callable_node.func.id == "getattr"
             and len(callable_node.args) >= 2
         ):
-            holder = _call_name(callable_node.args[0])
+            holder = holder_name(callable_node.args[0])
             member = _source_literal_string(callable_node.args[1])
-            return holder in {"importlib", "builtins"} and member in {
-                "import_module",
-                "__import__",
-            }
-        return False
+            if holder == "importlib" and member == "import_module":
+                return "import_module"
+            if holder in {"builtins", "__builtins__"} and member == "__import__":
+                return "__import__"
+        if isinstance(callable_node, ast.Subscript):
+            holder = holder_name(callable_node.value)
+            member = _source_literal_string(callable_node.slice)
+            if holder == "importlib.__dict__" and member == "import_module":
+                return "import_module"
+            if (
+                holder in {"builtins.__dict__", "__builtins__.__dict__"}
+                and member == "__import__"
+            ):
+                return "__import__"
+        return None
+
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            binding = import_callee_name(node.value)
+            if binding is None:
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            for target in targets:
+                if isinstance(target, ast.Name) and aliases.get(target.id) != binding:
+                    aliases[target.id] = binding
+                    changed = True
 
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Call) or not import_callee(node.func):
+        if not isinstance(node, ast.Call) or import_callee_name(node.func) is None:
             continue
         target = (
             node.args[0]

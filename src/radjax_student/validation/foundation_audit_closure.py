@@ -163,11 +163,54 @@ def _importlib_aliases(tree: ast.Module) -> dict[str, str]:
             for item in node.names:
                 if item.name == "__import__":
                     aliases[item.asname or item.name] = "__import__"
+    # Retain source-local bindings of a recognized import primitive.  This is
+    # deliberately narrow (only exact importlib/builtins member expressions),
+    # but it prevents a protected owner from hiding an import behind one
+    # assignment before invoking it.
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            value = _canonical_import_callee(node.value, aliases)
+            if value is None:
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            for target in targets:
+                if isinstance(target, ast.Name) and aliases.get(target.id) != value:
+                    aliases[target.id] = value
+                    changed = True
     return aliases
 
 
 def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | None:
     def holder_name(value: ast.AST) -> str | None:
+        if isinstance(value, ast.Call):
+            raw = _call_name(value.func)
+            raw = aliases.get(raw, raw) if raw is not None else None
+            target = (
+                value.args[0]
+                if value.args
+                else next(
+                    (
+                        keyword.value
+                        for keyword in value.keywords
+                        if keyword.arg == "name"
+                    ),
+                    None,
+                )
+            )
+            imported = _literal_string(target) if target is not None else None
+            if raw in {"__import__", "builtins.__import__"} and imported in {
+                "importlib",
+                "builtins",
+            }:
+                return imported
+            return None
+        if isinstance(value, ast.Attribute):
+            parent = holder_name(value.value)
+            return f"{parent}.{value.attr}" if parent else None
         raw = _call_name(value)
         if raw is None:
             return None
@@ -748,6 +791,21 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
         reachable_statements = _reachable_statements(
             tuple(restore.body) if restore is not None else ()
         )
+
+        def contains_expected_descriptor_mismatch(node: ast.AST) -> bool:
+            return any(
+                isinstance(descendant, ast.If)
+                and isinstance(descendant.test, ast.Compare)
+                and len(descendant.test.ops) == 1
+                and isinstance(descendant.test.ops[0], ast.NotEq)
+                and isinstance(descendant.test.left, ast.Name)
+                and descendant.test.left.id == "hf_descriptor"
+                and len(descendant.test.comparators) == 1
+                and isinstance(descendant.test.comparators[0], ast.Name)
+                and descendant.test.comparators[0].id == "expected_hf_descriptor"
+                for descendant in ast.walk(node)
+            )
+
         has_required_guard = any(
             isinstance(node, ast.If)
             and isinstance(node.test, ast.Compare)
@@ -782,20 +840,17 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
                 _handler_swallows_checkpoint_mismatch(handler)
                 for handler in node.handlers
             )
-            and any(
-                isinstance(descendant, ast.If)
-                and isinstance(descendant.test, ast.Compare)
-                and len(descendant.test.ops) == 1
-                and isinstance(descendant.test.ops[0], ast.NotEq)
-                and isinstance(descendant.test.left, ast.Name)
-                and descendant.test.left.id == "hf_descriptor"
-                and len(descendant.test.comparators) == 1
-                and isinstance(descendant.test.comparators[0], ast.Name)
-                and descendant.test.comparators[0].id == "expected_hf_descriptor"
-                for descendant in ast.walk(node)
-            )
+            and contains_expected_descriptor_mismatch(node)
             for node in ast.walk(restore or checkpoint)
             if isinstance(node, ast.Try)
+        ) or any(
+            contains_expected_descriptor_mismatch(node)
+            and (
+                isinstance(node, (ast.With, ast.AsyncWith))
+                or isinstance(node, ast.Try)
+                and any(_may_return(item) for item in node.finalbody)
+            )
+            for node in ast.walk(restore or checkpoint)
         )
         if (
             restore is None

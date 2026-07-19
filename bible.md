@@ -1414,3 +1414,10 @@
   and regenerated the dependent P3.11.10 receipt twice byte-identically. The
   final recorded provenance covers the dynamic-import and exception-flow audit
   closure.
+
+## 2026-07-18 - Foundation audit transitive-control closure
+
+- The audited import primitive now follows nested `__import__` holders,
+  `__dict__` member extraction, and source-local primitive bindings. The HF
+  authority audit also rejects outer `finally` returns and context-manager
+  suppression around the required mismatch rejection.
