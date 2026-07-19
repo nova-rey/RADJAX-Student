@@ -1462,6 +1462,9 @@
 
 - The P3.12B protected-import audit now also rejects `globals()['__import__']`
   indirection, matching the foundation audit's fail-closed reflection policy.
+- Refreshed the P3.12B source attestation after the protected global-reflection
+  update; its full executed receipt remained byte-identical across fresh
+  writers.
 
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
