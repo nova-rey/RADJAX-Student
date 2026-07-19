@@ -1326,3 +1326,10 @@
 - Refreshed the frozen JAX-free P3.12B source-byte attestation after extending
   the reviewed protected-owner inventory, keeping Foundation's recorded-proof
   check bound to the exact audit source it evaluates.
+
+## 2026-07-18 - Protected CLI audit evidence refresh
+
+- Regenerated the P3.5 source-provenance audit and its dependent P3.11.10
+  final-gate receipt through canonical writers. The documented final gate
+  digest now matches the byte-identical writer output for the reviewed CLI
+  boundary extension.
