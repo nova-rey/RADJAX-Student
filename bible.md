@@ -1538,6 +1538,12 @@
   for reflection primitives. The JAX-purity audit now follows scalar-cast
   carriers through list, mapping, class, and factory boundaries.
 
+## 2026-07-18 - Generic carrier and type-cast closure
+
+- The source audits now reject generic expression carriers for reflection
+  primitives. The canonical JAX-purity audit also rejects host scalar cast
+  construction through numeric runtime types and class-based call paths.
+
 ## 2026-07-18 - Mapping and factory closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `ae6bf0e`

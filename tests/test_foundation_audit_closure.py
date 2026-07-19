@@ -288,6 +288,21 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         relative_path="runtime/x.py",
     ) == ("runtime_dynamic_import",)
     assert audit_source_fixture(
+        "import importlib\n"
+        "def identity(value):\n    return value\n"
+        "reflect = identity(getattr)\n"
+        "load = reflect(importlib, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "reflect = getattr if True else print\n"
+        "load = reflect(importlib, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
         "base = __builtins__\n"
         "members = base if isinstance(base, dict) else vars(base)\n"
         "fetch = dict.__getitem__\n"
@@ -388,6 +403,27 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "def factory():\n    return float\n"
         "cast = factory()\n"
         "cast(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "class Casts:\n    scalar = float\n"
+        "getattr(Casts, 'scalar')(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "type.__call__(float, prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "cast = type(1.0)\ncast(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "cast = (1.0).__class__\ncast(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "float.__new__(float, prepared_inputs.parameters)\n",
         relative_path="steps/jax_step.py",
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(

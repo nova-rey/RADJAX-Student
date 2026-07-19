@@ -490,6 +490,57 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     when source uses reflection to compute a protected target.
     """
     aliases: dict[str, str] = {}
+
+    def carries_reflection_value(value: ast.AST | None) -> bool:
+        if value is None:
+            return False
+        if _call_name(value) == "getattr":
+            return True
+        if isinstance(value, ast.Attribute):
+            return value.attr in {"__getattribute__", "__getitem__"}
+        if isinstance(value, ast.IfExp):
+            return carries_reflection_value(value.body) or carries_reflection_value(
+                value.orelse
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(carries_reflection_value(item) for item in value.values)
+        if isinstance(value, ast.Lambda):
+            return carries_reflection_value(value.body)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(carries_reflection_value(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(carries_reflection_value(item) for item in value.values)
+        if isinstance(value, ast.GeneratorExp):
+            return carries_reflection_value(value.elt)
+        if isinstance(value, ast.Call):
+            if _call_name(value.func) == "getattr":
+                return False
+            return any(carries_reflection_value(item) for item in value.args) or any(
+                carries_reflection_value(item.value) for item in value.keywords
+            )
+        return False
+
+    if (
+        any(
+            isinstance(node, (ast.Assign, ast.AnnAssign, ast.Return, ast.Lambda))
+            and carries_reflection_value(
+                node.value if not isinstance(node, ast.Lambda) else node.body
+            )
+            for node in ast.walk(tree)
+            if not isinstance(node, ast.AnnAssign) or node.value is not None
+        )
+        or any(
+            isinstance(node, ast.Call) and carries_reflection_value(node)
+            for node in ast.walk(tree)
+        )
+        or any(
+            isinstance(node, (ast.Assign, ast.AnnAssign))
+            and node.value is not None
+            and _call_name(node.value) in {"dict", "object"}
+            for node in ast.walk(tree)
+        )
+    ):
+        return True
     if any(
         isinstance(node, ast.Import)
         and any(
@@ -532,6 +583,9 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         and (
             _call_name(node) == "getattr.__call__"
             or _call_name(node) in {"dict.get", "dict.setdefault"}
+            or node.attr in {"get", "setdefault"}
+            and isinstance(node.value, ast.Call)
+            and _call_name(node.value.func) == "type"
         )
         for node in ast.walk(tree)
     ):

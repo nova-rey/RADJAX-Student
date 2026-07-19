@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "c641b7ac6723e3ea5cfb14cff5a119d072383606ad5eaf96a67bcbdf08639513"
+    "b36495616f9ba592eff68891a6e44ac86a5c86ac95fe78bdac8bec02630fb3cd"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -405,6 +405,57 @@ def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ..
 def _has_dynamic_import_target(tree: ast.Module) -> bool:
     """Detect a source-computed import target without importing the module."""
     aliases = _importlib_aliases(tree)
+
+    def carries_reflection_value(value: ast.AST | None) -> bool:
+        if value is None:
+            return False
+        if _call_name(value) == "getattr":
+            return True
+        if isinstance(value, ast.Attribute):
+            return value.attr in {"__getattribute__", "__getitem__"}
+        if isinstance(value, ast.IfExp):
+            return carries_reflection_value(value.body) or carries_reflection_value(
+                value.orelse
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(carries_reflection_value(item) for item in value.values)
+        if isinstance(value, ast.Lambda):
+            return carries_reflection_value(value.body)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(carries_reflection_value(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(carries_reflection_value(item) for item in value.values)
+        if isinstance(value, ast.GeneratorExp):
+            return carries_reflection_value(value.elt)
+        if isinstance(value, ast.Call):
+            if _call_name(value.func) == "getattr":
+                return False
+            return any(carries_reflection_value(item) for item in value.args) or any(
+                carries_reflection_value(item.value) for item in value.keywords
+            )
+        return False
+
+    if (
+        any(
+            isinstance(node, (ast.Assign, ast.AnnAssign, ast.Return, ast.Lambda))
+            and carries_reflection_value(
+                node.value if not isinstance(node, ast.Lambda) else node.body
+            )
+            for node in ast.walk(tree)
+            if not isinstance(node, ast.AnnAssign) or node.value is not None
+        )
+        or any(
+            isinstance(node, ast.Call) and carries_reflection_value(node)
+            for node in ast.walk(tree)
+        )
+        or any(
+            isinstance(node, (ast.Assign, ast.AnnAssign))
+            and node.value is not None
+            and _call_name(node.value) in {"dict", "object"}
+            for node in ast.walk(tree)
+        )
+    ):
+        return True
     # These reflection facilities have no place in the reviewed production
     # owners.  Ban their spelling before aliasing so an import primitive cannot
     # be hidden behind a standard-library helper or a builtin binding.
@@ -435,6 +486,9 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         and (
             _call_name(node) == "getattr.__call__"
             or _call_name(node) in {"dict.get", "dict.setdefault"}
+            or node.attr in {"get", "setdefault"}
+            and isinstance(node.value, ast.Call)
+            and _call_name(node.value.func) == "type"
         )
         for node in ast.walk(tree)
     ):
@@ -697,6 +751,23 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 "builtins.__dict__",
                 "__builtins__.__dict__",
             } and _literal_string(value.slice) in {"float", "int"}
+        if (
+            isinstance(value, ast.Call)
+            and _call_name(value.func) == "type"
+            and len(value.args) == 1
+            and isinstance(value.args[0], ast.Constant)
+            and isinstance(value.args[0].value, (float, int))
+            and not isinstance(value.args[0].value, bool)
+        ):
+            return True
+        if (
+            isinstance(value, ast.Attribute)
+            and value.attr == "__class__"
+            and isinstance(value.value, ast.Constant)
+            and isinstance(value.value.value, (float, int))
+            and not isinstance(value.value.value, bool)
+        ):
+            return True
         return False
 
     def target_names(target: ast.AST) -> tuple[str, ...]:
@@ -729,6 +800,12 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         if isinstance(value, ast.Attribute):
             return (_call_name(value.value) or "") in aliases
         if isinstance(value, ast.Call):
+            if (
+                _call_name(value.func) == "getattr"
+                and value.args
+                and value_aliases_scalar(value.args[0])
+            ):
+                return True
             return value_aliases_scalar(value.func)
         return (_call_name(value) or "") in aliases
 
@@ -779,7 +856,13 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
 
     return any(
         isinstance(node, ast.Call)
-        and (scalar_cast_expression(node.func) or value_aliases_scalar(node.func))
+        and (
+            scalar_cast_expression(node.func)
+            or value_aliases_scalar(node.func)
+            or isinstance(node.func, ast.Attribute)
+            and node.func.attr in {"__call__", "__new__"}
+            and any(scalar_cast_expression(argument) for argument in node.args)
+        )
         and any(
             token
             in (
