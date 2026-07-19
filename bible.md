@@ -1484,6 +1484,8 @@
 - The fail-closed import policy now rejects any source reference to the
   portable `__builtins__` handle, closing globals-to-builtins reflection before
   a hidden import primitive can be extracted.
+- Refreshed the P3.12B source attestation after the portable builtins audit
+  hardening; the executed receipt remained byte-identical across fresh writers.
 
 ## 2026-07-18 - Builtins-chain closure evidence refresh
 
