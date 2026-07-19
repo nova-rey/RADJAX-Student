@@ -1672,3 +1672,12 @@
   dependent P3.11.10 final receipt twice byte-identically from accepted source
   commit `837a828`. The recorded Foundation evidence now attests its auditor
   source digest and the current closed-world import and host-truth audit path.
+
+## 2026-07-18 - Bootstrap and descriptor-carrier audit closure
+
+- The Foundation and P3.12B source audits now reject standard-library bootstrap
+  and FFI module-execution authorities in addition to the reviewed loader
+  APIs. Canonical JAX-purity follows scalar and trainable values through
+  operator, item, iterator, and dynamic-attribute carrier protocols. Focused
+  literal fixtures bind each authority and carrier without expanding product
+  execution capability.

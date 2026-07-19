@@ -69,6 +69,28 @@ _PROTECTED_GATE_IMPORT_MARKERS = (
     "p3_12b_hf_descriptor_authority",
     "implementation_audit",
 )
+_MODULE_EXECUTION_AUTHORITIES = frozenset(
+    {
+        "_frozen_importlib",
+        "_frozen_importlib_external",
+        "cffi",
+        "ctypes",
+        "imp",
+        "pkgutil",
+        "pydoc",
+        "runpy",
+        "zipimport",
+    }
+)
+
+
+def _is_module_execution_authority(name: str) -> bool:
+    """Whether an import spelling exposes the standard module executor."""
+    return (
+        name in _MODULE_EXECUTION_AUTHORITIES
+        or name.startswith("importlib._")
+        or name == "importlib.machinery"
+    )
 
 
 def _digest(value: object) -> str:
@@ -489,17 +511,14 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     intentionally recognizes the standard import primitives and fails closed
     when source uses reflection to compute a protected target.
     """
-    # ``runpy`` is a second dynamic module-execution authority.  The protected
-    # production owners have no approved use for it, so its import fails closed
-    # before a source-computed module target can be hidden in its return value.
+    # Module-execution authorities have no approved production use.  Reject the
+    # capability itself before a source-computed protected target can be hidden
+    # in its bootstrap, loader, or result carrier.
     if any(
         isinstance(node, ast.Import)
-        and any(
-            item.name.split(".", 1)[0] in {"pkgutil", "pydoc", "runpy"}
-            for item in node.names
-        )
+        and any(_is_module_execution_authority(item.name) for item in node.names)
         or isinstance(node, ast.ImportFrom)
-        and (node.module or "").split(".", 1)[0] in {"pkgutil", "pydoc", "runpy"}
+        and _is_module_execution_authority(node.module or "")
         for node in ast.walk(tree)
     ):
         return True
@@ -508,15 +527,28 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             continue
         name = _call_name(node.func) or ""
         tail = name.rsplit(".", 1)[-1]
-        if tail in {"exec_module", "module_from_spec", "resolve_name", "locate"}:
+        if tail in {
+            "_find_and_load",
+            "_find_and_load_unlocked",
+            "_gcd_import",
+            "exec_module",
+            "load_module",
+            "module_from_spec",
+            "resolve_name",
+            "locate",
+        }:
             return True
     if any(
         isinstance(node, ast.Attribute)
         and node.attr
         in {
             "exec_module",
+            "load_module",
             "locate",
             "module_from_spec",
+            "_find_and_load",
+            "_find_and_load_unlocked",
+            "_gcd_import",
             "resolve_name",
             "run_module",
             "run_path",
@@ -1661,6 +1693,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         target_value = _source_literal_string(target)
         if (
             target_value is None
+            or _is_module_execution_authority(target_value)
             or target_value in {"builtins", "operator"}
             or any(marker in target_value for marker in _PROTECTED_GATE_IMPORT_MARKERS)
         ):

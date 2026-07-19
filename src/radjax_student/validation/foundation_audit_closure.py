@@ -77,6 +77,37 @@ HISTORICAL_PROOF_EXCEPTIONS = (
 _DYNAMIC_IMPORT_CALLEES = frozenset(
     {"__import__", "import_module", "_import_module", "importlib.import_module"}
 )
+
+# These standard-library modules expose the import system itself rather than a
+# reviewed product capability.  A production owner never needs to import them:
+# optional JAX discovery uses only ``importlib.util.find_spec`` and optional JAX
+# loading uses only the narrowly reviewed ``importlib.import_module`` forms.
+# Keep this boundary module-level so a new bootstrap spelling cannot become a
+# permissive, unreviewed module-execution route.
+_MODULE_EXECUTION_AUTHORITIES = frozenset(
+    {
+        "_frozen_importlib",
+        "_frozen_importlib_external",
+        "cffi",
+        "ctypes",
+        "imp",
+        "pkgutil",
+        "pydoc",
+        "runpy",
+        "zipimport",
+    }
+)
+
+
+def _is_module_execution_authority(name: str) -> bool:
+    """Whether an import spelling exposes a module-execution authority."""
+    return (
+        name in _MODULE_EXECUTION_AUTHORITIES
+        or name.startswith("importlib._")
+        or name == "importlib.machinery"
+    )
+
+
 _PROOF_COMMAND_FLAGS = frozenset(
     {"--check-recorded", "--diagnostic", "--write-receipt"}
 )
@@ -110,7 +141,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "2eb53e1e771c18cf451862ea5be51992dfc733e777ab7c3e2083c76ba1872d33"
+    "4fb0034e201af45a3af438363dd4144bf88b0bb2d63495db8f60a7fa0095e68c"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -404,18 +435,14 @@ def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ..
 
 def _has_dynamic_import_target(tree: ast.Module) -> bool:
     """Detect a source-computed import target without importing the module."""
-    # ``runpy`` executes a module from a caller-controlled name and is therefore
-    # an equivalent dynamic-import authority.  It has no role in the reviewed
-    # production owners, so reject the capability itself rather than attempting
-    # to model its many result carriers.
+    # Module-execution authorities have no role in the reviewed production
+    # owners.  Reject the capability itself rather than attempting to model its
+    # many bootstrap, loader, and result carriers.
     if any(
         isinstance(node, ast.Import)
-        and any(
-            item.name.split(".", 1)[0] in {"pkgutil", "pydoc", "runpy"}
-            for item in node.names
-        )
+        and any(_is_module_execution_authority(item.name) for item in node.names)
         or isinstance(node, ast.ImportFrom)
-        and (node.module or "").split(".", 1)[0] in {"pkgutil", "pydoc", "runpy"}
+        and _is_module_execution_authority(node.module or "")
         for node in ast.walk(tree)
     ):
         return True
@@ -424,15 +451,28 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
             continue
         name = _call_name(node.func) or ""
         tail = name.rsplit(".", 1)[-1]
-        if tail in {"exec_module", "module_from_spec", "resolve_name", "locate"}:
+        if tail in {
+            "_find_and_load",
+            "_find_and_load_unlocked",
+            "_gcd_import",
+            "exec_module",
+            "load_module",
+            "module_from_spec",
+            "resolve_name",
+            "locate",
+        }:
             return True
     if any(
         isinstance(node, ast.Attribute)
         and node.attr
         in {
             "exec_module",
+            "load_module",
             "locate",
             "module_from_spec",
+            "_find_and_load",
+            "_find_and_load_unlocked",
+            "_gcd_import",
             "resolve_name",
             "run_module",
             "run_path",
@@ -1361,7 +1401,11 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         return True
     for node in _dynamic_import_calls(tree):
         target = _resolved_dynamic_import_target(node, aliases)
-        if target is None or target in {"builtins", "operator"}:
+        if (
+            target is None
+            or _is_module_execution_authority(target)
+            or target in {"builtins", "operator"}
+        ):
             return True
     # A protected owner does not need opaque reflection over the import
     # primitives.  If the local resolver cannot establish an exact callable,
@@ -1470,6 +1514,26 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
     scalar_callable_classes: set[str] = set()
     scalar_callable_instances: set[str] = set()
     scalar_attribute_names: set[str] = set()
+    scalar_transform_classes: set[str] = set()
+    carrier_transform_methods = frozenset(
+        {
+            "__abs__",
+            "__bool__",
+            "__complex__",
+            "__float__",
+            "__getattr__",
+            "__getattribute__",
+            "__getitem__",
+            "__index__",
+            "__int__",
+            "__invert__",
+            "__iter__",
+            "__neg__",
+            "__next__",
+            "__pos__",
+            "__reversed__",
+        }
+    )
     partial_names = {"partial", "functools.partial"}
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -1489,6 +1553,9 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         owner = import_aliases.get(head, head)
         return owner if not separator else f"{owner}.{tail}"
 
+    def transformed_instance(value: ast.AST, classes: set[str]) -> bool:
+        return isinstance(value, ast.Call) and _call_name(value.func) in classes
+
     def scalar_cast_expression(value: ast.AST) -> bool:
         if resolved_name(value) in {
             "float",
@@ -1506,6 +1573,8 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             "__builtins__.complex",
         }:
             return True
+        if isinstance(value, ast.UnaryOp):
+            return transformed_instance(value.operand, scalar_transform_classes)
         if isinstance(value, ast.Call):
             if (
                 isinstance(value.func, ast.Call)
@@ -1533,7 +1602,11 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             if _call_name(value.func) in partial_names:
                 return any(scalar_cast_expression(item) for item in value.args)
             if _call_name(value.func) in {*identity_names, "next", "iter"}:
-                return any(scalar_cast_expression(item) for item in value.args)
+                return any(
+                    scalar_cast_expression(item)
+                    or transformed_instance(item, scalar_transform_classes)
+                    for item in value.args
+                )
             if _call_name(value.func) in {"any", "all", "bool", "complex"}:
                 return any(scalar_cast_expression(item) for item in value.args)
             if _call_name(value.func) in {"tuple", "list", "set", "reversed"}:
@@ -1564,6 +1637,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 }
                 and _literal_string(value.slice) in {"float", "int"}
                 or scalar_cast_expression(value.value)
+                or transformed_instance(value.value, scalar_transform_classes)
                 or isinstance(value.value, ast.Attribute)
                 and value.value.attr in {"__dict__", "__mro__"}
                 and scalar_cast_expression(value.value.value)
@@ -1577,6 +1651,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         if isinstance(value, ast.Attribute):
             return (
                 (_call_name(value) or "") in scalar_attribute_names
+                or transformed_instance(value.value, scalar_transform_classes)
                 or value.attr == "__class__"
                 or (
                     value.attr in {"__call__", "__new__", "__dict__", "__mro__", "mro"}
@@ -1623,6 +1698,22 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             and method.name == "__call__"
             and any(
                 isinstance(item, ast.Return)
+                and item.value is not None
+                and scalar_cast_expression(item.value)
+                for item in ast.walk(method)
+            )
+            for method in class_node.body
+        )
+    )
+    scalar_transform_classes.update(
+        class_node.name
+        for class_node in ast.walk(tree)
+        if isinstance(class_node, ast.ClassDef)
+        and any(
+            isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and method.name in carrier_transform_methods
+            and any(
+                isinstance(item, (ast.Return, ast.Yield))
                 and item.value is not None
                 and scalar_cast_expression(item.value)
                 for item in ast.walk(method)
@@ -1840,6 +1931,32 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                         aliases.add(name)
                         changed = True
 
+    def source_mentions_trainable(value: ast.AST) -> bool:
+        return any(
+            isinstance(descendant, ast.Name)
+            and any(token in descendant.id.lower() for token in trainable_tokens)
+            or isinstance(descendant, ast.Attribute)
+            and any(token in descendant.attr.lower() for token in trainable_tokens)
+            for descendant in ast.walk(value)
+        )
+
+    trainable_transform_classes = {
+        class_node.name
+        for class_node in ast.walk(tree)
+        if isinstance(class_node, ast.ClassDef)
+        and any(
+            isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and method.name in carrier_transform_methods
+            and any(
+                isinstance(item, (ast.Return, ast.Yield))
+                and item.value is not None
+                and source_mentions_trainable(item.value)
+                for item in ast.walk(method)
+            )
+            for method in class_node.body
+        )
+    }
+
     trainable_aliases: set[str] = set()
     callable_relay_classes = {
         class_node.name
@@ -1986,16 +2103,24 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 token in value.id.lower() for token in trainable_tokens
             )
         if isinstance(value, ast.Attribute):
-            return any(token in value.attr.lower() for token in trainable_tokens) or (
-                value.attr == "__dict__" and trainable_expression(value.value)
+            return (
+                any(token in value.attr.lower() for token in trainable_tokens)
+                or (value.attr == "__dict__" and trainable_expression(value.value))
+                or transformed_instance(value.value, trainable_transform_classes)
             )
         if (literal := _literal_string(value)) is not None:
             return any(token in literal.lower() for token in trainable_tokens)
+        if isinstance(value, ast.UnaryOp):
+            return transformed_instance(value.operand, trainable_transform_classes)
         if isinstance(value, ast.Subscript):
-            return trainable_expression(value.value) or (
-                isinstance(value.value, ast.Attribute)
-                and value.value.attr == "__dict__"
-                and "parameter" in (_literal_string(value.slice) or "").lower()
+            return (
+                trainable_expression(value.value)
+                or (
+                    isinstance(value.value, ast.Attribute)
+                    and value.value.attr == "__dict__"
+                    and "parameter" in (_literal_string(value.slice) or "").lower()
+                )
+                or transformed_instance(value.value, trainable_transform_classes)
             )
         if isinstance(value, ast.Starred):
             return trainable_expression(value.value)
@@ -2039,7 +2164,11 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                     trainable_expression(item.value) for item in value.keywords
                 )
             if name in {*identity_names, "next", "iter"}:
-                return any(trainable_expression(item) for item in value.args)
+                return any(
+                    trainable_expression(item)
+                    or transformed_instance(item, trainable_transform_classes)
+                    for item in value.args
+                )
             if name in {"any", "all", "bool", "complex"}:
                 return any(trainable_expression(item) for item in value.args)
             if name in {"deque", "collections.deque", "zip"}:
@@ -2100,14 +2229,22 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         if isinstance(value, ast.Name):
             return value.id in strong_trainable_aliases
         if isinstance(value, ast.Attribute):
-            return is_runtime_trainable_attribute(value) or (
-                value.attr == "__dict__" and host_truth_expression(value.value)
+            return (
+                is_runtime_trainable_attribute(value)
+                or (value.attr == "__dict__" and host_truth_expression(value.value))
+                or transformed_instance(value.value, trainable_transform_classes)
             )
+        if isinstance(value, ast.UnaryOp):
+            return transformed_instance(value.operand, trainable_transform_classes)
         if isinstance(value, ast.Subscript):
-            return host_truth_expression(value.value) or (
-                isinstance(value.value, ast.Attribute)
-                and value.value.attr == "__dict__"
-                and "parameter" in (_literal_string(value.slice) or "").lower()
+            return (
+                host_truth_expression(value.value)
+                or (
+                    isinstance(value.value, ast.Attribute)
+                    and value.value.attr == "__dict__"
+                    and "parameter" in (_literal_string(value.slice) or "").lower()
+                )
+                or transformed_instance(value.value, trainable_transform_classes)
             )
         if isinstance(value, ast.Starred):
             return host_truth_expression(value.value)
@@ -2143,7 +2280,11 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                     host_truth_expression(item.value) for item in value.keywords
                 )
             if name in {*identity_names, "next", "iter", "any", "all"}:
-                return any(host_truth_expression(item) for item in value.args)
+                return any(
+                    host_truth_expression(item)
+                    or transformed_instance(item, trainable_transform_classes)
+                    for item in value.args
+                )
             if name in {"deque", "collections.deque", "zip"}:
                 return any(host_truth_expression(item) for item in value.args)
             if _call_name(value.func) == "getattr" and value.args:

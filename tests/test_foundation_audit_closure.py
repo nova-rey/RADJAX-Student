@@ -700,6 +700,14 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "import importlib.util\nfind = importlib.util.find_spec\n"
         "create = importlib.util.module_from_spec\nspec = find(target)\n"
         "module = create(spec)\nexecute = spec.loader.exec_module\nexecute(module)\n",
+        "import importlib._bootstrap as bootstrap\n"
+        "bootstrap._find_and_load(target, __import__)\n",
+        "import importlib._bootstrap as bootstrap\n"
+        "bootstrap._find_and_load_unlocked(target, __import__)\n",
+        "import importlib._bootstrap as bootstrap\nbootstrap._gcd_import(target)\n",
+        "import _frozen_importlib as bootstrap\nbootstrap._gcd_import(target)\n",
+        "import ctypes\n"
+        "loader = ctypes.pythonapi.PyImport_ImportModule\nloader(target.encode())\n",
     ),
 )
 def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> None:
@@ -785,6 +793,16 @@ def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> No
         "if prepared_inputs.parameters:\n    result = 1\nelse:\n    result = 0\n",
         "if prepared_inputs.parameters > 0:\n    result = 1\nelse:\n    result = 0\n",
         "any((prepared_inputs.parameters,))\n",
+        "class Cast:\n    def __pos__(self):\n        return float\n"
+        "result = (+Cast())(prepared_inputs.parameters)\n",
+        "class Cast:\n    def __invert__(self):\n        return float\n"
+        "result = (~Cast())(prepared_inputs.parameters)\n",
+        "class Cast:\n    def __getitem__(self, key):\n        return float\n"
+        "result = Cast()[0](prepared_inputs.parameters)\n",
+        "class Cast:\n    def __iter__(self):\n        yield float\n"
+        "result = next(iter(Cast()))(prepared_inputs.parameters)\n",
+        "class Cast:\n    def __getattr__(self, name):\n        return float\n"
+        "result = Cast().anything(prepared_inputs.parameters)\n",
     ),
 )
 def test_literal_trainable_carriers_fail_closed(source: str) -> None:

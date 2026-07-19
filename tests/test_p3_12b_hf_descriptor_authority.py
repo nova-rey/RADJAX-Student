@@ -583,6 +583,19 @@ def test_production_import_audit_rejects_indirect_runpy_execution(
         "spec = importlib.util.find_spec('radjax_student.validation.fixture')\n"
         "module = importlib.util.module_from_spec(spec)\n"
         "spec.loader.exec_module(module)\n",
+        "import importlib._bootstrap as bootstrap\n"
+        "bootstrap._find_and_load('radjax_student.validation.fixture', __import__)\n",
+        "import importlib._bootstrap as bootstrap\n"
+        "bootstrap._find_and_load_unlocked(\n"
+        "    'radjax_student.validation.fixture', __import__\n"
+        ")\n",
+        "import importlib._bootstrap as bootstrap\n"
+        "bootstrap._gcd_import('radjax_student.validation.fixture')\n",
+        "import _frozen_importlib as bootstrap\n"
+        "bootstrap._gcd_import('radjax_student.validation.fixture')\n",
+        "import ctypes\n"
+        "loader = ctypes.pythonapi.PyImport_ImportModule\n"
+        "loader(b'radjax_student.validation.fixture')\n",
     ),
 )
 def test_production_import_audit_rejects_module_execution_authorities(
