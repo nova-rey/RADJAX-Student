@@ -1618,3 +1618,9 @@
   JAX-purity audit follows trainable-value aliases and scalar callees through
   equivalent carrier forms while keeping ordinary post-execution counters out
   of the trainable-state boundary.
+
+## 2026-07-18 - Receiver closure evidence refresh
+
+- Regenerated the P3.5 dependency audit and dependent P3.11.10 receipt twice
+  byte-identically from accepted source commit `416fc1e`. The recorded evidence
+  now attests the receiver and neutral-value audit closure.
