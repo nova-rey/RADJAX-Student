@@ -1421,3 +1421,6 @@
   `__dict__` member extraction, and source-local primitive bindings. The HF
   authority audit also rejects outer `finally` returns and context-manager
   suppression around the required mismatch rejection.
+- Refreshed the frozen P3.12B source attestation after this JAX-free audit
+  implementation change; the P3.12B receipt regenerated twice without byte
+  drift because its executed proof source remained unchanged.
