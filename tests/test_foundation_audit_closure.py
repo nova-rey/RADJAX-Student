@@ -273,6 +273,13 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         relative_path="runtime/x.py",
     ) == ("runtime_dynamic_import",)
     assert audit_source_fixture(
+        "import importlib\n"
+        "op = __import__('operator')\n"
+        "load = op.getitem(importlib.__dict__, 'import_' + 'module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
         "eval('import radjax_student.steps')\n", relative_path="runtime/x.py"
     ) == ("runtime_dynamic_import",)
     assert audit_source_fixture(

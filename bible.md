@@ -1520,6 +1520,12 @@
   imported builtin scalar casts before those paths can supply gate or training
   authority. Focused fixtures cover every rejected spelling.
 
+## 2026-07-18 - Dynamic operator reflection closure
+
+- Extended the same closed reflection-root policy to a dynamically imported
+  `operator` module, eliminating the remaining application-reachable mapping
+  alias route into protected validation code.
+
 ## 2026-07-18 - Portable reflection closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `8b87d13`

@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "d2552bf1f9104b601b8dc1c11883f59eb46f305dd7892b3719eaf316ca2b5d59"
+    "69fd0ea168229422ef9ba6ba6a8a58feac5fe352f699d43bfee4ec957c8f8e09"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -492,7 +492,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         return True
     for node in _dynamic_import_calls(tree):
         target = _resolved_dynamic_import_target(node, aliases)
-        if target is None or target == "builtins":
+        if target is None or target in {"builtins", "operator"}:
             return True
     # A protected owner does not need opaque reflection over the import
     # primitives.  If the local resolver cannot establish an exact callable,

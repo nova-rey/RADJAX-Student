@@ -525,7 +525,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         isinstance(node, ast.Call)
         and _call_name(node.func) in {"__import__", "builtins.__import__"}
         and node.args
-        and _source_literal_string(node.args[0]) == "builtins"
+        and _source_literal_string(node.args[0]) in {"builtins", "operator"}
         for node in ast.walk(tree)
     ):
         return True

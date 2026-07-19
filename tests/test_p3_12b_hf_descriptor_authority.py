@@ -347,6 +347,8 @@ def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
         "members = base if isinstance(base, dict) else vars(base)\n"
         "fetch = dict.__getitem__\n"
         "load = fetch(members, '__' + 'import__')\n",
+        "op = __import__('operator')\n"
+        "load = op.getitem(importlib.__dict__, 'import_' + 'module')\n",
     ),
 )
 def test_production_import_audit_rejects_reflection_alias_gate_import(
