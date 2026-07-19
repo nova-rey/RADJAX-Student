@@ -155,8 +155,9 @@ def test_closure_documentation_binds_final_gate_digest_to_recorded_receipt(
     document = (ROOT / "docs/P3_11_10_FINAL_ADVERSARIAL_GATE.md").read_text(
         encoding="utf-8"
     )
+    recorded_digest = parse_canonical_json(RECEIPT.read_bytes())["gate_evidence_digest"]
     (docs / "P3_11_10_FINAL_ADVERSARIAL_GATE.md").write_text(
-        document.replace("696161", "000000", 1), encoding="utf-8"
+        document.replace(recorded_digest, "0" * 64, 1), encoding="utf-8"
     )
     (docs / "P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json").write_bytes(
         RECEIPT.read_bytes()

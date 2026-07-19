@@ -1301,3 +1301,9 @@
   status/non-claim policy. Independent stale descriptor and checkpoint
   attestation regressions remain JAX-free, and every protected production
   owner is covered by the gate-import policy test.
+
+## 2026-07-18 - Final gate digest mutation regression repair
+
+- The digest-documentation regression now mutates the receipt's current
+  canonical field rather than a historical literal, so evidence refreshes
+  cannot accidentally turn the stale-documentation test into a no-op.
