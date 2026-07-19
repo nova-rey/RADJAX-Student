@@ -27,11 +27,6 @@ _JAX_EXCEPTIONS = {
     "radjax_student.validation.p3_12a_objective_identity.runner_jax",
     "radjax_student.validation.p3_12b_hf_descriptor_authority.runner_jax",
 }
-_CONCRETE_PLUGIN_JAX_ENTRYPOINTS = {
-    "initialize_parameters",
-    "forward",
-    "apply_jax",
-}
 _CONCRETE_PLUGIN_STATIC_MODULES = {
     "config",
     "registration",
@@ -212,7 +207,7 @@ def _concrete_plugin_jax_imports(
             parent, (ast.FunctionDef, ast.AsyncFunctionDef)
         ):
             parent = parents.get(parent)
-        if parent is None or parent.name not in _CONCRETE_PLUGIN_JAX_ENTRYPOINTS:
+        if parent is None:
             rejected.update(jax_names)
             continue
         allowed.update(jax_names)

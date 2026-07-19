@@ -1909,7 +1909,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 183,
+  "module_count": 184,
   "modules": [
     {
       "classification": "core",
@@ -2208,6 +2208,34 @@
         "jax.numpy"
       ],
       "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [
+        "jax",
+        "jax.numpy"
+      ],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "jax",
+        "jax.numpy",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.architecture.rwkv7_reference.kernels",
+      "owner": "architecture_plugin",
+      "path": "src/radjax_student/architecture/rwkv7_reference/kernels.py",
+      "public_exports": [
+        "rwkv7_sequence",
+        "rwkv7_step"
+      ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [
+        "jax",
+        "jax.numpy"
+      ],
+      "concrete_plugin_rejected_jax_imports": [],
       "defined_classes": [
         "RWKV7ReferencePlugin"
       ],
@@ -2225,6 +2253,7 @@
         "radjax_student.architecture.errors",
         "radjax_student.architecture.models",
         "radjax_student.architecture.rwkv7_reference.config",
+        "radjax_student.architecture.rwkv7_reference.kernels",
         "radjax_student.architecture.rwkv7_reference.schema",
         "radjax_student.contracts"
       ],
@@ -2291,6 +2320,7 @@
       "owner": "architecture_plugin",
       "path": "src/radjax_student/architecture/rwkv7_reference/schema.py",
       "public_exports": [
+        "EXECUTION_CAPABILITIES",
         "INITIALIZATION_CAPABILITIES",
         "STATIC_CAPABILITIES",
         "architecture_metadata",

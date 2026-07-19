@@ -20,7 +20,7 @@ P1.10 Production golden acceptance gate             COMPLETE
 PHASE 1 - CONTRACT LAYER                            COMPLETE
 PHASE 2 - STUDENT RUNTIME                           COMPLETE
 PHASE 3 - GENERIC LEARNING CORE                     COMPLETE
-PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.3)
+PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.4)
 ```
 
 ## Phase 2 Status
@@ -84,10 +84,11 @@ P3.12C locally accepted
 
 P3.12D locally accepted
 
-P4.3 adds complete deterministic RWKV parameter and persistent-carry
-initialization using only runtime-supplied opaque material. It makes no
-executable-forward, equation-parity, or remote-CI claim; see
-[P4.3 RWKV-7 Parameter and Carry Initialization](P4_3_RWKV7_INITIALIZATION.md).
+P4.4 adds lazy pure-JAX RWKV recurrent execution, proven only against the
+pinned NumPy inference equations on the checked-in tiny float32 fixture domain.
+It makes no broader equation-parity, initialization-parity, training,
+weight-file, HF-conversion, or remote-CI claim; see
+[P4.4 RWKV-7 Recurrent Forward Parity](P4_4_RWKV7_FORWARD_PARITY.md).
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

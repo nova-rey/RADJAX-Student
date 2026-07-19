@@ -57,6 +57,11 @@ INITIALIZATION_CAPABILITIES = (
     "architecture.parameter_initialization_v1",
 )
 
+EXECUTION_CAPABILITIES = (
+    *INITIALIZATION_CAPABILITIES,
+    "architecture.jax_execution_v1",
+)
+
 
 def _digest(value: object) -> str:
     return hashlib.sha256(
@@ -387,9 +392,9 @@ def capability_profile() -> ArchitectureCapabilityProfile:
     return ArchitectureCapabilityProfile(
         architecture_id=RWKV7_REFERENCE_ARCHITECTURE_ID,
         version=RWKV7_REFERENCE_ARCHITECTURE_VERSION,
-        capabilities=INITIALIZATION_CAPABILITIES,
-        non_capabilities=("architecture.jax_execution_v1",),
-        metadata={"phase": "P4.3", "jax_forward_available": False},
+        capabilities=EXECUTION_CAPABILITIES,
+        non_capabilities=(),
+        metadata={"phase": "P4.4", "jax_forward_available": True},
     )
 
 
@@ -430,15 +435,15 @@ def architecture_metadata() -> ArchitectureMetadata:
         ),
         warnings=(
             ArchitectureIssue(
-                code="rwkv7_reference_forward_unavailable",
+                code="rwkv7_reference_fixture_domain_only",
                 message=(
-                    "P4.3 provides initialization only; JAX forward remains "
-                    "unavailable until P4.4."
+                    "P4.4 JAX execution is proven only against the pinned NumPy "
+                    "inference equations on the frozen tiny float32 fixture domain."
                 ),
             ),
         ),
         claims_not_made=(
-            "jax_forward_not_available_until_p4_4",
+            "equation_parity_outside_fixture_domain_not_claimed",
             "initialization_parity_not_claimed",
             "weight_file_compatibility_not_claimed",
         ),
@@ -506,8 +511,7 @@ def hf_descriptor(config: ArchitectureConfig) -> HFCompatibilityDescriptor:
             "weight_file_compatibility_not_claimed",
         ),
         notes=(
-            "P4.3 descriptor only; no HF conversion, weight-file support, or "
-            "forward execution."
+            "P4.4 JAX execution descriptor; no HF conversion or weight-file support."
         ),
     )
 
@@ -515,6 +519,7 @@ def hf_descriptor(config: ArchitectureConfig) -> HFCompatibilityDescriptor:
 __all__ = [
     "STATIC_CAPABILITIES",
     "INITIALIZATION_CAPABILITIES",
+    "EXECUTION_CAPABILITIES",
     "architecture_metadata",
     "capability_profile",
     "carry_descriptor",

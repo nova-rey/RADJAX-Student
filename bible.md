@@ -1236,3 +1236,12 @@
   initialization-parity claim; JAX forward remains unavailable.
 - The only Phase 4 generic changes are sparse CE, the runtime materializer, and
   the architecture-neutral runtime-supplied initialization-material request seam.
+
+## 2026-07-19 - P4.4 RWKV recurrent forward parity
+
+- Added lazy pure-JAX RWKV-7 step and scan kernels that preserve only the three
+  declared carry leaves; token-local `v0` cannot cross token or sequence state.
+- A checked-in independent NumPy oracle, deterministic generator, fixture, and
+  provenance prove logits/carry parity only for the pinned tiny float32 domain.
+- No generic change was made; execution remains JAX-plugin-local and the base
+  architecture package, RWKV static modules, and architecture/runtime boundary stay pure.

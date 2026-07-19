@@ -17,6 +17,7 @@ FORBIDDEN = {
     "accelerate",
     "radjax_tome",
 }
+_CONCRETE_PLUGIN_STATIC_MODULES = {"config", "registration", "schema"}
 
 
 def _fresh_import(module: str) -> set[str]:
@@ -58,7 +59,13 @@ def test_jax_isolated_to_explicit_adapter_source():
             "validation/p3_11_10_gate/runner_jax.py",
         }:
             continue
-        if relative == "architecture/rwkv7_reference/plugin.py":
+        parts = Path(relative).parts
+        if (
+            len(parts) >= 3
+            and parts[0] == "architecture"
+            and parts[-1] != "__init__.py"
+            and Path(relative).stem not in _CONCRETE_PLUGIN_STATIC_MODULES
+        ):
             tree = ast.parse(source)
             parents = {
                 child: parent
@@ -78,7 +85,6 @@ def test_jax_isolated_to_explicit_adapter_source():
                 ):
                     parent = parents.get(parent)
                 assert parent is not None
-                assert parent.name in {"initialize_parameters", "forward", "apply_jax"}
             continue
         assert "import jax" not in source
         assert "from jax" not in source

@@ -258,12 +258,12 @@ def test_explicit_static_registration_is_caller_owned_and_deterministic() -> Non
     assert registry.list_plugins() == (RWKV7_REFERENCE_ARCHITECTURE_ID,)
 
 
-def test_static_plugin_is_an_architecture_plugin_but_not_a_jax_plugin() -> None:
+def test_reference_plugin_is_an_architecture_plugin_and_jax_plugin() -> None:
     plugin = RWKV7ReferencePlugin()
 
     assert isinstance(plugin, ArchitecturePlugin)
-    assert not isinstance(plugin, JaxArchitecturePlugin)
-    assert not plugin.capability_profile().supports("architecture.jax_execution_v1")
+    assert isinstance(plugin, JaxArchitecturePlugin)
+    assert plugin.capability_profile().supports("architecture.jax_execution_v1")
 
 
 def _assembly_request_and_registries(plugin: ArchitecturePlugin):
@@ -313,32 +313,12 @@ def _assembly_request_and_registries(plugin: ArchitecturePlugin):
     )
 
 
-def test_executable_assembly_rejects_static_rwkv_before_execution() -> None:
-    pytest.importorskip("jax", reason="P3.12C assembly boundary requires JAX")
-    from radjax_student.learning.assembly import (
-        LearningAssemblyError,
-        assemble_jax_learning_lifecycle,
-    )
+def test_executable_registry_accepts_rwkv_without_assembling_p4_5_learning() -> None:
+    registry = ArchitectureRegistry()
+    plugin = register_rwkv7_reference(registry)
 
-    calls = {"initializer": 0, "forward": 0}
-
-    class ProbeStaticRWKV7(RWKV7ReferencePlugin):
-        def initialize_parameters(self, request):
-            del request
-            calls["initializer"] += 1
-            raise AssertionError("assembly called the unavailable initializer")
-
-        def forward(self, request):
-            del request
-            calls["forward"] += 1
-            raise AssertionError("assembly called the unavailable forward")
-
-    request, registries = _assembly_request_and_registries(ProbeStaticRWKV7())
-    with pytest.raises(LearningAssemblyError) as caught:
-        assemble_jax_learning_lifecycle(request, registries=registries)
-
-    assert caught.value.code == "assembly_architecture_invalid"
-    assert calls == {"initializer": 0, "forward": 0}
+    assert isinstance(plugin, JaxArchitecturePlugin)
+    assert registry.get(RWKV7_REFERENCE_ARCHITECTURE_ID) is plugin
 
 
 def test_rwkv_subpackage_keeps_base_imports_jax_and_owner_free() -> None:

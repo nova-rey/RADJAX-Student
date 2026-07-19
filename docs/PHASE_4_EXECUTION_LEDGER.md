@@ -65,3 +65,25 @@ already-known prior SHA.
   P4.8 must reconcile the stale P3.11 recorded-gate closure wording before its
   final verification ladder.
 - **Next checkpoint:** P4.4 — RWKV Recurrent Forward Kernel.
+
+## P4.4 — RWKV Recurrent Forward Kernel
+
+- **Status:** complete
+- **Changed files:** lazy pure-JAX RWKV step/scan kernels and plugin execution
+  boundary; bounded P3.12C audit allowance; independent oracle, fixture,
+  provenance, focused tests, P4.4 documentation, status pages, this ledger,
+  and `bible.md`.
+- **Tests and verification:** independent NumPy-oracle and checked-in-fixture
+  logits/carry parity, step/scan agreement, finite/carry-change, perturbation,
+  malformed-input, capability, import-isolation, and deterministic-audit tests;
+  changed-file Ruff, format, compile, diff, and source-boundary checks passed.
+- **Evidence or receipts changed:** parity fixture/generator/oracle provenance
+  and P3.5 dependency audit now record the lazy `kernels.py` JAX imports.
+- **Generic-change decision:** none; the approved generic ledger remains
+  exactly sparse CE, runtime initialization-key materialization, and the
+  architecture-neutral runtime-supplied initialization-material request seam.
+- **Unresolved non-blocking risks:** the parity claim is limited to the pinned
+  tiny float32 source artifact; P4.5 must prove learning integration and its
+  explicit cross-step carry gradient boundary; P4.8 retains the P3.11 wording
+  reconciliation noted at P4.3.
+- **Next checkpoint:** P4.5 — Objective Surface and Generic Learning Integration.

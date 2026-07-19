@@ -33,13 +33,13 @@ values.
 
 ## Bounded JAX import rule
 
-The P3.12C source audit now permits only function-local `jax` and `jax.numpy`
-imports in non-entrypoint implementation modules below a concrete
+The P3.12C source audit permits only function-local `jax` and `jax.numpy`
+imports in concrete implementation modules below a
 `radjax_student.architecture.<plugin>` package. It does not permit NumPy model
 math, Torch, Transformers, or any other optional framework. Architecture base
 contracts, models, registry, and package entrypoints remain JAX-free. The RWKV
 package entrypoint, config, schema, and registration modules remain JAX-free;
-the RWKV plugin loads JAX only when initialization is requested.
+JAX is loaded only when initialization or execution is requested.
 
 ## Materialized result
 

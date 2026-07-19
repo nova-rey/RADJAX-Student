@@ -134,6 +134,9 @@ Start here for Phase 0 foundation context.
 - [P4.3 RWKV-7 Parameter and Carry Initialization](P4_3_RWKV7_INITIALIZATION.md):
   runtime-owned initialization material, complete float32 parameter/carry
   initialization, and explicit non-execution boundaries.
+- [P4.4 RWKV-7 Recurrent Forward Parity](P4_4_RWKV7_FORWARD_PARITY.md):
+  lazy pure-JAX recurrent execution with checked-in, fixture-domain-only
+  pinned-NumPy logits and persistent-carry evidence.
 - [Phase 4 Execution Ledger](PHASE_4_EXECUTION_LEDGER.md): append-only
   checkpoint status, verification, evidence, generic-change, risk, and next-step record.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)

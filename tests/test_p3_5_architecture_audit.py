@@ -122,20 +122,22 @@ def test_concrete_plugin_local_jax_imports_are_the_only_new_allowance(
     assert audit["modules"][0]["concrete_plugin_rejected_jax_imports"] == []
 
 
-def test_concrete_plugin_jax_allowance_cannot_mask_other_jax_imports(
+def test_concrete_plugin_kernel_imports_are_lazy_and_cannot_mask_top_level_jax(
     tmp_path: Path,
 ) -> None:
-    for source in (
-        "def metadata():\n    import jax\n",
-        "import jax\ndef initialize_parameters():\n    import jax\n",
-    ):
-        audit = _audit_source(
-            tmp_path,
-            "architecture/example_plugin/plugin.py",
-            source,
-        )
-        codes = {item["code"] for item in audit["blockers"]}
-        assert "forbidden_import" in codes
+    allowed = _audit_source(
+        tmp_path,
+        "architecture/example_plugin/kernels.py",
+        "def rwkv7_step():\n    import jax\n    import jax.numpy\n",
+    )
+    assert allowed["status"] == "pass"
+
+    blocked = _audit_source(
+        tmp_path,
+        "architecture/example_plugin/kernels.py",
+        "import jax\ndef rwkv7_step():\n    import jax\n",
+    )
+    assert "forbidden_import" in {item["code"] for item in blocked["blockers"]}
 
 
 @pytest.mark.parametrize(

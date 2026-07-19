@@ -156,13 +156,11 @@ def test_initialized_tree_carry_and_hf_reference_match_declared_contracts() -> N
     )
 
 
-def test_initialization_rejects_non_float32_precision_without_claiming_execution() -> (
-    None
-):
+def test_initialization_rejects_non_float32_precision_with_jax_execution() -> None:
     plugin = RWKV7ReferencePlugin()
 
-    assert not isinstance(plugin, JaxArchitecturePlugin)
-    assert not plugin.capability_profile().supports("architecture.jax_execution_v1")
+    assert isinstance(plugin, JaxArchitecturePlugin)
+    assert plugin.capability_profile().supports("architecture.jax_execution_v1")
     with pytest.raises(ArchitectureContractError) as caught:
         plugin.initialize_parameters(
             _request("runtime_keys.v1:initialization:17", precision_policy="bfloat16")

@@ -109,12 +109,12 @@ produces it, block 1 consumes it, and it is not part of persistent carry.
 
 ## Static descriptor and non-claims
 
-The P4.2 plugin has static schema capability only. Its registered
-`RWKV7ReferencePlugin` implements `ArchitecturePlugin` but does not implement
-or advertise `JaxArchitecturePlugin`; executable assembly must reject it before
-calling initialization or forward. The parameter tree layout and HF descriptor
-cover every catalog leaf, but all HF projections are non-exportable with reason
-`weight_file_compatibility_not_claimed`.
+At the P4.2 checkpoint the plugin had static schema capability only and
+executable assembly rejected it before initialization or forward. P4.4 later
+adds the narrowly scoped JAX execution capability and separate parity proof;
+this mapping remains the static source-to-pytree authority. The parameter tree
+layout and HF descriptor cover every catalog leaf, but all HF projections are
+non-exportable with reason `weight_file_compatibility_not_claimed`.
 
 P4.2 does not initialize tensors, create carry values, execute an equation,
 claim equation parity, load weights, convert a checkpoint, implement
