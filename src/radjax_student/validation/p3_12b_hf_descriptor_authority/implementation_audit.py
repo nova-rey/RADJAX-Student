@@ -489,6 +489,17 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     intentionally recognizes the standard import primitives and fails closed
     when source uses reflection to compute a protected target.
     """
+    # ``runpy`` is a second dynamic module-execution authority.  The protected
+    # production owners have no approved use for it, so its import fails closed
+    # before a source-computed module target can be hidden in its return value.
+    if any(
+        isinstance(node, ast.Import)
+        and any(item.name.split(".", 1)[0] == "runpy" for item in node.names)
+        or isinstance(node, ast.ImportFrom)
+        and (node.module or "").split(".", 1)[0] == "runpy"
+        for node in ast.walk(tree)
+    ):
+        return True
     aliases: dict[str, str] = {}
     identity_names = {
         node.name
@@ -614,18 +625,24 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     if item.name == "__import__":
                         aliases[item.asname or item.name] = "__import__"
 
+    holder_attribute_names: set[str] = set()
+
     def protected_holder(value: ast.AST | None) -> bool:
         """Follow local import-module carriers only at reflection boundaries."""
         if value is None:
             return False
         if isinstance(value, ast.Name):
-            return aliases.get(value.id, value.id) in {
+            return value.id in holder_names or aliases.get(value.id, value.id) in {
                 "importlib",
                 "builtins",
                 "__builtins__",
             }
         if isinstance(value, ast.Attribute):
-            return protected_holder(value.value)
+            return (
+                value.attr == "__dict__"
+                and protected_holder(value.value)
+                or ((_call_name(value) or "") in holder_attribute_names)
+            )
         if isinstance(value, (ast.IfExp, ast.BoolOp)):
             values = (
                 (value.body, value.orelse)
@@ -640,7 +657,17 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         if isinstance(value, ast.Dict):
             return any(protected_holder(item) for item in value.values)
         if isinstance(value, ast.Subscript):
+            owner = _call_name(value.value)
+            if owner == "sys.modules" and _source_literal_string(value.slice) in {
+                "importlib",
+                "builtins",
+            }:
+                return True
             return protected_holder(value.value)
+        if isinstance(value, ast.GeneratorExp):
+            return protected_holder(value.elt) or any(
+                protected_holder(generator.iter) for generator in value.generators
+            )
         if isinstance(value, ast.Call):
             name = _call_name(value.func)
             if name in {"__import__", "builtins.__import__"} and value.args:
@@ -648,8 +675,24 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     "importlib",
                     "builtins",
                 }
+            if name in holder_names or aliases.get(name or "") in {
+                "importlib",
+                "builtins",
+                "__builtins__",
+            }:
+                return True
             if isinstance(value.func, ast.Lambda):
-                return protected_holder(value.func.body)
+                return protected_holder(value.func.body) or any(
+                    protected_holder(item) for item in value.args
+                )
+            if isinstance(value.func, ast.Attribute) and value.func.attr in {
+                "get",
+                "setdefault",
+                "pop",
+                "values",
+                "__getitem__",
+            }:
+                return protected_holder(value.func.value)
             return any(protected_holder(item) for item in value.args) or any(
                 protected_holder(item.value) for item in value.keywords
             )
@@ -662,12 +705,28 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return value.id in names
         if isinstance(value, ast.Call):
             if _call_name(value.func) == "type" and value.args:
-                return isinstance(value.args[0], (ast.Dict, ast.List, ast.Set))
+                return (
+                    isinstance(value.args[0], (ast.Dict, ast.List, ast.Set))
+                    or (_call_name(value.args[0]) == "dict")
+                    or (
+                        isinstance(value.args[0], ast.Call)
+                        and _call_name(value.args[0].func) == "dict"
+                    )
+                )
             if isinstance(value.func, ast.Lambda):
-                return mapping_carrier(value.func.body, names)
+                return mapping_carrier(value.func.body, names) or any(
+                    mapping_carrier(item, names) for item in value.args
+                )
             name = _call_name(value.func)
             if name in {*identity_names, "next", "iter"}:
                 return any(mapping_carrier(item, names) for item in value.args)
+            if isinstance(value.func, ast.Attribute) and value.func.attr in {
+                "get",
+                "setdefault",
+                "pop",
+                "values",
+            }:
+                return mapping_carrier(value.func.value, names)
             return name in names
         if isinstance(value, ast.IfExp):
             return mapping_carrier(value.body, names) or mapping_carrier(
@@ -681,6 +740,14 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return any(mapping_carrier(item, names) for item in value.values)
         if isinstance(value, ast.Subscript):
             return mapping_carrier(value.value, names)
+        if isinstance(value, ast.Attribute) and value.attr == "__class__":
+            return isinstance(value.value, (ast.Dict, ast.List, ast.Set)) or (
+                _call_name(value.value) == "dict"
+            )
+        if isinstance(value, ast.GeneratorExp):
+            return mapping_carrier(value.elt, names) or any(
+                mapping_carrier(generator.iter, names) for generator in value.generators
+            )
         return False
 
     def reflection_carrier(value: ast.AST | None, mapping_names: set[str]) -> bool:
@@ -695,7 +762,16 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             )
         if isinstance(value, ast.Call):
             if isinstance(value.func, ast.Lambda):
-                return reflection_carrier(value.func.body, mapping_names)
+                return reflection_carrier(value.func.body, mapping_names) or any(
+                    reflection_carrier(item, mapping_names) for item in value.args
+                )
+            if isinstance(value.func, ast.Attribute) and value.func.attr in {
+                "get",
+                "setdefault",
+                "pop",
+                "values",
+            }:
+                return reflection_carrier(value.func.value, mapping_names)
             return _call_name(value.func) in reflection_names
         if isinstance(value, ast.IfExp):
             return reflection_carrier(value.body, mapping_names) or reflection_carrier(
@@ -709,6 +785,11 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return any(reflection_carrier(item, mapping_names) for item in value.values)
         if isinstance(value, ast.Subscript):
             return reflection_carrier(value.value, mapping_names)
+        if isinstance(value, ast.GeneratorExp):
+            return reflection_carrier(value.elt, mapping_names) or any(
+                reflection_carrier(generator.iter, mapping_names)
+                for generator in value.generators
+            )
         return False
 
     holder_names = {
@@ -727,10 +808,14 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
             if protected_holder(node.value):
                 for target in targets:
-                    if isinstance(target, ast.Name) and target.id not in holder_names:
-                        holder_names.add(target.id)
-                        aliases[target.id] = "importlib"
+                    target_name = _call_name(target)
+                    if target_name is not None and target_name not in holder_names:
+                        holder_names.add(target_name)
+                        if isinstance(target, ast.Name):
+                            aliases[target.id] = "importlib"
                         changed = True
+                    if isinstance(target, ast.Attribute):
+                        holder_attribute_names.add(_call_name(target) or "")
             if mapping_carrier(node.value, mapping_names):
                 for target in targets:
                     if isinstance(target, ast.Name) and target.id not in mapping_names:
@@ -753,12 +838,18 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 if isinstance(item, ast.Return) and item.value is not None
             ]
             if any(protected_holder(value) for value in returns):
-                aliases[node.name] = "importlib"
-                holder_names.add(node.name)
+                if node.name not in holder_names:
+                    aliases[node.name] = "importlib"
+                    holder_names.add(node.name)
+                    changed = True
             if any(mapping_carrier(value, mapping_names) for value in returns):
-                mapping_names.add(node.name)
+                if node.name not in mapping_names:
+                    mapping_names.add(node.name)
+                    changed = True
             if any(reflection_carrier(value, mapping_names) for value in returns):
-                reflection_names.add(node.name)
+                if node.name not in reflection_names:
+                    reflection_names.add(node.name)
+                    changed = True
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):

@@ -403,6 +403,34 @@ def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
         "mapping_type = identity(dict)\n"
         "fetch = mapping_type.get\n"
         "load = fetch(importlib.__dict__, 'import_module')\n",
+        "holder = [importlib].pop()\n"
+        "member = 'import_' + 'module'\n"
+        "load = getattr(holder, member)\n",
+        "holder = next({'module': importlib}.values())\n"
+        "load = getattr(holder, 'import_' + 'module')\n",
+        "holder = next(importlib for _ in (0,))\n"
+        "load = getattr(holder, 'import_' + 'module')\n",
+        "def holder_factory():\n    return importlib\n"
+        "holder = holder_factory()\n"
+        "load = getattr(holder, 'import_' + 'module')\n",
+        "class Holder: pass\nholder_object = Holder()\n"
+        "holder_object.module = importlib\n"
+        "load = getattr(holder_object.module, 'import_' + 'module')\n",
+        "reflect = [getattr if True else print].pop()\n"
+        "load = reflect(importlib, 'import_' + 'module')\n",
+        "reflect = {'reflect': getattr}.pop('reflect')\n"
+        "load = reflect(importlib, 'import_' + 'module')\n",
+        "reflect = next({'reflect': getattr}.values())\n"
+        "load = reflect(importlib, 'import_' + 'module')\n",
+        "mapping_type = {}.__class__\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\n",
+        "mapping_type = type(dict())\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\n",
+        "mapping_type = [dict].pop()\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\n",
+        "mapping_type = next({'mapping': dict}.values())\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\n",
     ),
 )
 def test_production_import_audit_rejects_reflection_alias_gate_import(
@@ -435,6 +463,23 @@ def test_production_import_audit_rejects_indirect_dynamic_gate_import(
         "getattr(__import__('importlib'), 'import_module')(\n"
         "    'radjax_student.validation.p3_12b_'\n"
         "    + 'hf_descriptor_authority.implementation_audit'\n"
+        ")\n",
+        encoding="utf-8",
+    )
+    blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
+    implementation_audit._audit_production_imports(tmp_path, blockers)
+    assert [(item.code, item.detail) for item in blockers] == [
+        ("production_imports_gate_code", "cli/gate_import.py"),
+    ]
+
+
+def test_production_import_audit_rejects_runpy_gate_execution(tmp_path: Path) -> None:
+    cli = tmp_path / "src" / "radjax_student" / "cli"
+    cli.mkdir(parents=True)
+    (cli / "gate_import.py").write_text(
+        "import runpy\n"
+        "runpy.run_module(\n"
+        "    'radjax_student.validation.p3_12b_hf_descriptor_authority'\n"
         ")\n",
         encoding="utf-8",
     )

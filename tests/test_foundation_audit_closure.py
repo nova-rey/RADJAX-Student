@@ -536,6 +536,75 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     ) == ("new_production_proof_module:learning/ordinary.py",)
 
 
+@pytest.mark.parametrize(
+    "source",
+    (
+        "import importlib\nholder = [importlib].pop()\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nholder = next({'module': importlib}.values())\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nholder = next(importlib for _ in (0,))\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib\ndef holder_factory():\n    return importlib\n"
+        "holder = holder_factory()\nmember = 'import_' + 'module'\n"
+        "load = getattr(holder, member)\nload('x')\n",
+        "import importlib\nclass Holder: pass\nholder_object = Holder()\n"
+        "holder_object.module = importlib\n"
+        "load = getattr(holder_object.module, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nreflect = [getattr if True else print].pop()\n"
+        "load = reflect(importlib, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nreflect = {'reflect': getattr}.pop('reflect')\n"
+        "load = reflect(importlib, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nreflect = next({'reflect': getattr}.values())\n"
+        "load = reflect(importlib, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nmapping_type = {}.__class__\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nmapping_type = type(dict())\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nmapping_type = [dict].pop()\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nmapping_type = next({'mapping': dict}.values())\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\nload('x')\n",
+        "import runpy\nrunpy.run_module('radjax_student.validation.fixture')\n",
+    ),
+)
+def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> None:
+    assert audit_source_fixture(source, relative_path="runtime/x.py") == (
+        "runtime_dynamic_import",
+    )
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        "value = (lambda item: item)(prepared_inputs.parameters)\nfloat(value)\n",
+        "value = [prepared_inputs.parameters].pop()\nfloat(value)\n",
+        "value = {'parameters': prepared_inputs.parameters}.pop('parameters')\n"
+        "float(value)\n",
+        "value = prepared_inputs.__dict__.get('parameters')\nfloat(value)\n",
+        "value = next({'parameters': prepared_inputs.parameters}.values())\n"
+        "float(value)\n",
+        "value = prepared_inputs.parameters\n(lambda cast: cast)(float)(value)\n",
+        "value = prepared_inputs.parameters\n[float].pop()(value)\n",
+        "value = prepared_inputs.parameters\n{'cast': float}.pop('cast')(value)\n",
+        "value = prepared_inputs.parameters\n"
+        "getattr(type, '__call__')(type(1), value)\n",
+        "value = prepared_inputs.parameters\n"
+        "type.__dict__['__call__'](type(1), value)\n",
+        "value = prepared_inputs.parameters\nfloat.__mro__[0](value)\n",
+        "scalar_type = type\ncast = scalar_type(1 / 2)\n"
+        "cast(prepared_inputs.parameters)\n",
+        "def relay(value):\n    marker = None\n    return value\n"
+        "value = relay(prepared_inputs.parameters)\nfloat(value)\n",
+    ),
+)
+def test_literal_trainable_carriers_fail_closed(source: str) -> None:
+    assert audit_source_fixture(source, relative_path="steps/jax_step.py") == (
+        "canonical_jax_purity",
+    )
+
+
 def test_production_owners_include_cli_and_test_support_beats_competitors() -> None:
     assert "cli" in PRODUCTION_OWNER_ROOTS
     assert _test_support_is_hermetic(ROOT)

@@ -1624,3 +1624,12 @@
 - Regenerated the P3.5 dependency audit and dependent P3.11.10 receipt twice
   byte-identically from accepted source commit `416fc1e`. The recorded evidence
   now attests the receiver and neutral-value audit closure.
+
+## 2026-07-18 - Pop, relay, and dynamic-execution closure
+
+- The JAX-free Foundation and P3.12B source audits now fail closed on reviewed
+  ordinary receiver carriers (`pop`, `values`, generator, factory, and object
+  attribute paths), mapping/reflection aliases, and `runpy` module execution.
+  Canonical JAX-purity tracking now follows the corresponding trainable relay
+  and scalar metaclass carriers. Literal fixtures bind every added blocker to
+  the exact source behavior.
