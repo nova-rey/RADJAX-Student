@@ -71,6 +71,15 @@ HISTORICAL_PROOF_EXCEPTIONS = (
     "learning/p3_5_acceptance.py",
     "learning/synthetic_smoke.py",
 )
+# Dynamic imports are permitted only when their target is an explicit literal
+# (for example the optional-JAX bridge).  A constructed target can conceal an
+# otherwise forbidden production dependency from the normal import graph.
+_DYNAMIC_IMPORT_CALLEES = frozenset(
+    {"__import__", "import_module", "_import_module", "importlib.import_module"}
+)
+_PROOF_COMMAND_FLAGS = frozenset(
+    {"--check-recorded", "--diagnostic", "--write-receipt"}
+)
 CLAIMS_NOT_MADE = (
     "historical_acceptance_modules_not_fully_relocated",
     "validation_namespace_not_fully_split",
@@ -144,12 +153,30 @@ def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ..
             callee = _call_name(node.func)
             target = node.args[0]
             if (
-                callee in {"__import__", "importlib.import_module"}
+                callee in _DYNAMIC_IMPORT_CALLEES
                 and isinstance(target, ast.Constant)
                 and isinstance(target.value, str)
             ):
                 names.add(target.value)
     return tuple(sorted(names))
+
+
+def _has_dynamic_import_target(tree: ast.Module) -> bool:
+    """Detect a source-computed import target without importing the module."""
+    return any(
+        isinstance(node, ast.Call)
+        and node.args
+        and _call_name(node.func) in _DYNAMIC_IMPORT_CALLEES
+        and not (
+            isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        )
+        for node in ast.walk(tree)
+    )
+
+
+def _has_import_segment(name: str, segment: str) -> bool:
+    return any(part.lower() == segment for part in name.split("."))
 
 
 def _imports(path: Path, *, relative_path: str) -> tuple[str, ...]:
@@ -176,18 +203,36 @@ def _relative(root: Path, path: Path) -> str:
 
 def _has_proof_shape(path: Path) -> bool:
     tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-    return any(
-        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and (
-            node.name.startswith(("run_p3_", "execute_p3_"))
-            or node.name.endswith("_acceptance")
-            or node.name.endswith("_proof")
+    return _has_proof_shape_from_tree(tree)
+
+
+def _has_proof_shape_from_tree(tree: ast.Module) -> bool:
+    """Identify proof behavior even when the module uses a neutral filename."""
+    return (
+        any(
+            isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and (
+                node.name.startswith(("run_p3_", "execute_p3_"))
+                or node.name in {"run_recorded_gate", "execute_recorded_gate"}
+                or node.name.endswith("_acceptance")
+                or node.name.endswith("_proof")
+            )
+            for node in ast.walk(tree)
         )
-        for node in ast.walk(tree)
-    ) or any(
-        isinstance(node, ast.ClassDef)
-        and ("Acceptance" in node.name or node.name.endswith("Proof"))
-        for node in ast.walk(tree)
+        or any(
+            isinstance(node, ast.ClassDef)
+            and ("Acceptance" in node.name or node.name.endswith("Proof"))
+            for node in ast.walk(tree)
+        )
+        or any(
+            isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and (
+                node.value in _PROOF_COMMAND_FLAGS
+                or node.value.startswith("radjax.p3_")
+            )
+            for node in ast.walk(tree)
+        )
     )
 
 
@@ -605,9 +650,10 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
     repository = Path.cwd() if root is None else root
     source = _source_root(repository)
     blockers: list[str] = []
+    runtime_sources = tuple(sorted((source / "runtime").rglob("*.py")))
     runtime_imports = tuple(
         name
-        for path in sorted((source / "runtime").rglob("*.py"))
+        for path in runtime_sources
         for name in _imports(path, relative_path=_relative(repository, path))
     )
     runtime_steps = sum(
@@ -620,6 +666,19 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
         blockers.append("runtime_steps_import")
     if runtime_learning:
         blockers.append("runtime_learning_import")
+    if any(name.startswith("radjax_student.architecture") for name in runtime_imports):
+        blockers.append("runtime_architecture_import")
+    if any(_has_import_segment(name, "tome") for name in runtime_imports):
+        blockers.append("runtime_tome_import")
+    if any(_has_import_segment(name, "rwkv") for name in runtime_imports):
+        blockers.append("runtime_rwkv_import")
+    if any(
+        _has_dynamic_import_target(
+            ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        )
+        for path in runtime_sources
+    ):
+        blockers.append("runtime_dynamic_import")
 
     validation_imports = 0
     for path in _production_paths(repository):
@@ -629,6 +688,10 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
             validation_imports += sum(
                 name.startswith("radjax_student.validation") for name in imports
             )
+        if not relative.startswith(("architecture/", "runtime/")) and any(
+            _has_import_segment(name, "rwkv") for name in imports
+        ):
+            blockers.append(f"production_rwkv_import:{relative}")
         if (
             _is_new_proof_path(relative)
             or _has_proof_shape(path)
@@ -657,7 +720,8 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
             purity_failures.append(relative)
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         if any(
-            isinstance(node, ast.Attribute) and node.attr in {"numpy", "tolist"}
+            isinstance(node, ast.Attribute)
+            and node.attr in {"device_get", "numpy", "tolist"}
             for node in ast.walk(tree)
         ):
             purity_failures.append(relative)
@@ -812,6 +876,14 @@ def audit_source_fixture(source: str, *, relative_path: str) -> tuple[str, ...]:
             blockers.append("runtime_steps_import")
         if any(name.startswith("radjax_student.learning") for name in imports):
             blockers.append("runtime_learning_import")
+        if any(name.startswith("radjax_student.architecture") for name in imports):
+            blockers.append("runtime_architecture_import")
+        if any(_has_import_segment(name, "tome") for name in imports):
+            blockers.append("runtime_tome_import")
+        if any(_has_import_segment(name, "rwkv") for name in imports):
+            blockers.append("runtime_rwkv_import")
+        if _has_dynamic_import_target(tree):
+            blockers.append("runtime_dynamic_import")
     if relative_path.split("/", 1)[0] != PROOF_OWNED_NAMESPACE and any(
         name.startswith("radjax_student.validation") for name in imports
     ):
@@ -826,6 +898,18 @@ def audit_source_fixture(source: str, *, relative_path: str) -> tuple[str, ...]:
         name.startswith("radjax_student.legacy.losses") for name in imports
     ):
         blockers.append("canonical_numpy_loss_import")
+    if relative_path in CANONICAL_TRAINING_PATHS and any(
+        isinstance(node, ast.Attribute)
+        and node.attr in {"device_get", "numpy", "tolist"}
+        for node in ast.walk(tree)
+    ):
+        blockers.append("canonical_jax_purity")
+    if (
+        relative_path.split("/", 1)[0] in PRODUCTION_OWNER_ROOTS
+        and not relative_path.startswith(("architecture/", "runtime/"))
+        and any(_has_import_segment(name, "rwkv") for name in imports)
+    ):
+        blockers.append(f"production_rwkv_import:{relative_path}")
     if relative_path.split("/", 1)[0] in PRODUCTION_OWNER_ROOTS and (
         _is_new_proof_path(relative_path)
         or _has_proof_shape_from_tree(tree)
@@ -833,22 +917,6 @@ def audit_source_fixture(source: str, *, relative_path: str) -> tuple[str, ...]:
     ):
         blockers.append(f"new_production_proof_module:{relative_path}")
     return tuple(sorted(set(blockers)))
-
-
-def _has_proof_shape_from_tree(tree: ast.Module) -> bool:
-    return any(
-        isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
-        and (
-            node.name.startswith(("run_p3_", "execute_p3_"))
-            or node.name.endswith("_acceptance")
-            or node.name.endswith("_proof")
-        )
-        for node in ast.walk(tree)
-    ) or any(
-        isinstance(node, ast.ClassDef)
-        and ("Acceptance" in node.name or node.name.endswith("Proof"))
-        for node in ast.walk(tree)
-    )
 
 
 def audit_hf_authority_fixture(sources: dict[str, str]) -> tuple[str, ...]:

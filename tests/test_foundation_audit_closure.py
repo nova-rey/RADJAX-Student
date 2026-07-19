@@ -114,6 +114,31 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "from radjax_student.learning import assembly\n",
         relative_path="runtime/x.py",
     ) == ("runtime_learning_import",)
+    assert audit_source_fixture(
+        "from radjax_student.architecture import registry\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_architecture_import",)
+    assert audit_source_fixture(
+        "from radjax_student import tome\n", relative_path="runtime/x.py"
+    ) == ("runtime_tome_import",)
+    assert audit_source_fixture(
+        "from radjax_student import rwkv\n", relative_path="runtime/x.py"
+    ) == ("runtime_rwkv_import",)
+    assert audit_source_fixture(
+        "from radjax_student import rwkv\n", relative_path="learning/x.py"
+    ) == ("production_rwkv_import:learning/x.py",)
+    assert audit_source_fixture(
+        "import importlib\nimportlib.import_module('radjax_student.' + 'steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import jax\njax.device_get(value)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "SCHEMA = 'radjax.p3_99_neutral_gate.v1'\ndef run(): pass\n",
+        relative_path="learning/ordinary.py",
+    ) == ("new_production_proof_module:learning/ordinary.py",)
 
 
 def test_production_owners_include_cli_and_test_support_beats_competitors() -> None:

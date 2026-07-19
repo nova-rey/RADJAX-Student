@@ -1339,3 +1339,11 @@
 - GitHub validation jobs now fetch the accepted source history required by the
   P3.5 provenance receipt, preserving the strict commit-resolution check in
   shallow CI environments instead of weakening recorded-evidence validation.
+
+## 2026-07-18 - Foundation audit bypass-coverage closure
+
+- The JAX-free foundation audit now rejects runtime imports of architecture,
+  Tome, and RWKV namespaces; source-computed runtime imports; host conversion
+  in the reviewed canonical training path; RWKV imports outside architecture;
+  and neutral-named checkpoint proof modules. The four documented historical
+  proof paths remain exact exceptions rather than a broad naming exemption.
