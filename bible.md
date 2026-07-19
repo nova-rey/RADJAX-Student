@@ -1544,6 +1544,12 @@
   primitives. The canonical JAX-purity audit also rejects host scalar cast
   construction through numeric runtime types and class-based call paths.
 
+## 2026-07-18 - Generic carrier closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `e1f14ca`
+  and the dependent P3.11.10 receipt twice byte-identically. The recorded
+  provenance now attests the generic carrier and type-cast closure.
+
 ## 2026-07-18 - Mapping and factory closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `ae6bf0e`
