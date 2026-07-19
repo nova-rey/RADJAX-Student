@@ -534,8 +534,8 @@ def _handler_swallows_checkpoint_mismatch(handler: ast.ExceptHandler) -> bool:
             return any(catches_checkpoint_error(item) for item in caught.elts)
         return False
 
-    return catches_checkpoint_error(handler.type) and not any(
-        isinstance(statement, ast.Raise) for statement in handler.body
+    return catches_checkpoint_error(handler.type) and not _has_reachable_raise(
+        tuple(handler.body)
     )
 
 

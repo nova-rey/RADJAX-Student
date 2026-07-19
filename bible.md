@@ -1370,3 +1370,10 @@
   and regenerated the dependent P3.11.10 final-gate receipt twice
   byte-identically. The P3.11 documentation digest is the exact normal-writer
   value; P3.12A-D evidence remained current without rewriting their receipts.
+
+## 2026-07-18 - Foundation audit handler-reachability closure
+
+- Checkpoint mismatch analysis now treats a handler rethrow after a prior
+  return as unreachable, so a broad handler cannot claim to preserve the
+  caller-bound descriptor rejection merely by leaving dead `raise` syntax in
+  its body. The exact mutation is covered by the JAX-free source fixture.

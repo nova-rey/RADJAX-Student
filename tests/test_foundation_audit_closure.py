@@ -374,6 +374,29 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
+    swallowed_return_then_reraise = dict(sources)
+    swallowed_return_then_reraise["checkpoints/v3.py"] = swallowed_return_then_reraise[
+        "checkpoints/v3.py"
+    ].replace(
+        """    if hf_descriptor != expected_hf_descriptor:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+        """    try:
+        if hf_descriptor != expected_hf_descriptor:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_mismatch",
+                "checkpoint HF descriptor does not match caller expectation",
+            )
+    except CheckpointValidationError:
+        return None
+        raise""",
+    )
+    assert audit_hf_authority_fixture(swallowed_return_then_reraise) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
     for handler in (
         "except:",
         "except ValueError:",
