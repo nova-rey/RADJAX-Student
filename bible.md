@@ -1639,3 +1639,11 @@
 - Regenerated the P3.5 dependency audit and the dependent P3.11.10 final gate
   receipt twice byte-identically from accepted source commit `3621da9`. The
   recorded provenance now binds the pop, relay, and dynamic-execution closure.
+
+## 2026-07-18 - Iterator and attribute carrier closure
+
+- The source audits now also reject reviewed copy/iterator carriers, explicit
+  and dictionary-backed attribute mutation, callable-object relays, keyword and
+  starred trainable relays, and indirect `runpy` acquisition. The added literal
+  fixtures retain source-level proof of every carrier without changing product
+  execution semantics.

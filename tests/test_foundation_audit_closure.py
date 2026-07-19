@@ -567,6 +567,29 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "fetch = mapping_type.get\n"
         "load = fetch(importlib.__dict__, 'import_' + 'module')\nload('x')\n",
         "import runpy\nrunpy.run_module('radjax_student.validation.fixture')\n",
+        "import importlib\nholder = [importlib].copy().pop()\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nholder = iter([importlib]).__next__()\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nclass Holder: pass\nholder = Holder()\n"
+        "setattr(holder, 'module', importlib)\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nclass Holder: pass\nholder = Holder()\n"
+        "holder.__dict__['module'] = importlib\n"
+        "load = getattr(holder, 'module')\nload('x')\n",
+        "import importlib\nclass Holder:\n    def __call__(self):\n"
+        "        return importlib\nholder = Holder()()\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nrunner = importlib.import_module('runpy')\n"
+        "runner.run_module('radjax_student.validation.fixture')\n",
+        "runner = __import__('runpy')\n"
+        "runner.run_module('radjax_student.validation.fixture')\n",
+        "import importlib\nreflect = [getattr].copy().pop()\n"
+        "load = reflect(importlib, 'import_' + 'module')\nload('x')\n",
+        "import importlib\n"
+        "mapping_type = dict.fromkeys(('mapping',), dict)['mapping']\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\nload('x')\n",
     ),
 )
 def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> None:
@@ -597,6 +620,14 @@ def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> No
         "cast(prepared_inputs.parameters)\n",
         "def relay(value):\n    marker = None\n    return value\n"
         "value = relay(prepared_inputs.parameters)\nfloat(value)\n",
+        "class Relay:\n    def __call__(self, value):\n        return value\n"
+        "value = Relay()(prepared_inputs.parameters)\nfloat(value)\n",
+        "def relay(value):\n    return value\n"
+        "value = relay(value=prepared_inputs.parameters)\nfloat(value)\n",
+        "def relay(value):\n    return value\n"
+        "value = relay(*[prepared_inputs.parameters])\nfloat(value)\n",
+        "value = iter([prepared_inputs.parameters]).__next__()\nfloat(value)\n",
+        "tuple([float])[0](prepared_inputs.parameters)\n",
     ),
 )
 def test_literal_trainable_carriers_fail_closed(source: str) -> None:

@@ -654,6 +654,10 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return protected_holder(value.body)
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(protected_holder(item) for item in value.elts)
+        if isinstance(value, (ast.ListComp, ast.SetComp)):
+            return protected_holder(value.elt) or any(
+                protected_holder(generator.iter) for generator in value.generators
+            )
         if isinstance(value, ast.Dict):
             return any(protected_holder(item) for item in value.values)
         if isinstance(value, ast.Subscript):
@@ -674,7 +678,18 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 return _source_literal_string(value.args[0]) in {
                     "importlib",
                     "builtins",
+                    "runpy",
                 }
+            if name == "importlib.import_module" and value.args:
+                return _source_literal_string(value.args[0]) == "runpy"
+            if name == "getattr" and len(value.args) >= 2:
+                owner = _call_name(value.args[0])
+                member = _source_literal_string(value.args[1])
+                return (
+                    owner is not None
+                    and member is not None
+                    and (f"{owner}.{member}" in holder_attribute_names)
+                )
             if name in holder_names or aliases.get(name or "") in {
                 "importlib",
                 "builtins",
@@ -691,6 +706,10 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "pop",
                 "values",
                 "__getitem__",
+                "copy",
+                "__next__",
+                "fromkeys",
+                "__iter__",
             }:
                 return protected_holder(value.func.value)
             return any(protected_holder(item) for item in value.args) or any(
@@ -725,6 +744,9 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "setdefault",
                 "pop",
                 "values",
+                "copy",
+                "__next__",
+                "fromkeys",
             }:
                 return mapping_carrier(value.func.value, names)
             return name in names
@@ -736,13 +758,19 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return any(mapping_carrier(item, names) for item in value.values)
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(mapping_carrier(item, names) for item in value.elts)
+        if isinstance(value, (ast.ListComp, ast.SetComp)):
+            return mapping_carrier(value.elt, names) or any(
+                mapping_carrier(generator.iter, names) for generator in value.generators
+            )
         if isinstance(value, ast.Dict):
             return any(mapping_carrier(item, names) for item in value.values)
         if isinstance(value, ast.Subscript):
             return mapping_carrier(value.value, names)
-        if isinstance(value, ast.Attribute) and value.attr == "__class__":
-            return isinstance(value.value, (ast.Dict, ast.List, ast.Set)) or (
-                _call_name(value.value) == "dict"
+        if isinstance(value, ast.Attribute) and value.attr in {"__class__", "__dict__"}:
+            return (
+                isinstance(value.value, (ast.Dict, ast.List, ast.Set))
+                or (_call_name(value.value) == "dict")
+                or mapping_carrier(value.value, names)
             )
         if isinstance(value, ast.GeneratorExp):
             return mapping_carrier(value.elt, names) or any(
@@ -770,6 +798,8 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "setdefault",
                 "pop",
                 "values",
+                "copy",
+                "__next__",
             }:
                 return reflection_carrier(value.func.value, mapping_names)
             return _call_name(value.func) in reflection_names
@@ -781,6 +811,11 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return any(reflection_carrier(item, mapping_names) for item in value.values)
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(reflection_carrier(item, mapping_names) for item in value.elts)
+        if isinstance(value, (ast.ListComp, ast.SetComp)):
+            return reflection_carrier(value.elt, mapping_names) or any(
+                reflection_carrier(generator.iter, mapping_names)
+                for generator in value.generators
+            )
         if isinstance(value, ast.Dict):
             return any(reflection_carrier(item, mapping_names) for item in value.values)
         if isinstance(value, ast.Subscript):
@@ -815,7 +850,22 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                             aliases[target.id] = "importlib"
                         changed = True
                     if isinstance(target, ast.Attribute):
-                        holder_attribute_names.add(_call_name(target) or "")
+                        key = _call_name(target) or ""
+                        if key not in holder_attribute_names:
+                            holder_attribute_names.add(key)
+                            changed = True
+                    if (
+                        isinstance(target, ast.Subscript)
+                        and isinstance(target.value, ast.Attribute)
+                        and target.value.attr == "__dict__"
+                    ):
+                        owner = _call_name(target.value.value)
+                        member = _source_literal_string(target.slice)
+                        if owner is not None and member is not None:
+                            key = f"{owner}.{member}"
+                            if key not in holder_attribute_names:
+                                holder_attribute_names.add(key)
+                                changed = True
             if mapping_carrier(node.value, mapping_names):
                 for target in targets:
                     if isinstance(target, ast.Name) and target.id not in mapping_names:
@@ -829,6 +879,18 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     ):
                         reflection_names.add(target.id)
                         changed = True
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call) or _call_name(node.func) != "setattr":
+                continue
+            if len(node.args) < 3 or not protected_holder(node.args[2]):
+                continue
+            owner = _call_name(node.args[0])
+            member = _source_literal_string(node.args[1])
+            if owner is not None and member is not None:
+                key = f"{owner}.{member}"
+                if key not in holder_attribute_names:
+                    holder_attribute_names.add(key)
+                    changed = True
         for node in ast.walk(tree):
             if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 continue
@@ -850,9 +912,33 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 if node.name not in reflection_names:
                     reflection_names.add(node.name)
                     changed = True
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            call_returns = [
+                item.value
+                for method in node.body
+                if isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+                and method.name == "__call__"
+                for item in ast.walk(method)
+                if isinstance(item, ast.Return) and item.value is not None
+            ]
+            if any(protected_holder(value) for value in call_returns):
+                if node.name not in holder_names:
+                    aliases[node.name] = "importlib"
+                    holder_names.add(node.name)
+                    changed = True
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
+            if _call_name(node.func) == "getattr" and protected_holder(node):
+                return True
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr in {"run_module", "run_path"}
+                and protected_holder(node.func.value)
+            ):
+                return True
             if (
                 isinstance(node.func, ast.Name)
                 and node.func.id == "getattr"

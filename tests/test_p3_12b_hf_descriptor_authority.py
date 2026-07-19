@@ -431,6 +431,24 @@ def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
         "mapping_type = next({'mapping': dict}.values())\n"
         "fetch = mapping_type.get\n"
         "load = fetch(importlib.__dict__, 'import_' + 'module')\n",
+        "holder = [importlib].copy().pop()\n"
+        "load = getattr(holder, 'import_' + 'module')\n",
+        "holder = iter([importlib]).__next__()\n"
+        "load = getattr(holder, 'import_' + 'module')\n",
+        "class Holder: pass\nholder = Holder()\n"
+        "setattr(holder, 'module', importlib)\n"
+        "load = getattr(holder, 'import_' + 'module')\n",
+        "class Holder: pass\nholder = Holder()\n"
+        "holder.__dict__['module'] = importlib\n"
+        "load = getattr(holder, 'module')\n",
+        "class Holder:\n    def __call__(self):\n        return importlib\n"
+        "holder = Holder()()\n"
+        "load = getattr(holder, 'import_' + 'module')\n",
+        "reflect = [getattr].copy().pop()\n"
+        "load = reflect(importlib, 'import_' + 'module')\n",
+        "mapping_type = dict.fromkeys(('mapping',), dict)['mapping']\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\n",
     ),
 )
 def test_production_import_audit_rejects_reflection_alias_gate_import(
@@ -483,6 +501,29 @@ def test_production_import_audit_rejects_runpy_gate_execution(tmp_path: Path) ->
         ")\n",
         encoding="utf-8",
     )
+    blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
+    implementation_audit._audit_production_imports(tmp_path, blockers)
+    assert [(item.code, item.detail) for item in blockers] == [
+        ("production_imports_gate_code", "cli/gate_import.py"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        "import importlib\n"
+        "runner = importlib.import_module('runpy')\n"
+        "runner.run_module('radjax_student.validation.p3_12b_hf_descriptor_authority')\n",
+        "runner = __import__('runpy')\n"
+        "runner.run_module('radjax_student.validation.p3_12b_hf_descriptor_authority')\n",
+    ),
+)
+def test_production_import_audit_rejects_indirect_runpy_execution(
+    tmp_path: Path, source: str
+) -> None:
+    cli = tmp_path / "src" / "radjax_student" / "cli"
+    cli.mkdir(parents=True)
+    (cli / "gate_import.py").write_text(source, encoding="utf-8")
     blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
     implementation_audit._audit_production_imports(tmp_path, blockers)
     assert [(item.code, item.detail) for item in blockers] == [
