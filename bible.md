@@ -1507,6 +1507,12 @@
   so source-split protected validation paths cannot bypass a raw-text prefilter.
   The source attestation records the resulting deterministic audit contract.
 
+## 2026-07-18 - Split protected-import closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `f8ef225`
+  and the dependent P3.11.10 receipt twice byte-identically. The recorded
+  provenance now attests the split protected-import audit closure.
+
 ## 2026-07-18 - Portable builtins closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `2df9b73`
