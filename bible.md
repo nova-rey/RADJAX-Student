@@ -1665,3 +1665,10 @@
   and loader APIs. Canonical JAX-purity also rejects host boolean, complex, and
   control-flow conversion of execution-owned trainable values. The Foundation
   report now binds its own auditor-source digest as recorded evidence.
+
+## 2026-07-18 - Import-authority closure evidence refresh
+
+- Regenerated the Foundation closure report, P3.5 dependency audit, and
+  dependent P3.11.10 final receipt twice byte-identically from accepted source
+  commit `837a828`. The recorded Foundation evidence now attests its auditor
+  source digest and the current closed-world import and host-truth audit path.
