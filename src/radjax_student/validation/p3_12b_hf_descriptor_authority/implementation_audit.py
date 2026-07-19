@@ -470,6 +470,90 @@ def _audit_receipt_authority(
         _add(blockers, "caller_supplied_receipt_success", "models.py")
 
 
+def _source_literal_string(node: ast.AST | None) -> str | None:
+    """Resolve the narrow literal forms allowed for a dynamic import target."""
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left = _source_literal_string(node.left)
+        right = _source_literal_string(node.right)
+        if left is not None and right is not None:
+            return left + right
+    return None
+
+
+def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
+    """Reject dynamic protected-gate imports, including literal construction.
+
+    Production does not need a dynamic route into this validation gate.  This
+    intentionally recognizes the standard import primitives and fails closed
+    when a source bearing a protected marker computes the target.
+    """
+    aliases: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for item in node.names:
+                if item.name in {"importlib", "builtins"}:
+                    aliases[item.asname or item.name] = item.name
+        elif isinstance(node, ast.ImportFrom):
+            if node.module == "importlib":
+                for item in node.names:
+                    if item.name == "import_module":
+                        aliases[item.asname or item.name] = "import_module"
+            elif node.module == "builtins":
+                for item in node.names:
+                    if item.name == "__import__":
+                        aliases[item.asname or item.name] = "__import__"
+
+    def import_callee(callable_node: ast.AST) -> bool:
+        name = _call_name(callable_node)
+        if name in {"import_module", "__import__", "importlib.import_module"}:
+            return True
+        if name is not None and aliases.get(name) in {"import_module", "__import__"}:
+            return True
+        if name is not None:
+            head, separator, tail = name.partition(".")
+            if (
+                separator
+                and aliases.get(head) == "importlib"
+                and tail == "import_module"
+            ):
+                return True
+            if separator and aliases.get(head) == "builtins" and tail == "__import__":
+                return True
+        if (
+            isinstance(callable_node, ast.Call)
+            and isinstance(callable_node.func, ast.Name)
+            and callable_node.func.id == "getattr"
+            and len(callable_node.args) >= 2
+        ):
+            holder = _call_name(callable_node.args[0])
+            member = _source_literal_string(callable_node.args[1])
+            return holder in {"importlib", "builtins"} and member in {
+                "import_module",
+                "__import__",
+            }
+        return False
+
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not import_callee(node.func):
+            continue
+        target = (
+            node.args[0]
+            if node.args
+            else next(
+                (keyword.value for keyword in node.keywords if keyword.arg == "name"),
+                None,
+            )
+        )
+        target_value = _source_literal_string(target)
+        if target_value is None or any(
+            marker in target_value for marker in _PROTECTED_GATE_IMPORT_MARKERS
+        ):
+            return True
+    return False
+
+
 def _audit_production_imports(
     repository_root: Path, blockers: list[HFImplementationAuditBlocker]
 ) -> None:
@@ -488,6 +572,9 @@ def _audit_production_imports(
         if not any(marker in source for marker in _PROTECTED_GATE_IMPORT_MARKERS):
             continue
         tree = ast.parse(source, filename=str(path))
+        if _production_dynamic_gate_import(tree, source):
+            _add(blockers, "production_imports_gate_code", str(relative))
+            continue
         for node in ast.walk(tree):
             if not isinstance(node, (ast.Import, ast.ImportFrom)):
                 continue

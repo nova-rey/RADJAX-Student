@@ -167,6 +167,49 @@ def _importlib_aliases(tree: ast.Module) -> dict[str, str]:
 
 
 def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | None:
+    def holder_name(value: ast.AST) -> str | None:
+        raw = _call_name(value)
+        if raw is None:
+            return None
+        head, separator, tail = raw.partition(".")
+        resolved_head = aliases.get(head, head)
+        return resolved_head if not separator else f"{resolved_head}.{tail}"
+
+    def declared_import_member(value: ast.AST) -> str | None:
+        """Resolve explicit ``getattr`` and ``__dict__`` import spellings.
+
+        The audit deliberately recognizes only literal member names.  Any
+        computed member name is retained as a possible dynamic import below and
+        therefore fails closed at a protected production boundary.
+        """
+        if (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Name)
+            and value.func.id == "getattr"
+            and len(value.args) >= 2
+        ):
+            owner = holder_name(value.args[0])
+            member = _literal_string(value.args[1])
+            if owner == "importlib" and member == "import_module":
+                return "importlib.import_module"
+            if owner in {"builtins", "__builtins__"} and member == "__import__":
+                return "__import__"
+            return None
+        if isinstance(value, ast.Subscript):
+            owner = holder_name(value.value)
+            member = _literal_string(value.slice)
+            if owner == "importlib.__dict__" and member == "import_module":
+                return "importlib.import_module"
+            if (
+                owner in {"builtins.__dict__", "__builtins__.__dict__"}
+                and member == "__import__"
+            ):
+                return "__import__"
+        return None
+
+    member = declared_import_member(node)
+    if member is not None:
+        return member
     raw = _call_name(node)
     if raw is None:
         return None
@@ -184,6 +227,28 @@ def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | No
     return None
 
 
+def _could_be_dynamic_import_callee(node: ast.AST, aliases: dict[str, str]) -> bool:
+    """Recognize uncertain import indirection so protected owners fail closed."""
+    if _canonical_import_callee(node, aliases) is not None:
+        return True
+    if (
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "getattr"
+        and node.args
+    ):
+        holder = _call_name(node.args[0])
+        if holder is not None:
+            head = holder.split(".", 1)[0]
+            return aliases.get(head, head) in {"importlib", "builtins", "__builtins__"}
+    if isinstance(node, ast.Subscript):
+        holder = _call_name(node.value)
+        if holder is not None:
+            head = holder.split(".", 1)[0]
+            return aliases.get(head, head) in {"importlib", "builtins", "__builtins__"}
+    return False
+
+
 def _resolved_dynamic_import_target(
     node: ast.Call, aliases: dict[str, str]
 ) -> str | None:
@@ -198,18 +263,19 @@ def _resolved_dynamic_import_target(
             None,
         )
     )
-    if not isinstance(target, ast.Constant) or not isinstance(target.value, str):
+    target_value = _literal_string(target) if target is not None else None
+    if target_value is None:
         return None
-    if not target.value.startswith("."):
-        return target.value
+    if not target_value.startswith("."):
+        return target_value
     package = next(
         (keyword.value for keyword in node.keywords if keyword.arg == "package"),
         None,
     )
     if not isinstance(package, ast.Constant) or not isinstance(package.value, str):
         return None
-    dots = len(target.value) - len(target.value.lstrip("."))
-    suffix = target.value[dots:]
+    dots = len(target_value) - len(target_value.lstrip("."))
+    suffix = target_value[dots:]
     parts = package.value.split(".")
     if dots > len(parts) or not suffix:
         return None
@@ -222,7 +288,7 @@ def _dynamic_import_calls(tree: ast.Module) -> tuple[ast.Call, ...]:
         node
         for node in ast.walk(tree)
         if isinstance(node, ast.Call)
-        and _canonical_import_callee(node.func, aliases) is not None
+        and _could_be_dynamic_import_callee(node.func, aliases)
     )
 
 
@@ -563,9 +629,21 @@ def _handler_swallows_checkpoint_mismatch(handler: ast.ExceptHandler) -> bool:
             return any(catches_checkpoint_error(item) for item in caught.elts)
         return False
 
-    return catches_checkpoint_error(handler.type) and not _has_reachable_raise(
-        tuple(handler.body)
-    )
+    if not catches_checkpoint_error(handler.type):
+        return False
+    # A ``finally`` return replaces even a syntactically reachable bare
+    # rethrow.  Likewise a context manager can suppress the error through its
+    # ``__exit__`` result, which is outside source-local proof.  The frozen
+    # checkpoint path needs an unambiguous direct propagation route, so these
+    # forms fail closed rather than treating a nested ``raise`` as evidence.
+    if any(
+        isinstance(node, ast.Try)
+        and any(_may_return(item) for item in node.finalbody)
+        or isinstance(node, (ast.With, ast.AsyncWith))
+        for node in ast.walk(handler)
+    ):
+        return True
+    return not _has_reachable_raise(tuple(handler.body))
 
 
 def _call_name(node: ast.AST) -> str | None:
@@ -855,10 +933,13 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
     for path in _production_paths(repository):
         relative = _relative(repository, path)
         imports = _imports(path, relative_path=relative)
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         if relative not in HISTORICAL_PROOF_EXCEPTIONS:
             validation_imports += sum(
                 name.startswith("radjax_student.validation") for name in imports
             )
+        if not relative.startswith("runtime/") and _has_dynamic_import_target(tree):
+            blockers.append(f"production_dynamic_import:{relative}")
         if not relative.startswith(("architecture/", "runtime/")) and any(
             _has_import_segment(name, "rwkv") for name in imports
         ):
@@ -1061,6 +1142,12 @@ def audit_source_fixture(source: str, *, relative_path: str) -> tuple[str, ...]:
         name.startswith("radjax_student.validation") for name in imports
     ):
         blockers.append("production_validation_import")
+    if (
+        relative_path.split("/", 1)[0] in PRODUCTION_OWNER_ROOTS
+        and not relative_path.startswith("runtime/")
+        and _has_dynamic_import_target(tree)
+    ):
+        blockers.append(f"production_dynamic_import:{relative_path}")
     if relative_path in CANONICAL_TRAINING_PATHS and any(
         name.split(".", 1)[0]
         in {"numpy", "torch", "tensorflow", "tensorflow_probability", "transformers"}

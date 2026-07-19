@@ -130,7 +130,7 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     assert audit_source_fixture(
         "import importlib\nimportlib.import_module('radjax_student.' + 'steps')\n",
         relative_path="runtime/x.py",
-    ) == ("runtime_dynamic_import",)
+    ) == ("runtime_steps_import",)
     assert audit_source_fixture(
         "from importlib import import_module as load\nload('radjax_student.steps')\n",
         relative_path="runtime/x.py",
@@ -139,7 +139,7 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "from importlib import import_module as load\n"
         "load('radjax_student.' + 'steps')\n",
         relative_path="runtime/x.py",
-    ) == ("runtime_dynamic_import",)
+    ) == ("runtime_steps_import",)
     assert audit_source_fixture(
         "import importlib as loader\n"
         "loader.import_module('.steps', package='radjax_student')\n",
@@ -158,10 +158,23 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         relative_path="runtime/x.py",
     ) == ("runtime_steps_import",)
     assert audit_source_fixture(
+        "import importlib\n"
+        "getattr(importlib, 'import_module')('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
         "from importlib import import_module as load\n"
         "load('radjax_student.validation')\n",
         relative_path="reports/x.py",
     ) == ("production_validation_import",)
+    assert audit_source_fixture(
+        "import importlib\nimportlib.import_module('radjax_student.' + 'validation')\n",
+        relative_path="reports/x.py",
+    ) == ("production_validation_import",)
+    assert audit_source_fixture(
+        "import importlib\ngetattr(importlib, member_name)(target_name)\n",
+        relative_path="reports/x.py",
+    ) == ("production_dynamic_import:reports/x.py",)
     assert audit_source_fixture(
         "import jax\njax.device_get(value)\n",
         relative_path="steps/jax_step.py",
@@ -401,6 +414,31 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         raise""",
     )
     assert audit_hf_authority_fixture(swallowed_return_then_reraise) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
+    finally_swallows_reraise = dict(sources)
+    finally_swallows_reraise["checkpoints/v3.py"] = finally_swallows_reraise[
+        "checkpoints/v3.py"
+    ].replace(
+        """    if hf_descriptor != expected_hf_descriptor:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+        """    try:
+        if hf_descriptor != expected_hf_descriptor:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_mismatch",
+                "checkpoint HF descriptor does not match caller expectation",
+            )
+    except CheckpointValidationError:
+        try:
+            raise
+        finally:
+            return None""",
+    )
+    assert audit_hf_authority_fixture(finally_swallows_reraise) == (
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 

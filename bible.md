@@ -1396,3 +1396,10 @@
 - Regenerated the P3.5 dependency audit from accepted source commit `b3ad905`
   and regenerated the dependent P3.11.10 receipt twice byte-identically. The
   recorded evidence now attests the final literal-form audit closure.
+
+## 2026-07-18 - Foundation audit dynamic-import closure
+
+- The foundation and P3.12B source audits now resolve literal constructed
+  import targets, reject unknown protected import indirection, and treat
+  exception-suppressing `finally` and context-manager paths as checkpoint
+  validation bypasses. Focused JAX-free fixtures cover each protected form.
