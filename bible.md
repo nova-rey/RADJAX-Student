@@ -1476,6 +1476,8 @@
 
 - The audits now reject portable `globals()['__builtins__']` import chains, and
   JAX-purity host-cast detection follows explicit builtins scalar-cast aliases.
+- Refreshed the P3.12B source attestation after these JAX-free audit updates;
+  the executed P3.12B receipt remained byte-identical across fresh writers.
 
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
