@@ -1407,3 +1407,10 @@
   implementation-audit hardening; its canonical typed receipt remained
   byte-identical because the executed 22-positive/77-adversarial proof source
   did not change.
+
+## 2026-07-18 - Dynamic-import closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `1135a2b`
+  and regenerated the dependent P3.11.10 receipt twice byte-identically. The
+  final recorded provenance covers the dynamic-import and exception-flow audit
+  closure.
