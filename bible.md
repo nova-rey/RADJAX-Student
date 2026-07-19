@@ -1490,6 +1490,8 @@
 - Source audits now reject imported builtin/operator reflection helpers, and
   the JAX-purity audit recognizes aliases imported from `builtins.float` or
   `builtins.int` before scalar conversion of trainable state.
+- Refreshed the P3.12B source attestation after reflection-alias hardening; its
+  executed receipt again regenerated twice byte-identically.
 - Refreshed the P3.12B source attestation after the portable builtins audit
   hardening; the executed receipt remained byte-identical across fresh writers.
 

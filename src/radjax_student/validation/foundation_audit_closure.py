@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "7030a3e49b704ff4eb7afc25237d6aa7416052ff0a6796aebe1122cb689d2a5a"
+    "d1a1402af759aeef778d136e5b3b84e3a594933e8cd24d432e98b56e8263dee9"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
