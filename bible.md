@@ -1425,6 +1425,12 @@
   implementation change; the P3.12B receipt regenerated twice without byte
   drift because its executed proof source remained unchanged.
 
+## 2026-07-18 - Foundation audit multi-stage import closure
+
+- Source-local audit aliases now also retain modules returned by
+  `__import__`, closing multi-stage module-to-member-to-call indirection in
+  both the foundation and P3.12B protected import checks.
+
 ## 2026-07-18 - Transitive-control closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `7ebb50b`

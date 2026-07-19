@@ -535,6 +535,27 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         return None
 
     def import_callee_name(callable_node: ast.AST) -> str | None:
+        if isinstance(callable_node, ast.Call):
+            name = _call_name(callable_node.func)
+            name = aliases.get(name, name) if name is not None else None
+            target = (
+                callable_node.args[0]
+                if callable_node.args
+                else next(
+                    (
+                        keyword.value
+                        for keyword in callable_node.keywords
+                        if keyword.arg == "name"
+                    ),
+                    None,
+                )
+            )
+            imported = _source_literal_string(target)
+            if name in {"__import__", "builtins.__import__"} and imported in {
+                "importlib",
+                "builtins",
+            }:
+                return imported
         name = _call_name(callable_node)
         if name in {"import_module", "__import__", "importlib.import_module"}:
             return "__import__" if name == "__import__" else "import_module"

@@ -185,6 +185,24 @@ def _importlib_aliases(tree: ast.Module) -> dict[str, str]:
 
 
 def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | None:
+    if isinstance(node, ast.Call):
+        raw = _call_name(node.func)
+        raw = aliases.get(raw, raw) if raw is not None else None
+        target = (
+            node.args[0]
+            if node.args
+            else next(
+                (keyword.value for keyword in node.keywords if keyword.arg == "name"),
+                None,
+            )
+        )
+        imported = _literal_string(target) if target is not None else None
+        if raw in {"__import__", "builtins.__import__"} and imported in {
+            "importlib",
+            "builtins",
+        }:
+            return imported
+
     def holder_name(value: ast.AST) -> str | None:
         if isinstance(value, ast.Call):
             raw = _call_name(value.func)
