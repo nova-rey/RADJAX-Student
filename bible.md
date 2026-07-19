@@ -1390,3 +1390,9 @@
   treats `not True` as a falsey branch, and rejects scalar casts of explicitly
   trainable parameter, gradient, or optimizer-state expressions in the
   reviewed canonical path. Each form has a focused JAX-free fixture.
+
+## 2026-07-18 - Literal bypass provenance refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `b3ad905`
+  and regenerated the dependent P3.11.10 receipt twice byte-identically. The
+  recorded evidence now attests the final literal-form audit closure.
