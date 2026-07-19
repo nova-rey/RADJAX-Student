@@ -652,7 +652,8 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     if any(
         isinstance(node, ast.Subscript)
         and any(
-            isinstance(descendant, ast.Constant) and descendant.value == "__import__"
+            isinstance(descendant, ast.Constant)
+            and descendant.value in {"__import__", "__builtins__"}
             for descendant in ast.walk(node)
         )
         and import_callee_name(node) is None

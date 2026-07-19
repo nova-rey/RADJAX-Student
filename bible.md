@@ -1472,6 +1472,11 @@
   evaluation-based reflective extraction. The JAX-purity audit also covers
   `builtins.float` and attribute lookup before scalar conversion.
 
+## 2026-07-18 - Builtins-chain and scalar-alias closure
+
+- The audits now reject portable `globals()['__builtins__']` import chains, and
+  JAX-purity host-cast detection follows explicit builtins scalar-cast aliases.
+
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `55f8f09`

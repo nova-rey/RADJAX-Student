@@ -268,6 +268,10 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         relative_path="steps/jax_step.py",
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(
+        "cast = builtins.float\ncast(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
         "SCHEMA = 'radjax.p3_99_neutral_gate.v1'\ndef run(): pass\n",
         relative_path="learning/ordinary.py",
     ) == ("new_production_proof_module:learning/ordinary.py",)

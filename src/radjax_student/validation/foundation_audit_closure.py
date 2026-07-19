@@ -418,7 +418,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
             and any(
                 isinstance(descendant, ast.Constant)
                 and isinstance(descendant.value, str)
-                and descendant.value in import_markers
+                and descendant.value in {*import_markers, "__builtins__"}
                 for descendant in ast.walk(node)
             )
             and _canonical_import_callee(node, aliases) is None
@@ -505,9 +505,48 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         "parameter",
         "trainable",
     )
+
+    def scalar_cast_expression(value: ast.AST) -> bool:
+        if _call_name(value) in {
+            "float",
+            "int",
+            "builtins.float",
+            "builtins.int",
+            "__builtins__.float",
+            "__builtins__.int",
+        }:
+            return True
+        if (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Name)
+            and value.func.id == "getattr"
+            and len(value.args) >= 2
+            and _call_name(value.args[0]) in {"builtins", "__builtins__"}
+            and _literal_string(value.args[1]) in {"float", "int"}
+        ):
+            return True
+        if isinstance(value, ast.Subscript):
+            return _call_name(value.value) in {
+                "builtins.__dict__",
+                "__builtins__.__dict__",
+            } and _literal_string(value.slice) in {"float", "int"}
+        return False
+
+    aliases = {
+        target.id
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Assign, ast.AnnAssign))
+        and scalar_cast_expression(node.value)
+        for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
+        if isinstance(target, ast.Name)
+    }
     return any(
         isinstance(node, ast.Call)
-        and _call_name(node.func) in {"float", "int", "builtins.float", "builtins.int"}
+        and (
+            scalar_cast_expression(node.func)
+            or isinstance(node.func, ast.Name)
+            and node.func.id in aliases
+        )
         and any(
             token
             in (
