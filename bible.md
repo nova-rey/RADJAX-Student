@@ -1688,3 +1688,10 @@
   dependent P3.11.10 final receipt twice byte-identically from accepted source
   commit `b0b4267`. The Foundation report binds the current audit-source digest
   and the P3.12B attestation binds the updated implementation-audit source.
+
+## 2026-07-18 - P3.12 source-dependent receipt refresh
+
+- Regenerated the P3.12C lifecycle-assembly and P3.12D runtime-callable
+  receipts twice byte-identically through their normal writers after the
+  closure audit changed their source-dependent one-authority evidence. All
+  P3.12A-D recorded checks then remained read-only.
