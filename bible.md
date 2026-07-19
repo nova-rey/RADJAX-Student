@@ -1681,3 +1681,10 @@
   operator, item, iterator, and dynamic-attribute carrier protocols. Focused
   literal fixtures bind each authority and carrier without expanding product
   execution capability.
+
+## 2026-07-18 - Bootstrap and descriptor-carrier evidence refresh
+
+- Regenerated the Foundation closure report, P3.5 dependency audit, and
+  dependent P3.11.10 final receipt twice byte-identically from accepted source
+  commit `b0b4267`. The Foundation report binds the current audit-source digest
+  and the P3.12B attestation binds the updated implementation-audit source.
