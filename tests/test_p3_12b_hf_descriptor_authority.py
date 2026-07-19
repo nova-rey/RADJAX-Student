@@ -347,6 +347,27 @@ def test_production_import_audit_rejects_multistage_dynamic_gate_import(
     ]
 
 
+def test_production_import_audit_rejects_mapping_dynamic_gate_import(
+    tmp_path: Path,
+) -> None:
+    cli = tmp_path / "src" / "radjax_student" / "cli"
+    cli.mkdir(parents=True)
+    (cli / "gate_import.py").write_text(
+        "import importlib\n"
+        "load = vars(importlib)['import_module']\n"
+        "load(\n"
+        "    'radjax_student.validation.p3_12b_'\n"
+        "    + 'hf_descriptor_authority.implementation_audit'\n"
+        ")\n",
+        encoding="utf-8",
+    )
+    blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
+    implementation_audit._audit_production_imports(tmp_path, blockers)
+    assert [(item.code, item.detail) for item in blockers] == [
+        ("production_imports_gate_code", "cli/gate_import.py"),
+    ]
+
+
 def test_p312b3_anti_cheat_source_fixtures_execute_with_stable_blockers(tmp_path):
     fixtures = Path(__file__).parent / "fixtures" / "p3_12b_implementation_audit"
     source = runpy.run_path(fixtures / "anti_cheat_sources.py")

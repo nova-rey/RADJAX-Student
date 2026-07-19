@@ -1433,6 +1433,12 @@
 - Refreshed the P3.12B source attestation after the corresponding source-audit
   update; the deterministic P3.12B receipt stayed byte-identical.
 
+## 2026-07-18 - Foundation audit mapping-access closure
+
+- The protected import analysis now resolves mapping access through
+  `__dict__.get(...)` and `vars(module)[...]`, and fails closed when a
+  runtime/builtins mapping member is computed rather than literal.
+
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `55f8f09`

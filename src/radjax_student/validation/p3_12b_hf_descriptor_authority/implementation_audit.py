@@ -505,6 +505,31 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     if item.name == "__import__":
                         aliases[item.asname or item.name] = "__import__"
 
+    def member_callee(owner: str | None, member: str | None) -> str | None:
+        if owner in {"importlib", "importlib.__dict__"} and member == "import_module":
+            return "import_module"
+        if (
+            owner
+            in {
+                "builtins",
+                "__builtins__",
+                "builtins.__dict__",
+                "__builtins__.__dict__",
+            }
+            and member == "__import__"
+        ):
+            return "__import__"
+        if owner in {
+            "importlib",
+            "builtins",
+            "__builtins__",
+            "importlib.__dict__",
+            "builtins.__dict__",
+            "__builtins__.__dict__",
+        }:
+            return "__potential_dynamic_import__"
+        return None
+
     def holder_name(value: ast.AST) -> str | None:
         if isinstance(value, ast.Name):
             return aliases.get(value.id, value.id)
@@ -514,6 +539,9 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         if isinstance(value, ast.Call):
             name = _call_name(value.func)
             name = aliases.get(name, name) if name is not None else None
+            if name == "vars" and len(value.args) == 1:
+                parent = holder_name(value.args[0])
+                return f"{parent}.__dict__" if parent else None
             target = (
                 value.args[0]
                 if value.args
@@ -561,6 +589,8 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return "__import__" if name == "__import__" else "import_module"
         if name is not None and aliases.get(name) in {"import_module", "__import__"}:
             return aliases[name]
+        if name is not None and aliases.get(name) == "__potential_dynamic_import__":
+            return aliases[name]
         if name is not None:
             head, separator, tail = name.partition(".")
             if (
@@ -579,20 +609,23 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         ):
             holder = holder_name(callable_node.args[0])
             member = _source_literal_string(callable_node.args[1])
-            if holder == "importlib" and member == "import_module":
-                return "import_module"
-            if holder in {"builtins", "__builtins__"} and member == "__import__":
-                return "__import__"
+            return member_callee(holder, member)
+        if (
+            isinstance(callable_node, ast.Call)
+            and isinstance(callable_node.func, ast.Attribute)
+            and callable_node.func.attr == "get"
+        ):
+            holder = holder_name(callable_node.func.value)
+            member = (
+                _source_literal_string(callable_node.args[0])
+                if callable_node.args
+                else None
+            )
+            return member_callee(holder, member)
         if isinstance(callable_node, ast.Subscript):
             holder = holder_name(callable_node.value)
             member = _source_literal_string(callable_node.slice)
-            if holder == "importlib.__dict__" and member == "import_module":
-                return "import_module"
-            if (
-                holder in {"builtins.__dict__", "__builtins__.__dict__"}
-                and member == "__import__"
-            ):
-                return "__import__"
+            return member_callee(holder, member)
         return None
 
     changed = True

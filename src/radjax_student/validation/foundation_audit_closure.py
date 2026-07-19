@@ -185,6 +185,31 @@ def _importlib_aliases(tree: ast.Module) -> dict[str, str]:
 
 
 def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | None:
+    potential = "__potential_dynamic_import__"
+
+    def import_member(owner: str | None, member: str | None) -> str | None:
+        if owner == "importlib" and member == "import_module":
+            return "importlib.import_module"
+        if owner in {"builtins", "__builtins__"} and member == "__import__":
+            return "__import__"
+        if owner == "importlib.__dict__" and member == "import_module":
+            return "importlib.import_module"
+        if (
+            owner in {"builtins.__dict__", "__builtins__.__dict__"}
+            and member == "__import__"
+        ):
+            return "__import__"
+        if owner in {
+            "importlib",
+            "builtins",
+            "__builtins__",
+            "importlib.__dict__",
+            "builtins.__dict__",
+            "__builtins__.__dict__",
+        }:
+            return potential
+        return None
+
     if isinstance(node, ast.Call):
         raw = _call_name(node.func)
         raw = aliases.get(raw, raw) if raw is not None else None
@@ -207,6 +232,9 @@ def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | No
         if isinstance(value, ast.Call):
             raw = _call_name(value.func)
             raw = aliases.get(raw, raw) if raw is not None else None
+            if raw == "vars" and len(value.args) == 1:
+                parent = holder_name(value.args[0])
+                return f"{parent}.__dict__" if parent else None
             target = (
                 value.args[0]
                 if value.args
@@ -251,21 +279,19 @@ def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | No
         ):
             owner = holder_name(value.args[0])
             member = _literal_string(value.args[1])
-            if owner == "importlib" and member == "import_module":
-                return "importlib.import_module"
-            if owner in {"builtins", "__builtins__"} and member == "__import__":
-                return "__import__"
-            return None
+            return import_member(owner, member)
+        if (
+            isinstance(value, ast.Call)
+            and isinstance(value.func, ast.Attribute)
+            and value.func.attr == "get"
+        ):
+            owner = holder_name(value.func.value)
+            member = _literal_string(value.args[0]) if value.args else None
+            return import_member(owner, member)
         if isinstance(value, ast.Subscript):
             owner = holder_name(value.value)
             member = _literal_string(value.slice)
-            if owner == "importlib.__dict__" and member == "import_module":
-                return "importlib.import_module"
-            if (
-                owner in {"builtins.__dict__", "__builtins__.__dict__"}
-                and member == "__import__"
-            ):
-                return "__import__"
+            return import_member(owner, member)
         return None
 
     member = declared_import_member(node)
@@ -281,6 +307,8 @@ def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | No
     if replacement is None:
         return None
     resolved = replacement if not separator else f"{replacement}.{tail}"
+    if resolved == potential:
+        return potential
     if resolved in {"__import__", "builtins.__import__"}:
         return "__import__"
     if resolved == "importlib.import_module":
