@@ -1,7 +1,7 @@
 # P3.12A Objective Identity Contract
 
 Current P3.12A evidence digest:
-`ebe025203c2dac31da484fa82e9364c9f4607e4dd2cfcda6cd99c09d8e3022d7`.
+`682c9a2074f16322122ce9194c910258ff44f5898400786fbe2d8f4e0d5f84eb`.
 
 P3.12A closes the hole where a caller could historically pair an arbitrary
 objective implementation with a free-standing objective string. The canonical
@@ -36,7 +36,7 @@ consumption, distillation, Hugging Face export, model quality, multi-device or
 accelerator-scale training, performance, or Phase 4 implementation.
 
 The current executed evidence digest is
-`ebe025203c2dac31da484fa82e9364c9f4607e4dd2cfcda6cd99c09d8e3022d7`.
+`682c9a2074f16322122ce9194c910258ff44f5898400786fbe2d8f4e0d5f84eb`.
 
 ## P3.12A.1 Authority Closure
 
@@ -77,4 +77,4 @@ Phase 4 requires successful required remote base/JAX CI or an explicit repositor
 > remains unstarted.
 
 Current P3.12A receipt evidence digest:
-`ebe025203c2dac31da484fa82e9364c9f4607e4dd2cfcda6cd99c09d8e3022d7`.
+`682c9a2074f16322122ce9194c910258ff44f5898400786fbe2d8f4e0d5f84eb`.

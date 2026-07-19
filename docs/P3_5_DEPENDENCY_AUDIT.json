@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "246cc703ab8f3c596cc94c52051522092becadee",
+  "accepted_commit": "bc305b291a1aef8a88b18c448b46ea1b806fd84d",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -5655,8 +5655,10 @@
       "imports": [
         "__future__",
         "dataclasses",
+        "json",
         "pathlib",
-        "radjax_student.validation.p3_11_9_replay.canonical"
+        "radjax_student.validation.p3_11_9_replay.canonical",
+        "re"
       ],
       "internal_edges": [
         "radjax_student.validation.p3_11_9_replay.canonical"

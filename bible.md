@@ -1307,3 +1307,9 @@
 - The digest-documentation regression now mutates the receipt's current
   canonical field rather than a historical literal, so evidence refreshes
   cannot accidentally turn the stale-documentation test into a no-op.
+
+## 2026-07-18 - Final gate digest evidence refresh
+
+- Regenerated the source-provenance P3.5 dependency audit and dependent
+  P3.11.10 receipt through their canonical writers. The documented final gate
+  digest now matches the writer-emitted receipt field exactly.
