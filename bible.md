@@ -1197,3 +1197,9 @@
   CI checkout, closed optional-JAX inspection seams, and source-to-commit
   architecture-evidence provenance. The generalized audit hardening and its
   receipt churn were deliberately removed; Phase 4 remains unstarted.
+
+## 2026-07-19 - Rescue provenance evidence
+
+- Regenerated the P3.5 dependency audit, dependent P3.11.10 receipt, and the
+  source-dependent P3.12C/D receipts through their normal writers; two fresh
+  outputs for each artifact were byte-identical.
