@@ -128,6 +128,9 @@ Start here for Phase 0 foundation context.
 - [P4.1 Architecture Ingestion Contract](P4_1_ARCHITECTURE_INGESTION_CONTRACT.md):
   frozen package, ownership, capability, provenance, mapping, and non-claim
   rules for the first architecture plugin.
+- [P4.2 RWKV-7 Reference Parameter Mapping](P4_2_RWKV7_PARAMETER_MAPPING.md):
+  literal static schema, pinned NumPy source-prefix order, carry, and
+  non-exportability record for the tiny float32 reference domain.
 - [Phase 4 Execution Ledger](PHASE_4_EXECUTION_LEDGER.md): append-only
   checkpoint status, verification, evidence, generic-change, risk, and next-step record.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
@@ -209,8 +212,9 @@ P3.12C locally accepted: the learning-owned assembler accepts identities and
 typed configuration while registries retain executable component selection.
 
 P3.12D locally accepted: actual runtime callable binding and exact prepared
-execution identity close P3.12. P4.1 freezes the Phase 4 contract only; it
-makes no production architecture or remote-CI claim.
+execution identity close P3.12. P4.2 adds a static RWKV reference schema only;
+it makes no initialization, executable-forward, equation-parity, or remote-CI
+claim.
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

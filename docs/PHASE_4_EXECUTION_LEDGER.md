@@ -23,3 +23,21 @@ already-known prior SHA.
 - **Unresolved non-blocking risks:** P4.2 must add a subpackage-specific static
   import test, and P4.3 must keep all seed/key derivation runtime-owned.
 - **Next checkpoint:** P4.2 — RWKV Reference Configuration and Static Schema.
+
+## P4.2 — RWKV Reference Configuration and Static Schema
+
+- **Status:** complete
+- **Changed files:** static JAX-free RWKV reference config, schema, plugin, and
+  explicit registration package; focused schema tests; parameter mapping;
+  roadmap/index/status updates; this ledger; and `bible.md`.
+- **Tests and verification:** 43 focused architecture, registry, HF authority,
+  P3.12C assembly, and RWKV schema tests passed in the project JAX environment;
+  changed-file Ruff, format, compile, diff, and import-isolation checks passed.
+- **Evidence or receipts changed:** literal 72-row source-prefix mapping and
+  checked-in parameter-order fixture specification; no generated receipt changed.
+- **Generic-change decision:** none; P4.2 uses existing architecture and HF
+  contracts, and adds no generic owner change.
+- **Unresolved non-blocking risks:** P4.3 must initialize every declared leaf
+  through runtime-owned key material only; P4.4 must prove the mapping against
+  a deterministic pinned-source parity fixture.
+- **Next checkpoint:** P4.3 — Parameter and Carry Initialization.

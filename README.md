@@ -153,9 +153,10 @@ composition, makes NumPy losses legacy-only, locks proof-owned validation
 namespaces, and defines Phase 4 as architecture-plugin ingestion with RWKV only
 as the first reference architecture.
 
-Phase 4 P4.1 freezes the ingestion contract only; no production architecture
-implementation, remote-CI result, or broadened compatibility claim is made.
-See the [P4.1 Architecture Ingestion Contract](docs/P4_1_ARCHITECTURE_INGESTION_CONTRACT.md).
+Phase 4 P4.2 adds only the static RWKV reference schema and explicit registry
+entry; it makes no initialization, executable-forward, equation-parity,
+remote-CI, or broadened compatibility claim. See the
+[P4.2 RWKV-7 Reference Parameter Mapping](docs/P4_2_RWKV7_PARAMETER_MAPPING.md).
 
 P3.4 establishes the [Generic Batch and Objective Contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
 behavior-neutral batch metadata, objective request/result models, and explicit

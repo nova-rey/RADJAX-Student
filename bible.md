@@ -1216,3 +1216,12 @@
 - Reclassified `students/` as historical compatibility only; P4.1 leaves it
   untouched and defers removal to a separately scoped inventory, migration,
   deprecation, and regression-proof cleanup.
+
+## 2026-07-19 - P4.2 RWKV reference static schema
+
+- Added the explicitly registered, JAX-free RWKV-7 reference plugin with a
+  frozen tiny float32 config, catalog/layout, carry descriptor, surface, and
+  non-exportable HF descriptor; it cannot satisfy executable assembly.
+- Recorded the literal pinned-NumPy source-prefix order and all direct,
+  transformed, and first-block-omitted parameter representations without
+  claiming initialization, equation parity, weight compatibility, or execution.

@@ -128,8 +128,9 @@ dataset infrastructure, distributed/multi-device/Pallas work, production CLI,
 serving, full HF export, and a second architecture before ingestion acceptance.
 
 > **Current integration status:** P3.11.1-P3.11.10 and P3.12A-D are locally
-> accepted. P3.12 is closed. P4.1 freezes Phase 4 ingestion ownership and
-> provenance only; it makes no production architecture or remote-CI claim.
+> accepted. P3.12 is closed. P4.2 adds Phase 4's static RWKV reference schema,
+> explicit registration, and mapping only; it makes no initialization,
+> executable-forward, equation-parity, or remote-CI claim.
 
 # Phase 5 - Behavior Compilation
 
@@ -266,8 +267,8 @@ evidence matrix.
 P3.12C locally accepted
 
 P3.12D locally accepted: actual callable binding and final prepared identity
-close P3.12. P4.1 has frozen the Phase 4 architecture-ingestion contract only;
-it makes no production architecture or remote-CI claim.
+close P3.12. P4.2 adds the Phase 4 static RWKV reference schema only; it makes
+no initialization, executable-forward, equation-parity, or remote-CI claim.
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

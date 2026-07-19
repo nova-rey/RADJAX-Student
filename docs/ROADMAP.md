@@ -20,7 +20,7 @@ P1.10 Production golden acceptance gate             COMPLETE
 PHASE 1 - CONTRACT LAYER                            COMPLETE
 PHASE 2 - STUDENT RUNTIME                           COMPLETE
 PHASE 3 - GENERIC LEARNING CORE                     COMPLETE
-PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.1)
+PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.2)
 ```
 
 ## Phase 2 Status
@@ -84,9 +84,10 @@ P3.12C locally accepted
 
 P3.12D locally accepted
 
-P4.1 has frozen the architecture-ingestion contract. It adds no production
-architecture or remote-CI claim; see
-[P4.1 Architecture Ingestion Contract](P4_1_ARCHITECTURE_INGESTION_CONTRACT.md).
+P4.2 adds the static RWKV reference configuration, schema, registry entry, and
+literal mapping only. It makes no parameter-initialization, executable-forward,
+equation-parity, or remote-CI claim; see
+[P4.2 RWKV-7 Reference Parameter Mapping](P4_2_RWKV7_PARAMETER_MAPPING.md).
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no
