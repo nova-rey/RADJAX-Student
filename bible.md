@@ -1293,3 +1293,11 @@
 
 - Refreshed generated acceptance evidence from the formatted source-revision
   guard, preserving the exact source commit as the P3.5 audit provenance.
+
+## 2026-07-18 - Final gate digest documentation binding
+
+- The P3.11.10 recorded checker now binds the documented final gate evidence
+  digest to the canonical receipt while writer execution retains the isolated
+  status/non-claim policy. Independent stale descriptor and checkpoint
+  attestation regressions remain JAX-free, and every protected production
+  owner is covered by the gate-import policy test.

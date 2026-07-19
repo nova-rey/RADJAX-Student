@@ -233,24 +233,26 @@ def test_jax_free_implementation_audit_binds_literal_source_and_fixtures():
     ]
 
 
-def test_production_import_audit_rejects_bound_gate_import_alias(
+def test_production_import_audit_rejects_gate_imports_from_every_protected_owner(
     tmp_path: Path,
 ) -> None:
-    runtime = tmp_path / "src" / "radjax_student" / "runtime"
-    runtime.mkdir(parents=True)
-    (runtime / "alias.py").write_text(
-        "from radjax_student.validation import implementation_audit\n",
-        encoding="utf-8",
-    )
-    (runtime / "direct.py").write_text(
-        "from radjax_student.validation.p3_12b_hf_descriptor_authority import models\n",
-        encoding="utf-8",
-    )
+    owners = tuple(sorted(implementation_audit._PRODUCTION_OWNERS))
+    for index, owner in enumerate(owners):
+        directory = tmp_path / "src" / "radjax_student" / owner
+        directory.mkdir(parents=True)
+        source = (
+            "from radjax_student.validation import implementation_audit\n"
+            if index % 2 == 0
+            else (
+                "from radjax_student.validation.p3_12b_hf_descriptor_authority "
+                "import models\n"
+            )
+        )
+        (directory / "gate_import.py").write_text(source, encoding="utf-8")
     blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
     implementation_audit._audit_production_imports(tmp_path, blockers)
     assert [(item.code, item.detail) for item in blockers] == [
-        ("production_imports_gate_code", "runtime/alias.py"),
-        ("production_imports_gate_code", "runtime/direct.py"),
+        ("production_imports_gate_code", f"{owner}/gate_import.py") for owner in owners
     ]
 
 

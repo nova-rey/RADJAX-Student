@@ -145,3 +145,37 @@ def test_receipt_rejects_omitted_case_and_handwritten_count_preserving_edits():
 
 def test_closure_documentation_allowlist_is_consistent():
     assert check_closure_documentation(ROOT).ok
+
+
+def test_closure_documentation_binds_final_gate_digest_to_recorded_receipt(
+    tmp_path: Path,
+):
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    document = (ROOT / "docs/P3_11_10_FINAL_ADVERSARIAL_GATE.md").read_text(
+        encoding="utf-8"
+    )
+    (docs / "P3_11_10_FINAL_ADVERSARIAL_GATE.md").write_text(
+        document.replace("696161", "000000", 1), encoding="utf-8"
+    )
+    (docs / "P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json").write_bytes(
+        RECEIPT.read_bytes()
+    )
+    for relative in (
+        "README.md",
+        "docs/INDEX.md",
+        "docs/ROADMAP.md",
+        "docs/RADJAX_DEVELOPMENT_ROADMAP.md",
+        "docs/RADJAX_PHASE3_GENERIC_LEARNING_CORE_ROADMAP.md",
+        "docs/P3_11_7_CHECKPOINT_V3.md",
+        "docs/P3_11_8_STATEFUL_SYSTEMS_PROOF.md",
+        "docs/P3_11_9_DETERMINISTIC_REPLAY.md",
+        "docs/P3_11_INTEGRATION_CLOSURE.md",
+        "docs/P3_5_ARCHITECTURE_INTEGRITY_ROADMAP.md",
+        "docs/P3_5_10_FINAL_ARCHITECTURE_INTEGRITY_GATE.md",
+    ):
+        destination = tmp_path / relative
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_bytes((ROOT / relative).read_bytes())
+    check = check_closure_documentation(tmp_path)
+    assert check.errors == ("final_gate_digest_documentation_stale",)

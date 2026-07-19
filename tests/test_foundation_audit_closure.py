@@ -405,8 +405,6 @@ def test_foundation_rejects_stale_p312b_descriptor_attestation_without_jax(
     receipt = json.loads(
         (ROOT / "docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
     )
-    receipt["descriptor_digest"] = "0" * 64
-    receipt["checkpoint_hf_descriptor_digest"] = "0" * 64
     shutil.copytree(ROOT / "src", tmp_path / "src")
     shutil.copytree(ROOT / "tests", tmp_path / "tests")
     docs = tmp_path / "docs"
@@ -414,9 +412,6 @@ def test_foundation_rejects_stale_p312b_descriptor_attestation_without_jax(
     shutil.copyfile(
         ROOT / "docs/RADJAX_DEVELOPMENT_ROADMAP.md",
         docs / "RADJAX_DEVELOPMENT_ROADMAP.md",
-    )
-    (docs / "P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").write_text(
-        json.dumps(receipt), encoding="utf-8"
     )
     script = "\n".join(
         (
@@ -437,14 +432,20 @@ def test_foundation_rejects_stale_p312b_descriptor_attestation_without_jax(
             "assert report.blockers == ('p312b_recorded_evidence_stale',)",
         )
     )
-    result = subprocess.run(
-        [sys.executable, "-c", script],
-        cwd=tmp_path,
-        env={**os.environ, "PYTHONPATH": str(tmp_path / "src")},
-        capture_output=True,
-        text=True,
-    )
-    assert result.returncode == 0, result.stderr
+    for field in ("descriptor_digest", "checkpoint_hf_descriptor_digest"):
+        stale = dict(receipt)
+        stale[field] = "0" * 64
+        (docs / "P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").write_text(
+            json.dumps(stale), encoding="utf-8"
+        )
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            cwd=tmp_path,
+            env={**os.environ, "PYTHONPATH": str(tmp_path / "src")},
+            capture_output=True,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
 
 
 def test_foundation_audit_remains_jax_free_when_jax_imports_are_blocked() -> None:
