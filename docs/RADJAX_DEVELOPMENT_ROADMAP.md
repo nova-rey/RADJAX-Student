@@ -112,25 +112,24 @@ surface, tied-weight metadata); architecture-specific behavior remains in the
 plugin. A runtime RWKV mode, RWKV-specific checkpoint branch, learning-loop
 time-mix flag, or objective logic keyed on RWKV are forbidden.
 
-Provisional sequence, documentation only:
+Locked Phase 4 sequence:
 
 - P4.1 — Architecture Ingestion Contract Freeze
-- P4.2 — Reference Architecture Config and HF Identity
-- P4.3 — Pure JAX Architecture Primitive
-- P4.4 — Complete Reference Architecture Plugin
-- P4.5 — Generic Assembled Lifecycle Integration
-- P4.6 — Tiny Learning/Overfit Proof
-- P4.7 — HF-Shaped State Projection
-- P4.8 — Architecture Ingestion Acceptance Gate
+- P4.2 — RWKV Reference Configuration and Static Schema
+- P4.3 — Parameter and Carry Initialization
+- P4.4 — RWKV Recurrent Forward Kernel
+- P4.5 — Objective Surface and Generic Learning Integration
+- P4.6 — Checkpoint, Restore, and Replay Identity
+- P4.7 — Architecture Ingestion Procedure and Anti-Contamination Proof
+- P4.8 — Phase 4 End-to-End Acceptance
 
 Phase 4 excludes teacher loading, Tome payload production, distillation,
 dataset infrastructure, distributed/multi-device/Pallas work, production CLI,
 serving, full HF export, and a second architecture before ingestion acceptance.
 
-> **Current integration status:** P3.11.1-P3.11.10 locally accepted; the
-> integration closure is complete. P3.12A-D are locally accepted; P3.12 is
-> closed. Phase 4 is next and remains unstarted pending successful required
-> remote base/JAX CI or an explicit repository-owner waiver.
+> **Current integration status:** P3.11.1-P3.11.10 and P3.12A-D are locally
+> accepted. P3.12 is closed. P4.1 freezes Phase 4 ingestion ownership and
+> provenance only; it makes no production architecture or remote-CI claim.
 
 # Phase 5 - Behavior Compilation
 
@@ -267,11 +266,8 @@ evidence matrix.
 P3.12C locally accepted
 
 P3.12D locally accepted: actual callable binding and final prepared identity
-close P3.12. Phase 4 is next and unstarted.
-
-Phase 4 remains unstarted
-
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+close P3.12. P4.1 has frozen the Phase 4 architecture-ingestion contract only;
+it makes no production architecture or remote-CI claim.
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

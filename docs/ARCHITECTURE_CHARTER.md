@@ -82,8 +82,14 @@ src/radjax_student/
 Current directories that do not match this target are transitional. They should
 move only when a focused change can preserve behavior and tests. Empty
 long-term packages are placement boundaries, not proof of implemented
-capability. The `students/` package is now explicitly deprecated and must be
-removed at P4.1; no Phase 4 code may import it.
+capability. The `students/` package is a deprecated compatibility namespace.
+No new Phase 4 architecture implementation may be added under it: the RWKV-7
+reference plugin belongs under `radjax_student.architecture`. Existing
+compatibility code may remain temporarily. Its removal or migration requires a
+separately scoped compatibility cleanup with an explicit import inventory,
+migration plan, deprecation handling, and regression proof; it is not part of
+P4.1 or the current eight-checkpoint Phase 4 plan unless it directly blocks
+plugin ingestion and human approval is obtained.
 
 ## Architecture Plugins
 
@@ -156,8 +162,8 @@ Current implementation classification:
 | `artifacts/targets.py` | Smoke/debug | Dense Tome loading is useful for NumPy smoke work, but production compressed payloads should become the primary training substrate. |
 | `legacy/losses/dense_kl.py` | Legacy/offline analysis | Dense teacher probability loss; never a canonical JAX objective. |
 | `legacy/losses/sparse_topk.py` | Legacy/offline analysis | Compressed-target analysis mechanism retained outside canonical training. |
-| `students/base.py` | Core architecture candidate | Existing protocol is the seed of the architecture plugin contract, but it lives under the transitional `students/` namespace. |
-| `students/registry.py` | Core architecture candidate | Registry behavior is useful, but the long-term namespace should be `architecture/`. |
+| `students/base.py` | Historical compatibility | It is not the active architecture-contract seed; production contracts live under `radjax_student.architecture`. |
+| `students/registry.py` | Historical compatibility | It is not the active registry authority; `radjax_student.architecture` owns current architecture registration. |
 | `students/tiny_debug/` | Smoke/debug | NumPy backend for import, registry, and training smoke tests only. |
 | `training/distill.py` | Smoke/debug | One-step distillation smoke, not the product training loop. |
 | `cli/train_student.py` | Smoke/debug | Early CLI shim, not the final paved-road command surface. |
@@ -167,10 +173,11 @@ No current code is marked `Remove`.
 
 ## Documented Conflicts
 
-- The repository currently uses `students/` for architecture-like concepts.
-  The charter target is `architecture/`. Do not expand `students/` as a
-  permanent public API; migrate in thin slices when adding the architecture
-  contract.
+- Production architecture contracts now live in `radjax_student.architecture`.
+  `students/` is historical compatibility code: do not expand it with Phase 4
+  architecture implementation. Its removal or migration is a separately scoped
+  cleanup, not a current Phase 4 checkpoint without an ingestion blocker and
+  human approval.
 - Runtime, schedules, HF export, reports, and Student validation packages now
   exist only as skeleton placement boundaries. New work in those areas should
   fill the target modules rather than hiding responsibilities in `training/` or

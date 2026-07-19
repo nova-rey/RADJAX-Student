@@ -125,6 +125,11 @@ Start here for Phase 0 foundation context.
   eager/JIT execution identity evidence.
 - [Foundation Audit Closure](FOUNDATION_AUDIT_CLOSURE.md): composition, purity,
   validation-namespace, HF-shape, and Phase 4 ingestion-path lock.
+- [P4.1 Architecture Ingestion Contract](P4_1_ARCHITECTURE_INGESTION_CONTRACT.md):
+  frozen package, ownership, capability, provenance, mapping, and non-claim
+  rules for the first architecture plugin.
+- [Phase 4 Execution Ledger](PHASE_4_EXECUTION_LEDGER.md): append-only
+  checkpoint status, verification, evidence, generic-change, risk, and next-step record.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
 - [P3.5.3 JAX-Native Learning](P3_5_3_JAX_NATIVE_LEARNING.md)
 - [P3.5.4 Architecture Namespace Consolidation](P3_5_4_ARCHITECTURE_NAMESPACE_CONSOLIDATION.md)
@@ -204,11 +209,8 @@ P3.12C locally accepted: the learning-owned assembler accepts identities and
 typed configuration while registries retain executable component selection.
 
 P3.12D locally accepted: actual runtime callable binding and exact prepared
-execution identity close P3.12. Phase 4 is next and unstarted.
-
-Phase 4 remains unstarted
-
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+execution identity close P3.12. P4.1 freezes the Phase 4 contract only; it
+makes no production architecture or remote-CI claim.
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

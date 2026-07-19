@@ -19,7 +19,8 @@ P1.10 Production golden acceptance gate             COMPLETE
 
 PHASE 1 - CONTRACT LAYER                            COMPLETE
 PHASE 2 - STUDENT RUNTIME                           COMPLETE
-PHASE 3 - GENERIC LEARNING CORE                     ACTIVE
+PHASE 3 - GENERIC LEARNING CORE                     COMPLETE
+PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.1)
 ```
 
 ## Phase 2 Status
@@ -83,9 +84,9 @@ P3.12C locally accepted
 
 P3.12D locally accepted
 
-Phase 4 remains unstarted
-
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+P4.1 has frozen the architecture-ingestion contract. It adds no production
+architecture or remote-CI claim; see
+[P4.1 Architecture Ingestion Contract](P4_1_ARCHITECTURE_INGESTION_CONTRACT.md).
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

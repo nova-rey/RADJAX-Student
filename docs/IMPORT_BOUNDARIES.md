@@ -27,8 +27,15 @@ JAX adapter may receive parameters and architecture state, but objectives only
 receive selected forward surfaces, targets, weights, and configuration. Runtime
 owns JIT, device selection, placement, dispatch, and synchronization.
 
-The `students/` package is a warning-emitting compatibility namespace only;
-production code does not import it. Its removal is assigned to P4.1.
+The `students/` package is a warning-emitting deprecated compatibility namespace
+only; no new Phase 4 architecture implementation may be added under it. The
+RWKV-7 reference plugin belongs under `radjax_student.architecture`, where the
+current production architecture contracts live. Existing compatibility code may
+remain temporarily. Removal or migration requires a separately scoped
+compatibility cleanup with an explicit import inventory, migration plan,
+deprecation handling, and regression proof; it is not part of P4.1 or the
+current eight-checkpoint Phase 4 plan unless an ingestion blocker and human
+approval require it.
 
 See [ARCHITECTURE_CHARTER.md](ARCHITECTURE_CHARTER.md) for the full dependency
 direction rules.

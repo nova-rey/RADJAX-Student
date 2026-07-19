@@ -8,7 +8,12 @@ stable.
 
 This namespace is transitional. The long-term boundary is architecture plugins:
 plugins answer how a model computes, while runtime backends answer where and how
-that computation executes. Future core API work should migrate toward an
-`architecture/` package rather than expanding `students/` as the permanent
-public surface. `students/` is now a deprecated compatibility package whose
-removal is assigned to P4.1.
+that computation executes. The current production architecture contracts live
+under `radjax_student.architecture`, and the RWKV-7 reference plugin belongs
+there. `students/` is a deprecated compatibility namespace: no new Phase 4
+architecture implementation may be added under it, although existing
+compatibility code may remain temporarily. Its removal or migration requires a
+separately scoped compatibility cleanup with an explicit import inventory,
+migration plan, deprecation handling, and regression proof. That work is not
+part of P4.1 or the current eight-checkpoint Phase 4 plan unless it directly
+blocks plugin ingestion and human approval is obtained.

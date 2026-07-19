@@ -1203,3 +1203,16 @@
 - Regenerated the P3.5 dependency audit, dependent P3.11.10 receipt, and the
   source-dependent P3.12C/D receipts through their normal writers; two fresh
   outputs for each artifact were byte-identical.
+
+## 2026-07-19 - P4.1 architecture ingestion contract freeze
+
+- Froze the explicit RWKV reference-plugin package, registration, ownership,
+  capability, mapping, provenance, tiny-domain, and non-claim boundaries before
+  adding any production architecture code.
+- The pinned BlinkDL NumPy source remains the mathematical authority; qrwkv-xla
+  is advisory-only and cannot become an import, dependency, or equation source.
+- P4.1 makes no generic change or executable architecture claim; later sparse
+  CE and a narrow runtime key materializer remain the only pre-authorized paths.
+- Reclassified `students/` as historical compatibility only; P4.1 leaves it
+  untouched and defers removal to a separately scoped inventory, migration,
+  deprecation, and regression-proof cleanup.

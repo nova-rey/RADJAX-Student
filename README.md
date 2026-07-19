@@ -146,16 +146,16 @@ registry-selected components into the executable JAX lifecycle.
 
 P3.12D locally accepted: runtime binds the actual declared generic JAX-step
 callable, its source-derived identity, and all compilation-relevant prepared
-execution identity fields. P3.12 is closed; Phase 4 is next and unstarted.
+execution identity fields. P3.12 is closed.
 
 The foundation audit closure keeps application callable registration in learning
 composition, makes NumPy losses legacy-only, locks proof-owned validation
 namespaces, and defines Phase 4 as architecture-plugin ingestion with RWKV only
-as the first reference architecture. No Phase 4 implementation has begun.
+as the first reference architecture.
 
-Phase 4 remains unstarted
-
-Phase 4 requires successful required remote base/JAX CI or an explicit repository-owner waiver
+Phase 4 P4.1 freezes the ingestion contract only; no production architecture
+implementation, remote-CI result, or broadened compatibility claim is made.
+See the [P4.1 Architecture Ingestion Contract](docs/P4_1_ARCHITECTURE_INGESTION_CONTRACT.md).
 
 P3.4 establishes the [Generic Batch and Objective Contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
 behavior-neutral batch metadata, objective request/result models, and explicit
@@ -234,8 +234,7 @@ not yet proven:
 P3.5.10 closes the architecture-integrity gate with a machine-readable receipt
 at `docs/P3_5_ARCHITECTURE_INTEGRITY_RECEIPT.json`. `radjax_student.students`
 is a deprecated compatibility package only, architecturally dead by P3.5.9,
-and scheduled for removal at the numbered P4.1 architecture implementation
-checkpoint.
+and is not changed by the P4.1 contract-freeze checkpoint.
 
 Start with the [documentation index](docs/INDEX.md) before extending the
 codebase. The normative Phase 0 docs are:
