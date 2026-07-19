@@ -1424,3 +1424,10 @@
 - Refreshed the frozen P3.12B source attestation after this JAX-free audit
   implementation change; the P3.12B receipt regenerated twice without byte
   drift because its executed proof source remained unchanged.
+
+## 2026-07-18 - Transitive-control closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `7ebb50b`
+  and regenerated the dependent P3.11.10 receipt twice byte-identically. The
+  recorded provenance now covers the complete transitive import and exception
+  suppression audit closure.
