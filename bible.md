@@ -1633,3 +1633,9 @@
   Canonical JAX-purity tracking now follows the corresponding trainable relay
   and scalar metaclass carriers. Literal fixtures bind every added blocker to
   the exact source behavior.
+
+## 2026-07-18 - Pop and relay closure evidence refresh
+
+- Regenerated the P3.5 dependency audit and the dependent P3.11.10 final gate
+  receipt twice byte-identically from accepted source commit `3621da9`. The
+  recorded provenance now binds the pop, relay, and dynamic-execution closure.
