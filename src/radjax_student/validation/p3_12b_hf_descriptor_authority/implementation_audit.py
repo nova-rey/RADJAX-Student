@@ -601,6 +601,12 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 return "import_module"
             if separator and aliases.get(head) == "builtins" and tail == "__import__":
                 return "__import__"
+            if (
+                separator
+                and aliases.get(head) in {"importlib", "builtins"}
+                and tail == "__dict__"
+            ):
+                return f"{aliases[head]}.__dict__"
         if (
             isinstance(callable_node, ast.Call)
             and isinstance(callable_node.func, ast.Name)
@@ -644,7 +650,29 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     changed = True
 
     for node in ast.walk(tree):
-        if not isinstance(node, ast.Call) or import_callee_name(node.func) is None:
+        if not isinstance(node, ast.Call):
+            continue
+        callee = import_callee_name(node.func)
+        if callee is None:
+            # This function is called only after a protected gate marker was
+            # found in the source.  Reflection over an import primitive that
+            # this narrow resolver cannot identify is therefore an attempted
+            # dynamic gate path and must fail closed.
+            import_markers = {
+                "__import__",
+                "importlib",
+                "import_module",
+                "builtins",
+            }
+            if any(
+                isinstance(descendant, ast.Name)
+                and descendant.id in import_markers
+                or isinstance(descendant, ast.Constant)
+                and isinstance(descendant.value, str)
+                and descendant.value in import_markers
+                for descendant in ast.walk(node.func)
+            ):
+                return True
             continue
         target = (
             node.args[0]

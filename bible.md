@@ -1441,6 +1441,13 @@
 - Refreshed the P3.12B source attestation after the matching JAX-free source
   audit update; its executed receipt again regenerated twice byte-identically.
 
+## 2026-07-18 - Foundation audit opaque-reflection closure
+
+- The foundation audit now fails closed on unresolved reflection over import
+  primitives while preserving literal optional-JAX imports and the frozen
+  historical acceptance exceptions. JAX-purity host-cast detection now follows
+  attribute expressions such as `prepared_inputs.parameters`.
+
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `55f8f09`

@@ -201,6 +201,10 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         relative_path="runtime/x.py",
     ) == ("runtime_steps_import",)
     assert audit_source_fixture(
+        "load = globals()['__import__']\nload('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
         "from importlib import import_module as load\n"
         "load('radjax_student.validation')\n",
         relative_path="reports/x.py",
@@ -230,6 +234,9 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(
         "float(trainable_array)\n", relative_path="steps/jax_step.py"
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "float(prepared_inputs.parameters)\n", relative_path="steps/jax_step.py"
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(
         "SCHEMA = 'radjax.p3_99_neutral_gate.v1'\ndef run(): pass\n",

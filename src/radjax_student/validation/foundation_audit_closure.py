@@ -309,6 +309,12 @@ def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | No
     resolved = replacement if not separator else f"{replacement}.{tail}"
     if resolved == potential:
         return potential
+    if resolved in {
+        "importlib.__dict__",
+        "builtins.__dict__",
+        "__builtins__.__dict__",
+    }:
+        return resolved
     if resolved in {"__import__", "builtins.__import__"}:
         return "__import__"
     if resolved == "importlib.import_module":
@@ -377,7 +383,7 @@ def _dynamic_import_calls(tree: ast.Module) -> tuple[ast.Call, ...]:
         node
         for node in ast.walk(tree)
         if isinstance(node, ast.Call)
-        and _could_be_dynamic_import_callee(node.func, aliases)
+        and _canonical_import_callee(node.func, aliases) is not None
     )
 
 
@@ -399,10 +405,73 @@ def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ..
 def _has_dynamic_import_target(tree: ast.Module) -> bool:
     """Detect a source-computed import target without importing the module."""
     aliases = _importlib_aliases(tree)
-    return any(
-        _resolved_dynamic_import_target(node, aliases) is None
-        for node in _dynamic_import_calls(tree)
-    )
+    for node in _dynamic_import_calls(tree):
+        if _resolved_dynamic_import_target(node, aliases) is None:
+            return True
+    # A protected owner does not need opaque reflection over the import
+    # primitives.  If the local resolver cannot establish an exact callable,
+    # reject the indirect expression instead of assuming it is harmless.
+    import_markers = {"__import__", "importlib", "import_module", "builtins"}
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Subscript)
+            and any(
+                isinstance(descendant, ast.Constant)
+                and isinstance(descendant.value, str)
+                and descendant.value in import_markers
+                for descendant in ast.walk(node)
+            )
+            and _canonical_import_callee(node, aliases) is None
+        ):
+            return True
+        if not isinstance(node, ast.Call):
+            continue
+        if (
+            _canonical_import_callee(node.func, aliases) is not None
+            or _canonical_import_callee(node, aliases) is not None
+        ):
+            continue
+        if any(
+            isinstance(descendant, ast.Call)
+            and _resolved_dynamic_import_target(descendant, aliases)
+            in {"jax", "jax.numpy"}
+            for descendant in ast.walk(node.func)
+        ):
+            continue
+        for descendant in ast.walk(node.func):
+            if isinstance(descendant, ast.Name) and descendant.id in {
+                "__import__",
+                "import_module",
+            }:
+                return True
+            if (
+                isinstance(descendant, ast.Constant)
+                and isinstance(descendant.value, str)
+                and descendant.value == "__import__"
+            ):
+                return True
+            if (
+                isinstance(descendant, ast.Call)
+                and isinstance(descendant.func, ast.Name)
+                and descendant.func.id in {"getattr", "vars"}
+                and any(
+                    isinstance(argument, ast.Name)
+                    and argument.id in {"importlib", "builtins", "__builtins__"}
+                    for argument in descendant.args
+                )
+            ):
+                return True
+            if (
+                isinstance(descendant, ast.Attribute)
+                and descendant.attr in {"get", "__import__", "import_module"}
+                and any(
+                    isinstance(value, ast.Name)
+                    and value.id in {"importlib", "builtins", "__builtins__"}
+                    for value in ast.walk(descendant.value)
+                )
+            ):
+                return True
+    return False
 
 
 def _has_import_segment(name: str, segment: str) -> bool:
@@ -421,10 +490,11 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         isinstance(node, ast.Call)
         and _call_name(node.func) in {"float", "int"}
         and any(
-            token in name.id.lower()
+            token
+            in (name.id.lower() if isinstance(name, ast.Name) else name.attr.lower())
             for argument in node.args
             for name in ast.walk(argument)
-            if isinstance(name, ast.Name)
+            if isinstance(name, (ast.Name, ast.Attribute))
             for token in trainable_tokens
         )
         for node in ast.walk(tree)
@@ -1039,7 +1109,11 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
             validation_imports += sum(
                 name.startswith("radjax_student.validation") for name in imports
             )
-        if not relative.startswith("runtime/") and _has_dynamic_import_target(tree):
+        if (
+            relative not in HISTORICAL_PROOF_EXCEPTIONS
+            and not relative.startswith("runtime/")
+            and _has_dynamic_import_target(tree)
+        ):
             blockers.append(f"production_dynamic_import:{relative}")
         if not relative.startswith(("architecture/", "runtime/")) and any(
             _has_import_segment(name, "rwkv") for name in imports
