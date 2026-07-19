@@ -36,6 +36,20 @@ from radjax_student.validation.p3_12b_hf_descriptor_authority.models import (
     validate_receipt,
 )
 
+EXPECTED_PRODUCTION_OWNERS = (
+    "architecture",
+    "checkpoints",
+    "cli",
+    "contracts",
+    "hf",
+    "learning",
+    "objectives",
+    "optimizers",
+    "reports",
+    "runtime",
+    "steps",
+)
+
 
 def _descriptor() -> HFCompatibilityDescriptor:
     return HFCompatibilityDescriptor(
@@ -236,8 +250,8 @@ def test_jax_free_implementation_audit_binds_literal_source_and_fixtures():
 def test_production_import_audit_rejects_gate_imports_from_every_protected_owner(
     tmp_path: Path,
 ) -> None:
-    owners = tuple(sorted(implementation_audit._PRODUCTION_OWNERS))
-    for index, owner in enumerate(owners):
+    assert implementation_audit._PRODUCTION_OWNERS == set(EXPECTED_PRODUCTION_OWNERS)
+    for index, owner in enumerate(EXPECTED_PRODUCTION_OWNERS):
         directory = tmp_path / "src" / "radjax_student" / owner
         directory.mkdir(parents=True)
         source = (
@@ -252,7 +266,24 @@ def test_production_import_audit_rejects_gate_imports_from_every_protected_owner
     blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
     implementation_audit._audit_production_imports(tmp_path, blockers)
     assert [(item.code, item.detail) for item in blockers] == [
-        ("production_imports_gate_code", f"{owner}/gate_import.py") for owner in owners
+        ("production_imports_gate_code", f"{owner}/gate_import.py")
+        for owner in EXPECTED_PRODUCTION_OWNERS
+    ]
+
+
+def test_production_import_audit_rejects_cli_gate_import_exactly(
+    tmp_path: Path,
+) -> None:
+    cli = tmp_path / "src" / "radjax_student" / "cli"
+    cli.mkdir(parents=True)
+    (cli / "gate_import.py").write_text(
+        "from radjax_student.validation import implementation_audit\n",
+        encoding="utf-8",
+    )
+    blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
+    implementation_audit._audit_production_imports(tmp_path, blockers)
+    assert [(item.code, item.detail) for item in blockers] == [
+        ("production_imports_gate_code", "cli/gate_import.py"),
     ]
 
 

@@ -1313,3 +1313,10 @@
 - Regenerated the source-provenance P3.5 dependency audit and dependent
   P3.11.10 receipt through their canonical writers. The documented final gate
   digest now matches the writer-emitted receipt field exactly.
+
+## 2026-07-18 - Protected CLI owner audit closure
+
+- The P3.12B protected-import source audit now covers the reviewed `cli`
+  production owner. Its owner inventory is constrained by an explicit test
+  oracle and a dedicated CLI import fixture, preventing validation-gate
+  imports from escaping the production boundary through command entrypoints.

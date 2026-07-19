@@ -56,6 +56,7 @@ _PRODUCTION_OWNERS = {
     "architecture",
     "contracts",
     "checkpoints",
+    "cli",
     "learning",
     "runtime",
     "objectives",
