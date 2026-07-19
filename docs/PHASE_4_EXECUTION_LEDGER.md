@@ -145,3 +145,26 @@ already-known prior SHA.
   owner loader it delegates to.
 - **Next checkpoint:** P4.7 — Architecture Ingestion Procedure and
   Anti-Contamination Proof.
+
+## P4.7 — Architecture Ingestion Procedure and Anti-Contamination Proof
+
+- **Status:** complete
+- **Changed files:** bounded validation-owned architecture audit; focused
+  ingestion-isolation test; future-plugin guide; status pages, this ledger, and
+  `bible.md`. No architecture, runtime, learning, checkpoint, or objective
+  behavior changed.
+- **Tests and verification:** current source passes the P4.7 literal audit;
+  focused injected direct-import/identifier/validation/registration blockers
+  pass; P3.5 audit regression, changed-file Ruff/format/compile/diff, and
+  P3.12C/P3.12D recorded checks pass.
+- **Evidence or receipts changed:** P4.7 guide and compact audit report record
+  the bounded scope, checklist, and approved generic-change justifications;
+  the clean P3.5 audit report is byte-stable, so no receipt refresh is claimed.
+- **Generic-change decision:** none; the approved ledger remains exactly sparse
+  categorical cross-entropy, runtime-owned initialization-key materialization,
+  and architecture-neutral runtime-supplied initialization material.
+- **Unresolved non-blocking risks:** the literal audit intentionally excludes
+  aliases, taint/data flow, reflection, loaders, carrier analysis, and audit
+  recursion; P4.8 retains P3.11/P3.12A reconciliation and the historical P3.5
+  acceptance-runner conflict recorded by P4.6.
+- **Next checkpoint:** P4.8 — Phase 4 End-to-End Acceptance.

@@ -128,11 +128,11 @@ dataset infrastructure, distributed/multi-device/Pallas work, production CLI,
 serving, full HF export, and a second architecture before ingestion acceptance.
 
 > **Current integration status:** P3.11.1-P3.11.10 and P3.12A-D are locally
-> accepted. P3.12 is closed. P4.6 checkpoints a real trained RWKV lifecycle
-> through generic v3 persistence, restores it into a fresh assembly, and proves
-> next-step replay equality without an RWKV checkpoint branch. It makes no
-> broader equation-parity, initialization-parity, training-recipe, cross-step
-> BPTT, weight-file, HF-conversion, or remote-CI claim.
+> accepted. P3.12 is closed. P4.7 documents the future-plugin procedure and
+> runs a literal no-contamination audit over generic owners, the RWKV plugin,
+> and explicit registration. It makes no arbitrary-plugin-safety, equation
+> parity, initialization-parity, training-recipe, cross-step BPTT, weight-file,
+> HF-conversion, or remote-CI claim.
 
 # Phase 5 - Behavior Compilation
 
@@ -269,9 +269,9 @@ evidence matrix.
 P3.12C locally accepted
 
 P3.12D locally accepted: actual callable binding and final prepared identity
-close P3.12. P4.6 checkpoints a real trained RWKV lifecycle through generic v3
-persistence, restores it into a fresh assembly, and proves next-step replay
-equality without an RWKV checkpoint branch. It makes no broader equation-parity,
+close P3.12. P4.7 documents the future-plugin procedure and runs a literal
+no-contamination audit over generic owners, the RWKV plugin, and explicit
+registration. It makes no arbitrary-plugin-safety, equation-parity,
 initialization-parity, training-recipe, cross-step BPTT, weight-file,
 HF-conversion, or remote-CI claim.
 

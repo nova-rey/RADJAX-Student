@@ -1265,3 +1265,12 @@
   identities; source/restored direct forward and next generic step agree.
 - Callable identity remains assembly/execution evidence, not checkpoint data;
   no new generic change, training-recipe, BPTT, or portability claim is made.
+
+## 2026-07-19 - P4.7 architecture ingestion and isolation audit
+
+- Added a fixed literal AST audit for generic-owner RWKV policy/imports, plugin
+  validation imports, and the sole caller-owned RWKV registration surface.
+- The future-plugin checklist keeps math, key ownership, generic seams, tests,
+  and declared non-claims explicit; it does not promise arbitrary-plugin safety.
+- The approved generic ledger remains exactly sparse CE, runtime key material,
+  and runtime-supplied architecture initialization material.

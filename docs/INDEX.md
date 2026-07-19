@@ -143,6 +143,8 @@ Start here for Phase 0 foundation context.
 - [P4.6 RWKV-7 Checkpoint, Restore, and Replay](P4_6_RWKV7_CHECKPOINT_REPLAY.md):
   real v3 checkpoint/restore and next-step replay through unchanged generic
   persistence owners.
+- [P4.7 Architecture Ingestion Guide](P4_7_ARCHITECTURE_INGESTION_GUIDE.md):
+  practical future-plugin checklist and literal, bounded no-contamination audit.
 - [Phase 4 Execution Ledger](PHASE_4_EXECUTION_LEDGER.md): append-only
   checkpoint status, verification, evidence, generic-change, risk, and next-step record.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
@@ -224,9 +226,9 @@ P3.12C locally accepted: the learning-owned assembler accepts identities and
 typed configuration while registries retain executable component selection.
 
 P3.12D locally accepted: actual runtime callable binding and exact prepared
-execution identity close P3.12. P4.3 adds deterministic RWKV parameter and
-carry initialization through runtime-supplied opaque material only; it makes no
-executable-forward, equation-parity, or remote-CI claim.
+execution identity close P3.12. P4.7 records the future-plugin procedure and
+literal no-contamination audit; it makes no arbitrary-plugin-safety,
+equation-parity, or remote-CI claim.
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

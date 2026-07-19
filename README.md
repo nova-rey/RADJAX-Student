@@ -153,13 +153,12 @@ composition, makes NumPy losses legacy-only, locks proof-owned validation
 namespaces, and defines Phase 4 as architecture-plugin ingestion with RWKV only
 as the first reference architecture.
 
-Phase 4 P4.6 saves a real trained RWKV lifecycle through generic v3 persistence,
-restores it into a fresh assembly, and replays the next tiny-domain step without
-an RWKV checkpoint branch. V3 stores configuration identity by digest and does
-not serialize the runtime callable. It makes no broader equation-parity,
-initialization-parity, training-recipe, cross-step BPTT, weight-file,
-HF-conversion, remote-CI, or compatibility claim. See the
-[P4.6 RWKV-7 Checkpoint, Restore, and Replay](docs/P4_6_RWKV7_CHECKPOINT_REPLAY.md).
+Phase 4 P4.7 records a future-plugin ingestion checklist and audits the literal
+production source boundary: generic owners contain no RWKV import or policy,
+the RWKV plugin imports no validation, and its explicit registration is the only
+one. It does not prove arbitrary-plugin safety, broaden equation parity, or make
+a second-architecture, training-recipe, BPTT, HF-conversion, or remote-CI claim.
+See the [P4.7 Architecture Ingestion Guide](docs/P4_7_ARCHITECTURE_INGESTION_GUIDE.md).
 
 P3.4 establishes the [Generic Batch and Objective Contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
 behavior-neutral batch metadata, objective request/result models, and explicit

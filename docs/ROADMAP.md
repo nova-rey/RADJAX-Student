@@ -20,7 +20,7 @@ P1.10 Production golden acceptance gate             COMPLETE
 PHASE 1 - CONTRACT LAYER                            COMPLETE
 PHASE 2 - STUDENT RUNTIME                           COMPLETE
 PHASE 3 - GENERIC LEARNING CORE                     COMPLETE
-PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.6)
+PHASE 4 - ARCHITECTURE PLUGIN INGESTION             ACTIVE (P4.7)
 ```
 
 ## Phase 2 Status
@@ -84,11 +84,12 @@ P3.12C locally accepted
 
 P3.12D locally accepted
 
-P4.6 checkpoints a real trained RWKV lifecycle through generic v3 persistence,
-restores it into a fresh assembly, and proves next-step replay equality without
-an RWKV checkpoint branch. It makes no broader equation-parity, training-recipe,
-cross-step-BPTT, initialization-parity, weight-file, HF-conversion, or remote-CI
-claim; see [P4.6 RWKV-7 Checkpoint, Restore, and Replay](P4_6_RWKV7_CHECKPOINT_REPLAY.md).
+P4.7 documents a future-plugin procedure and proves, with a fixed literal AST
+audit, that generic owners have no RWKV policy/import, the RWKV plugin has no
+validation import, and no second architecture is registered. It makes no
+arbitrary-plugin-safety, equation-parity, training-recipe, BPTT, weight-file,
+HF-conversion, or remote-CI claim; see
+[P4.7 Architecture Ingestion Guide](P4_7_ARCHITECTURE_INGESTION_GUIDE.md).
 
 The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no

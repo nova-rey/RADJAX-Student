@@ -1,4 +1,4 @@
-"""Installed AST audit for Phase 3.5 architecture boundaries."""
+"""Installed AST audit for P3.5 boundaries and P4.7 plugin isolation."""
 
 from __future__ import annotations
 
@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA = "radjax.p3_5_architecture_audit.v2"
+P4_INGESTION_SCHEMA = "radjax.phase4_architecture_ingestion_audit.v1"
 FORBIDDEN_IMPORTS = (
     "accelerate",
     "datasets",
@@ -32,6 +33,39 @@ _CONCRETE_PLUGIN_STATIC_MODULES = {
     "registration",
     "schema",
 }
+_P4_GENERIC_OWNER_DIRECTORIES = (
+    "runtime",
+    "learning",
+    "objectives",
+    "optimizers",
+    "steps",
+    "checkpoints",
+)
+_P4_PLUGIN_DIRECTORY = "rwkv7_reference"
+_P4_PLUGIN_REGISTRATION = "architecture/rwkv7_reference/registration.py"
+_P4_APPROVED_GENERIC_CHANGES = (
+    {
+        "change": "sparse categorical cross-entropy objective",
+        "justification": (
+            "any token-logit architecture can provide [B,T,V] logits and integer "
+            "[B,T] targets"
+        ),
+    },
+    {
+        "change": "runtime-owned initialization-key materializer",
+        "justification": (
+            "any JAX architecture can consume a runtime-owned key without parsing "
+            "seed identity"
+        ),
+    },
+    {
+        "change": "runtime-supplied initialization material on ArchitectureInitRequest",
+        "justification": (
+            "any JAX architecture can receive executable entropy while runtime derives "
+            "it and learning composes it"
+        ),
+    },
+)
 _COMPATIBILITY_MODULES = {
     "radjax_student.learning.p3_5_acceptance",
     "radjax_student.learning.p3_10_acceptance",
@@ -657,6 +691,149 @@ def find_architecture_blockers(
     return sorted(blockers, key=lambda item: (item["code"], item["path"]))
 
 
+def _p4_imports_rwkv(tree: ast.Module) -> bool:
+    """Recognize only literal AST import targets or imported names."""
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if any("rwkv" in alias.name.lower() for alias in node.names):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            if "rwkv" in (node.module or "").lower() or any(
+                "rwkv" in alias.name.lower() for alias in node.names
+            ):
+                return True
+    return False
+
+
+def _p4_mentions_rwkv(tree: ast.Module) -> bool:
+    """Recognize literal identifiers or strings, never aliases or data flow."""
+
+    for node in ast.walk(tree):
+        value = (
+            node.id
+            if isinstance(node, ast.Name)
+            else node.attr
+            if isinstance(node, ast.Attribute)
+            else node.value
+            if isinstance(node, ast.Constant) and isinstance(node.value, str)
+            else ""
+        )
+        if "rwkv" in value.lower():
+            return True
+    return False
+
+
+def _p4_imports_validation(tree: ast.Module) -> bool:
+    """Recognize direct validation imports without resolving relative aliases."""
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if any("validation" in alias.name.split(".") for alias in node.names):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            if "validation" in (node.module or "").split(".") or any(
+                alias.name == "validation" for alias in node.names
+            ):
+                return True
+    return False
+
+
+def _p4_generic_source_paths(source_root: Path) -> list[Path]:
+    paths = [
+        path
+        for directory in _P4_GENERIC_OWNER_DIRECTORIES
+        for path in (source_root / directory).rglob("*.py")
+    ]
+    paths.extend((source_root / "architecture").glob("*.py"))
+    return sorted(paths)
+
+
+def find_phase4_ingestion_blockers(
+    source_root: Path, *, require_plugin: bool = False
+) -> list[dict[str, Any]]:
+    """Check the fixed P4.7 production set with direct AST observations only."""
+
+    plugin_root = source_root / "architecture" / _P4_PLUGIN_DIRECTORY
+    if not plugin_root.is_dir():
+        if require_plugin:
+            return [
+                {
+                    "code": "rwkv_plugin_missing",
+                    "path": str(plugin_root.relative_to(source_root.parent.parent)),
+                    "message": "P4 requires the declared RWKV reference plugin",
+                }
+            ]
+        return []
+
+    blockers: list[dict[str, Any]] = []
+
+    def add(code: str, path: Path, message: str) -> None:
+        blockers.append(
+            {
+                "code": code,
+                "path": str(path.relative_to(source_root.parent.parent)),
+                "message": message,
+            }
+        )
+
+    for path in _p4_generic_source_paths(source_root):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        if _p4_imports_rwkv(tree):
+            add("generic_owner_imports_rwkv_plugin", path, "generic owner imports RWKV")
+        if _p4_mentions_rwkv(tree):
+            add("generic_owner_mentions_rwkv", path, "generic owner branches on RWKV")
+
+    for path in sorted(plugin_root.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        if _p4_imports_validation(tree):
+            add("rwkv_plugin_imports_validation", path, "plugin imports validation")
+
+    registration_paths = []
+    for path in sorted((source_root / "architecture").rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        registration_paths.extend(
+            str(path.relative_to(source_root))
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "register"
+        )
+    if registration_paths != [_P4_PLUGIN_REGISTRATION]:
+        add(
+            "unexpected_architecture_registration",
+            source_root / "architecture",
+            "P4 has exactly one explicit RWKV reference registration",
+        )
+    return sorted(blockers, key=lambda item: (item["code"], item["path"]))
+
+
+def build_phase4_architecture_ingestion_audit(
+    repo_root: Path | None = None,
+) -> dict[str, Any]:
+    """Return the compact, fixed-scope P4.7 architecture-ingestion report."""
+
+    root = Path(repo_root or Path.cwd()).resolve()
+    source_root = root / "src" / "radjax_student"
+    plugin_root = source_root / "architecture" / _P4_PLUGIN_DIRECTORY
+    reviewed_paths = _p4_generic_source_paths(source_root)
+    reviewed_paths.extend((source_root / "architecture").rglob("*.py"))
+    if plugin_root.is_dir():
+        reviewed_paths.extend(plugin_root.rglob("*.py"))
+    blockers = find_phase4_ingestion_blockers(source_root, require_plugin=True)
+    return {
+        "schema_version": P4_INGESTION_SCHEMA,
+        "reviewed_source_paths": sorted(
+            {str(path.relative_to(root)) for path in reviewed_paths}
+        ),
+        "approved_generic_changes": [
+            dict(item) for item in _P4_APPROVED_GENERIC_CHANGES
+        ],
+        "blockers": blockers,
+        "status": "pass" if not blockers else "blocked",
+    }
+
+
 def build_architecture_audit(
     repo_root: Path | None = None, *, accepted_commit: str | None = None
 ) -> dict[str, Any]:
@@ -668,6 +845,7 @@ def build_architecture_audit(
     ]
     cycles = find_dependency_cycles(records)
     blockers = find_architecture_blockers(records, source_root)
+    blockers.extend(find_phase4_ingestion_blockers(source_root))
     if cycles:
         blockers.extend(
             {
