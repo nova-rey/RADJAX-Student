@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "d1a1402af759aeef778d136e5b3b84e3a594933e8cd24d432e98b56e8263dee9"
+    "33270df83331d4eb52d1ff0c9d084a5b927015c0a66aca0139857e9d0d0a72da"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -422,10 +422,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         for node in ast.walk(tree)
     ):
         return True
-    if any(
-        isinstance(node, ast.Constant) and node.value == "__builtins__"
-        for node in ast.walk(tree)
-    ):
+    if any(_literal_string(node) == "__builtins__" for node in ast.walk(tree)):
         return True
     for node in _dynamic_import_calls(tree):
         if _resolved_dynamic_import_target(node, aliases) is None:
@@ -438,9 +435,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         if (
             isinstance(node, ast.Subscript)
             and any(
-                isinstance(descendant, ast.Constant)
-                and isinstance(descendant.value, str)
-                and descendant.value in {*import_markers, "__builtins__"}
+                _literal_string(descendant) in {*import_markers, "__builtins__"}
                 for descendant in ast.walk(node)
             )
             and _canonical_import_callee(node, aliases) is None
@@ -467,11 +462,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
                 "eval",
             }:
                 return True
-            if (
-                isinstance(descendant, ast.Constant)
-                and isinstance(descendant.value, str)
-                and descendant.value == "__import__"
-            ):
+            if _literal_string(descendant) == "__import__":
                 return True
             if (
                 isinstance(descendant, ast.Call)

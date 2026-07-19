@@ -307,6 +307,30 @@ def test_production_import_audit_rejects_constructed_dynamic_gate_import(
     ]
 
 
+def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
+    tmp_path: Path,
+) -> None:
+    """The all-source AST audit must not rely on raw protected-marker text."""
+    cli = tmp_path / "src" / "radjax_student" / "cli"
+    cli.mkdir(parents=True)
+    (cli / "gate_import.py").write_text(
+        "import importlib\n"
+        "load = importlib.import_module\n"
+        "load(\n"
+        "    'radjax_student.validation.p3_12b_'\n"
+        "    + 'hf_descriptor_'\n"
+        "    + 'authority.implementation_'\n"
+        "    + 'audit'\n"
+        ")\n",
+        encoding="utf-8",
+    )
+    blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
+    implementation_audit._audit_production_imports(tmp_path, blockers)
+    assert [(item.code, item.detail) for item in blockers] == [
+        ("production_imports_gate_code", "cli/gate_import.py"),
+    ]
+
+
 def test_production_import_audit_rejects_indirect_dynamic_gate_import(
     tmp_path: Path,
 ) -> None:

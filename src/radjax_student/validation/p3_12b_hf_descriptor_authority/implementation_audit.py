@@ -487,7 +487,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
 
     Production does not need a dynamic route into this validation gate.  This
     intentionally recognizes the standard import primitives and fails closed
-    when a source bearing a protected marker computes the target.
+    when source uses reflection to compute a protected target.
     """
     aliases: dict[str, str] = {}
     if any(
@@ -519,10 +519,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     if item.name == "__import__":
                         aliases[item.asname or item.name] = "__import__"
 
-    if any(
-        isinstance(node, ast.Constant) and node.value == "__builtins__"
-        for node in ast.walk(tree)
-    ):
+    if any(_source_literal_string(node) == "__builtins__" for node in ast.walk(tree)):
         return True
 
     def member_callee(owner: str | None, member: str | None) -> str | None:
@@ -672,8 +669,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     if any(
         isinstance(node, ast.Subscript)
         and any(
-            isinstance(descendant, ast.Constant)
-            and descendant.value in {"__import__", "__builtins__"}
+            _source_literal_string(descendant) in {"__import__", "__builtins__"}
             for descendant in ast.walk(node)
         )
         and import_callee_name(node) is None
@@ -686,29 +682,18 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             continue
         callee = import_callee_name(node.func)
         if callee is None:
-            # This function is called only after a protected gate marker was
-            # found in the source.  Reflection over an import primitive that
-            # this narrow resolver cannot identify is therefore an attempted
-            # dynamic gate path and must fail closed.
+            # Reflection over an import primitive that this narrow resolver
+            # cannot identify is an attempted dynamic gate path and must fail
+            # closed.  Ordinary product methods remain outside this narrow
+            # reflection family.
             import_markers = {
                 "__import__",
                 "importlib",
                 "import_module",
                 "builtins",
                 "operator",
-                "object",
-                "dict",
                 "eval",
             }
-            if any(
-                isinstance(descendant, ast.Name)
-                and descendant.id in import_markers
-                or isinstance(descendant, ast.Constant)
-                and isinstance(descendant.value, str)
-                and descendant.value in import_markers
-                for descendant in ast.walk(node.func)
-            ):
-                return True
             if any(
                 isinstance(descendant, ast.Attribute)
                 and descendant.attr
@@ -723,6 +708,19 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     "import_module",
                 }
                 for descendant in ast.walk(node.func)
+            ) and any(
+                isinstance(descendant, ast.Name)
+                and descendant.id
+                in {
+                    "importlib",
+                    "builtins",
+                    "__builtins__",
+                    "operator",
+                    "object",
+                    "dict",
+                }
+                or _source_literal_string(descendant) in import_markers
+                for descendant in ast.walk(node)
             ):
                 return True
             continue
@@ -753,12 +751,6 @@ def _audit_production_imports(
         if not relative.parts or relative.parts[0] not in _PRODUCTION_OWNERS:
             continue
         source = path.read_text(encoding="utf-8")
-        # An AST import spelling that violates this policy must contain one of
-        # these literal module fragments.  Preserve AST confirmation for every
-        # candidate while avoiding whole-tree walks for unrelated production
-        # modules.
-        if not any(marker in source for marker in _PROTECTED_GATE_IMPORT_MARKERS):
-            continue
         tree = ast.parse(source, filename=str(path))
         if _production_dynamic_gate_import(tree, source):
             _add(blockers, "production_imports_gate_code", str(relative))

@@ -1501,6 +1501,12 @@
 - Refreshed the P3.12B source attestation after the portable builtins audit
   hardening; the executed receipt remained byte-identical across fresh writers.
 
+## 2026-07-18 - Split protected-import audit closure
+
+- Made the P3.12B production-import audit inspect every production owner AST,
+  so source-split protected validation paths cannot bypass a raw-text prefilter.
+  The source attestation records the resulting deterministic audit contract.
+
 ## 2026-07-18 - Portable builtins closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `2df9b73`
