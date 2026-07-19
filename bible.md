@@ -1487,6 +1487,12 @@
 - Refreshed the P3.12B source attestation after the portable builtins audit
   hardening; the executed receipt remained byte-identical across fresh writers.
 
+## 2026-07-18 - Portable builtins closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `2df9b73`
+  and regenerated the dependent P3.11.10 receipt twice byte-identically. The
+  recorded provenance now attests portable builtins-reflection closure.
+
 ## 2026-07-18 - Builtins-chain closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `4fddaa1`
