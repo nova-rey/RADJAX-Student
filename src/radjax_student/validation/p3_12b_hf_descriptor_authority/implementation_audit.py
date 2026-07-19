@@ -649,6 +649,17 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     aliases[target.id] = binding
                     changed = True
 
+    if any(
+        isinstance(node, ast.Subscript)
+        and any(
+            isinstance(descendant, ast.Constant) and descendant.value == "__import__"
+            for descendant in ast.walk(node)
+        )
+        and import_callee_name(node) is None
+        for node in ast.walk(tree)
+    ):
+        return True
+
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue

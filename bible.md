@@ -1458,6 +1458,11 @@
   recorded provenance now includes opaque-reflection and attribute host-cast
   audit coverage.
 
+## 2026-07-18 - Protected global-reflection closure
+
+- The P3.12B protected-import audit now also rejects `globals()['__import__']`
+  indirection, matching the foundation audit's fail-closed reflection policy.
+
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `55f8f09`
