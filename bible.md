@@ -1403,3 +1403,7 @@
   import targets, reject unknown protected import indirection, and treat
   exception-suppressing `finally` and context-manager paths as checkpoint
   validation bypasses. Focused JAX-free fixtures cover each protected form.
+- Refreshed the frozen P3.12B source attestation after the JAX-free
+  implementation-audit hardening; its canonical typed receipt remained
+  byte-identical because the executed 22-positive/77-adversarial proof source
+  did not change.
