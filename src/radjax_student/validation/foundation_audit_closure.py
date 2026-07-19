@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "549d9119564da155b3d2f6b78c5fe1347bdfd170225c3f249fdb141712b9df35"
+    "c641b7ac6723e3ea5cfb14cff5a119d072383606ad5eaf96a67bcbdf08639513"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -418,7 +418,7 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         and node.module is not None
         and node.module.split(".", 1)[0] in {"builtins", "operator"}
         or isinstance(node, ast.Name)
-        and node.id in {"__builtins__", "globals", "eval", "exec"}
+        and node.id in {"__builtins__", "globals", "eval", "exec", "vars"}
         for node in ast.walk(tree)
     ):
         return True
@@ -431,12 +431,60 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
     ):
         return True
     if any(
+        isinstance(node, ast.Attribute)
+        and (
+            _call_name(node) == "getattr.__call__"
+            or _call_name(node) in {"dict.get", "dict.setdefault"}
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, ast.Call)
+        and _call_name(node.func) in {"partial", "functools.partial"}
+        and any(
+            _call_name(argument) == "getattr"
+            or isinstance(argument, ast.Attribute)
+            and argument.attr in {"__getattribute__", "__getitem__"}
+            for argument in node.args
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, (ast.Assign, ast.AnnAssign, ast.Return, ast.Lambda))
+        and (
+            _call_name(node.value if not isinstance(node, ast.Lambda) else node.body)
+            == "getattr"
+            or isinstance(
+                node.value if not isinstance(node, ast.Lambda) else node.body,
+                ast.Attribute,
+            )
+            and (node.value if not isinstance(node, ast.Lambda) else node.body).attr
+            in {"__getattribute__", "__getitem__"}
+        )
+        for node in ast.walk(tree)
+        if not isinstance(node, ast.AnnAssign) or node.value is not None
+    ):
+        return True
+    if any(
         isinstance(node, (ast.Tuple, ast.List, ast.Set))
         and any(
             _call_name(item) == "getattr"
             or isinstance(item, ast.Attribute)
             and item.attr in {"__getattribute__", "__getitem__"}
             for item in node.elts
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, ast.Dict)
+        and any(
+            _call_name(item) == "getattr"
+            or isinstance(item, ast.Attribute)
+            and item.attr in {"__getattribute__", "__getitem__"}
+            for item in node.values
         )
         for node in ast.walk(tree)
     ):
@@ -674,13 +722,64 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         for item in node.names
         if item.name in {"float", "int"}
     )
+
+    def value_aliases_scalar(value: ast.AST) -> bool:
+        if isinstance(value, ast.Subscript):
+            return (_call_name(value.value) or "") in aliases
+        if isinstance(value, ast.Attribute):
+            return (_call_name(value.value) or "") in aliases
+        if isinstance(value, ast.Call):
+            return value_aliases_scalar(value.func)
+        return (_call_name(value) or "") in aliases
+
+    aliases.update(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
+        and any(
+            isinstance(item, (ast.Assign, ast.AnnAssign))
+            and item.value is not None
+            and any(scalar_cast_expression(value) for value in ast.walk(item.value))
+            for item in node.body
+        )
+    )
+    aliases.update(
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and (
+            any(
+                default is not None
+                and any(scalar_cast_expression(value) for value in ast.walk(default))
+                for default in (*node.args.defaults, *node.args.kw_defaults)
+            )
+            or any(
+                isinstance(item, ast.Return)
+                and item.value is not None
+                and any(scalar_cast_expression(value) for value in ast.walk(item.value))
+                for item in ast.walk(node)
+            )
+        )
+    )
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+                continue
+            if not value_aliases_scalar(node.value):
+                continue
+            for target in (
+                node.targets if isinstance(node, ast.Assign) else (node.target,)
+            ):
+                for name in target_names(target):
+                    if name not in aliases:
+                        aliases.add(name)
+                        changed = True
+
     return any(
         isinstance(node, ast.Call)
-        and (
-            scalar_cast_expression(node.func)
-            or isinstance(node.func, ast.Name)
-            and node.func.id in aliases
-        )
+        and (scalar_cast_expression(node.func) or value_aliases_scalar(node.func))
         and any(
             token
             in (

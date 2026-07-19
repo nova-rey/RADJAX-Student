@@ -199,7 +199,7 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "load = vars(importlib)['import_module']\n"
         "load('radjax_student.steps')\n",
         relative_path="runtime/x.py",
-    ) == ("runtime_steps_import",)
+    ) == ("runtime_dynamic_import", "runtime_steps_import")
     assert audit_source_fixture(
         "load = globals()['__import__']\nload('radjax_student.steps')\n",
         relative_path="runtime/x.py",
@@ -267,6 +267,22 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     assert audit_source_fixture(
         "import importlib\n"
         "reflect, = (object.__getattribute__,)\n"
+        "load = reflect(importlib, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "reflectors = {'load': getattr}\n"
+        "reflect = reflectors['load']\n"
+        "load = reflect(importlib, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "def factory():\n    return getattr\n"
+        "reflect = factory()\n"
         "load = reflect(importlib, 'import_module')\n"
         "load('radjax_student.steps')\n",
         relative_path="runtime/x.py",
@@ -347,6 +363,31 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     ) == ("canonical_jax_purity", "production_dynamic_import:steps/jax_step.py")
     assert audit_source_fixture(
         "cast, = (float,)\ncast(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "casts = [float]\ncasts[0](prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "casts = {'scalar': float}\n"
+        "cast = casts['scalar']\n"
+        "cast(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "class Casts:\n    scalar = float\nCasts.scalar(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "def choose(cast=float):\n    return cast\n"
+        "choose()(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "def factory():\n    return float\n"
+        "cast = factory()\n"
+        "cast(prepared_inputs.parameters)\n",
         relative_path="steps/jax_step.py",
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(

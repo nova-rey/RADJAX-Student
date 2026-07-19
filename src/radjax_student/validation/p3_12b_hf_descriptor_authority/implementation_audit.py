@@ -500,7 +500,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         and node.module is not None
         and node.module.split(".", 1)[0] in {"builtins", "operator"}
         or isinstance(node, ast.Name)
-        and node.id in {"__builtins__", "globals", "eval", "exec"}
+        and node.id in {"__builtins__", "globals", "eval", "exec", "vars"}
         for node in ast.walk(tree)
     ):
         return True
@@ -528,12 +528,60 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     ):
         return True
     if any(
+        isinstance(node, ast.Attribute)
+        and (
+            _call_name(node) == "getattr.__call__"
+            or _call_name(node) in {"dict.get", "dict.setdefault"}
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, ast.Call)
+        and _call_name(node.func) in {"partial", "functools.partial"}
+        and any(
+            _call_name(argument) == "getattr"
+            or isinstance(argument, ast.Attribute)
+            and argument.attr in {"__getattribute__", "__getitem__"}
+            for argument in node.args
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, (ast.Assign, ast.AnnAssign, ast.Return, ast.Lambda))
+        and (
+            _call_name(node.value if not isinstance(node, ast.Lambda) else node.body)
+            == "getattr"
+            or isinstance(
+                node.value if not isinstance(node, ast.Lambda) else node.body,
+                ast.Attribute,
+            )
+            and (node.value if not isinstance(node, ast.Lambda) else node.body).attr
+            in {"__getattribute__", "__getitem__"}
+        )
+        for node in ast.walk(tree)
+        if not isinstance(node, ast.AnnAssign) or node.value is not None
+    ):
+        return True
+    if any(
         isinstance(node, (ast.Tuple, ast.List, ast.Set))
         and any(
             _call_name(item) == "getattr"
             or isinstance(item, ast.Attribute)
             and item.attr in {"__getattribute__", "__getitem__"}
             for item in node.elts
+        )
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        isinstance(node, ast.Dict)
+        and any(
+            _call_name(item) == "getattr"
+            or isinstance(item, ast.Attribute)
+            and item.attr in {"__getattribute__", "__getitem__"}
+            for item in node.values
         )
         for node in ast.walk(tree)
     ):
@@ -824,8 +872,10 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             )
         )
         target_value = _source_literal_string(target)
-        if target_value is None or any(
-            marker in target_value for marker in _PROTECTED_GATE_IMPORT_MARKERS
+        if (
+            target_value is None
+            or target_value in {"builtins", "operator"}
+            or any(marker in target_value for marker in _PROTECTED_GATE_IMPORT_MARKERS)
         ):
             return True
     return False

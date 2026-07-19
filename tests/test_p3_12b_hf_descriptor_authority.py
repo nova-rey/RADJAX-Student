@@ -351,6 +351,22 @@ def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
         "load = fetch(members, '__' + 'import__')\n",
         "op = __import__('operator')\n"
         "load = op.getitem(importlib.__dict__, 'import_' + 'module')\n",
+        "reflectors = {'load': getattr}\n"
+        "reflect = reflectors['load']\n"
+        "load = reflect(importlib, 'import_module')\n",
+        "fetch = dict.get\nload = fetch(importlib.__dict__, 'import_module')\n",
+        "reflect = getattr.__call__\nload = reflect(importlib, 'import_module')\n",
+        "import functools\n"
+        "reflect = functools.partial(getattr)\n"
+        "load = reflect(importlib, 'import_module')\n",
+        "fetch = vars(importlib).get\nload = fetch('import_module')\n",
+        "def factory():\n    return getattr\n"
+        "reflect = factory()\n"
+        "load = reflect(importlib, 'import_module')\n",
+        "il = __import__('importlib')\n"
+        "get_module = getattr(il, 'import_module')\n"
+        "op = get_module('operator')\n"
+        "load = op.getitem(il.__dict__, 'import_module')\n",
     ),
 )
 def test_production_import_audit_rejects_reflection_alias_gate_import(

@@ -1532,6 +1532,12 @@
   canonical JAX-purity audit tracks destructured scalar-cast aliases before
   trainable state can cross a host-conversion boundary.
 
+## 2026-07-18 - Mapping and factory alias closure
+
+- Closed direct mapping helpers, callable wrappers, and factory-return aliases
+  for reflection primitives. The JAX-purity audit now follows scalar-cast
+  carriers through list, mapping, class, and factory boundaries.
+
 ## 2026-07-18 - Container alias closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `3d10034`
