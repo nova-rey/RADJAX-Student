@@ -15,6 +15,10 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          # Recorded P3.5 evidence binds an accepted source commit immediately
+          # before its evidence commit; validation must be able to resolve it.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -49,6 +53,9 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          # Keep the same provenance contract in the JAX validation job.
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5

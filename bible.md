@@ -1333,3 +1333,9 @@
   final-gate receipt through canonical writers. The documented final gate
   digest now matches the byte-identical writer output for the reviewed CLI
   boundary extension.
+
+## 2026-07-18 - Recorded provenance CI checkout repair
+
+- GitHub validation jobs now fetch the accepted source history required by the
+  P3.5 provenance receipt, preserving the strict commit-resolution check in
+  shallow CI environments instead of weakening recorded-evidence validation.
