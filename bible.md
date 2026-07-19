@@ -1492,6 +1492,12 @@
   `builtins.int` before scalar conversion of trainable state.
 - Refreshed the P3.12B source attestation after reflection-alias hardening; its
   executed receipt again regenerated twice byte-identically.
+
+## 2026-07-18 - Reflection-alias closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `82d2dcb`
+  and regenerated the dependent P3.11.10 receipt twice byte-identically. The
+  recorded provenance now attests the reflection-alias audit closure.
 - Refreshed the P3.12B source attestation after the portable builtins audit
   hardening; the executed receipt remained byte-identical across fresh writers.
 
