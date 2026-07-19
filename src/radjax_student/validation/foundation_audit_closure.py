@@ -405,6 +405,11 @@ def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ..
 def _has_dynamic_import_target(tree: ast.Module) -> bool:
     """Detect a source-computed import target without importing the module."""
     aliases = _importlib_aliases(tree)
+    if any(
+        isinstance(node, ast.Constant) and node.value == "__builtins__"
+        for node in ast.walk(tree)
+    ):
+        return True
     for node in _dynamic_import_calls(tree):
         if _resolved_dynamic_import_target(node, aliases) is None:
             return True

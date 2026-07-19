@@ -1479,6 +1479,12 @@
 - Refreshed the P3.12B source attestation after these JAX-free audit updates;
   the executed P3.12B receipt remained byte-identical across fresh writers.
 
+## 2026-07-18 - Portable builtins-reflection closure
+
+- The fail-closed import policy now rejects any source reference to the
+  portable `__builtins__` handle, closing globals-to-builtins reflection before
+  a hidden import primitive can be extracted.
+
 ## 2026-07-18 - Builtins-chain closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `4fddaa1`

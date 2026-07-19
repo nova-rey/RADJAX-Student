@@ -505,6 +505,12 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     if item.name == "__import__":
                         aliases[item.asname or item.name] = "__import__"
 
+    if any(
+        isinstance(node, ast.Constant) and node.value == "__builtins__"
+        for node in ast.walk(tree)
+    ):
+        return True
+
     def member_callee(owner: str | None, member: str | None) -> str | None:
         if owner in {"importlib", "importlib.__dict__"} and member == "import_module":
             return "import_module"
