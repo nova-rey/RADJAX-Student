@@ -1347,3 +1347,10 @@
   in the reviewed canonical training path; RWKV imports outside architecture;
   and neutral-named checkpoint proof modules. The four documented historical
   proof paths remain exact exceptions rather than a broad naming exemption.
+
+## 2026-07-18 - Foundation audit provenance evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `e49d666`
+  and regenerated the dependent P3.11.10 final-gate receipt twice
+  byte-identically. The human-readable final-gate digest is bound to that
+  writer-emitted receipt; no other recorded receipt required a refresh.
