@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "33270df83331d4eb52d1ff0c9d084a5b927015c0a66aca0139857e9d0d0a72da"
+    "d2552bf1f9104b601b8dc1c11883f59eb46f305dd7892b3719eaf316ca2b5d59"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -418,14 +418,81 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
         and node.module is not None
         and node.module.split(".", 1)[0] in {"builtins", "operator"}
         or isinstance(node, ast.Name)
-        and node.id in {"globals", "eval", "exec"}
+        and node.id in {"__builtins__", "globals", "eval", "exec"}
         for node in ast.walk(tree)
     ):
         return True
     if any(_literal_string(node) == "__builtins__" for node in ast.walk(tree)):
         return True
+    # Do not let an import primitive be hidden behind a standard reflection
+    # alias.  The reviewed production owners do not need aliases for these
+    # exact operations, and an alias defeats the direct-call resolver below.
+    reflection_aliases: set[str] = set()
+    object_aliases = {"object"}
+    dict_aliases = {"dict"}
+    changed = True
+    while changed:
+        changed = False
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+            value_name = _call_name(node.value)
+            for target in targets:
+                if not isinstance(target, ast.Name):
+                    continue
+                if value_name in object_aliases and target.id not in object_aliases:
+                    object_aliases.add(target.id)
+                    changed = True
+                if value_name in dict_aliases and target.id not in dict_aliases:
+                    dict_aliases.add(target.id)
+                    changed = True
+            reflective = value_name in {
+                "getattr",
+                "object.__getattribute__",
+                "dict.__getitem__",
+            }
+            if isinstance(node.value, ast.Attribute):
+                owner = _call_name(node.value.value)
+                head = owner.split(".", 1)[0] if owner else ""
+                resolved_owner = aliases.get(head, head)
+                reflective = reflective or (
+                    node.value.attr == "__getattribute__"
+                    and owner in object_aliases
+                    or node.value.attr == "__getitem__"
+                    and owner in dict_aliases
+                    or node.value.attr in {"get", "setdefault", "__getitem__"}
+                    and resolved_owner
+                    in {
+                        "importlib.__dict__",
+                        "builtins.__dict__",
+                        "__builtins__.__dict__",
+                    }
+                )
+            if isinstance(node.value, ast.Call) and isinstance(
+                node.value.func, ast.Attribute
+            ):
+                owner = _call_name(node.value.func.value)
+                reflective = reflective or (
+                    node.value.func.attr == "__getattribute__"
+                    and owner in object_aliases
+                    or node.value.func.attr == "__getitem__"
+                    and owner in dict_aliases
+                )
+            if reflective:
+                reflection_aliases.update(
+                    target.id for target in targets if isinstance(target, ast.Name)
+                )
+    if reflection_aliases and any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id in reflection_aliases
+        for node in ast.walk(tree)
+    ):
+        return True
     for node in _dynamic_import_calls(tree):
-        if _resolved_dynamic_import_target(node, aliases) is None:
+        target = _resolved_dynamic_import_target(node, aliases)
+        if target is None or target == "builtins":
             return True
     # A protected owner does not need opaque reflection over the import
     # primitives.  If the local resolver cannot establish an exact callable,
@@ -519,8 +586,18 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         "trainable",
     )
 
+    import_aliases = _importlib_aliases(tree) if isinstance(tree, ast.Module) else {}
+
+    def resolved_name(value: ast.AST) -> str | None:
+        raw = _call_name(value)
+        if raw is None:
+            return None
+        head, separator, tail = raw.partition(".")
+        owner = import_aliases.get(head, head)
+        return owner if not separator else f"{owner}.{tail}"
+
     def scalar_cast_expression(value: ast.AST) -> bool:
-        if _call_name(value) in {
+        if resolved_name(value) in {
             "float",
             "int",
             "builtins.float",
@@ -534,12 +611,12 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             and isinstance(value.func, ast.Name)
             and value.func.id == "getattr"
             and len(value.args) >= 2
-            and _call_name(value.args[0]) in {"builtins", "__builtins__"}
+            and resolved_name(value.args[0]) in {"builtins", "__builtins__"}
             and _literal_string(value.args[1]) in {"float", "int"}
         ):
             return True
         if isinstance(value, ast.Subscript):
-            return _call_name(value.value) in {
+            return resolved_name(value.value) in {
                 "builtins.__dict__",
                 "__builtins__.__dict__",
             } and _literal_string(value.slice) in {"float", "int"}

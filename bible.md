@@ -1513,6 +1513,13 @@
   and the dependent P3.11.10 receipt twice byte-identically. The recorded
   provenance now attests the split protected-import audit closure.
 
+## 2026-07-18 - Portable reflection alias closure
+
+- The foundation and P3.12B source audits now reject aliases for standard
+  reflection primitives, the implicit `__builtins__` root, and dynamically
+  imported builtin scalar casts before those paths can supply gate or training
+  authority. Focused fixtures cover every rejected spelling.
+
 ## 2026-07-18 - Portable builtins closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `2df9b73`

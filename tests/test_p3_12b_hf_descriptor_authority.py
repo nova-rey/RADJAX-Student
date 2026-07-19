@@ -331,6 +331,45 @@ def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
     ]
 
 
+@pytest.mark.parametrize(
+    "reflection_source",
+    (
+        "reflect = object.__getattribute__\n"
+        "load = reflect(importlib, 'import_module')\n",
+        "fetch = dict.__getitem__\nload = fetch(importlib.__dict__, 'import_module')\n",
+        "table = importlib.__dict__\n"
+        "fetch = table.get\n"
+        "load = fetch('import_module')\n",
+        "reflect = getattr\nload = reflect(importlib, 'import_module')\n",
+        "getter_type = object\n"
+        "load = getter_type.__getattribute__(importlib, 'import_module')\n",
+        "base = __builtins__\n"
+        "members = base if isinstance(base, dict) else vars(base)\n"
+        "fetch = dict.__getitem__\n"
+        "load = fetch(members, '__' + 'import__')\n",
+    ),
+)
+def test_production_import_audit_rejects_reflection_alias_gate_import(
+    tmp_path: Path, reflection_source: str
+) -> None:
+    cli = tmp_path / "src" / "radjax_student" / "cli"
+    cli.mkdir(parents=True)
+    (cli / "gate_import.py").write_text(
+        "import importlib\n" + reflection_source + "load(\n"
+        "    'radjax_student.validation.p3_12b_'\n"
+        "    + 'hf_descriptor_'\n"
+        "    + 'authority.implementation_'\n"
+        "    + 'audit'\n"
+        ")\n",
+        encoding="utf-8",
+    )
+    blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
+    implementation_audit._audit_production_imports(tmp_path, blockers)
+    assert [(item.code, item.detail) for item in blockers] == [
+        ("production_imports_gate_code", "cli/gate_import.py"),
+    ]
+
+
 def test_production_import_audit_rejects_indirect_dynamic_gate_import(
     tmp_path: Path,
 ) -> None:

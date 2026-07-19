@@ -500,7 +500,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         and node.module is not None
         and node.module.split(".", 1)[0] in {"builtins", "operator"}
         or isinstance(node, ast.Name)
-        and node.id in {"globals", "eval", "exec"}
+        and node.id in {"__builtins__", "globals", "eval", "exec"}
         for node in ast.walk(tree)
     ):
         return True
@@ -520,6 +520,14 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                         aliases[item.asname or item.name] = "__import__"
 
     if any(_source_literal_string(node) == "__builtins__" for node in ast.walk(tree)):
+        return True
+    if any(
+        isinstance(node, ast.Call)
+        and _call_name(node.func) in {"__import__", "builtins.__import__"}
+        and node.args
+        and _source_literal_string(node.args[0]) == "builtins"
+        for node in ast.walk(tree)
+    ):
         return True
 
     def member_callee(owner: str | None, member: str | None) -> str | None:
@@ -583,6 +591,27 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         if isinstance(callable_node, ast.Call):
             name = _call_name(callable_node.func)
             name = aliases.get(name, name) if name is not None else None
+            if (
+                name
+                in {
+                    "getattr",
+                    "object.__getattribute__",
+                    "__reflection_getattr__",
+                }
+                and len(callable_node.args) >= 2
+            ):
+                return member_callee(
+                    holder_name(callable_node.args[0]),
+                    _source_literal_string(callable_node.args[1]),
+                )
+            if (
+                name in {"dict.__getitem__", "__reflection_getitem__"}
+                and len(callable_node.args) >= 2
+            ):
+                return member_callee(
+                    holder_name(callable_node.args[0]),
+                    _source_literal_string(callable_node.args[1]),
+                )
             target = (
                 callable_node.args[0]
                 if callable_node.args
@@ -596,6 +625,12 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 )
             )
             imported = _source_literal_string(target)
+            if name in {
+                "importlib.__dict__",
+                "builtins.__dict__",
+                "__builtins__.__dict__",
+            }:
+                return member_callee(name, imported)
             if name in {"__import__", "builtins.__import__"} and imported in {
                 "importlib",
                 "builtins",
@@ -624,6 +659,25 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 and tail == "__dict__"
             ):
                 return f"{aliases[head]}.__dict__"
+            if (
+                separator
+                and aliases.get(head)
+                in {
+                    "importlib.__dict__",
+                    "builtins.__dict__",
+                    "__builtins__.__dict__",
+                }
+                and tail in {"get", "setdefault", "__getitem__"}
+            ):
+                return aliases[head]
+            if (
+                separator
+                and aliases.get(head) == "object"
+                and tail == "__getattribute__"
+            ):
+                return "__reflection_getattr__"
+            if separator and aliases.get(head) == "dict" and tail == "__getitem__":
+                return "__reflection_getitem__"
         if (
             isinstance(callable_node, ast.Call)
             and isinstance(callable_node.func, ast.Name)
@@ -658,6 +712,14 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             if not isinstance(node, (ast.Assign, ast.AnnAssign)):
                 continue
             binding = import_callee_name(node.value)
+            if binding is None:
+                declared_name = _call_name(node.value)
+                if declared_name in {"getattr", "object.__getattribute__"}:
+                    binding = "__reflection_getattr__"
+                elif declared_name == "dict.__getitem__":
+                    binding = "__reflection_getitem__"
+                elif declared_name in {"object", "dict"}:
+                    binding = declared_name
             if binding is None:
                 continue
             targets = node.targets if isinstance(node, ast.Assign) else (node.target,)

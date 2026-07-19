@@ -169,7 +169,7 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     assert audit_source_fixture(
         "__import__('builtins').__dict__['__import__']('radjax_student.steps')\n",
         relative_path="runtime/x.py",
-    ) == ("runtime_steps_import",)
+    ) == ("runtime_dynamic_import", "runtime_steps_import")
     assert audit_source_fixture(
         "import importlib\n"
         "load = importlib.__dict__['import_module']\n"
@@ -187,7 +187,7 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "load = loader.__dict__['__import__']\n"
         "load('radjax_student.steps')\n",
         relative_path="runtime/x.py",
-    ) == ("runtime_steps_import",)
+    ) == ("runtime_dynamic_import", "runtime_steps_import")
     assert audit_source_fixture(
         "import importlib\n"
         "load = importlib.__dict__.get('import_module')\n"
@@ -225,6 +225,50 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     assert audit_source_fixture(
         "import importlib\n"
         "load = dict.__getitem__(importlib.__dict__, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "reflect = object.__getattribute__\n"
+        "load = reflect(importlib, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "fetch = dict.__getitem__\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "table = importlib.__dict__\n"
+        "fetch = table.get\n"
+        "load = fetch('import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "reflect = getattr\n"
+        "load = reflect(importlib, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib\n"
+        "getter_type = object\n"
+        "load = getter_type.__getattribute__(importlib, 'import_module')\n"
+        "load('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "base = __builtins__\n"
+        "members = base if isinstance(base, dict) else vars(base)\n"
+        "fetch = dict.__getitem__\n"
+        "load = fetch(members, '__' + 'import__')\n"
         "load('radjax_student.steps')\n",
         relative_path="runtime/x.py",
     ) == ("runtime_dynamic_import",)
@@ -279,6 +323,12 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(
         "from builtins import float as cast\ncast(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity", "production_dynamic_import:steps/jax_step.py")
+    assert audit_source_fixture(
+        "builtins_alias = __import__('builtins')\n"
+        "cast = builtins_alias.float\n"
+        "cast(prepared_inputs.parameters)\n",
         relative_path="steps/jax_step.py",
     ) == ("canonical_jax_purity", "production_dynamic_import:steps/jax_step.py")
     assert audit_source_fixture(
