@@ -1479,6 +1479,13 @@
 - Refreshed the P3.12B source attestation after these JAX-free audit updates;
   the executed P3.12B receipt remained byte-identical across fresh writers.
 
+## 2026-07-18 - Builtins-chain closure evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `4fddaa1`
+  and regenerated the dependent P3.11.10 receipt twice byte-identically. The
+  recorded provenance now covers the final builtins-chain and scalar-alias
+  audit closure.
+
 ## 2026-07-18 - Multi-stage import closure evidence refresh
 
 - Regenerated the P3.5 dependency audit from accepted source commit `55f8f09`
