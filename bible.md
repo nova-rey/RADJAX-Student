@@ -1363,3 +1363,10 @@
   checkpoint authority analysis now excludes falsey and post-return guards,
   requires a reachable rejection, and rejects rebinding either descriptor
   operand. Canonical host conversion coverage includes `.item()`.
+
+## 2026-07-18 - Foundation audit hardened provenance evidence refresh
+
+- Regenerated the P3.5 dependency audit from accepted source commit `45dbf97`
+  and regenerated the dependent P3.11.10 final-gate receipt twice
+  byte-identically. The P3.11 documentation digest is the exact normal-writer
+  value; P3.12A-D evidence remained current without rewriting their receipts.
