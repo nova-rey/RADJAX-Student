@@ -590,6 +590,21 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "mapping_type = dict.fromkeys(('mapping',), dict)['mapping']\n"
         "fetch = mapping_type.get\n"
         "load = fetch(importlib.__dict__, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nholder = [importlib].__reversed__().__next__()\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib as loader\nrunner = loader.import_module('runpy')\n"
+        "runner.run_module('radjax_student.validation.fixture')\n",
+        "import importlib\nmapping_type = type({}).mro()[0]\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nclass Holder: pass\nholder = Holder()\n"
+        "field = 'module'\nsetattr(holder, field, importlib)\n"
+        "load = getattr(holder, 'module')\nload('x')\n",
+        "import importlib\nclass Holder: pass\nholder = Holder()\n"
+        "holder.__dict__.update({'module': importlib})\n"
+        "load = getattr(holder, 'module')\nload('x')\n",
+        "import pkgutil\npkgutil.resolve_name(target)\n",
+        "import pydoc\npydoc.locate(target)\n",
     ),
 )
 def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> None:
@@ -628,6 +643,13 @@ def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> No
         "value = relay(*[prepared_inputs.parameters])\nfloat(value)\n",
         "value = iter([prepared_inputs.parameters]).__next__()\nfloat(value)\n",
         "tuple([float])[0](prepared_inputs.parameters)\n",
+        "def relay(value):\n    return value\n"
+        "alias = relay\nvalue = alias(prepared_inputs.parameters)\nfloat(value)\n",
+        "class Cast:\n    def __call__(self):\n        return float\n"
+        "Cast()()(prepared_inputs.parameters)\n",
+        "type(1 / 2).mro()[0](prepared_inputs.parameters)\n",
+        "from functools import partial\npartial(float)(prepared_inputs.parameters)\n",
+        "reversed([float]).__next__()(prepared_inputs.parameters)\n",
     ),
 )
 def test_literal_trainable_carriers_fail_closed(source: str) -> None:

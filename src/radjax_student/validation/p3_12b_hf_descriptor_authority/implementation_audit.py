@@ -494,12 +494,37 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     # before a source-computed module target can be hidden in its return value.
     if any(
         isinstance(node, ast.Import)
-        and any(item.name.split(".", 1)[0] == "runpy" for item in node.names)
+        and any(
+            item.name.split(".", 1)[0] in {"pkgutil", "pydoc", "runpy"}
+            for item in node.names
+        )
         or isinstance(node, ast.ImportFrom)
-        and (node.module or "").split(".", 1)[0] == "runpy"
+        and (node.module or "").split(".", 1)[0] in {"pkgutil", "pydoc", "runpy"}
         for node in ast.walk(tree)
     ):
         return True
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = _call_name(node.func) or ""
+        tail = name.rsplit(".", 1)[-1]
+        if tail in {"exec_module", "module_from_spec", "resolve_name", "locate"}:
+            return True
+        if tail == "find_spec":
+            target = (
+                node.args[0]
+                if node.args
+                else next(
+                    (
+                        keyword.value
+                        for keyword in node.keywords
+                        if keyword.arg == "name"
+                    ),
+                    None,
+                )
+            )
+            if target is None or _source_literal_string(target) is None:
+                return True
     aliases: dict[str, str] = {}
     identity_names = {
         node.name
@@ -674,13 +699,21 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             )
         if isinstance(value, ast.Call):
             name = _call_name(value.func)
+            head, separator, tail = (name or "").partition(".")
+            resolved_name = aliases.get(head, head)
+            canonical_name = (
+                resolved_name if not separator else f"{resolved_name}.{tail}"
+            )
             if name in {"__import__", "builtins.__import__"} and value.args:
                 return _source_literal_string(value.args[0]) in {
                     "importlib",
                     "builtins",
                     "runpy",
                 }
-            if name == "importlib.import_module" and value.args:
+            if (
+                canonical_name == "importlib.import_module"
+                or aliases.get(name or "") == "import_module"
+            ) and value.args:
                 return _source_literal_string(value.args[0]) == "runpy"
             if name == "getattr" and len(value.args) >= 2:
                 owner = _call_name(value.args[0])
@@ -710,6 +743,9 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "__next__",
                 "fromkeys",
                 "__iter__",
+                "__reversed__",
+                "send",
+                "update",
             }:
                 return protected_holder(value.func.value)
             return any(protected_holder(item) for item in value.args) or any(
@@ -747,6 +783,10 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "copy",
                 "__next__",
                 "fromkeys",
+                "__reversed__",
+                "send",
+                "update",
+                "mro",
             }:
                 return mapping_carrier(value.func.value, names)
             return name in names
@@ -800,6 +840,9 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "values",
                 "copy",
                 "__next__",
+                "__reversed__",
+                "send",
+                "update",
             }:
                 return reflection_carrier(value.func.value, mapping_names)
             return _call_name(value.func) in reflection_names
@@ -931,6 +974,22 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
+            call_name = _call_name(node.func) or ""
+            if (
+                (
+                    call_name.rsplit(".", 1)[-1] == "__setattr__"
+                    or call_name == "setattr"
+                )
+                and len(node.args) >= 3
+                and protected_holder(node.args[2])
+            ):
+                return True
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr == "update"
+                and any(protected_holder(argument) for argument in node.args)
+            ):
+                return True
             if _call_name(node.func) == "getattr" and protected_holder(node):
                 return True
             if (

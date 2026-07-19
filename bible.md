@@ -1647,3 +1647,12 @@
   starred trainable relays, and indirect `runpy` acquisition. The added literal
   fixtures retain source-level proof of every carrier without changing product
   execution semantics.
+
+## 2026-07-18 - Loader and reverse-carrier closure
+
+- The JAX-free Foundation and P3.12B audits now reject reverse iterators,
+  metaclass mapping recovery, nonliteral protected-attribute mutation, mapping
+  updates, aliased `runpy` acquisition, and low-level module-execution
+  authorities. Canonical JAX-purity tracking follows the equivalent scalar and
+  callable-relay forms. Focused fixtures preserve exact source-level evidence
+  without widening production behavior.

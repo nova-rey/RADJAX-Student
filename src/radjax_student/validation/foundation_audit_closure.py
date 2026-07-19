@@ -110,7 +110,7 @@ P312B_SOURCE_ATTESTATION_PATHS = (
     "validation/p3_12b_hf_descriptor_authority/runner_jax.py",
 )
 P312B_SOURCE_ATTESTATION_DIGEST = (
-    "f841b986a3b696866a078d7d7e6fe95a89239852e93e0f8f423e14f981d43086"
+    "bdbe9ea8c73934f62881d337cb12c72771f44f6a93c818e95e2dba1f8f266e9d"
 )
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
@@ -410,12 +410,37 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
     # to model its many result carriers.
     if any(
         isinstance(node, ast.Import)
-        and any(item.name.split(".", 1)[0] == "runpy" for item in node.names)
+        and any(
+            item.name.split(".", 1)[0] in {"pkgutil", "pydoc", "runpy"}
+            for item in node.names
+        )
         or isinstance(node, ast.ImportFrom)
-        and (node.module or "").split(".", 1)[0] == "runpy"
+        and (node.module or "").split(".", 1)[0] in {"pkgutil", "pydoc", "runpy"}
         for node in ast.walk(tree)
     ):
         return True
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        name = _call_name(node.func) or ""
+        tail = name.rsplit(".", 1)[-1]
+        if tail in {"exec_module", "module_from_spec", "resolve_name", "locate"}:
+            return True
+        if tail == "find_spec":
+            target = (
+                node.args[0]
+                if node.args
+                else next(
+                    (
+                        keyword.value
+                        for keyword in node.keywords
+                        if keyword.arg == "name"
+                    ),
+                    None,
+                )
+            )
+            if target is None or _literal_string(target) is None:
+                return True
     aliases = _importlib_aliases(tree)
     identity_names = {
         node.name
@@ -494,13 +519,21 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
             )
         if isinstance(value, ast.Call):
             name = _call_name(value.func)
+            head, separator, tail = (name or "").partition(".")
+            resolved_name = aliases.get(head, head)
+            canonical_name = (
+                resolved_name if not separator else f"{resolved_name}.{tail}"
+            )
             if name in {"__import__", "builtins.__import__"} and value.args:
                 return _literal_string(value.args[0]) in {
                     "importlib",
                     "builtins",
                     "runpy",
                 }
-            if name == "importlib.import_module" and value.args:
+            if (
+                canonical_name == "importlib.import_module"
+                or aliases.get(name or "") == "import_module"
+            ) and value.args:
                 return _literal_string(value.args[0]) == "runpy"
             if name == "getattr" and len(value.args) >= 2:
                 owner = _call_name(value.args[0])
@@ -530,6 +563,9 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
                 "__next__",
                 "fromkeys",
                 "__iter__",
+                "__reversed__",
+                "send",
+                "update",
             }:
                 return protected_holder(value.func.value)
             return any(protected_holder(item) for item in value.args) or any(
@@ -567,6 +603,10 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
                 "copy",
                 "__next__",
                 "fromkeys",
+                "__reversed__",
+                "send",
+                "update",
+                "mro",
             }:
                 return mapping_carrier(value.func.value, names)
             return name in names
@@ -620,6 +660,9 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
                 "values",
                 "copy",
                 "__next__",
+                "__reversed__",
+                "send",
+                "update",
             }:
                 return reflection_carrier(value.func.value, mapping_names)
             return _call_name(value.func) in reflection_names
@@ -751,6 +794,22 @@ def _has_dynamic_import_target(tree: ast.Module) -> bool:
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
+            call_name = _call_name(node.func) or ""
+            if (
+                (
+                    call_name.rsplit(".", 1)[-1] == "__setattr__"
+                    or call_name == "setattr"
+                )
+                and len(node.args) >= 3
+                and protected_holder(node.args[2])
+            ):
+                return True
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr == "update"
+                and any(protected_holder(argument) for argument in node.args)
+            ):
+                return True
             if _call_name(node.func) == "getattr" and protected_holder(node):
                 return True
             if (
@@ -1139,6 +1198,8 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         and node.body[0].value.id == node.args.args[0].arg
     }
     scalar_function_names: set[str] = set()
+    scalar_callable_classes: set[str] = set()
+    scalar_callable_instances: set[str] = set()
 
     def resolved_name(value: ast.AST) -> str | None:
         raw = _call_name(value)
@@ -1161,6 +1222,11 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             return True
         if isinstance(value, ast.Call):
             if (
+                isinstance(value.func, ast.Call)
+                and _call_name(value.func.func) in scalar_callable_classes
+            ) or _call_name(value.func) in scalar_callable_instances:
+                return True
+            if (
                 isinstance(value.func, ast.Name)
                 and value.func.id == "getattr"
                 and len(value.args) >= 2
@@ -1178,14 +1244,26 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 )
             if _call_name(value.func) in scalar_function_names:
                 return True
+            if _call_name(value.func) in {"partial", "functools.partial"}:
+                return any(scalar_cast_expression(item) for item in value.args)
             if _call_name(value.func) in {*identity_names, "next", "iter"}:
                 return any(scalar_cast_expression(item) for item in value.args)
-            if _call_name(value.func) in {"tuple", "list", "set"}:
+            if _call_name(value.func) in {"tuple", "list", "set", "reversed"}:
                 return any(scalar_cast_expression(item) for item in value.args)
             if (
                 isinstance(value.func, ast.Attribute)
                 and value.func.attr
-                in {"get", "setdefault", "pop", "values", "copy", "__next__"}
+                in {
+                    "get",
+                    "setdefault",
+                    "pop",
+                    "values",
+                    "copy",
+                    "__next__",
+                    "__reversed__",
+                    "send",
+                    "mro",
+                }
                 and scalar_cast_expression(value.func.value)
             ):
                 return True
@@ -1210,7 +1288,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             return True
         if isinstance(value, ast.Attribute):
             return value.attr == "__class__" or (
-                value.attr in {"__call__", "__new__", "__dict__", "__mro__"}
+                value.attr in {"__call__", "__new__", "__dict__", "__mro__", "mro"}
                 and scalar_cast_expression(value.value)
             )
         if isinstance(value, ast.IfExp):
@@ -1237,6 +1315,32 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         if isinstance(target, (ast.Tuple, ast.List)):
             return tuple(name for item in target.elts for name in target_names(item))
         return ()
+
+    scalar_callable_classes.update(
+        class_node.name
+        for class_node in ast.walk(tree)
+        if isinstance(class_node, ast.ClassDef)
+        and any(
+            isinstance(method, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and method.name == "__call__"
+            and any(
+                isinstance(item, ast.Return)
+                and item.value is not None
+                and scalar_cast_expression(item.value)
+                for item in ast.walk(method)
+            )
+            for method in class_node.body
+        )
+    )
+    scalar_callable_instances.update(
+        target.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Call)
+        and _call_name(node.value.func) in scalar_callable_classes
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    )
 
     scalar_function_names.update(
         node.name
@@ -1441,6 +1545,55 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             for item in ast.walk(node)
         )
     }
+    callable_relay_factory_names = {
+        node.name
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and any(
+            isinstance(item, ast.Return)
+            and item.value is not None
+            and any(
+                isinstance(descendant, ast.Name)
+                and descendant.id in trainable_relay_names
+                for descendant in ast.walk(item.value)
+            )
+            for item in ast.walk(node)
+        )
+    }
+    callable_relay_aliases = {
+        target.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        and isinstance(node.value, ast.Name)
+        and node.value.id in {*trainable_relay_names, *callable_relay_factory_names}
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+
+    def callable_relay_expression(value: ast.AST) -> bool:
+        if isinstance(value, ast.Name):
+            return value.id in {
+                *trainable_relay_names,
+                *callable_relay_instances,
+                *callable_relay_aliases,
+            }
+        if isinstance(value, ast.Subscript):
+            return callable_relay_expression(value.value)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(callable_relay_expression(item) for item in value.elts)
+        if isinstance(value, ast.IfExp):
+            return callable_relay_expression(value.body) or callable_relay_expression(
+                value.orelse
+            )
+        if isinstance(value, ast.BoolOp):
+            return any(callable_relay_expression(item) for item in value.values)
+        if isinstance(value, ast.Call):
+            name = _call_name(value.func)
+            if name in callable_relay_factory_names:
+                return True
+            if name in {"partial", "functools.partial"}:
+                return any(callable_relay_expression(item) for item in value.args)
+        return False
 
     def trainable_expression(value: ast.AST) -> bool:
         if isinstance(value, ast.Name):
@@ -1480,7 +1633,7 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
             if (
                 isinstance(value.func, ast.Call)
                 and _call_name(value.func.func) in callable_relay_classes
-            ) or name in callable_relay_instances:
+            ) or callable_relay_expression(value.func):
                 return any(trainable_expression(item) for item in value.args) or any(
                     trainable_expression(item.value) for item in value.keywords
                 )
@@ -1502,6 +1655,9 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
                 "copy",
                 "__next__",
                 "__iter__",
+                "__reversed__",
+                "send",
+                "update",
             }:
                 return trainable_expression(value.func.value) or any(
                     trainable_expression(item) for item in value.args

@@ -449,6 +449,17 @@ def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
         "mapping_type = dict.fromkeys(('mapping',), dict)['mapping']\n"
         "fetch = mapping_type.get\n"
         "load = fetch(importlib.__dict__, 'import_' + 'module')\n",
+        "holder = [importlib].__reversed__().__next__()\n"
+        "load = getattr(holder, 'import_' + 'module')\n",
+        "mapping_type = type({}).mro()[0]\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\n",
+        "class Holder: pass\nholder = Holder()\n"
+        "field = 'module'\nsetattr(holder, field, importlib)\n"
+        "load = getattr(holder, 'module')\n",
+        "class Holder: pass\nholder = Holder()\n"
+        "holder.__dict__.update({'module': importlib})\n"
+        "load = getattr(holder, 'module')\n",
     ),
 )
 def test_production_import_audit_rejects_reflection_alias_gate_import(
@@ -516,9 +527,39 @@ def test_production_import_audit_rejects_runpy_gate_execution(tmp_path: Path) ->
         "runner.run_module('radjax_student.validation.p3_12b_hf_descriptor_authority')\n",
         "runner = __import__('runpy')\n"
         "runner.run_module('radjax_student.validation.p3_12b_hf_descriptor_authority')\n",
+        "import importlib as loader\n"
+        "runner = loader.import_module('runpy')\n"
+        "runner.run_module('radjax_student.validation.p3_12b_hf_descriptor_authority')\n",
+        "from importlib import import_module as acquire\n"
+        "runner = acquire('runpy')\n"
+        "runner.run_module('radjax_student.validation.p3_12b_hf_descriptor_authority')\n",
     ),
 )
 def test_production_import_audit_rejects_indirect_runpy_execution(
+    tmp_path: Path, source: str
+) -> None:
+    cli = tmp_path / "src" / "radjax_student" / "cli"
+    cli.mkdir(parents=True)
+    (cli / "gate_import.py").write_text(source, encoding="utf-8")
+    blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
+    implementation_audit._audit_production_imports(tmp_path, blockers)
+    assert [(item.code, item.detail) for item in blockers] == [
+        ("production_imports_gate_code", "cli/gate_import.py"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        "import pkgutil\npkgutil.resolve_name('radjax_student.validation.fixture')\n",
+        "import pydoc\npydoc.locate('radjax_student.validation.fixture')\n",
+        "import importlib.util\n"
+        "spec = importlib.util.find_spec('radjax_student.validation.fixture')\n"
+        "module = importlib.util.module_from_spec(spec)\n"
+        "spec.loader.exec_module(module)\n",
+    ),
+)
+def test_production_import_audit_rejects_module_execution_authorities(
     tmp_path: Path, source: str
 ) -> None:
     cli = tmp_path / "src" / "radjax_student" / "cli"
