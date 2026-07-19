@@ -17,6 +17,25 @@ build_audit = build_architecture_audit
 __all__ = ["SCHEMA", "build_audit", "build_architecture_audit"]
 
 
+def _source_tree_is_clean(root: Path) -> bool:
+    """Evidence must describe a tracked and untracked-clean installed source tree."""
+    result = subprocess.run(
+        [
+            "git",
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+            "--",
+            "src/radjax_student",
+        ],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return result.stdout == ""
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -31,17 +50,9 @@ def main() -> int:
         text=True,
         check=True,
     ).stdout.strip()
-    source_matches_commit = (
-        subprocess.run(
-            ["git", "diff", "--quiet", commit, "--", "src/radjax_student"],
-            cwd=root,
-            check=False,
-        ).returncode
-        == 0
-    )
-    if not source_matches_commit:
+    if not _source_tree_is_clean(root):
         raise RuntimeError(
-            "P3.5 dependency audit must be generated from the accepted source revision"
+            "P3.5 dependency audit must be generated from a clean source tree"
         )
     audit = build_architecture_audit(root, accepted_commit=commit)
     args.output.write_text(

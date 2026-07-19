@@ -26,9 +26,7 @@ def _create_documents(target: Path) -> Path:
 
 @public_boundary("documentation_validation")
 def _validate(root: Path) -> None:
-    require_closure_documentation(
-        check_closure_documentation(root, bind_recorded_gate_digest=False)
-    )
+    require_closure_documentation(check_closure_documentation(root))
 
 
 def _record(

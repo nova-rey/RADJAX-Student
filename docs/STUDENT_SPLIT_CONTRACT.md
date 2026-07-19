@@ -187,7 +187,7 @@ The P0.3 classification remains in force:
 | `students/tiny_debug/` | Smoke/debug | NumPy backend for import, registry, and training smoke tests. |
 | `training/distill.py` | Smoke/debug | One-step distillation smoke, not the product training loop. |
 | `cli/train_student.py` | Smoke/debug | Early CLI shim, not the final public command surface. |
-| `tests/support/tome_fixtures.py` | Smoke/debug | Contract-valid fixtures for local tests. |
+| `tests/tome_fixtures.py` | Smoke/debug | Contract-valid fixtures for local tests. |
 
 Dense Tome loading and sparse top-k loss remain smoke/debug until later phases
 explicitly promote or replace them. The `students/` namespace remains

@@ -280,10 +280,7 @@ def execute_gate(repository_root: Path) -> FinalAdversarialGateProof:
     grouped: dict[str, list[GateCaseResult]] = defaultdict(list)
     for result in results:
         grouped[result.definition.section_id].append(result)
-    documentation = check_closure_documentation(
-        repository_root,
-        bind_recorded_gate_digest=False,
-    )
+    documentation = check_closure_documentation(repository_root)
     if not documentation.ok:
         raise ValueError(
             "P3.11.10 documentation validation failed: "

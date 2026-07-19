@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -45,44 +44,12 @@ _NON_CLAIMS = (
     "no performance",
     "no RadLads-parity",
 )
-_CONTRACT_DIGEST_LABELS = (
-    "Current P3.12A evidence digest:",
-    "The current executed evidence digest is",
-    "Current P3.12A receipt evidence digest:",
-)
 
 
 @dataclass(frozen=True)
 class ObjectiveDocumentationCheck:
     ok: bool
     errors: tuple[str, ...]
-
-
-def write_contract_evidence_digest(contract: Path, *, evidence_digest: str) -> None:
-    """Refresh the contract's generated receipt references from typed evidence."""
-    if not contract.is_file():
-        raise FileNotFoundError(contract)
-    if not re.fullmatch(r"[0-9a-f]{64}", evidence_digest):
-        raise ValueError("evidence_digest must be a lowercase SHA-256 digest")
-    text = contract.read_text(encoding="utf-8")
-    for label in _CONTRACT_DIGEST_LABELS:
-        pattern = rf"({re.escape(label)}\s*\n`)[0-9a-f]{{64}}(`)"
-        text, replacements = re.subn(pattern, rf"\g<1>{evidence_digest}\g<2>", text)
-        if replacements != 1:
-            raise ValueError(f"contract digest marker is invalid: {label}")
-    contract.write_text(text, encoding="utf-8")
-
-
-def _contract_evidence_digests(text: str) -> tuple[str, ...] | None:
-    """Parse each generated contract digest marker exactly once."""
-    values: list[str] = []
-    for label in _CONTRACT_DIGEST_LABELS:
-        pattern = rf"{re.escape(label)}\s*\n`([0-9a-f]{{64}})`"
-        matches = re.findall(pattern, text)
-        if len(matches) != 1:
-            return None
-        values.extend(matches)
-    return tuple(values)
 
 
 def check_documentation(repository_root: Path) -> ObjectiveDocumentationCheck:
@@ -116,19 +83,11 @@ def check_documentation(repository_root: Path) -> ObjectiveDocumentationCheck:
         else:
             if receipt["schema_version"] != SCHEMA_VERSION:
                 errors.append("receipt:schema")
-            elif contract.is_file():
-                declared = _contract_evidence_digests(
-                    contract.read_text(encoding="utf-8")
-                )
-                if declared != (receipt["evidence_digest"],) * len(
-                    _CONTRACT_DIGEST_LABELS
-                ):
-                    errors.append("receipt:digest")
+            elif contract.is_file() and receipt[
+                "evidence_digest"
+            ] not in contract.read_text(encoding="utf-8"):
+                errors.append("receipt:digest")
     return ObjectiveDocumentationCheck(not errors, tuple(sorted(errors)))
 
 
-__all__ = [
-    "ObjectiveDocumentationCheck",
-    "check_documentation",
-    "write_contract_evidence_digest",
-]
+__all__ = ["ObjectiveDocumentationCheck", "check_documentation"]

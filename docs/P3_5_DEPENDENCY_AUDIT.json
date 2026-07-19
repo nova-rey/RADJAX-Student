@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "74df5bdea6a5e89b6972e9b83d57121db45d065f",
+  "accepted_commit": "6b90a5c4df6bd41e8588e86a66c6c4d6c9df11fa",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -1276,10 +1276,6 @@
       "target": "radjax_student.validation.p3_11_10_gate.models"
     },
     {
-      "source": "radjax_student.validation.p3_11_10_gate.__main__",
-      "target": "radjax_student.validation.p3_12a_objective_identity.documentation"
-    },
-    {
       "source": "radjax_student.validation.p3_11_10_gate.documentation",
       "target": "radjax_student.validation.p3_11_9_replay.canonical"
     },
@@ -1634,10 +1630,6 @@
     {
       "source": "radjax_student.validation.p3_12a_objective_identity",
       "target": "radjax_student.validation.p3_12a_objective_identity.models"
-    },
-    {
-      "source": "radjax_student.validation.p3_12a_objective_identity.__main__",
-      "target": "radjax_student.validation.p3_12a_objective_identity.documentation"
     },
     {
       "source": "radjax_student.validation.p3_12a_objective_identity.__main__",
@@ -5575,12 +5567,8 @@
         "dataclasses",
         "hashlib",
         "json",
-        "os",
         "pathlib",
         "radjax_student.validation.p3_12b_hf_descriptor_authority",
-        "subprocess",
-        "sys",
-        "tempfile",
         "typing"
       ],
       "internal_edges": [
@@ -5629,15 +5617,13 @@
         "radjax_student.validation.p3_11_10_gate.gate",
         "radjax_student.validation.p3_11_10_gate.implementations",
         "radjax_student.validation.p3_11_10_gate.models",
-        "radjax_student.validation.p3_12a_objective_identity.documentation",
         "subprocess",
         "sys"
       ],
       "internal_edges": [
         "radjax_student.validation.p3_11_10_gate.gate",
         "radjax_student.validation.p3_11_10_gate.implementations",
-        "radjax_student.validation.p3_11_10_gate.models",
-        "radjax_student.validation.p3_12a_objective_identity.documentation"
+        "radjax_student.validation.p3_11_10_gate.models"
       ],
       "module": "radjax_student.validation.p3_11_10_gate.__main__",
       "owner": "compatibility_validation",
@@ -5655,10 +5641,8 @@
       "imports": [
         "__future__",
         "dataclasses",
-        "json",
         "pathlib",
-        "radjax_student.validation.p3_11_9_replay.canonical",
-        "re"
+        "radjax_student.validation.p3_11_9_replay.canonical"
       ],
       "internal_edges": [
         "radjax_student.validation.p3_11_9_replay.canonical"
@@ -6606,13 +6590,11 @@
         "argparse",
         "json",
         "pathlib",
-        "radjax_student.validation.p3_12a_objective_identity.documentation",
         "radjax_student.validation.p3_12a_objective_identity.models",
         "radjax_student.validation.p3_12a_objective_identity.runner_jax",
         "tempfile"
       ],
       "internal_edges": [
-        "radjax_student.validation.p3_12a_objective_identity.documentation",
         "radjax_student.validation.p3_12a_objective_identity.models"
       ],
       "module": "radjax_student.validation.p3_12a_objective_identity.__main__",
@@ -6632,8 +6614,7 @@
         "dataclasses",
         "json",
         "pathlib",
-        "radjax_student.validation.p3_12a_objective_identity.models",
-        "re"
+        "radjax_student.validation.p3_12a_objective_identity.models"
       ],
       "internal_edges": [
         "radjax_student.validation.p3_12a_objective_identity.models"
@@ -6643,8 +6624,7 @@
       "path": "src/radjax_student/validation/p3_12a_objective_identity/documentation.py",
       "public_exports": [
         "ObjectiveDocumentationCheck",
-        "check_documentation",
-        "write_contract_evidence_digest"
+        "check_documentation"
       ]
     },
     {

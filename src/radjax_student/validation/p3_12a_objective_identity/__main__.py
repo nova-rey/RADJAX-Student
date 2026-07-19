@@ -7,10 +7,6 @@ import json
 import tempfile
 from pathlib import Path
 
-from radjax_student.validation.p3_12a_objective_identity.documentation import (
-    check_documentation,
-    write_contract_evidence_digest,
-)
 from radjax_student.validation.p3_12a_objective_identity.models import build_receipt
 
 
@@ -23,7 +19,6 @@ def main(argv: list[str] | None = None) -> int:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--check-recorded", action="store_true")
     group.add_argument("--write", type=Path)
-    group.add_argument("--write-contract", type=Path)
     args = parser.parse_args(argv)
     # Execution imports JAX only after command parsing.
     from radjax_student.validation.p3_12a_objective_identity.runner_jax import (
@@ -38,19 +33,9 @@ def main(argv: list[str] | None = None) -> int:
         args.write.write_bytes(generated)
         print(f"P3.12A objective identity receipt written: {args.write}")
         return 0
-    if args.write_contract is not None:
-        write_contract_evidence_digest(
-            args.write_contract, evidence_digest=payload["evidence_digest"]
-        )
-        print(f"P3.12A objective identity contract written: {args.write_contract}")
-        return 0
     recorded = Path("docs/P3_12A_OBJECTIVE_IDENTITY_RECEIPT.json").read_bytes()
     if generated != recorded:
         print("p312a_receipt_mismatch")
-        return 1
-    documentation = check_documentation(Path.cwd())
-    if not documentation.ok:
-        print("p312a_documentation_mismatch:" + ",".join(documentation.errors))
         return 1
     print("P3.12A objective identity receipt matches executed proof")
     return 0

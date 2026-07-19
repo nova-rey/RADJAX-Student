@@ -22,16 +22,22 @@ from radjax_student.runtime.models import (
 InspectionStatus: TypeAlias = Literal["pass", "fail"]
 
 
-def _find_module_spec(name: str) -> object | None:
+def _find_module_spec(name: Literal["jax", "jaxlib"]) -> object | None:
     """Narrow optional-runtime discovery seam used by metadata-only inspection."""
-    return importlib.util.find_spec(name)
+    if name == "jax":
+        return importlib.util.find_spec("jax")
+    if name == "jaxlib":
+        return importlib.util.find_spec("jaxlib")
+    raise ValueError(f"unsupported optional runtime module: {name!r}")
 
 
 def _import_module(name: Literal["jax", "jaxlib"]) -> ModuleType:
     """Load only the two reviewed optional runtime modules."""
     if name == "jax":
         return importlib.import_module("jax")
-    return importlib.import_module("jaxlib")
+    if name == "jaxlib":
+        return importlib.import_module("jaxlib")
+    raise ValueError(f"unsupported optional runtime module: {name!r}")
 
 
 RUNTIME_INSPECTION_FINDING_CODES: tuple[str, ...] = (

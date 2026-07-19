@@ -20,6 +20,14 @@ from radjax_student.runtime import (
 )
 
 
+@pytest.mark.parametrize("name", ("numpy", "jax.experimental", ""))
+def test_optional_runtime_seams_reject_non_jax_modules(name: str) -> None:
+    with pytest.raises(ValueError, match="unsupported optional runtime module"):
+        inspection_module._find_module_spec(name)
+    with pytest.raises(ValueError, match="unsupported optional runtime module"):
+        inspection_module._import_module(name)
+
+
 def test_jax_absence_is_a_healthy_observed_fact(monkeypatch) -> None:
     monkeypatch.setattr(inspection_module, "_find_module_spec", lambda name: None)
 

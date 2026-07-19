@@ -17,12 +17,6 @@ not canonical training objectives. The canonical assembled JAX path does not
 import them.
 
 The canonical JAX training path is inspected as a literal reviewed source set.
-Its JAX-free AST audit rejects runtime imports of application, architecture,
-Tome, or RWKV namespaces; source-computed runtime import targets; and host
-conversion calls in the reviewed canonical path. It also detects new
-checkpoint-proof behavior under production owners even when a new module uses a
-neutral filename. The four historical proof paths in the table below are exact
-frozen exceptions, not a broad filename exemption.
 It excludes Torch, TensorFlow, TensorFlow Probability, Transformers execution,
 NumPy loss/model math, and host conversion of trainable arrays. NumPy remains
 permitted in legacy analysis, artifact parsing, reports, and deterministic
@@ -31,10 +25,8 @@ metadata handling.
 HF identity remains architecture-owned: initialization produces the descriptor
 and derived preservation reference; assembly consumes them unchanged; checkpoint
 and report paths validate descriptor-derived preservation evidence. The closure
-audit validates the exact canonical P3.12B receipt bytes together with its
-recorded source evidence and these production authority paths. A schema-valid
-receipt with substituted replay, case, dependency, or evidence fields is not
-current evidence.
+audit validates both the current P3.12B recorded source evidence and these
+production authority paths.
 
 ## Production and proof namespaces
 

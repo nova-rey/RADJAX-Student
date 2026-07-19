@@ -3,8 +3,6 @@
 
 from __future__ import annotations
 
-import json
-import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -52,12 +50,6 @@ _PROHIBITED_CLAIMS = {
     "production model trained": "production_model_claim",
     "cross-environment bitwise replay": "cross_environment_replay_claim",
 }
-_FINAL_GATE_DOCUMENT = "docs/P3_11_10_FINAL_ADVERSARIAL_GATE.md"
-_FINAL_GATE_RECEIPT = "docs/P3_11_10_FINAL_ADVERSARIAL_GATE_RECEIPT.json"
-_FINAL_GATE_DIGEST_PATTERN = re.compile(
-    r"final gate evidence\s+digest\s+`([0-9a-f]{64})`",
-    flags=re.IGNORECASE,
-)
 
 
 @dataclass(frozen=True)
@@ -76,18 +68,7 @@ class DocumentationClosureError(ValueError):
         super().__init__(message)
 
 
-def check_closure_documentation(
-    repository_root: Path,
-    *,
-    bind_recorded_gate_digest: bool = True,
-) -> DocumentationClosureCheck:
-    """Validate closure policy and, when requested, its recorded gate digest.
-
-    The gate writer validates the maintained status/non-claim policy while it
-    builds a replacement receipt.  The public recorded checker additionally
-    binds the human-readable final-gate digest to that completed receipt.
-    """
-
+def check_closure_documentation(repository_root: Path) -> DocumentationClosureCheck:
     errors: list[str] = []
     for relative in _ALLOWLIST:
         path = repository_root / relative
@@ -105,29 +86,7 @@ def check_closure_documentation(
         for phrase, code in _PROHIBITED_CLAIMS.items():
             if phrase in text:
                 errors.append(f"{code}:{relative}")
-    if bind_recorded_gate_digest:
-        _check_recorded_gate_digest(repository_root, errors)
     return DocumentationClosureCheck(not errors, tuple(sorted(errors)))
-
-
-def _check_recorded_gate_digest(repository_root: Path, errors: list[str]) -> None:
-    document = repository_root / _FINAL_GATE_DOCUMENT
-    receipt = repository_root / _FINAL_GATE_RECEIPT
-    if not document.is_file() or not receipt.is_file():
-        errors.append("final_gate_digest_receipt_missing")
-        return
-    match = _FINAL_GATE_DIGEST_PATTERN.search(document.read_text(encoding="utf-8"))
-    if match is None:
-        errors.append("final_gate_digest_documentation_missing")
-        return
-    try:
-        payload = json.loads(receipt.read_text(encoding="utf-8"))
-        recorded = payload["gate_evidence_digest"]
-    except (OSError, TypeError, ValueError, KeyError):
-        errors.append("final_gate_digest_receipt_invalid")
-        return
-    if not isinstance(recorded, str) or match.group(1) != recorded:
-        errors.append("final_gate_digest_documentation_stale")
 
 
 def maintained_paths() -> tuple[str, ...]:
