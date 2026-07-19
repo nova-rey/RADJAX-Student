@@ -22,6 +22,9 @@ __all__ = [
     "CANONICAL_MSE_IDENTITY",
     "MSE_METRIC_SCHEMA_ID",
     "MeanSquaredErrorObjective",
+    "SPARSE_CROSS_ENTROPY_IDENTITY",
+    "SPARSE_CROSS_ENTROPY_METRIC_SCHEMA_ID",
+    "SparseCategoricalCrossEntropyObjective",
     "CanonicalObjectiveAliasSelection",
     "HISTORICAL_MSE_ALIASES",
     "resolve_historical_objective_alias",
@@ -53,16 +56,29 @@ def __getattr__(name: str):
         "CANONICAL_MSE_IDENTITY",
         "MSE_METRIC_SCHEMA_ID",
         "MeanSquaredErrorObjective",
+        "SPARSE_CROSS_ENTROPY_IDENTITY",
+        "SPARSE_CROSS_ENTROPY_METRIC_SCHEMA_ID",
+        "SparseCategoricalCrossEntropyObjective",
     }:
         from radjax_student.objectives.jax import (
             CANONICAL_MSE_IDENTITY,
             MSE_METRIC_SCHEMA_ID,
+            SPARSE_CROSS_ENTROPY_IDENTITY,
+            SPARSE_CROSS_ENTROPY_METRIC_SCHEMA_ID,
             MeanSquaredErrorObjective,
+            SparseCategoricalCrossEntropyObjective,
         )
 
         return {
             "CANONICAL_MSE_IDENTITY": CANONICAL_MSE_IDENTITY,
             "MSE_METRIC_SCHEMA_ID": MSE_METRIC_SCHEMA_ID,
             "MeanSquaredErrorObjective": MeanSquaredErrorObjective,
+            "SPARSE_CROSS_ENTROPY_IDENTITY": SPARSE_CROSS_ENTROPY_IDENTITY,
+            "SPARSE_CROSS_ENTROPY_METRIC_SCHEMA_ID": (
+                SPARSE_CROSS_ENTROPY_METRIC_SCHEMA_ID
+            ),
+            "SparseCategoricalCrossEntropyObjective": (
+                SparseCategoricalCrossEntropyObjective
+            ),
         }[name]
     raise AttributeError(name)

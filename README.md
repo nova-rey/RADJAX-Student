@@ -153,11 +153,13 @@ composition, makes NumPy losses legacy-only, locks proof-owned validation
 namespaces, and defines Phase 4 as architecture-plugin ingestion with RWKV only
 as the first reference architecture.
 
-Phase 4 P4.4 adds lazy pure-JAX RWKV recurrent execution, proven only against
-the pinned NumPy inference equations on the checked-in tiny float32 fixture
-domain. It makes no broader equation-parity, initialization-parity, training,
-weight-file, HF-conversion, remote-CI, or compatibility claim. See the
-[P4.4 RWKV-7 Recurrent Forward Parity](docs/P4_4_RWKV7_FORWARD_PARITY.md).
+Phase 4 P4.5 runs one real RWKV sequence through the generic sparse categorical
+cross-entropy, P3.12C assembled lifecycle, and P3.12D callable binding in both
+eager and JIT modes. Its gradient claim is within one tiny fixture sequence;
+carry at separate learning-step boundaries is stop-gradient state. It makes no
+broader equation-parity, initialization-parity, training-recipe, cross-step
+BPTT, weight-file, HF-conversion, remote-CI, or compatibility claim. See the
+[P4.5 RWKV-7 Generic Learning Lifecycle](docs/P4_5_RWKV7_LEARNING_LIFECYCLE.md).
 
 P3.4 establishes the [Generic Batch and Objective Contract](docs/P3_4_GENERIC_BATCH_AND_OBJECTIVE_CONTRACT.md):
 behavior-neutral batch metadata, objective request/result models, and explicit

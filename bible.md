@@ -1245,3 +1245,14 @@
   provenance prove logits/carry parity only for the pinned tiny float32 domain.
 - No generic change was made; execution remains JAX-plugin-local and the base
   architecture package, RWKV static modules, and architecture/runtime boundary stay pure.
+
+## 2026-07-19 - P4.5 RWKV generic learning lifecycle
+
+- Registered sparse CE is a generic logits/token-ID objective with no mask,
+  ignore-index, weighting, or RWKV mode; one explicit RWKV registry feeds P3.12C.
+- Real eager/JIT generic callable steps advance parameters, optimizer, learning,
+  deterministic runtime-key invocation, and persistent carry with finite evidence.
+- Within-sequence token positions affect gradients; carry seeds later steps but
+  is stop-gradient across them. No BPTT, training-recipe, or long-context claim.
+- Regenerated source-dependent P3.5/P3.12C/P3.12D evidence without changing
+  their frozen proof inventories or adding RWKV behavior to generic owners.

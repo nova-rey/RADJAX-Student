@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "5792e89760086a37d41032bbf6d4e28b61458613",
+  "accepted_commit": "6bedfee9be513e70284e1d5fdcb158d4055d404e",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -2320,6 +2320,7 @@
       "owner": "architecture_plugin",
       "path": "src/radjax_student/architecture/rwkv7_reference/schema.py",
       "public_exports": [
+        "CARRY_PYTREE_DESCRIPTOR_DIGEST",
         "EXECUTION_CAPABILITIES",
         "INITIALIZATION_CAPABILITIES",
         "STATIC_CAPABILITIES",
@@ -4460,6 +4461,9 @@
         "ObjectivePlugin",
         "ObjectiveRegistry",
         "ObjectiveRegistrySelection",
+        "SPARSE_CROSS_ENTROPY_IDENTITY",
+        "SPARSE_CROSS_ENTROPY_METRIC_SCHEMA_ID",
+        "SparseCategoricalCrossEntropyObjective",
         "build_default_objective_registry",
         "implementation_identity_for",
         "resolve_historical_objective_alias"
@@ -4493,7 +4497,8 @@
       "concrete_plugin_lazy_jax_imports": [],
       "concrete_plugin_rejected_jax_imports": [],
       "defined_classes": [
-        "MeanSquaredErrorObjective"
+        "MeanSquaredErrorObjective",
+        "SparseCategoricalCrossEntropyObjective"
       ],
       "forbidden_imports": [],
       "has_dynamic_exports": false,
@@ -4513,7 +4518,10 @@
       "public_exports": [
         "CANONICAL_MSE_IDENTITY",
         "MSE_METRIC_SCHEMA_ID",
-        "MeanSquaredErrorObjective"
+        "MeanSquaredErrorObjective",
+        "SPARSE_CROSS_ENTROPY_IDENTITY",
+        "SPARSE_CROSS_ENTROPY_METRIC_SCHEMA_ID",
+        "SparseCategoricalCrossEntropyObjective"
       ]
     },
     {

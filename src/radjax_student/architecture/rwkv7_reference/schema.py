@@ -61,6 +61,9 @@ EXECUTION_CAPABILITIES = (
     *INITIALIZATION_CAPABILITIES,
     "architecture.jax_execution_v1",
 )
+CARRY_PYTREE_DESCRIPTOR_DIGEST = (
+    "f44941bc4bb4becd2cd234c390889d138f7f7feceeaf754eb232368e8625375a"
+)
 
 
 def _digest(value: object) -> str:
@@ -520,6 +523,7 @@ __all__ = [
     "STATIC_CAPABILITIES",
     "INITIALIZATION_CAPABILITIES",
     "EXECUTION_CAPABILITIES",
+    "CARRY_PYTREE_DESCRIPTOR_DIGEST",
     "architecture_metadata",
     "capability_profile",
     "carry_descriptor",

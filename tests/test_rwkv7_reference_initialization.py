@@ -20,7 +20,10 @@ from radjax_student.architecture.rwkv7_reference.config import (
     reference_architecture_config,
 )
 from radjax_student.architecture.rwkv7_reference.plugin import RWKV7ReferencePlugin
-from radjax_student.architecture.rwkv7_reference.schema import carry_descriptor
+from radjax_student.architecture.rwkv7_reference.schema import (
+    CARRY_PYTREE_DESCRIPTOR_DIGEST,
+    carry_descriptor,
+)
 from radjax_student.runtime.jax_bridge import (
     RuntimeJaxBridgeError,
     materialize_initialization_jax_key,
@@ -136,10 +139,13 @@ def test_initialized_tree_carry_and_hf_reference_match_declared_contracts() -> N
     assert observed_paths == set(result.parameter_catalog.paths)
     assert observed_paths == set(result.parameter_layout.logical_paths)
 
-    descriptor = carry_descriptor()
-    declared_carry = descriptor["persistent_leaves"]
+    declared_carry = carry_descriptor()["persistent_leaves"]
     assert isinstance(declared_carry, Mapping)
-    assert _json_value(result.architecture_carry_descriptor) == descriptor
+    assert _json_value(result.architecture_carry_descriptor) == {
+        "schema_version": "architecture_carry.v1",
+        "state_id": "rwkv7_reference_state.v1",
+        "pytree_descriptor_digest": CARRY_PYTREE_DESCRIPTOR_DIGEST,
+    }
     assert result.architecture_carry is not None
     assert set(result.architecture_carry) == set(declared_carry)
     for name, specification in declared_carry.items():

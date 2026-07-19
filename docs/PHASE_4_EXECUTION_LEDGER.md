@@ -87,3 +87,32 @@ already-known prior SHA.
   explicit cross-step carry gradient boundary; P4.8 retains the P3.11 wording
   reconciliation noted at P4.3.
 - **Next checkpoint:** P4.5 — Objective Surface and Generic Learning Integration.
+
+## P4.5 — Objective Surface and Generic Learning Integration
+
+- **Status:** complete
+- **Changed files:** generic sparse-CE objective/registry exports; RWKV batch
+  validation and initialized-carry identity conformance; focused objective,
+  initialization, and assembled lifecycle proofs; P4.5 documentation, status
+  pages, this ledger, P3.5/P3.12C/P3.12D source-dependent receipts, and
+  `bible.md`.
+- **Tests and verification:** focused sparse-CE, RWKV initialization, and real
+  eager/JIT P3.12C/P3.12D lifecycle tests prove finite loss/metrics/gradients,
+  position-sensitive within-sequence gradients, parameter/optimizer/state/key/
+  carry advance, later-step carry acceptance, zero cross-step carry gradients,
+  and float32 eager/JIT agreement; changed-file Ruff, format, compile, diff,
+  ownership, and base-import checks passed.
+- **Evidence or receipts changed:** P4.5 lifecycle/gradient-boundary document,
+  regenerated P3.5 dependency audit, and source-dependent P3.12C/D receipts;
+  their frozen inventories are unchanged. No raw initialization key or new
+  checkpoint/config/HF/report receipt serializes runtime key material.
+- **Generic-change decision:** exactly the approved three changes remain:
+  sparse categorical cross-entropy; runtime-owned initialization-key
+  materializer; architecture-neutral runtime-supplied initialization material
+  on `ArchitectureInitRequest`. No additional generic change was made.
+- **Unresolved non-blocking risks:** P4.6 must prove generic checkpoint,
+  restore, and replay identity after a real step; P4.8 retains the recorded
+  P3.11/P3.12A documentation-status wording reconciliation. Full cross-step
+  BPTT, truncated scheduling, and long-context recurrent training are not
+  proven.
+- **Next checkpoint:** P4.6 — Checkpoint, Restore, and Replay Identity.

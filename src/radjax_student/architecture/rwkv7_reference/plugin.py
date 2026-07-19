@@ -30,6 +30,7 @@ from radjax_student.architecture.rwkv7_reference.config import (
     validate_reference_config,
 )
 from radjax_student.architecture.rwkv7_reference.schema import (
+    CARRY_PYTREE_DESCRIPTOR_DIGEST,
     architecture_metadata,
     capability_profile,
     carry_descriptor,
@@ -133,15 +134,20 @@ class RWKV7ReferencePlugin:
             ) from exc
         carry = self._zeroed_carry(jnp)
         descriptor = carry_descriptor()
+        state_id = "rwkv7_reference_state.v1"
         return ArchitectureInitResult(
             parameter_catalog=catalog,
             architecture_state=ArchitectureState(
-                "rwkv7_reference_state.v1",
+                state_id,
                 metadata={"carry_schema_version": descriptor["schema_version"]},
             ),
             parameters=parameters,
             architecture_carry=carry,
-            architecture_carry_descriptor=descriptor,
+            architecture_carry_descriptor={
+                "schema_version": "architecture_carry.v1",
+                "state_id": state_id,
+                "pytree_descriptor_digest": CARRY_PYTREE_DESCRIPTOR_DIGEST,
+            },
             parameter_layout=layout,
             hf_descriptor=hf_descriptor(request.config),
             claims_not_made=(
@@ -186,13 +192,28 @@ class RWKV7ReferencePlugin:
                 "architecture_batch_incompatible", "batch must be LearningBatch"
             )
         token_ids = batch.inputs.get("token_ids")
-        if not isinstance(token_ids, Mapping) or token_ids.get("rank") != 2:
+        valid_tokens = (
+            isinstance(token_ids, (list, tuple))
+            and len(token_ids) == 1
+            and isinstance(token_ids[0], (list, tuple))
+            and len(token_ids[0]) == RWKV7_REFERENCE_CONTEXT_LENGTH
+            and all(
+                isinstance(token, int)
+                and not isinstance(token, bool)
+                and 0 <= token < RWKV7_REFERENCE_VOCABULARY_SIZE
+                for token in token_ids[0]
+            )
+        )
+        if not valid_tokens:
             return BatchValidationResult(
                 status="fail",
                 blockers=(
                     ArchitectureIssue(
                         code="architecture_batch_incompatible",
-                        message="RWKV-7 reference expects rank-2 token_ids metadata",
+                        message=(
+                            "RWKV-7 requires one finite-JSON rank-2 integer "
+                            "tiny-domain token sequence"
+                        ),
                     ),
                 ),
             )
