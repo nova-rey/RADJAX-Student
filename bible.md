@@ -1354,3 +1354,12 @@
   and regenerated the dependent P3.11.10 final-gate receipt twice
   byte-identically. The human-readable final-gate digest is bound to that
   writer-emitted receipt; no other recorded receipt required a refresh.
+
+## 2026-07-18 - Foundation audit attestation and control-flow closure
+
+- The closure audit now binds the full canonical P3.12B receipt bytes as well
+  as its JAX-free source attestation, resolves aliased, relative, keyword, and
+  built-in dynamic imports, and rejects split literal proof schemas. HF
+  checkpoint authority analysis now excludes falsey and post-return guards,
+  requires a reachable rejection, and rejects rebinding either descriptor
+  operand. Canonical host conversion coverage includes `.item()`.

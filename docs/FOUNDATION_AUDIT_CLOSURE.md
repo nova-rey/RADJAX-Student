@@ -31,8 +31,10 @@ metadata handling.
 HF identity remains architecture-owned: initialization produces the descriptor
 and derived preservation reference; assembly consumes them unchanged; checkpoint
 and report paths validate descriptor-derived preservation evidence. The closure
-audit validates both the current P3.12B recorded source evidence and these
-production authority paths.
+audit validates the exact canonical P3.12B receipt bytes together with its
+recorded source evidence and these production authority paths. A schema-valid
+receipt with substituted replay, case, dependency, or evidence fields is not
+current evidence.
 
 ## Production and proof namespaces
 

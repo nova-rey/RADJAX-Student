@@ -132,11 +132,46 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         relative_path="runtime/x.py",
     ) == ("runtime_dynamic_import",)
     assert audit_source_fixture(
+        "from importlib import import_module as load\nload('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
+        "from importlib import import_module as load\n"
+        "load('radjax_student.' + 'steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_dynamic_import",)
+    assert audit_source_fixture(
+        "import importlib as loader\n"
+        "loader.import_module('.steps', package='radjax_student')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
+        "import importlib\nimportlib.import_module(name='radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
+        "import builtins\nbuiltins.__import__('radjax_student.steps')\n",
+        relative_path="runtime/x.py",
+    ) == ("runtime_steps_import",)
+    assert audit_source_fixture(
+        "from importlib import import_module as load\n"
+        "load('radjax_student.validation')\n",
+        relative_path="reports/x.py",
+    ) == ("production_validation_import",)
+    assert audit_source_fixture(
         "import jax\njax.device_get(value)\n",
         relative_path="steps/jax_step.py",
     ) == ("canonical_jax_purity",)
     assert audit_source_fixture(
+        "import jax\nvalue.item()\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
         "SCHEMA = 'radjax.p3_99_neutral_gate.v1'\ndef run(): pass\n",
+        relative_path="learning/ordinary.py",
+    ) == ("new_production_proof_module:learning/ordinary.py",)
+    assert audit_source_fixture(
+        "SCHEMA = 'radjax.' + 'p3_99_neutral_gate.v1'\ndef run(): pass\n",
         relative_path="learning/ordinary.py",
     ) == ("new_production_proof_module:learning/ordinary.py",)
 
@@ -213,11 +248,52 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
+    for falsey_guard in ("0", "1 == 0"):
+        falsey_required_guard = dict(sources)
+        falsey_required_guard["checkpoints/v3.py"] = falsey_required_guard[
+            "checkpoints/v3.py"
+        ].replace(
+            """    if expected_hf_descriptor is None:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_missing",
+            "caller-bound continuation requires expected HF descriptor",
+        )""",
+            f"""    if {falsey_guard}:
+        if expected_hf_descriptor is None:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_missing",
+                "caller-bound continuation requires expected HF descriptor",
+            )""",
+        )
+        assert audit_hf_authority_fixture(falsey_required_guard) == (
+            "hf_checkpoint_descriptor_validation_bypassed",
+        )
+
     comparison = dict(sources)
     comparison["checkpoints/v3.py"] = comparison["checkpoints/v3.py"].replace(
         "if hf_descriptor != expected_hf_descriptor:", "if False:"
     )
     assert audit_hf_authority_fixture(comparison) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
+    falsey_comparison = dict(sources)
+    falsey_comparison["checkpoints/v3.py"] = falsey_comparison[
+        "checkpoints/v3.py"
+    ].replace(
+        """    if hf_descriptor != expected_hf_descriptor:
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+        """    if 1 == 0:
+        if hf_descriptor != expected_hf_descriptor:
+            raise CheckpointValidationError(
+                "checkpoint_hf_descriptor_mismatch",
+                "checkpoint HF descriptor does not match caller expectation",
+            )""",
+    )
+    assert audit_hf_authority_fixture(falsey_comparison) == (
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
@@ -230,6 +306,49 @@ def test_hf_authority_ast_rejects_independent_path_breakages() -> None:
         "        pass",
     )
     assert audit_hf_authority_fixture(mismatch_noop) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
+    return_then_raise = dict(sources)
+    return_then_raise["checkpoints/v3.py"] = return_then_raise[
+        "checkpoints/v3.py"
+    ].replace(
+        """        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+        """        return None
+        raise CheckpointValidationError(
+            "checkpoint_hf_descriptor_mismatch",
+            "checkpoint HF descriptor does not match caller expectation",
+        )""",
+    )
+    assert audit_hf_authority_fixture(return_then_raise) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
+    rebound_expected = dict(sources)
+    rebound_expected["checkpoints/v3.py"] = rebound_expected[
+        "checkpoints/v3.py"
+    ].replace(
+        "    if hf_descriptor != expected_hf_descriptor:",
+        "    expected_hf_descriptor = hf_descriptor\n"
+        "    if hf_descriptor != expected_hf_descriptor:",
+    )
+    assert audit_hf_authority_fixture(rebound_expected) == (
+        "hf_checkpoint_descriptor_validation_bypassed",
+    )
+
+    rebound_observed = dict(sources)
+    rebound_observed["checkpoints/v3.py"] = rebound_observed[
+        "checkpoints/v3.py"
+    ].replace(
+        """    hf_descriptor = HFCompatibilityDescriptor.from_dict(
+        _read_json(directory / "hf_descriptor.json")
+    )""",
+        "    hf_descriptor = expected_hf_descriptor",
+    )
+    assert audit_hf_authority_fixture(rebound_observed) == (
         "hf_checkpoint_descriptor_validation_bypassed",
     )
 
@@ -457,9 +576,25 @@ def test_foundation_rejects_stale_p312b_descriptor_attestation_without_jax(
             "assert report.blockers == ('p312b_recorded_evidence_stale',)",
         )
     )
-    for field in ("descriptor_digest", "checkpoint_hf_descriptor_digest"):
-        stale = dict(receipt)
-        stale[field] = "0" * 64
+    mutations = (
+        lambda payload: payload.__setitem__("descriptor_digest", "0" * 64),
+        lambda payload: payload.__setitem__(
+            "checkpoint_hf_descriptor_digest", "0" * 64
+        ),
+        lambda payload: payload.__setitem__("replay_hf_evidence_digest", "0" * 64),
+        lambda payload: payload.__setitem__("report_hf_evidence_digest", "0" * 64),
+        lambda payload: payload.__setitem__("dependency_audit_digest", "0" * 64),
+        lambda payload: payload.__setitem__("evidence_digest", "0" * 64),
+        lambda payload: payload["positive_proof_results"][0].__setitem__(
+            "evidence_digest", "0" * 64
+        ),
+        lambda payload: payload["adversarial_case_results"][0].__setitem__(
+            "observed_boundary", "foreign_boundary"
+        ),
+    )
+    for mutate in mutations:
+        stale = json.loads(json.dumps(receipt))
+        mutate(stale)
         (docs / "P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").write_text(
             json.dumps(stale), encoding="utf-8"
         )

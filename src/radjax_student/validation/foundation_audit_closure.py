@@ -115,6 +115,9 @@ P312B_SOURCE_ATTESTATION_DIGEST = (
 P312B_ATTESTED_DESCRIPTOR_DIGEST = (
     "abf84ccc695458fdc857aac0afc2e645cad3d71ec98d6e6a81dbab0075849ff6"
 )
+P312B_ATTESTED_RECEIPT_SHA256 = (
+    "79472ee02e17786922d00a3e019fdfd52c14b5516878699624783e94638ddf90"
+)
 
 
 def _digest(value: object) -> str:
@@ -142,6 +145,83 @@ def _normalized_from_imports(
     return tuple(f"{base}.{item.name}" for item in node.names)
 
 
+def _importlib_aliases(tree: ast.Module) -> dict[str, str]:
+    """Resolve local spellings of the standard library import primitives."""
+    aliases: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for item in node.names:
+                if item.name == "importlib":
+                    aliases[item.asname or item.name] = "importlib"
+                elif item.name == "builtins":
+                    aliases[item.asname or item.name] = "builtins"
+        elif isinstance(node, ast.ImportFrom) and node.module == "importlib":
+            for item in node.names:
+                if item.name == "import_module":
+                    aliases[item.asname or item.name] = "importlib.import_module"
+    return aliases
+
+
+def _canonical_import_callee(node: ast.AST, aliases: dict[str, str]) -> str | None:
+    raw = _call_name(node)
+    if raw is None:
+        return None
+    if raw in _DYNAMIC_IMPORT_CALLEES:
+        return "importlib.import_module" if raw != "__import__" else "__import__"
+    head, separator, tail = raw.partition(".")
+    replacement = aliases.get(head)
+    if replacement is None:
+        return None
+    resolved = replacement if not separator else f"{replacement}.{tail}"
+    if resolved in {"__import__", "builtins.__import__"}:
+        return "__import__"
+    if resolved == "importlib.import_module":
+        return resolved
+    return None
+
+
+def _resolved_dynamic_import_target(
+    node: ast.Call, aliases: dict[str, str]
+) -> str | None:
+    """Return a literal importlib target, resolving a literal relative package."""
+    if _canonical_import_callee(node.func, aliases) is None:
+        return None
+    target = (
+        node.args[0]
+        if node.args
+        else next(
+            (keyword.value for keyword in node.keywords if keyword.arg == "name"),
+            None,
+        )
+    )
+    if not isinstance(target, ast.Constant) or not isinstance(target.value, str):
+        return None
+    if not target.value.startswith("."):
+        return target.value
+    package = next(
+        (keyword.value for keyword in node.keywords if keyword.arg == "package"),
+        None,
+    )
+    if not isinstance(package, ast.Constant) or not isinstance(package.value, str):
+        return None
+    dots = len(target.value) - len(target.value.lstrip("."))
+    suffix = target.value[dots:]
+    parts = package.value.split(".")
+    if dots > len(parts) or not suffix:
+        return None
+    return ".".join((*parts[: len(parts) - dots + 1], suffix))
+
+
+def _dynamic_import_calls(tree: ast.Module) -> tuple[ast.Call, ...]:
+    aliases = _importlib_aliases(tree)
+    return tuple(
+        node
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and _canonical_import_callee(node.func, aliases) is not None
+    )
+
+
 def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ...]:
     names: set[str] = set()
     for node in ast.walk(tree):
@@ -149,29 +229,20 @@ def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ..
             names.update(item.name for item in node.names)
         elif isinstance(node, ast.ImportFrom):
             names.update(_normalized_from_imports(node, relative_path=relative_path))
-        elif isinstance(node, ast.Call) and node.args:
-            callee = _call_name(node.func)
-            target = node.args[0]
-            if (
-                callee in _DYNAMIC_IMPORT_CALLEES
-                and isinstance(target, ast.Constant)
-                and isinstance(target.value, str)
-            ):
-                names.add(target.value)
+    aliases = _importlib_aliases(tree)
+    for node in _dynamic_import_calls(tree):
+        target = _resolved_dynamic_import_target(node, aliases)
+        if target is not None:
+            names.add(target)
     return tuple(sorted(names))
 
 
 def _has_dynamic_import_target(tree: ast.Module) -> bool:
     """Detect a source-computed import target without importing the module."""
+    aliases = _importlib_aliases(tree)
     return any(
-        isinstance(node, ast.Call)
-        and node.args
-        and _call_name(node.func) in _DYNAMIC_IMPORT_CALLEES
-        and not (
-            isinstance(node.args[0], ast.Constant)
-            and isinstance(node.args[0].value, str)
-        )
-        for node in ast.walk(tree)
+        _resolved_dynamic_import_target(node, aliases) is None
+        for node in _dynamic_import_calls(tree)
     )
 
 
@@ -206,6 +277,17 @@ def _has_proof_shape(path: Path) -> bool:
     return _has_proof_shape_from_tree(tree)
 
 
+def _literal_string(node: ast.AST) -> str | None:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        left = _literal_string(node.left)
+        right = _literal_string(node.right)
+        if left is not None and right is not None:
+            return left + right
+    return None
+
+
 def _has_proof_shape_from_tree(tree: ast.Module) -> bool:
     """Identify proof behavior even when the module uses a neutral filename."""
     return (
@@ -225,12 +307,8 @@ def _has_proof_shape_from_tree(tree: ast.Module) -> bool:
             for node in ast.walk(tree)
         )
         or any(
-            isinstance(node, ast.Constant)
-            and isinstance(node.value, str)
-            and (
-                node.value in _PROOF_COMMAND_FLAGS
-                or node.value.startswith("radjax.p3_")
-            )
+            (value := _literal_string(node)) is not None
+            and (value in _PROOF_COMMAND_FLAGS or value.startswith("radjax.p3_"))
             for node in ast.walk(tree)
         )
     )
@@ -259,18 +337,47 @@ def _reachable_statements(statements: tuple[ast.stmt, ...]) -> tuple[ast.stmt, .
     """Return AST statements not hidden behind a statically dead branch."""
     reachable: list[ast.stmt] = []
 
+    def literal_truth_value(node: ast.AST) -> bool | None:
+        try:
+            return bool(ast.literal_eval(node))
+        except (TypeError, ValueError):
+            pass
+        if not isinstance(node, ast.Compare):
+            return None
+        try:
+            values = [ast.literal_eval(item) for item in (node.left, *node.comparators)]
+        except (TypeError, ValueError):
+            return None
+        for left, operator, right in zip(values, node.ops, values[1:], strict=True):
+            if isinstance(operator, ast.Eq):
+                matched = left == right
+            elif isinstance(operator, ast.NotEq):
+                matched = left != right
+            elif isinstance(operator, ast.Is):
+                matched = left is right
+            elif isinstance(operator, ast.IsNot):
+                matched = left is not right
+            elif isinstance(operator, ast.Lt):
+                matched = left < right
+            elif isinstance(operator, ast.LtE):
+                matched = left <= right
+            elif isinstance(operator, ast.Gt):
+                matched = left > right
+            elif isinstance(operator, ast.GtE):
+                matched = left >= right
+            else:
+                return None
+            if not matched:
+                return False
+        return True
+
     def visit(items: tuple[ast.stmt, ...]) -> None:
         for statement in items:
             reachable.append(statement)
             if isinstance(statement, ast.If):
-                if isinstance(statement.test, ast.Constant) and isinstance(
-                    statement.test.value, bool
-                ):
-                    visit(
-                        tuple(
-                            statement.body if statement.test.value else statement.orelse
-                        )
-                    )
+                truth = literal_truth_value(statement.test)
+                if truth is not None:
+                    visit(tuple(statement.body if truth else statement.orelse))
                 else:
                     visit(tuple(statement.body))
                     visit(tuple(statement.orelse))
@@ -282,9 +389,42 @@ def _reachable_statements(statements: tuple[ast.stmt, ...]) -> tuple[ast.stmt, .
                     visit(tuple(handler.body))
             elif isinstance(statement, (ast.With, ast.AsyncWith)):
                 visit(tuple(statement.body))
+            if isinstance(statement, (ast.Raise, ast.Return)):
+                break
 
     visit(statements)
     return tuple(reachable)
+
+
+def _has_reachable_raise(statements: tuple[ast.stmt, ...]) -> bool:
+    return any(
+        isinstance(statement, ast.Raise)
+        for statement in _reachable_statements(statements)
+    )
+
+
+def _assigns_name(function: ast.FunctionDef, name: str) -> bool:
+    return any(
+        isinstance(target, ast.Name) and target.id == name
+        for node in ast.walk(function)
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.NamedExpr))
+        for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
+    )
+
+
+def _loads_hf_descriptor_once(function: ast.FunctionDef) -> bool:
+    values = [
+        node.value
+        for node in ast.walk(function)
+        if isinstance(node, (ast.Assign, ast.AnnAssign))
+        for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
+        if isinstance(target, ast.Name) and target.id == "hf_descriptor"
+    ]
+    return (
+        len(values) == 1
+        and isinstance(values[0], ast.Call)
+        and _call_name(values[0].func) == "HFCompatibilityDescriptor.from_dict"
+    )
 
 
 def _call_keywords(function: ast.FunctionDef, callee: str) -> set[str]:
@@ -511,7 +651,7 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
             and len(node.test.comparators) == 1
             and isinstance(node.test.comparators[0], ast.Constant)
             and node.test.comparators[0].value is None
-            and any(isinstance(statement, ast.Raise) for statement in node.body)
+            and _has_reachable_raise(tuple(node.body))
             for node in reachable_statements
         )
         mismatch_rejects = any(
@@ -524,7 +664,7 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
             and len(node.test.comparators) == 1
             and isinstance(node.test.comparators[0], ast.Name)
             and node.test.comparators[0].id == "expected_hf_descriptor"
-            and any(isinstance(statement, ast.Raise) for statement in node.body)
+            and _has_reachable_raise(tuple(node.body))
             # Required validation must be reachable from the public restore
             # function; a syntactically present ``if False`` branch is not a
             # validation path.
@@ -555,6 +695,8 @@ def _authority_blockers(sources: dict[str, str]) -> tuple[str, ...]:
             or not has_required_guard
             or not mismatch_rejects
             or mismatch_is_swallowed
+            or _assigns_name(restore, "expected_hf_descriptor")
+            or not _loads_hf_descriptor_once(restore)
         ):
             blockers.append("hf_checkpoint_descriptor_validation_bypassed")
 
@@ -721,7 +863,7 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         if any(
             isinstance(node, ast.Attribute)
-            and node.attr in {"device_get", "numpy", "tolist"}
+            and node.attr in {"device_get", "item", "numpy", "tolist"}
             for node in ast.walk(tree)
         ):
             purity_failures.append(relative)
@@ -761,11 +903,12 @@ def build_foundation_audit(root: Path | None = None) -> FoundationAuditReport:
 
 def _p312b_recorded_evidence_current(root: Path) -> bool:
     try:
-        payload = json.loads(
-            (root / "docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json").read_text()
-        )
+        receipt_bytes = (
+            root / "docs/P3_12B_HF_DESCRIPTOR_AUTHORITY_RECEIPT.json"
+        ).read_bytes()
+        payload = json.loads(receipt_bytes)
         p312b_models.validate_receipt(payload)
-    except (OSError, ValueError, json.JSONDecodeError):
+    except (OSError, TypeError, ValueError, json.JSONDecodeError):
         return False
     source = _source_root(root)
     try:
@@ -781,7 +924,8 @@ def _p312b_recorded_evidence_current(root: Path) -> bool:
     except (KeyError, OSError, TypeError, ValueError):
         return False
     return (
-        _digest(source_digests) == P312B_SOURCE_ATTESTATION_DIGEST
+        hashlib.sha256(receipt_bytes).hexdigest() == P312B_ATTESTED_RECEIPT_SHA256
+        and _digest(source_digests) == P312B_SOURCE_ATTESTATION_DIGEST
         and audit.status == "pass"
         and recorded_audit["source_evidence_digest"] == audit.source_evidence_digest
         and recorded_audit["implementation_audit_digest"]
@@ -900,7 +1044,7 @@ def audit_source_fixture(source: str, *, relative_path: str) -> tuple[str, ...]:
         blockers.append("canonical_numpy_loss_import")
     if relative_path in CANONICAL_TRAINING_PATHS and any(
         isinstance(node, ast.Attribute)
-        and node.attr in {"device_get", "numpy", "tolist"}
+        and node.attr in {"device_get", "item", "numpy", "tolist"}
         for node in ast.walk(tree)
     ):
         blockers.append("canonical_jax_purity")
