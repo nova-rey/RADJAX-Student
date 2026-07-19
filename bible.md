@@ -1656,3 +1656,12 @@
   authorities. Canonical JAX-purity tracking follows the equivalent scalar and
   callable-relay forms. Focused fixtures preserve exact source-level evidence
   without widening production behavior.
+
+## 2026-07-18 - Import-authority and host-truth closure
+
+- The source audits now permit only reviewed literal optional-JAX resolution
+  and a named local import primitive while rejecting protected import authority
+  transport through reflection, classes, containers, callbacks, generators,
+  and loader APIs. Canonical JAX-purity also rejects host boolean, complex, and
+  control-flow conversion of execution-owned trainable values. The Foundation
+  report now binds its own auditor-source digest as recorded evidence.

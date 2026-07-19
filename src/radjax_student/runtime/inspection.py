@@ -59,9 +59,6 @@ RUNTIME_INSPECTION_CLAIMS_NOT_MADE: tuple[str, ...] = (
     "training_not_run",
 )
 
-_find_module_spec = importlib.util.find_spec
-_import_module = importlib.import_module
-
 
 @dataclass(frozen=True)
 class RuntimeInspection:
@@ -170,7 +167,7 @@ def _inspect_runtime_environment() -> RuntimeInspection:
         )
 
     try:
-        jax_module = _import_module("jax")
+        jax_module = importlib.import_module("jax")
     except Exception as exc:
         warnings.append(
             RuntimeIssue.create(
@@ -308,7 +305,7 @@ def _inspection_result(
 
 def _module_available(name: str, warnings: list[RuntimeIssue]) -> bool | None:
     try:
-        return _find_module_spec(name) is not None
+        return importlib.util.find_spec(name) is not None
     except (ImportError, AttributeError, ValueError) as exc:
         warnings.append(
             RuntimeIssue.create(
@@ -322,7 +319,7 @@ def _module_available(name: str, warnings: list[RuntimeIssue]) -> bool | None:
 
 def _inspect_jaxlib_version(warnings: list[RuntimeIssue]) -> str | None:
     try:
-        available = _find_module_spec("jaxlib") is not None
+        available = importlib.util.find_spec("jaxlib") is not None
     except (ImportError, AttributeError, ValueError) as exc:
         warnings.append(
             RuntimeIssue.create(
@@ -342,7 +339,7 @@ def _inspect_jaxlib_version(warnings: list[RuntimeIssue]) -> str | None:
         )
         return None
     try:
-        module = _import_module("jaxlib")
+        module = importlib.import_module("jaxlib")
     except Exception as exc:
         warnings.append(
             RuntimeIssue.create(

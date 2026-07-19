@@ -33,6 +33,8 @@ def test_foundation_audit_is_clean_and_uses_literal_canonical_paths() -> None:
     report = build_foundation_audit(ROOT)
     assert report.status == "pass"
     assert report.to_dict()["schema_version"] == SCHEMA_VERSION
+    assert report.to_dict()["audit_source_digest"] == report.audit_source_digest
+    assert len(report.audit_source_digest) == 64
     assert "recorded_gates_read_only" not in report.to_dict()
     assert "learning/composition.py" in CANONICAL_TRAINING_PATHS
     assert "steps/jax_step.py" in CANONICAL_TRAINING_PATHS
@@ -93,6 +95,27 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     )
     assert (
         audit_source_fixture("from .. import contracts\n", relative_path="runtime/x.py")
+        == ()
+    )
+    assert (
+        audit_source_fixture(
+            "from importlib import import_module\njnp = import_module('jax.numpy')\n",
+            relative_path="runtime/x.py",
+        )
+        == ()
+    )
+    assert (
+        audit_source_fixture(
+            "import importlib.util\nspec = importlib.util.find_spec('jax')\n",
+            relative_path="runtime/x.py",
+        )
+        == ()
+    )
+    assert (
+        audit_source_fixture(
+            "import importlib\nload = importlib.import_module\njax = load('jax')\n",
+            relative_path="runtime/x.py",
+        )
         == ()
     )
     assert audit_source_fixture(
@@ -363,11 +386,17 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "from importlib import import_module as load\n"
         "load('radjax_student.validation')\n",
         relative_path="reports/x.py",
-    ) == ("production_validation_import",)
+    ) == (
+        "production_dynamic_import:reports/x.py",
+        "production_validation_import",
+    )
     assert audit_source_fixture(
         "import importlib\nimportlib.import_module('radjax_student.' + 'validation')\n",
         relative_path="reports/x.py",
-    ) == ("production_validation_import",)
+    ) == (
+        "production_dynamic_import:reports/x.py",
+        "production_validation_import",
+    )
     assert audit_source_fixture(
         "import importlib\ngetattr(importlib, member_name)(target_name)\n",
         relative_path="reports/x.py",
@@ -605,6 +634,72 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "load = getattr(holder, 'module')\nload('x')\n",
         "import pkgutil\npkgutil.resolve_name(target)\n",
         "import pydoc\npydoc.locate(target)\n",
+        "import importlib as loader\n"
+        "runner = loader.import_module(name='runpy')\nrunner.run_module(target)\n",
+        "from importlib import import_module as acquire\n"
+        "runner = acquire(name='runpy')\nrunner.run_module(target)\n",
+        "import importlib\nholder = (importlib,) * 1\n"
+        "load = getattr(holder[0], 'import_' + 'module')\nload('x')\n",
+        "import importlib\nholder = {'module': importlib} | {}\n"
+        "load = getattr(holder['module'], 'import_' + 'module')\nload('x')\n",
+        "import importlib\nholder = (carrier := importlib)\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nfrom collections import deque\n"
+        "holder = deque([importlib]).popleft()\n"
+        "load = getattr(holder, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nmapping_type = type({}).__mro__[0]\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_' + 'module')\nload('x')\n",
+        "import importlib\nreflect = (((getattr if True else print),) * 1)[0]\n"
+        "load = reflect(importlib, 'import_module')\nload('x')\n",
+        "import importlib\nreflect = ({'r': getattr if True else print} | {})['r']\n"
+        "load = reflect(importlib, 'import_module')\nload('x')\n",
+        "import importlib\nreflect = (alias := (getattr if True else print))\n"
+        "load = reflect(importlib, 'import_module')\nload('x')\n",
+        "import importlib\nmapping_type = ((dict,) * 1)[0]\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\nload('x')\n",
+        "import importlib\nmapping_type = ({'d': dict} | {})['d']\n"
+        "fetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\nload('x')\n",
+        "import importlib\nfrom collections import deque\n"
+        "mapping_type = deque([dict]).popleft()\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\nload('x')\n",
+        "runner = __import__(name='runpy')\nexecute = runner.run_module\n"
+        "execute(target)\n",
+        "import importlib\nrunner = importlib.import_module('runpy')\n"
+        "execute = runner.run_module\nexecute(target)\n",
+        "import importlib\npkg = importlib.import_module('pkgutil')\n"
+        "load = pkg.resolve_name\nload(target)\n",
+        "import importlib\npydoc_module = importlib.import_module('pydoc')\n"
+        "load = pydoc_module.locate\nload(target)\n",
+        "import importlib\nfrom functools import partial\n"
+        "load = partial(importlib.import_module, target)\nload()\n",
+        "import importlib\ndef factory():\n    return importlib.import_module\n"
+        "load = factory()\nload(target)\n",
+        "import importlib\n(lambda loader: loader(target))(importlib.import_module)\n",
+        "import importlib\nload = (lambda value: value)(importlib.import_module)\n"
+        "load(target)\n",
+        "import importlib\nclass Holder:\n    load = importlib.import_module\n"
+        "Holder.load(target)\n",
+        "import importlib\nclass Holder: pass\n"
+        "Holder.load = importlib.import_module\nHolder.load(target)\n",
+        "import importlib\nclass Holder: pass\n"
+        "setattr(Holder, 'load', importlib.import_module)\nHolder.load(target)\n",
+        "import importlib\nholder = {}\n"
+        "holder.update(load=importlib.import_module)\nholder['load'](target)\n",
+        "import importlib\ndef run(*, load=importlib.import_module):\n"
+        "    return load(target)\nrun()\n",
+        "import importlib\ndef run(load: importlib.import_module):\n"
+        "    return load(target)\nrun(importlib.import_module)\n",
+        "import importlib\n"
+        "load = next(item for item in (importlib.import_module,))\nload(target)\n",
+        "import importlib\ndef factory():\n    received = yield\n    yield received\n"
+        "generator = factory()\nnext(generator)\n"
+        "load = generator.send(importlib.import_module)\nload(target)\n",
+        "import importlib.util\nfind = importlib.util.find_spec\n"
+        "create = importlib.util.module_from_spec\nspec = find(target)\n"
+        "module = create(spec)\nexecute = spec.loader.exec_module\nexecute(module)\n",
     ),
 )
 def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> None:
@@ -650,6 +745,46 @@ def test_literal_receiver_and_reflection_carriers_fail_closed(source: str) -> No
         "type(1 / 2).mro()[0](prepared_inputs.parameters)\n",
         "from functools import partial\npartial(float)(prepared_inputs.parameters)\n",
         "reversed([float]).__next__()(prepared_inputs.parameters)\n",
+        "float((value := prepared_inputs.parameters))\n",
+        "value = (alias := prepared_inputs.parameters)\nfloat(value)\n",
+        "value = ((prepared_inputs.parameters,) * 1)[0]\nfloat(value)\n",
+        "value = ({'p': prepared_inputs.parameters} | {})['p']\nfloat(value)\n",
+        "([float] * 1)[0](prepared_inputs.parameters)\n",
+        "({'cast': float} | {})['cast'](prepared_inputs.parameters)\n",
+        "(cast := float)(prepared_inputs.parameters)\n",
+        "class Cast: pass\nCast.__call__ = lambda self: float\n"
+        "Cast()()(prepared_inputs.parameters)\n",
+        "from functools import partial as bind\n"
+        "bind(float)(prepared_inputs.parameters)\n",
+        "class Relay: pass\nRelay.__call__ = lambda self, value: value\n"
+        "value = Relay()(prepared_inputs.parameters)\nfloat(value)\n",
+        "from functools import partial as bind\ndef relay(value):\n    return value\n"
+        "value = bind(relay)(prepared_inputs.parameters)\nfloat(value)\n",
+        "from functools import partial as bind\ndef relay(value):\n    return value\n"
+        "factory = bind(relay)\nvalue = factory(prepared_inputs.parameters)\n"
+        "float(value)\n",
+        "result = (lambda cast, value: cast(value))(\n"
+        "    float, prepared_inputs.parameters\n)\n",
+        "class Holder: pass\nHolder.cast = float\n"
+        "Holder.cast(prepared_inputs.parameters)\n",
+        "class Holder: pass\nsetattr(Holder, 'cast', float)\n"
+        "Holder.cast(prepared_inputs.parameters)\n",
+        "def factory():\n    yield float\n"
+        "next(factory())(prepared_inputs.parameters)\n",
+        "from collections import deque\n"
+        "deque([float]).popleft()(prepared_inputs.parameters)\n",
+        "next(zip((float,)))[0](prepared_inputs.parameters)\n",
+        "value = prepared_inputs.__dict__['parameters']\nfloat(value)\n",
+        "from collections import deque\n"
+        "value = deque([prepared_inputs.parameters]).popleft()\nfloat(value)\n",
+        "def relay(value):\n    marker = None\n    return value\n"
+        "def factory():\n    yield relay\n"
+        "value = next(factory())(prepared_inputs.parameters)\nfloat(value)\n",
+        "bool(prepared_inputs.parameters)\n",
+        "complex(prepared_inputs.parameters)\n",
+        "if prepared_inputs.parameters:\n    result = 1\nelse:\n    result = 0\n",
+        "if prepared_inputs.parameters > 0:\n    result = 1\nelse:\n    result = 0\n",
+        "any((prepared_inputs.parameters,))\n",
     ),
 )
 def test_literal_trainable_carriers_fail_closed(source: str) -> None:
@@ -670,7 +805,10 @@ def test_production_owners_include_cli_and_test_support_beats_competitors() -> N
     assert audit_source_fixture(
         "import importlib\nimportlib.import_module('radjax_student.validation')\n",
         relative_path="reports/x.py",
-    ) == ("production_validation_import",)
+    ) == (
+        "production_dynamic_import:reports/x.py",
+        "production_validation_import",
+    )
     assert audit_source_fixture(
         "if True:\n    def execute_p3_99_proof(): pass\n",
         relative_path="learning/module.py",

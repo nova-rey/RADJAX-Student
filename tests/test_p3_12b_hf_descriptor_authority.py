@@ -460,6 +460,26 @@ def test_production_import_audit_rejects_fully_split_dynamic_gate_import(
         "class Holder: pass\nholder = Holder()\n"
         "holder.__dict__.update({'module': importlib})\n"
         "load = getattr(holder, 'module')\n",
+        "holder = ((importlib,) * 1)[0]\nload = getattr(holder, 'import_module')\n",
+        "holder = ({'module': importlib} | {})['module']\n"
+        "load = getattr(holder, 'import_module')\n",
+        "holder = (alias := importlib)\nload = getattr(holder, 'import_module')\n",
+        "from collections import deque\nholder = deque([importlib]).popleft()\n"
+        "load = getattr(holder, 'import_module')\n",
+        "reflect = (((getattr if True else print),) * 1)[0]\n"
+        "load = reflect(importlib, 'import_module')\n",
+        "reflect = ({'r': getattr if True else print} | {})['r']\n"
+        "load = reflect(importlib, 'import_module')\n",
+        "reflect = (alias := (getattr if True else print))\n"
+        "load = reflect(importlib, 'import_module')\n",
+        "mapping_type = type({}).__mro__[0]\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n",
+        "mapping_type = ((dict,) * 1)[0]\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n",
+        "mapping_type = ({'d': dict} | {})['d']\nfetch = mapping_type.get\n"
+        "load = fetch(importlib.__dict__, 'import_module')\n",
+        "from collections import deque\nmapping_type = deque([dict]).popleft()\n"
+        "fetch = mapping_type.get\nload = fetch(importlib.__dict__, 'import_module')\n",
     ),
 )
 def test_production_import_audit_rejects_reflection_alias_gate_import(
@@ -533,6 +553,12 @@ def test_production_import_audit_rejects_runpy_gate_execution(tmp_path: Path) ->
         "from importlib import import_module as acquire\n"
         "runner = acquire('runpy')\n"
         "runner.run_module('radjax_student.validation.p3_12b_hf_descriptor_authority')\n",
+        "import importlib as loader\n"
+        "runner = loader.import_module(name='runpy')\n"
+        "runner.run_module('radjax_student.validation.p3_12b_hf_descriptor_authority')\n",
+        "from importlib import import_module as acquire\n"
+        "runner = acquire(name='runpy')\n"
+        "runner.run_module('radjax_student.validation.p3_12b_hf_descriptor_authority')\n",
     ),
 )
 def test_production_import_audit_rejects_indirect_runpy_execution(
@@ -560,6 +586,50 @@ def test_production_import_audit_rejects_indirect_runpy_execution(
     ),
 )
 def test_production_import_audit_rejects_module_execution_authorities(
+    tmp_path: Path, source: str
+) -> None:
+    cli = tmp_path / "src" / "radjax_student" / "cli"
+    cli.mkdir(parents=True)
+    (cli / "gate_import.py").write_text(source, encoding="utf-8")
+    blockers: list[implementation_audit.HFImplementationAuditBlocker] = []
+    implementation_audit._audit_production_imports(tmp_path, blockers)
+    assert [(item.code, item.detail) for item in blockers] == [
+        ("production_imports_gate_code", "cli/gate_import.py"),
+    ]
+
+
+@pytest.mark.parametrize(
+    "source",
+    (
+        "import importlib\nfrom functools import partial\n"
+        "load = partial(\n"
+        "    importlib.import_module,\n"
+        "    'radjax_student.validation.p3_12b_hf_descriptor_authority.inventory',\n"
+        ")\nload()\n",
+        "import importlib\n"
+        "load = (lambda value: value)(importlib.import_module)\n"
+        "load('radjax_student.validation.p3_12b_hf_descriptor_authority.inventory')\n",
+        "import importlib\nclass Holder:\n    load = importlib.import_module\n"
+        "Holder.load('radjax_student.validation.p3_12b_hf_descriptor_authority.inventory')\n",
+        "import importlib\nholder = {}\n"
+        "holder.update(load=importlib.import_module)\n"
+        "holder['load']('radjax_student.validation.p3_12b_hf_descriptor_authority.inventory')\n",
+        "import importlib\ndef run(*, load=importlib.import_module):\n"
+        "    return load(\n"
+        "        'radjax_student.validation.p3_12b_hf_descriptor_authority.inventory'\n"
+        "    )\n"
+        "run()\n",
+        "import importlib.util\n"
+        "find = importlib.util.find_spec\n"
+        "create = importlib.util.module_from_spec\n"
+        "spec = find(\n"
+        "    'radjax_student.validation.p3_12b_hf_descriptor_authority.inventory'\n"
+        ")\n"
+        "module = create(spec)\n"
+        "execute = spec.loader.exec_module\nexecute(module)\n",
+    ),
+)
+def test_production_import_audit_rejects_import_primitive_transport(
     tmp_path: Path, source: str
 ) -> None:
     cli = tmp_path / "src" / "radjax_student" / "cli"

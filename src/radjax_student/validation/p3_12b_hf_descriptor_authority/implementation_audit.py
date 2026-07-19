@@ -510,21 +510,20 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
         tail = name.rsplit(".", 1)[-1]
         if tail in {"exec_module", "module_from_spec", "resolve_name", "locate"}:
             return True
-        if tail == "find_spec":
-            target = (
-                node.args[0]
-                if node.args
-                else next(
-                    (
-                        keyword.value
-                        for keyword in node.keywords
-                        if keyword.arg == "name"
-                    ),
-                    None,
-                )
-            )
-            if target is None or _source_literal_string(target) is None:
-                return True
+    if any(
+        isinstance(node, ast.Attribute)
+        and node.attr
+        in {
+            "exec_module",
+            "locate",
+            "module_from_spec",
+            "resolve_name",
+            "run_module",
+            "run_path",
+        }
+        for node in ast.walk(tree)
+    ):
+        return True
     aliases: dict[str, str] = {}
     identity_names = {
         node.name
@@ -650,6 +649,224 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     if item.name == "__import__":
                         aliases[item.asname or item.name] = "__import__"
 
+    allowed_importlib_roots: set[int] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+            continue
+        raw = _call_name(node.func)
+        head, separator, tail = (raw or "").partition(".")
+        owner = aliases.get(head, head)
+        canonical_name = owner if not separator else f"{owner}.{tail}"
+        if canonical_name not in {
+            "importlib.import_module",
+            "importlib.util.find_spec",
+        }:
+            continue
+        receiver: ast.AST = node.func
+        while isinstance(receiver, ast.Attribute):
+            receiver = receiver.value
+        if isinstance(receiver, ast.Name):
+            allowed_importlib_roots.add(id(receiver))
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+            continue
+        if not isinstance(node.value, ast.Attribute):
+            continue
+        raw = _call_name(node.value)
+        head, separator, tail = (raw or "").partition(".")
+        owner = aliases.get(head, head)
+        canonical_name = owner if not separator else f"{owner}.{tail}"
+        if canonical_name != "importlib.import_module":
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else (node.target,)
+        if not all(isinstance(target, ast.Name) for target in targets):
+            continue
+        receiver = node.value.value
+        if isinstance(receiver, ast.Name):
+            allowed_importlib_roots.add(id(receiver))
+    if any(
+        isinstance(node, ast.Name)
+        and aliases.get(node.id) == "importlib"
+        and id(node) not in allowed_importlib_roots
+        for node in ast.walk(tree)
+    ):
+        return True
+
+    primitive_names = {
+        name for name, target in aliases.items() if target == "import_module"
+    }
+    partial_names = {"partial", "functools.partial"}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for item in node.names:
+                if item.name == "functools":
+                    partial_names.add(f"{item.asname or item.name}.partial")
+        elif isinstance(node, ast.ImportFrom) and node.module == "functools":
+            for item in node.names:
+                if item.name == "partial":
+                    partial_names.add(item.asname or item.name)
+
+    def primitive_value(value: ast.AST | None) -> bool:
+        if value is None:
+            return False
+        if isinstance(value, ast.Name):
+            return value.id in primitive_names
+        if isinstance(value, ast.Attribute):
+            raw = _call_name(value)
+            head, separator, tail = (raw or "").partition(".")
+            owner = aliases.get(head, head)
+            return (
+                owner if not separator else f"{owner}.{tail}"
+            ) == "importlib.import_module"
+        if isinstance(value, ast.NamedExpr):
+            return primitive_value(value.value)
+        if isinstance(value, ast.BinOp):
+            return primitive_value(value.left) or primitive_value(value.right)
+        if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
+            return any(primitive_value(item) for item in value.elts)
+        if isinstance(value, ast.Dict):
+            return any(primitive_value(item) for item in value.values)
+        if isinstance(value, ast.Subscript):
+            return primitive_value(value.value)
+        if isinstance(value, (ast.ListComp, ast.SetComp, ast.GeneratorExp)):
+            return primitive_value(value.elt) or any(
+                primitive_value(generator.iter) for generator in value.generators
+            )
+        if isinstance(value, ast.Call):
+            name = _call_name(value.func)
+            if name in primitive_names or name in partial_names:
+                return any(primitive_value(item) for item in value.args)
+            if isinstance(value.func, ast.Lambda) and len(value.args) == 1:
+                argument = value.func.args.args[0] if value.func.args.args else None
+                return (
+                    argument is not None
+                    and isinstance(value.func.body, ast.Name)
+                    and value.func.body.id == argument.arg
+                    and primitive_value(value.args[0])
+                )
+        return False
+
+    def forbidden_primitive_target(value: ast.AST | None) -> bool:
+        target = _source_literal_string(value) if value is not None else None
+        return (
+            target is None
+            or target in {"pkgutil", "pydoc", "runpy"}
+            or (target is not None and "validation" in target)
+        )
+
+    direct_callees = {
+        id(node.func) for node in ast.walk(tree) if isinstance(node, ast.Call)
+    }
+    class_body_assignments = {
+        id(item)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ClassDef)
+        for item in node.body
+        if isinstance(item, (ast.Assign, ast.AnnAssign))
+    }
+    allowed_primitive_values = {
+        id(node.value)
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Assign, ast.AnnAssign))
+        and node.value is not None
+        and id(node) not in class_body_assignments
+        and primitive_value(node.value)
+        and all(
+            isinstance(target, ast.Name)
+            for target in (
+                node.targets if isinstance(node, ast.Assign) else (node.target,)
+            )
+        )
+    }
+    if any(
+        isinstance(node, ast.Attribute)
+        and node.attr == "import_module"
+        and id(node) not in direct_callees
+        and id(node) not in allowed_primitive_values
+        for node in ast.walk(tree)
+    ):
+        return True
+    if any(
+        primitive_value(node)
+        and id(node) not in direct_callees
+        and id(node) not in allowed_primitive_values
+        and isinstance(node, (ast.Attribute, ast.Name))
+        and (not isinstance(node, ast.Name) or isinstance(node.ctx, ast.Load))
+        for node in ast.walk(tree)
+    ):
+        return True
+
+    changed_primitives = True
+    while changed_primitives:
+        changed_primitives = False
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                positional = (
+                    node.args.args[-len(node.args.defaults) :]
+                    if node.args.defaults
+                    else ()
+                )
+                for argument, default in zip(
+                    positional, node.args.defaults, strict=True
+                ):
+                    if primitive_value(default) and argument.arg not in primitive_names:
+                        primitive_names.add(argument.arg)
+                        changed_primitives = True
+                if (
+                    any(
+                        isinstance(item, ast.Return) and primitive_value(item.value)
+                        for item in ast.walk(node)
+                    )
+                    and node.name not in primitive_names
+                ):
+                    primitive_names.add(node.name)
+                    changed_primitives = True
+            if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
+                if not primitive_value(node.value):
+                    continue
+                targets = (
+                    node.targets if isinstance(node, ast.Assign) else (node.target,)
+                )
+                for target in targets:
+                    if (
+                        isinstance(target, ast.Name)
+                        and target.id not in primitive_names
+                    ):
+                        primitive_names.add(target.id)
+                        changed_primitives = True
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            if isinstance(node.func, ast.Lambda) and len(node.func.args.args) == 1:
+                argument = node.func.args.args[0]
+                if (
+                    node.args
+                    and primitive_value(node.args[0])
+                    and isinstance(node.func.body, ast.Call)
+                    and isinstance(node.func.body.func, ast.Name)
+                    and node.func.body.func.id == argument.arg
+                    and forbidden_primitive_target(
+                        node.func.body.args[0] if node.func.body.args else None
+                    )
+                ):
+                    return True
+            if not primitive_value(node.func):
+                continue
+            target = (
+                node.args[0]
+                if node.args
+                else next(
+                    (
+                        keyword.value
+                        for keyword in node.keywords
+                        if keyword.arg == "name"
+                    ),
+                    None,
+                )
+            )
+            if forbidden_primitive_target(target):
+                return True
+
     holder_attribute_names: set[str] = set()
 
     def protected_holder(value: ast.AST | None) -> bool:
@@ -677,6 +894,10 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return any(protected_holder(item) for item in values)
         if isinstance(value, ast.Lambda):
             return protected_holder(value.body)
+        if isinstance(value, ast.NamedExpr):
+            return protected_holder(value.value)
+        if isinstance(value, ast.BinOp):
+            return protected_holder(value.left) or protected_holder(value.right)
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(protected_holder(item) for item in value.elts)
         if isinstance(value, (ast.ListComp, ast.SetComp)):
@@ -704,17 +925,41 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             canonical_name = (
                 resolved_name if not separator else f"{resolved_name}.{tail}"
             )
-            if name in {"__import__", "builtins.__import__"} and value.args:
-                return _source_literal_string(value.args[0]) in {
+            builtin_target = (
+                value.args[0]
+                if value.args
+                else next(
+                    (
+                        keyword.value
+                        for keyword in value.keywords
+                        if keyword.arg == "name"
+                    ),
+                    None,
+                )
+            )
+            if name in {"__import__", "builtins.__import__"} and builtin_target:
+                return _source_literal_string(builtin_target) in {
                     "importlib",
                     "builtins",
                     "runpy",
                 }
+            target = (
+                value.args[0]
+                if value.args
+                else next(
+                    (
+                        keyword.value
+                        for keyword in value.keywords
+                        if keyword.arg == "name"
+                    ),
+                    None,
+                )
+            )
             if (
                 canonical_name == "importlib.import_module"
                 or aliases.get(name or "") == "import_module"
-            ) and value.args:
-                return _source_literal_string(value.args[0]) == "runpy"
+            ) and target is not None:
+                return _source_literal_string(target) == "runpy"
             if name == "getattr" and len(value.args) >= 2:
                 owner = _call_name(value.args[0])
                 member = _source_literal_string(value.args[1])
@@ -746,6 +991,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "__reversed__",
                 "send",
                 "update",
+                "popleft",
             }:
                 return protected_holder(value.func.value)
             return any(protected_holder(item) for item in value.args) or any(
@@ -773,6 +1019,8 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                     mapping_carrier(item, names) for item in value.args
                 )
             name = _call_name(value.func)
+            if name in {"deque", "collections.deque"}:
+                return any(mapping_carrier(item, names) for item in value.args)
             if name in {*identity_names, "next", "iter"}:
                 return any(mapping_carrier(item, names) for item in value.args)
             if isinstance(value.func, ast.Attribute) and value.func.attr in {
@@ -787,6 +1035,7 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "send",
                 "update",
                 "mro",
+                "popleft",
             }:
                 return mapping_carrier(value.func.value, names)
             return name in names
@@ -796,6 +1045,12 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             )
         if isinstance(value, ast.BoolOp):
             return any(mapping_carrier(item, names) for item in value.values)
+        if isinstance(value, ast.NamedExpr):
+            return mapping_carrier(value.value, names)
+        if isinstance(value, ast.BinOp):
+            return mapping_carrier(value.left, names) or mapping_carrier(
+                value.right, names
+            )
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(mapping_carrier(item, names) for item in value.elts)
         if isinstance(value, (ast.ListComp, ast.SetComp)):
@@ -806,7 +1061,12 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             return any(mapping_carrier(item, names) for item in value.values)
         if isinstance(value, ast.Subscript):
             return mapping_carrier(value.value, names)
-        if isinstance(value, ast.Attribute) and value.attr in {"__class__", "__dict__"}:
+        if isinstance(value, ast.Attribute) and value.attr in {
+            "__class__",
+            "__dict__",
+            "__mro__",
+            "mro",
+        }:
             return (
                 isinstance(value.value, (ast.Dict, ast.List, ast.Set))
                 or (_call_name(value.value) == "dict")
@@ -843,8 +1103,13 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
                 "__reversed__",
                 "send",
                 "update",
+                "popleft",
             }:
                 return reflection_carrier(value.func.value, mapping_names)
+            if _call_name(value.func) in {"deque", "collections.deque"}:
+                return any(
+                    reflection_carrier(item, mapping_names) for item in value.args
+                )
             return _call_name(value.func) in reflection_names
         if isinstance(value, ast.IfExp):
             return reflection_carrier(value.body, mapping_names) or reflection_carrier(
@@ -852,6 +1117,12 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
             )
         if isinstance(value, ast.BoolOp):
             return any(reflection_carrier(item, mapping_names) for item in value.values)
+        if isinstance(value, ast.NamedExpr):
+            return reflection_carrier(value.value, mapping_names)
+        if isinstance(value, ast.BinOp):
+            return reflection_carrier(value.left, mapping_names) or reflection_carrier(
+                value.right, mapping_names
+            )
         if isinstance(value, (ast.Tuple, ast.List, ast.Set)):
             return any(reflection_carrier(item, mapping_names) for item in value.elts)
         if isinstance(value, (ast.ListComp, ast.SetComp)):
