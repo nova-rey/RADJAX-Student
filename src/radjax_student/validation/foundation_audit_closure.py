@@ -405,6 +405,23 @@ def _imports_from_tree(tree: ast.Module, *, relative_path: str) -> tuple[str, ..
 def _has_dynamic_import_target(tree: ast.Module) -> bool:
     """Detect a source-computed import target without importing the module."""
     aliases = _importlib_aliases(tree)
+    # These reflection facilities have no place in the reviewed production
+    # owners.  Ban their spelling before aliasing so an import primitive cannot
+    # be hidden behind a standard-library helper or a builtin binding.
+    if any(
+        isinstance(node, ast.Import)
+        and any(
+            item.name.split(".", 1)[0] in {"builtins", "operator"}
+            for item in node.names
+        )
+        or isinstance(node, ast.ImportFrom)
+        and node.module is not None
+        and node.module.split(".", 1)[0] in {"builtins", "operator"}
+        or isinstance(node, ast.Name)
+        and node.id in {"globals", "eval", "exec"}
+        for node in ast.walk(tree)
+    ):
+        return True
     if any(
         isinstance(node, ast.Constant) and node.value == "__builtins__"
         for node in ast.walk(tree)
@@ -545,6 +562,13 @@ def _has_trainable_host_conversion(tree: ast.AST) -> bool:
         for target in (node.targets if isinstance(node, ast.Assign) else (node.target,))
         if isinstance(target, ast.Name)
     }
+    aliases.update(
+        item.asname or item.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module == "builtins"
+        for item in node.names
+        if item.name in {"float", "int"}
+    )
     return any(
         isinstance(node, ast.Call)
         and (

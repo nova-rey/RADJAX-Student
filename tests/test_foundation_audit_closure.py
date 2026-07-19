@@ -152,11 +152,11 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
     assert audit_source_fixture(
         "import builtins\nbuiltins.__import__('radjax_student.steps')\n",
         relative_path="runtime/x.py",
-    ) == ("runtime_steps_import",)
+    ) == ("runtime_dynamic_import", "runtime_steps_import")
     assert audit_source_fixture(
         "from builtins import __import__ as load\nload('radjax_student.steps')\n",
         relative_path="runtime/x.py",
-    ) == ("runtime_steps_import",)
+    ) == ("runtime_dynamic_import", "runtime_steps_import")
     assert audit_source_fixture(
         "import importlib\n"
         "getattr(importlib, 'import_module')('radjax_student.steps')\n",
@@ -277,6 +277,10 @@ def test_literal_source_fixtures_reject_forbidden_foundation_edges() -> None:
         "cast = builtins.float\ncast(prepared_inputs.parameters)\n",
         relative_path="steps/jax_step.py",
     ) == ("canonical_jax_purity",)
+    assert audit_source_fixture(
+        "from builtins import float as cast\ncast(prepared_inputs.parameters)\n",
+        relative_path="steps/jax_step.py",
+    ) == ("canonical_jax_purity", "production_dynamic_import:steps/jax_step.py")
     assert audit_source_fixture(
         "SCHEMA = 'radjax.p3_99_neutral_gate.v1'\ndef run(): pass\n",
         relative_path="learning/ordinary.py",

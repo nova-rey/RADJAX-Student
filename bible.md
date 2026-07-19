@@ -1484,6 +1484,12 @@
 - The fail-closed import policy now rejects any source reference to the
   portable `__builtins__` handle, closing globals-to-builtins reflection before
   a hidden import primitive can be extracted.
+
+## 2026-07-18 - Reflection-alias closure
+
+- Source audits now reject imported builtin/operator reflection helpers, and
+  the JAX-purity audit recognizes aliases imported from `builtins.float` or
+  `builtins.int` before scalar conversion of trainable state.
 - Refreshed the P3.12B source attestation after the portable builtins audit
   hardening; the executed receipt remained byte-identical across fresh writers.
 

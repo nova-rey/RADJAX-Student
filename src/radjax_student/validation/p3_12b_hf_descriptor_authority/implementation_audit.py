@@ -490,6 +490,20 @@ def _production_dynamic_gate_import(tree: ast.Module, source: str) -> bool:
     when a source bearing a protected marker computes the target.
     """
     aliases: dict[str, str] = {}
+    if any(
+        isinstance(node, ast.Import)
+        and any(
+            item.name.split(".", 1)[0] in {"builtins", "operator"}
+            for item in node.names
+        )
+        or isinstance(node, ast.ImportFrom)
+        and node.module is not None
+        and node.module.split(".", 1)[0] in {"builtins", "operator"}
+        or isinstance(node, ast.Name)
+        and node.id in {"globals", "eval", "exec"}
+        for node in ast.walk(tree)
+    ):
+        return True
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for item in node.names:
