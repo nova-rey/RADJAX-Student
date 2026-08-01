@@ -1307,3 +1307,12 @@
   admission to Contract, preserving a typed immutable descriptor without
   importing Tome or reading training resources. Payload parsing and training
   remain later, separately bounded checkpoints.
+
+## 2026-08-01 - P5.2 verified native-v3 payload access
+
+- Student opens only Contract-resolved resource IDs and lets Contract recheck
+  raw bytes at every open; this prevents resource lookup, file-path convention,
+  and producer implementation from becoming hidden Student authority.
+- Decoded arrays are read-only and records are deeply frozen. The artifact
+  layer preserves passports and provenance but does not create batches or
+  attach learning semantics.

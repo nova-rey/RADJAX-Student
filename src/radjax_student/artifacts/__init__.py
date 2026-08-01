@@ -27,6 +27,17 @@ _NATIVE_V3_EXPORTS = frozenset(
         "open_native_v3_student_consumption",
     }
 )
+_NATIVE_V3_PAYLOAD_EXPORTS = frozenset(
+    {
+        "NativeV3VerifiedPayloadResource",
+        "NativeV3TargetShard",
+        "NativeV3CorridorAssignments",
+        "NativeV3ObservedCorridorStatistics",
+        "NativeV3StudentPayloadView",
+        "NativeV3PayloadError",
+        "load_native_v3_student_payloads",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -34,6 +45,9 @@ def __getattr__(name: str):
 
     if name in _NATIVE_V3_EXPORTS:
         module = import_module("radjax_student.artifacts.native_v3")
+        return getattr(module, name)
+    if name in _NATIVE_V3_PAYLOAD_EXPORTS:
+        module = import_module("radjax_student.artifacts.native_v3_payloads")
         return getattr(module, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
@@ -56,5 +70,12 @@ __all__ = [
     "inspect_teacher_tome",
     "load_native_v3_contract_assets",
     "open_native_v3_student_consumption",
+    "NativeV3VerifiedPayloadResource",
+    "NativeV3TargetShard",
+    "NativeV3CorridorAssignments",
+    "NativeV3ObservedCorridorStatistics",
+    "NativeV3StudentPayloadView",
+    "NativeV3PayloadError",
+    "load_native_v3_student_payloads",
     "open_tome_artifact",
 ]

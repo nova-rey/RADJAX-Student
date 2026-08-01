@@ -25,3 +25,24 @@ own scope and verification but never its own commit SHA.
   semantic independence. No training behavior is accepted here.
 - **Next checkpoint:** P5.2 — Validated Payload Access and Passport
   Preservation.
+
+## P5.2 — Validated Payload Access and Passport Preservation
+
+- **Status:** complete.
+- **Changed-file summary:** JAX-free typed native-v3 payload decoder, public
+  artifact exports, focused decoder tests, P5.2 contract documentation, this
+  ledger, roadmap/status, and `bible.md`.
+- **Tests and verification performed:** focused decoder/admission tests;
+  current Tome `native_v3_student_v4` package admitted and decoded with strict
+  Contract resource opens; Contract v4 adversarial/conformance suite and Tome
+  strict v4 package checks.
+- **Evidence or receipts changed:** P5.2 documentation records the sole
+  Contract verified-opener path, declared resource metadata retained, and the
+  JAX-free/no-batching boundary. No generated artifact receipt is committed.
+- **Generic-change decision:** none. Artifact parsing remains in the artifact
+  layer and does not alter learning, objectives, architecture, runtime, or
+  checkpoint behavior.
+- **Unresolved non-blocking risks:** P5.3 must create explicit deterministic
+  train/held-out splits and architecture-neutral materialized batches. P5.2
+  does not claim fixture persistence, training execution, or model quality.
+- **Next checkpoint:** P5.3 — Generic Behavioral Batch Materialization.
