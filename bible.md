@@ -1297,3 +1297,13 @@
 - The public JAX extra and the dedicated test extra now both pin CPU JAX 0.4.38,
   the version exercised by Phase 4 verification.
 - A packaging test keeps those runtime and test constraints aligned.
+
+## 2026-08-01 - P5.1 native-v3 behavior-compilation contract freeze
+
+- Contract v0.6.0's `native_v3_student_v4` publication replaced the prior
+  insufficient generic native-v3 admission boundary with explicit,
+  Contract-validated Student-consumption resources and identity.
+- Student verifies the installed v4 Contract asset tree before delegating
+  admission to Contract, preserving a typed immutable descriptor without
+  importing Tome or reading training resources. Payload parsing and training
+  remain later, separately bounded checkpoints.

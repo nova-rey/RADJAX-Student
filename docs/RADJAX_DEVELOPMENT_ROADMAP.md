@@ -145,6 +145,11 @@ package
 
 This is Version 1.
 
+> **Current integration status:** P5.1 is complete. Student admits only the
+> exact Contract-owned `native_v3_student_v4` profile after checksum-verifying
+> its installed Contract assets. It does not yet load payload bytes, train,
+> checkpoint, evaluate, or package a model.
+
 # Phase 6 - Architecture Ecosystem
 
 **Question:** Can architectures be exchanged without changing

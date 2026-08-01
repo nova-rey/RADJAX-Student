@@ -21,6 +21,7 @@ PHASE 1 - CONTRACT LAYER                            COMPLETE
 PHASE 2 - STUDENT RUNTIME                           COMPLETE
 PHASE 3 - GENERIC LEARNING CORE                     COMPLETE
 PHASE 4 - ARCHITECTURE PLUGIN INGESTION             LOCALLY ACCEPTED (P4.8)
+P5.1  Behavior-compilation contract freeze          COMPLETE
 ```
 
 ## Phase 2 Status
@@ -90,7 +91,8 @@ replay, while P4.7's literal source-boundary audit remains clean. It makes no
 arbitrary-plugin-safety, initialization-parity, training-recipe, BPTT,
 weight-file, HF-conversion, or remote-CI claim. Phase 4 local acceptance does not claim remote CI success.
 
-The closure makes no production architecture claim, no Tome payload consumption,
+P5.1 admits the exact Contract-owned native-v3 Student-consumption v4 profile
+without exposing resource bytes. The closure makes no production architecture claim, no Tome payload consumption,
 no distillation, no Hugging Face export, no accelerator-scale training, no
 multi-device proof, no cross-hardware bitwise replay claim, no cross-version
 bitwise replay claim, no performance claim, and no RadLads parity claim.

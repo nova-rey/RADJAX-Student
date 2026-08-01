@@ -150,6 +150,11 @@ Start here for Phase 0 foundation context.
   reference-plugin execution, replay, and non-claim evidence; Phase 4 local acceptance does not claim remote CI success.
 - [Phase 4 Execution Ledger](PHASE_4_EXECUTION_LEDGER.md): append-only
   checkpoint status, verification, evidence, generic-change, risk, and next-step record.
+- [P5.1 Behavior-Compilation Contract Freeze](P5_1_BEHAVIOR_COMPILATION_CONTRACT.md):
+  Contract v0.6.0-native-v3 v4 admission ownership, evidence, interfaces, and
+  non-claims.
+- [Phase 5 Execution Ledger](PHASE_5_EXECUTION_LEDGER.md): append-only Phase 5
+  checkpoint record.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
 - [P3.5.3 JAX-Native Learning](P3_5_3_JAX_NATIVE_LEARNING.md)
 - [P3.5.4 Architecture Namespace Consolidation](P3_5_4_ARCHITECTURE_NAMESPACE_CONSOLIDATION.md)
