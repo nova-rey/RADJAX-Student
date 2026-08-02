@@ -102,15 +102,58 @@ def test_configurable_64_by_5_initializes_and_executes_without_plugin_state() ->
             == "fail"
         )
 
-    forward = plugin.apply_jax(
-        result.parameters,
-        result.architecture_carry,
-        JaxBatch(inputs={"token_ids": jnp.asarray([[0, 1, 2, 3, 4]])}, targets={}),
-        objective_scope=ObjectiveScope(),
-        training=False,
-        rng_key=None,
-    )
-    assert forward.outputs.shape == (1, 5, 64)
+    for length in (1, 4, 5):
+        forward = plugin.apply_jax(
+            result.parameters,
+            result.architecture_carry,
+            JaxBatch(
+                inputs={"token_ids": jnp.arange(length, dtype=jnp.int32)[None, :]},
+                targets={},
+            ),
+            architecture_config=config,
+            objective_scope=ObjectiveScope(),
+            training=False,
+            rng_key=None,
+        )
+        assert forward.outputs.shape == (1, length, 64)
+
+    for token_id in (0, 63):
+        assert plugin.apply_jax(
+            result.parameters,
+            result.architecture_carry,
+            JaxBatch(inputs={"token_ids": jnp.asarray([[token_id]])}, targets={}),
+            architecture_config=config,
+            objective_scope=ObjectiveScope(),
+            training=False,
+            rng_key=None,
+        ).outputs.shape == (1, 1, 64)
+
+    with pytest.raises(ArchitectureContractError) as caught:
+        plugin.apply_jax(
+            result.parameters,
+            result.architecture_carry,
+            JaxBatch(
+                inputs={"token_ids": jnp.asarray([[0, 1, 2, 3, 4, 5]])},
+                targets={},
+            ),
+            architecture_config=config,
+            objective_scope=ObjectiveScope(),
+            training=False,
+            rng_key=None,
+        )
+    assert caught.value.code == "architecture_batch_incompatible"
+
+    with pytest.raises(ArchitectureContractError) as caught:
+        plugin.apply_jax(
+            result.parameters,
+            result.architecture_carry,
+            JaxBatch(inputs={"token_ids": jnp.asarray([[64]])}, targets={}),
+            architecture_config=config,
+            objective_scope=ObjectiveScope(),
+            training=False,
+            rng_key=None,
+        )
+    assert caught.value.code == "architecture_batch_incompatible"
 
 
 def test_configurable_requires_complete_neutral_language_identity() -> None:

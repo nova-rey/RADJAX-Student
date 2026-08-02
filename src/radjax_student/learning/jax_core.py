@@ -10,6 +10,7 @@ import jax
 import jax.numpy as jnp
 
 from radjax_student.architecture import (
+    ArchitectureConfig,
     ForwardResult,
     JaxArchitecturePlugin,
 )
@@ -71,6 +72,7 @@ def build_registered_jax_loss_fn(
     objective_config: ObjectiveConfig,
     objective_descriptor: ObjectiveExecutionDescriptor,
     resolved_selection: ResolvedObjectiveSelection,
+    architecture_config: ArchitectureConfig,
 ):
     """Build the sole production objective loss graph from registry selection.
 
@@ -96,6 +98,9 @@ def build_registered_jax_loss_fn(
         raise TypeError("registered JAX loss requires ObjectiveExecutionDescriptor")
     if not isinstance(resolved_selection, ResolvedObjectiveSelection):
         raise TypeError("registered JAX loss requires ResolvedObjectiveSelection")
+    if not isinstance(architecture_config, ArchitectureConfig):
+        raise TypeError("registered JAX loss requires ArchitectureConfig")
+    architecture.validate_config(architecture_config)
     plugin = objective_selection.plugin
     if (
         objective_config.identity != objective_selection.identity
@@ -129,6 +134,7 @@ def build_registered_jax_loss_fn(
             parameters,
             input_carry,
             batch,
+            architecture_config=architecture_config,
             objective_scope=resolved_selection.scope,
             training=True,
             rng_key=rng_key,

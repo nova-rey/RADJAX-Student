@@ -26,7 +26,6 @@ from radjax_student.architecture.rwkv7_reference.config import (
     RWKV7_REFERENCE_ARCHITECTURE_ID,
     RWKV7_REFERENCE_ARCHITECTURE_VERSION,
     RWKV7_REFERENCE_CONTEXT_LENGTH,
-    RWKV7_REFERENCE_VOCABULARY_SIZE,
     reference_architecture_config,
     validate_rwkv7_config,
 )
@@ -39,7 +38,6 @@ from radjax_student.architecture.rwkv7_reference.schema import (
     initialization_parameter_slots,
     parameter_catalog,
     parameter_layout,
-    parameter_layout_for_vocabulary,
 )
 from radjax_student.contracts import (
     HFCompatibilityDescriptor,
@@ -244,6 +242,7 @@ class RWKV7ReferencePlugin:
         architecture_state: object,
         batch: object,
         *,
+        architecture_config: ArchitectureConfig | None = None,
         objective_scope: ObjectiveScope,
         training: bool,
         rng_key: object | None,
@@ -258,12 +257,21 @@ class RWKV7ReferencePlugin:
                 "architecture_objective_scope_unsupported",
                 "RWKV-7 JAX execution exposes only the final logits surface",
             )
+        config = (
+            reference_architecture_config()
+            if architecture_config is None
+            else architecture_config
+        )
+        self.validate_config(config)
         try:
-            layout = self._materialized_layout(parameters)
+            layout = parameter_layout(config)
             layout.validate_materialized_parameters(parameters)
             self._validate_carry(architecture_state)
             token_ids = self._validate_jax_tokens(
-                batch, layout.entry_for_logical_path("emb.weight").shape[0]
+                batch,
+                vocabulary_size=self._materialized_vocabulary_size(parameters),
+                context_length=config.sequence_length,
+                frozen=config == reference_architecture_config(),
             )
             from radjax_student.architecture.rwkv7_reference.kernels import (
                 rwkv7_sequence,
@@ -308,7 +316,13 @@ class RWKV7ReferencePlugin:
                 )
 
     @staticmethod
-    def _validate_jax_tokens(batch: object, vocabulary_size: int) -> object:
+    def _validate_jax_tokens(
+        batch: object,
+        *,
+        vocabulary_size: int | None,
+        context_length: int | None,
+        frozen: bool,
+    ) -> object:
         try:
             import jax
             import jax.numpy as jnp
@@ -324,12 +338,18 @@ class RWKV7ReferencePlugin:
                 "RWKV-7 JAX execution requires token_ids",
             )
         token_ids = inputs["token_ids"]
+        if vocabulary_size is None or context_length is None:
+            raise ArchitectureContractError(
+                "architecture_config_invalid",
+                "RWKV-7 JAX execution requires configured vocabulary and context",
+            )
         if (
             getattr(token_ids, "ndim", None) != 2
             or token_ids.shape[0] != 1
             or (
-                vocabulary_size == RWKV7_REFERENCE_VOCABULARY_SIZE
-                and token_ids.shape[1] != RWKV7_REFERENCE_CONTEXT_LENGTH
+                token_ids.shape[1] != context_length
+                if frozen
+                else not 1 <= token_ids.shape[1] <= context_length
             )
             or not jnp.issubdtype(token_ids.dtype, jnp.integer)
         ):
@@ -347,7 +367,7 @@ class RWKV7ReferencePlugin:
         return token_ids
 
     @staticmethod
-    def _materialized_layout(parameters: object):
+    def _materialized_vocabulary_size(parameters: object) -> int:
         try:
             vocabulary_size = int(parameters["emb"]["weight"].shape[0])
         except (KeyError, TypeError, AttributeError, IndexError) as exc:
@@ -355,7 +375,12 @@ class RWKV7ReferencePlugin:
                 "architecture_forward_failed",
                 "RWKV-7 parameters do not expose an embedding vocabulary shape",
             ) from exc
-        return parameter_layout_for_vocabulary(vocabulary_size)
+        if vocabulary_size <= 0:
+            raise ArchitectureContractError(
+                "architecture_parameter_catalog_invalid",
+                "RWKV-7 embedding vocabulary shape must be positive",
+            )
+        return vocabulary_size
 
     def resolve_update_scope(
         self, scope: UpdateScope, parameter_catalog: ParameterCatalog

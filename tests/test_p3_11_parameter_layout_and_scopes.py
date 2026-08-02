@@ -8,6 +8,7 @@ import pytest
 
 from radjax_student.architecture import (
     ArchitectureCapabilityProfile,
+    ArchitectureConfig,
     ArchitectureContractError,
     ForwardResult,
     JaxArchitecturePlugin,
@@ -38,11 +39,20 @@ class CompleteJaxArchitecture(FakeArchitecturePlugin):
         architecture_state: Any,
         batch: Any,
         *,
+        architecture_config: ArchitectureConfig | None = None,
         objective_scope: ObjectiveScope,
         training: bool,
         rng_key: Any | None,
     ) -> ForwardResult:
-        del parameters, architecture_state, batch, objective_scope, training, rng_key
+        del (
+            parameters,
+            architecture_state,
+            batch,
+            architecture_config,
+            objective_scope,
+            training,
+            rng_key,
+        )
         return ForwardResult(outputs="final", surface_values={"trunk_output": "trunk"})
 
 

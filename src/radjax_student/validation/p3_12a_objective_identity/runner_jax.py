@@ -404,6 +404,7 @@ def execute_objective_identity_proof(
             objective_config=lifecycle.objective_config,
             objective_descriptor=descriptor,
             resolved_selection=lifecycle.resolved_objective_selection,
+            architecture_config=lifecycle.architecture_config,
         )
     )
     historical_value_and_grad = build_value_and_grad_fn(

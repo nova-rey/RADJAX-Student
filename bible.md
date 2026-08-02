@@ -1327,3 +1327,12 @@
   range from configuration or materialized parameter shapes.
 - This is a local synthetic architecture proof only: it makes no Tome,
   behavioral-batch, objective, learning, checkpoint, or evaluation claim.
+
+## 2026-08-02 - P5.0A configured JAX context validation correction
+
+- Threaded the existing architecture-neutral `ArchitectureConfig` through the
+  JAX architecture execution lifecycle so configurable RWKV-7 JAX validation
+  enforces its declared maximum context capacity.
+- The plugin remains stateless; JAX still derives vocabulary range from the
+  materialized embedding shape, while configuration supplies only context
+  capacity. The frozen 16x4 Phase 4 boundary remains unchanged.

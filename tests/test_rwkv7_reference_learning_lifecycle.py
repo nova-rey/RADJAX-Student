@@ -151,6 +151,7 @@ def test_within_sequence_gradients_and_cross_step_carry_boundary() -> None:
         objective_config=lifecycle.objective_config,
         objective_descriptor=lifecycle.objective_descriptor,
         resolved_selection=lifecycle.resolved_objective_selection,
+        architecture_config=lifecycle.architecture_config,
     )
     materializer = FiniteJsonJaxBatchMaterializer()
     base_batch = materializer.materialize(batch())

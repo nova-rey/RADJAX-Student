@@ -390,6 +390,7 @@ def execute_jax_learning_step(
             objective_config=objective_config,
             objective_descriptor=objective_descriptor,
             resolved_selection=resolved_objective_selection,
+            architecture_config=architecture_config,
         )
     )
 

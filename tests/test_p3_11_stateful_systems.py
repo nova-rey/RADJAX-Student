@@ -266,11 +266,12 @@ class StatefulLinearJaxArchitecture(FakeArchitecturePlugin):
         architecture_state,
         batch,
         *,
+        architecture_config=None,
         objective_scope,
         training,
         rng_key,
     ):
-        del objective_scope, training
+        del architecture_config, objective_scope, training
         probe = jax.random.uniform(rng_key, (), dtype=jnp.float32)
         output = (
             batch.inputs["x"][:, None] * parameters["trunk"]["weight"]

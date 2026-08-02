@@ -77,6 +77,7 @@ class JaxArchitectureExecution(Protocol):
         architecture_state: Any,
         batch: Any,
         *,
+        architecture_config: ArchitectureConfig | None = None,
         objective_scope: ObjectiveScope,
         training: bool,
         rng_key: Any | None,

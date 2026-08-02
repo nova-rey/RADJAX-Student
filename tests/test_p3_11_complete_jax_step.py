@@ -111,11 +111,12 @@ class LinearPlugin(FakeArchitecturePlugin):
         architecture_state: Any,
         batch: JaxBatch,
         *,
+        architecture_config: ArchitectureConfig | None = None,
         objective_scope: ObjectiveScope,
         training: bool,
         rng_key: Any | None,
     ) -> ForwardResult:
-        del objective_scope, training, rng_key
+        del architecture_config, objective_scope, training, rng_key
         output = (
             batch.inputs["x"][:, None] * parameters["trunk"]["weight"]
             + parameters["head"]["bias"]
