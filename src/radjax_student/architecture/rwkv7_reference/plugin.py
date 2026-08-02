@@ -27,7 +27,8 @@ from radjax_student.architecture.rwkv7_reference.config import (
     RWKV7_REFERENCE_ARCHITECTURE_VERSION,
     RWKV7_REFERENCE_CONTEXT_LENGTH,
     RWKV7_REFERENCE_VOCABULARY_SIZE,
-    validate_reference_config,
+    reference_architecture_config,
+    validate_rwkv7_config,
 )
 from radjax_student.architecture.rwkv7_reference.schema import (
     CARRY_PYTREE_DESCRIPTOR_DIGEST,
@@ -38,6 +39,7 @@ from radjax_student.architecture.rwkv7_reference.schema import (
     initialization_parameter_slots,
     parameter_catalog,
     parameter_layout,
+    parameter_layout_for_vocabulary,
 )
 from radjax_student.contracts import (
     HFCompatibilityDescriptor,
@@ -59,18 +61,21 @@ class RWKV7ReferencePlugin:
         return capability_profile()
 
     def validate_config(self, config: ArchitectureConfig) -> None:
-        validate_reference_config(config)
+        validate_rwkv7_config(config)
 
-    def describe_parameters(self, parameters: object | None = None) -> ParameterCatalog:
+    def describe_parameters(
+        self, parameters: object | None = None, config: ArchitectureConfig | None = None
+    ) -> ParameterCatalog:
+        layout = parameter_layout(config)
         if parameters is not None:
             try:
-                parameter_layout().validate_materialized_parameters(parameters)
+                layout.validate_materialized_parameters(parameters)
             except (TypeError, ValueError) as exc:
                 raise ArchitectureContractError(
                     "architecture_parameter_catalog_invalid",
                     "materialized parameters do not match the RWKV-7 layout",
                 ) from exc
-        return parameter_catalog()
+        return parameter_catalog(config)
 
     def architecture_metadata(self) -> ArchitectureMetadata:
         return architecture_metadata()
@@ -100,9 +105,9 @@ class RWKV7ReferencePlugin:
                 "runtime-supplied initialization material is required",
             )
 
-        catalog = parameter_catalog()
-        layout = parameter_layout()
-        slots = initialization_parameter_slots()
+        catalog = parameter_catalog(request.config)
+        layout = parameter_layout(request.config)
+        slots = initialization_parameter_slots(request.config)
         if slots != catalog.paths:
             raise ArchitectureContractError(
                 "architecture_internal_error",
@@ -192,15 +197,22 @@ class RWKV7ReferencePlugin:
                 "architecture_batch_incompatible", "batch must be LearningBatch"
             )
         token_ids = batch.inputs.get("token_ids")
+        context_length = config.sequence_length
+        vocabulary_size = config.vocab_size
+        assert context_length is not None and vocabulary_size is not None
         valid_tokens = (
             isinstance(token_ids, (list, tuple))
             and len(token_ids) == 1
             and isinstance(token_ids[0], (list, tuple))
-            and len(token_ids[0]) == RWKV7_REFERENCE_CONTEXT_LENGTH
+            and (
+                len(token_ids[0]) == RWKV7_REFERENCE_CONTEXT_LENGTH
+                if config == reference_architecture_config()
+                else 1 <= len(token_ids[0]) <= context_length
+            )
             and all(
                 isinstance(token, int)
                 and not isinstance(token, bool)
-                and 0 <= token < RWKV7_REFERENCE_VOCABULARY_SIZE
+                and 0 <= token < vocabulary_size
                 for token in token_ids[0]
             )
         )
@@ -247,9 +259,12 @@ class RWKV7ReferencePlugin:
                 "RWKV-7 JAX execution exposes only the final logits surface",
             )
         try:
-            parameter_layout().validate_materialized_parameters(parameters)
+            layout = self._materialized_layout(parameters)
+            layout.validate_materialized_parameters(parameters)
             self._validate_carry(architecture_state)
-            token_ids = self._validate_jax_tokens(batch)
+            token_ids = self._validate_jax_tokens(
+                batch, layout.entry_for_logical_path("emb.weight").shape[0]
+            )
             from radjax_student.architecture.rwkv7_reference.kernels import (
                 rwkv7_sequence,
             )
@@ -293,7 +308,7 @@ class RWKV7ReferencePlugin:
                 )
 
     @staticmethod
-    def _validate_jax_tokens(batch: object) -> object:
+    def _validate_jax_tokens(batch: object, vocabulary_size: int) -> object:
         try:
             import jax
             import jax.numpy as jnp
@@ -312,7 +327,10 @@ class RWKV7ReferencePlugin:
         if (
             getattr(token_ids, "ndim", None) != 2
             or token_ids.shape[0] != 1
-            or token_ids.shape[1] != RWKV7_REFERENCE_CONTEXT_LENGTH
+            or (
+                vocabulary_size == RWKV7_REFERENCE_VOCABULARY_SIZE
+                and token_ids.shape[1] != RWKV7_REFERENCE_CONTEXT_LENGTH
+            )
             or not jnp.issubdtype(token_ids.dtype, jnp.integer)
         ):
             raise ArchitectureContractError(
@@ -320,7 +338,7 @@ class RWKV7ReferencePlugin:
                 "RWKV-7 requires one rank-2 integer tiny-domain token sequence",
             )
         if not isinstance(token_ids, jax.core.Tracer) and bool(
-            jnp.any((token_ids < 0) | (token_ids >= RWKV7_REFERENCE_VOCABULARY_SIZE))
+            jnp.any((token_ids < 0) | (token_ids >= vocabulary_size))
         ):
             raise ArchitectureContractError(
                 "architecture_batch_incompatible",
@@ -328,10 +346,21 @@ class RWKV7ReferencePlugin:
             )
         return token_ids
 
+    @staticmethod
+    def _materialized_layout(parameters: object):
+        try:
+            vocabulary_size = int(parameters["emb"]["weight"].shape[0])
+        except (KeyError, TypeError, AttributeError, IndexError) as exc:
+            raise ArchitectureContractError(
+                "architecture_forward_failed",
+                "RWKV-7 parameters do not expose an embedding vocabulary shape",
+            ) from exc
+        return parameter_layout_for_vocabulary(vocabulary_size)
+
     def resolve_update_scope(
         self, scope: UpdateScope, parameter_catalog: ParameterCatalog
     ) -> ResolvedUpdateSelection:
-        if parameter_catalog != self.describe_parameters():
+        if parameter_catalog.architecture_id != self.architecture_id:
             raise ArchitectureContractError(
                 "architecture_parameter_catalog_invalid",
                 "parameter catalog does not match the RWKV-7 static schema",
@@ -382,10 +411,9 @@ class RWKV7ReferencePlugin:
         self, request: ArchitectureInitRequest, result: ArchitectureInitResult
     ) -> HFCompatibilityDescriptor:
         self.validate_config(request.config)
-        if (
-            result.parameter_catalog != parameter_catalog()
-            or result.parameter_layout != parameter_layout()
-        ):
+        if result.parameter_catalog != parameter_catalog(
+            request.config
+        ) or result.parameter_layout != parameter_layout(request.config):
             raise ArchitectureContractError(
                 "architecture_parameter_catalog_invalid",
                 "HF projection must use the declared RWKV-7 static schema",

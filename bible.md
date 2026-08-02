@@ -1316,3 +1316,14 @@
 - Decoded arrays are read-only and records are deeply frozen. The artifact
   layer preserves passports and provenance but does not create batches or
   attach learning semantics.
+
+## 2026-08-02 - P5.0A stateless configurable RWKV-7 instantiation
+
+- Added a config-derived 64x5-capable RWKV-7 instantiation path while retaining
+  the exact frozen 16x4 Phase 4 descriptor, fixture, provenance, and kernels.
+- Complete neutral HF language identities are validated through
+  `ArchitectureConfig`; the sole registered plugin stays stateless and derives
+  parameter layout, initialization, descriptor projection, and JAX vocabulary
+  range from configuration or materialized parameter shapes.
+- This is a local synthetic architecture proof only: it makes no Tome,
+  behavioral-batch, objective, learning, checkpoint, or evaluation claim.

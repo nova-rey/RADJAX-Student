@@ -23,6 +23,7 @@ PHASE 3 - GENERIC LEARNING CORE                     COMPLETE
 PHASE 4 - ARCHITECTURE PLUGIN INGESTION             LOCALLY ACCEPTED (P4.8)
 P5.1  Behavior-compilation contract freeze          COMPLETE
 P5.2  Validated payload access and passports        COMPLETE
+P5.0A Stateless configurable RWKV-7 instantiation   COMPLETE
 ```
 
 ## Phase 2 Status

@@ -150,6 +150,9 @@ Start here for Phase 0 foundation context.
   reference-plugin execution, replay, and non-claim evidence; Phase 4 local acceptance does not claim remote CI success.
 - [Phase 4 Execution Ledger](PHASE_4_EXECUTION_LEDGER.md): append-only
   checkpoint status, verification, evidence, generic-change, risk, and next-step record.
+- [P5.0A Configurable RWKV-7 Instantiation](P5_0A_CONFIGURABLE_RWKV7.md):
+  stateless configuration-derived vocabulary/context capacity with validated
+  neutral HF language identities and unchanged frozen P4 parity scope.
 - [P5.1 Behavior-Compilation Contract Freeze](P5_1_BEHAVIOR_COMPILATION_CONTRACT.md):
   Contract v0.6.0-native-v3 v4 admission ownership, evidence, interfaces, and
   non-claims.

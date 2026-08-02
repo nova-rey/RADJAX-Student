@@ -2,10 +2,16 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 from radjax_student.architecture.errors import ArchitectureContractError
 from radjax_student.architecture.models import ArchitectureConfig
+from radjax_student.contracts import (
+    HFSpecialTokenIdentity,
+    HFTokenizerIdentity,
+    HFVocabularyIdentity,
+)
 
 RWKV7_REFERENCE_ARCHITECTURE_ID = "radjax.architecture.rwkv7_reference"
 RWKV7_REFERENCE_ARCHITECTURE_VERSION = 1
@@ -103,6 +109,69 @@ def reference_architecture_config() -> ArchitectureConfig:
     return RWKV7ReferenceConfig().to_architecture_config()
 
 
+def configurable_architecture_config(
+    vocabulary_size: int,
+    context_length: int,
+    *,
+    tokenizer: HFTokenizerIdentity,
+    vocabulary: HFVocabularyIdentity,
+    special_tokens: HFSpecialTokenIdentity,
+) -> ArchitectureConfig:
+    """Build a stateless configurable RWKV-7 architecture projection.
+
+    Only vocabulary and maximum host context are variable.  The complete
+    neutral language identity is serialized into the generic configuration so
+    the plugin never owns language-specific state or an opaque tokenizer hash.
+    """
+
+    if (
+        not isinstance(vocabulary_size, int)
+        or isinstance(vocabulary_size, bool)
+        or vocabulary_size <= 0
+    ):
+        raise ValueError("vocabulary_size must be positive")
+    if (
+        not isinstance(context_length, int)
+        or isinstance(context_length, bool)
+        or context_length <= 0
+    ):
+        raise ValueError("context_length must be positive")
+    if not isinstance(tokenizer, HFTokenizerIdentity):
+        raise TypeError("tokenizer must be HFTokenizerIdentity")
+    if not isinstance(vocabulary, HFVocabularyIdentity):
+        raise TypeError("vocabulary must be HFVocabularyIdentity")
+    if not isinstance(special_tokens, HFSpecialTokenIdentity):
+        raise TypeError("special_tokens must be HFSpecialTokenIdentity")
+    if vocabulary.vocabulary_size != vocabulary_size:
+        raise ValueError("vocabulary identity size must match vocabulary_size")
+    special_tokens.validate_for_vocabulary(vocabulary)
+    return ArchitectureConfig(
+        architecture_id=RWKV7_REFERENCE_ARCHITECTURE_ID,
+        vocab_size=vocabulary_size,
+        sequence_length=context_length,
+        dtype_intent=RWKV7_REFERENCE_DTYPE,
+        model_config={
+            "ffn_width": RWKV7_REFERENCE_FFN_WIDTH,
+            "head_count": RWKV7_REFERENCE_HEAD_COUNT,
+            "head_size": RWKV7_REFERENCE_HEAD_SIZE,
+            "hidden_size": RWKV7_REFERENCE_HIDDEN_SIZE,
+            "layer_count": RWKV7_REFERENCE_LAYER_COUNT,
+            "time_aaa_rank": RWKV7_REFERENCE_TIME_AAA_RANK,
+            "time_decay_rank": RWKV7_REFERENCE_TIME_DECAY_RANK,
+            "time_gate_rank": RWKV7_REFERENCE_TIME_GATE_RANK,
+            "time_value_rank": RWKV7_REFERENCE_TIME_VALUE_RANK,
+            "vocabulary_size": vocabulary_size,
+        },
+        metadata={
+            "hf_language_identities": {
+                "tokenizer": tokenizer.to_dict(),
+                "vocabulary": vocabulary.to_dict(),
+                "special_tokens": special_tokens.to_dict(),
+            }
+        },
+    )
+
+
 def validate_reference_config(config: ArchitectureConfig) -> None:
     """Reject every configuration outside the declared tiny reference domain."""
 
@@ -117,6 +186,56 @@ def validate_reference_config(config: ArchitectureConfig) -> None:
                 "received_architecture_id": received,
             },
         )
+
+
+def language_identities(
+    config: ArchitectureConfig,
+) -> tuple[HFTokenizerIdentity, HFVocabularyIdentity, HFSpecialTokenIdentity] | None:
+    """Return validated configurable language identities, if present."""
+
+    if not isinstance(config, ArchitectureConfig):
+        raise ArchitectureContractError(
+            "architecture_config_invalid", "configuration must be ArchitectureConfig"
+        )
+    if config == reference_architecture_config():
+        return None
+    expected_model = dict(reference_architecture_config().model_config)
+    expected_model["vocabulary_size"] = config.vocab_size
+    identities = config.metadata.get("hf_language_identities")
+    try:
+        if (
+            config.architecture_id != RWKV7_REFERENCE_ARCHITECTURE_ID
+            or not isinstance(config.vocab_size, int)
+            or config.vocab_size <= 0
+            or not isinstance(config.sequence_length, int)
+            or config.sequence_length <= 0
+            or config.dtype_intent != RWKV7_REFERENCE_DTYPE
+            or dict(config.model_config) != expected_model
+            or set(config.metadata) != {"hf_language_identities"}
+            or not isinstance(identities, Mapping)
+            or set(identities) != {"tokenizer", "vocabulary", "special_tokens"}
+        ):
+            raise ValueError
+        tokenizer = HFTokenizerIdentity.from_dict(identities["tokenizer"])
+        vocabulary = HFVocabularyIdentity.from_dict(identities["vocabulary"])
+        special_tokens = HFSpecialTokenIdentity.from_dict(identities["special_tokens"])
+        if vocabulary.vocabulary_size != config.vocab_size:
+            raise ValueError
+        special_tokens.validate_for_vocabulary(vocabulary)
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ArchitectureContractError(
+            "architecture_config_invalid",
+            "configuration lacks a complete valid neutral HF language identity",
+        ) from exc
+    return tokenizer, vocabulary, special_tokens
+
+
+def validate_rwkv7_config(config: ArchitectureConfig) -> None:
+    """Accept the frozen P4 projection or a complete P5.0A projection."""
+
+    if config == reference_architecture_config():
+        return
+    language_identities(config)
 
 
 __all__ = [
@@ -135,7 +254,10 @@ __all__ = [
     "RWKV7_REFERENCE_TIME_VALUE_RANK",
     "RWKV7_REFERENCE_VOCABULARY_SIZE",
     "RWKV7ReferenceConfig",
+    "configurable_architecture_config",
+    "language_identities",
     "reference_architecture_config",
     "reference_config",
     "validate_reference_config",
+    "validate_rwkv7_config",
 ]

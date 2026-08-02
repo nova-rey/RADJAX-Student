@@ -3,6 +3,22 @@
 This append-only ledger records Phase 5 checkpoints. A checkpoint records its
 own scope and verification but never its own commit SHA.
 
+## P5.0A — Stateless Configurable RWKV-7 Instantiation
+
+- **Status:** complete.
+- **Changed-file summary:** configurable RWKV architecture-config validation,
+  config-derived schema/layout/initialization, materialized-shape JAX token
+  range, independent 64x5 proof, narrow documentation, and this ledger.
+- **Tests and verification performed:** frozen Phase 4 schema, initialization,
+  forward parity, lifecycle, checkpoint, receipt, and import-isolation tests;
+  focused configurable 64x5 JAX proof; formatting and collection checks.
+- **Generic-change decision:** none. The existing plugin remains one stateless
+  registration at its current identity/version; no runtime, batch, objective,
+  learning, artifact, checkpoint, or evaluation owner changed.
+- **Unresolved non-blocking risks:** P5.3–P5.8 remain paused. This synthetic
+  language contract provides no Tome compatibility or training semantics.
+- **Next checkpoint:** none authorized by P5.0A.
+
 ## P5.1 — Behavior-Compilation Contract Freeze
 
 - **Status:** complete.

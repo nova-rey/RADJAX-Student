@@ -18,7 +18,6 @@ from radjax_student.architecture.models import (
 from radjax_student.architecture.rwkv7_reference.config import (
     RWKV7_REFERENCE_ARCHITECTURE_ID,
     RWKV7_REFERENCE_ARCHITECTURE_VERSION,
-    RWKV7_REFERENCE_CONTEXT_LENGTH,
     RWKV7_REFERENCE_DTYPE,
     RWKV7_REFERENCE_FFN_WIDTH,
     RWKV7_REFERENCE_HEAD_COUNT,
@@ -30,7 +29,9 @@ from radjax_student.architecture.rwkv7_reference.config import (
     RWKV7_REFERENCE_TIME_GATE_RANK,
     RWKV7_REFERENCE_TIME_VALUE_RANK,
     RWKV7_REFERENCE_VOCABULARY_SIZE,
-    validate_reference_config,
+    language_identities,
+    reference_architecture_config,
+    validate_rwkv7_config,
 )
 from radjax_student.contracts import (
     HFArchitectureProjection,
@@ -99,14 +100,19 @@ def _representation(path: str) -> str:
     return "direct_pinned_numpy_array"
 
 
-def parameter_catalog() -> ParameterCatalog:
+def parameter_catalog(config: ArchitectureConfig | None = None) -> ParameterCatalog:
     """Describe every parameter used by the pinned tiny-domain equations."""
 
+    if config is None:
+        config = reference_architecture_config()
+    validate_rwkv7_config(config)
+    vocabulary_size = config.vocab_size
+    assert vocabulary_size is not None
     hidden = RWKV7_REFERENCE_HIDDEN_SIZE
     parameters = [
         _parameter(
             "emb.weight",
-            (RWKV7_REFERENCE_VOCABULARY_SIZE, hidden),
+            (vocabulary_size, hidden),
             "embedding",
             ("embedding",),
         ),
@@ -257,7 +263,7 @@ def parameter_catalog() -> ParameterCatalog:
             _parameter("ln_out.bias", (hidden,), "normalization", ("output",)),
             _parameter(
                 "head.weight",
-                (RWKV7_REFERENCE_VOCABULARY_SIZE, hidden),
+                (vocabulary_size, hidden),
                 "output_head",
                 ("head", "output"),
             ),
@@ -335,7 +341,7 @@ def pinned_numpy_parameter_order() -> dict[str, tuple[str, ...]]:
     return order
 
 
-def parameter_layout() -> ParameterTreeLayout:
+def parameter_layout(config: ArchitectureConfig | None = None) -> ParameterTreeLayout:
     """Return the deterministic mapping-pytree identity for the static catalog."""
 
     return ParameterTreeLayout(
@@ -352,15 +358,72 @@ def parameter_layout() -> ParameterTreeLayout:
                 exportable=False,
                 metadata=dict(descriptor.metadata),
             )
-            for descriptor in parameter_catalog().parameters
+            for descriptor in parameter_catalog(config).parameters
         ),
     )
 
 
-def initialization_parameter_slots() -> tuple[str, ...]:
+def parameter_layout_for_vocabulary(vocabulary_size: int) -> ParameterTreeLayout:
+    """Derive a layout from materialized RWKV vocabulary-bearing shapes."""
+
+    if (
+        not isinstance(vocabulary_size, int)
+        or isinstance(vocabulary_size, bool)
+        or vocabulary_size <= 0
+    ):
+        raise ValueError("vocabulary_size must be positive")
+    if vocabulary_size == RWKV7_REFERENCE_VOCABULARY_SIZE:
+        return parameter_layout()
+    # This helper deliberately has no language identity: execution can derive
+    # only the vocabulary range from materialized parameter shapes.
+    # Build directly to avoid treating a materialized parameter shape as a
+    # complete language configuration.
+    descriptors = list(parameter_catalog().parameters)
+    for index, descriptor in enumerate(descriptors):
+        if descriptor.path == "emb.weight":
+            descriptors[index] = ParameterDescriptor(
+                path="emb.weight",
+                shape=(vocabulary_size, RWKV7_REFERENCE_HIDDEN_SIZE),
+                dtype=RWKV7_REFERENCE_DTYPE,
+                role="embedding",
+                region_ids=("whole_student", "embedding"),
+                metadata={"representation": "direct_pinned_numpy_array"},
+            )
+        if descriptor.path == "head.weight":
+            descriptors[index] = ParameterDescriptor(
+                path="head.weight",
+                shape=(vocabulary_size, RWKV7_REFERENCE_HIDDEN_SIZE),
+                dtype=RWKV7_REFERENCE_DTYPE,
+                role="output_head",
+                region_ids=("whole_student", "output"),
+                metadata={"representation": "direct_pinned_numpy_array"},
+            )
+    catalog = ParameterCatalog(RWKV7_REFERENCE_ARCHITECTURE_ID, tuple(descriptors))
+    return ParameterTreeLayout(
+        architecture_id=RWKV7_REFERENCE_ARCHITECTURE_ID,
+        entries=tuple(
+            ParameterTreeLayoutEntry(
+                logical_path=item.path,
+                jax_keypath=tuple(item.path.split(".")),
+                shape=item.shape,
+                dtype=item.dtype,
+                role=item.role,
+                region_ids=item.region_ids,
+                trainable=item.trainable_by_default,
+                exportable=False,
+                metadata=dict(item.metadata),
+            )
+            for item in catalog.parameters
+        ),
+    )
+
+
+def initialization_parameter_slots(
+    config: ArchitectureConfig | None = None,
+) -> tuple[str, ...]:
     """Return fixed architecture-owned slots for deterministic initialization."""
 
-    return parameter_catalog().paths
+    return parameter_catalog(config).paths
 
 
 def carry_descriptor() -> dict[str, object]:
@@ -456,9 +519,30 @@ def architecture_metadata() -> ArchitectureMetadata:
 def hf_descriptor(config: ArchitectureConfig) -> HFCompatibilityDescriptor:
     """Project static architecture identity without claiming HF conversion."""
 
-    validate_reference_config(config)
-    catalog = parameter_catalog()
-    layout = parameter_layout()
+    validate_rwkv7_config(config)
+    catalog = parameter_catalog(config)
+    layout = parameter_layout(config)
+    identities = language_identities(config)
+    if identities is None:
+        tokenizer = HFTokenizerIdentity(
+            "rwkv7_reference_fixture_tokenizer",
+            "not_claimed",
+            _digest({"tokenizer": "not_claimed"}),
+            _digest({"config": "not_claimed"}),
+            "fixture_only",
+            _digest({"normalization": "not_claimed"}),
+            "synthetic",
+        )
+        vocabulary = HFVocabularyIdentity(
+            RWKV7_REFERENCE_VOCABULARY_SIZE,
+            _digest({"fixture_vocabulary_size": RWKV7_REFERENCE_VOCABULARY_SIZE}),
+            _digest({"fixture_token_mapping": "not_claimed"}),
+            _digest({"added_tokens": []}),
+            None,
+        )
+        special_tokens = HFSpecialTokenIdentity(None, None, None, None, None)
+    else:
+        tokenizer, vocabulary, special_tokens = identities
     return HFCompatibilityDescriptor(
         schema_version="hf_compatibility_descriptor.v2",
         architecture_id=RWKV7_REFERENCE_ARCHITECTURE_ID,
@@ -467,23 +551,9 @@ def hf_descriptor(config: ArchitectureConfig) -> HFCompatibilityDescriptor:
         architecture_config_digest=_digest(config.to_dict()),
         parameter_catalog_digest=_digest(catalog.to_dict()),
         parameter_layout_digest=layout.digest(),
-        tokenizer=HFTokenizerIdentity(
-            "rwkv7_reference_fixture_tokenizer",
-            "not_claimed",
-            _digest({"tokenizer": "not_claimed"}),
-            _digest({"config": "not_claimed"}),
-            "fixture_only",
-            _digest({"normalization": "not_claimed"}),
-            "synthetic",
-        ),
-        vocabulary=HFVocabularyIdentity(
-            RWKV7_REFERENCE_VOCABULARY_SIZE,
-            _digest({"fixture_vocabulary_size": RWKV7_REFERENCE_VOCABULARY_SIZE}),
-            _digest({"fixture_token_mapping": "not_claimed"}),
-            _digest({"added_tokens": []}),
-            None,
-        ),
-        special_tokens=HFSpecialTokenIdentity(None, None, None, None, None),
+        tokenizer=tokenizer,
+        vocabulary=vocabulary,
+        special_tokens=special_tokens,
         parameter_projections=tuple(
             HFParameterProjection(
                 entry.logical_path,
@@ -503,8 +573,8 @@ def hf_descriptor(config: ArchitectureConfig) -> HFCompatibilityDescriptor:
             "rwkv7_reference",
             RWKV7_REFERENCE_HIDDEN_SIZE,
             RWKV7_REFERENCE_LAYER_COUNT,
-            RWKV7_REFERENCE_VOCABULARY_SIZE,
-            RWKV7_REFERENCE_CONTEXT_LENGTH,
+            vocabulary.vocabulary_size,
+            config.sequence_length,
             dict(config.model_config),
         ),
         non_claims=(
@@ -531,5 +601,6 @@ __all__ = [
     "initialization_parameter_slots",
     "parameter_catalog",
     "parameter_layout",
+    "parameter_layout_for_vocabulary",
     "pinned_numpy_parameter_order",
 ]
