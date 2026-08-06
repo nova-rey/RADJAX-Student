@@ -38,6 +38,17 @@ _NATIVE_V3_PAYLOAD_EXPORTS = frozenset(
         "load_native_v3_student_payloads",
     }
 )
+_NATIVE_V3_V6_EXPORTS = frozenset(
+    {
+        "NATIVE_V3_STUDENT_V6_PROFILE",
+        "NativeV3V6BehavioralProjection",
+        "NativeV3V6Component",
+        "NativeV3V6JsonResource",
+        "NativeV3V6MultipartResource",
+        "NativeV3V6ProjectionError",
+        "open_native_v3_v6_behavioral_projection",
+    }
+)
 
 
 def __getattr__(name: str):
@@ -48,6 +59,9 @@ def __getattr__(name: str):
         return getattr(module, name)
     if name in _NATIVE_V3_PAYLOAD_EXPORTS:
         module = import_module("radjax_student.artifacts.native_v3_payloads")
+        return getattr(module, name)
+    if name in _NATIVE_V3_V6_EXPORTS:
+        module = import_module("radjax_student.artifacts.native_v3_v6")
         return getattr(module, name)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
@@ -77,5 +91,12 @@ __all__ = [
     "NativeV3StudentPayloadView",
     "NativeV3PayloadError",
     "load_native_v3_student_payloads",
+    "NATIVE_V3_STUDENT_V6_PROFILE",
+    "NativeV3V6BehavioralProjection",
+    "NativeV3V6Component",
+    "NativeV3V6JsonResource",
+    "NativeV3V6MultipartResource",
+    "NativeV3V6ProjectionError",
+    "open_native_v3_v6_behavioral_projection",
     "open_tome_artifact",
 ]

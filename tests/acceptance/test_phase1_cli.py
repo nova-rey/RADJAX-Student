@@ -110,7 +110,7 @@ def test_doctor_proves_pipeline_and_honest_expected_failure() -> None:
     assert report.student_package.package == "radjax-student"
     assert report.contract_package.package == "radjax-contract"
     assert report.student_package.version in {None, "0.1.0"}
-    assert report.contract_package.version == "0.1.0"
+    assert report.contract_package.version == "0.8.3"
     assert payload["canonical_fixture_helper_available"] is True
     assert payload["actual_fixture_digest"] == ACCEPTED_FIXTURE_DIGEST
     assert payload["fixture_opens"] is True

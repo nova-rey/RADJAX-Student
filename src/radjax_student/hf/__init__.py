@@ -15,6 +15,11 @@ from radjax_student.hf.contracts import (
     HFTokenizerIdentity,
     HFVocabularyIdentity,
 )
+from radjax_student.hf.language_projection import (
+    HF_LANGUAGE_PROJECTION_V1,
+    HFLanguageProjectionV1,
+    project_hf_language_binding,
+)
 
 __all__ = [
     "HFArchitectureProjection",
@@ -26,4 +31,7 @@ __all__ = [
     "HFSpecialTokenIdentity",
     "HFTokenizerIdentity",
     "HFVocabularyIdentity",
+    "HF_LANGUAGE_PROJECTION_V1",
+    "HFLanguageProjectionV1",
+    "project_hf_language_binding",
 ]

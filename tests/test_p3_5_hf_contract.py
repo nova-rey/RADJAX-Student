@@ -137,9 +137,15 @@ def test_descriptor_rejects_duplicate_projection_paths_and_hf_keys():
         _descriptor(parameter_projections=(first, duplicate_key))
 
 
-def test_special_tokens_are_unique_and_within_vocabulary():
-    with pytest.raises(HFCompatibilityError, match="assignments conflict"):
-        _descriptor(special_tokens=HFSpecialTokenIdentity(None, 0, 0, None, None))
+def test_special_tokens_allow_only_eos_pad_alias_and_stay_within_vocabulary():
+    descriptor = _descriptor(
+        special_tokens=HFSpecialTokenIdentity(None, 0, 0, None, None)
+    )
+    assert (
+        descriptor.special_tokens.eos_token_id == descriptor.special_tokens.pad_token_id
+    )
+    with pytest.raises(HFCompatibilityError, match="only EOS/PAD may alias"):
+        _descriptor(special_tokens=HFSpecialTokenIdentity(0, 0, None, None, None))
     with pytest.raises(HFCompatibilityError, match="outside vocabulary"):
         _descriptor(special_tokens=HFSpecialTokenIdentity(None, 8, 0, None, None))
 

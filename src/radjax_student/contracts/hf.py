@@ -286,11 +286,27 @@ class HFSpecialTokenIdentity:
                 "hf_special_token_identity_invalid",
                 "additional special token IDs must be unique",
             )
-        present = [value for value in values if value is not None]
-        if len(present) != len(set(present)):
+        named = {
+            "bos": self.bos_token_id,
+            "eos": self.eos_token_id,
+            "pad": self.pad_token_id,
+            "unk": self.unk_token_id,
+            "mask": self.mask_token_id,
+        }
+        aliases = {
+            value: tuple(name for name, token_id in named.items() if token_id == value)
+            for value in set(value for value in named.values() if value is not None)
+        }
+        if any(names != ("eos", "pad") for names in aliases.values() if len(names) > 1):
             raise HFContractError(
                 "hf_special_token_identity_invalid",
-                "special token assignments conflict",
+                "only EOS/PAD may alias",
+            )
+        additional = tuple(self.additional_special_token_ids)
+        if any(value in aliases for value in additional):
+            raise HFContractError(
+                "hf_special_token_identity_invalid",
+                "additional special token assignments conflict",
             )
         object.__setattr__(self, "additional_special_token_ids", actual)
 

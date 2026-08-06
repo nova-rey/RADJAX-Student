@@ -33,7 +33,7 @@ from .support import (
     rename_indexed_content,
 )
 
-CONTRACT_RECEIPT_COMMIT = "ff8f6e9af976fc599ee31173d4f177fb1250b4d7"
+CONTRACT_RECEIPT_COMMIT = "a33a0a0d90a57e5cd67155c01f054d3e7a04dc0d"
 
 
 def test_canonical_fixture_and_dependency_pin_match_accepted_receipt() -> None:

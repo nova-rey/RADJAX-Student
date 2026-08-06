@@ -62,3 +62,22 @@ own scope and verification but never its own commit SHA.
   train/held-out splits and architecture-neutral materialized batches. P5.2
   does not claim fixture persistence, training execution, or model quality.
 - **Next checkpoint:** P5.3 — Generic Behavioral Batch Materialization.
+
+## P5.3 — Contract v6 Behavioral Authority Projection
+
+- **Status:** complete.
+- **Changed-file summary:** exact Contract v0.8.3 pin; strict public v6
+  admission and neutral language projection; complete multipart target and
+  corridor projection; verified JSON authority, JSONL/M7 record projection; focused
+  adversarial checks; checkpoint documentation and `bible.md` evidence.
+- **Tests and verification performed:** strict directory/archive admission and
+  full public projection against the approved Tome fixture; Contract's focused
+  adversarial v6 suite; Student projection unit/adversarial tests; changed-file
+  lint/format checks.
+- **Generic-change decision:** Contract remains the only archive, locator,
+  resource-integrity, and behavioral-semantic owner. Student retains only
+  immutable identity-bearing values and no physical delivery information, after
+  closing the complete seven-resource behavioral-authority role set.
+- **Unresolved non-blocking risks:** P5.4 owns split policy and neutral batch
+  materialization. P5.3 creates neither.
+- **Next checkpoint:** P5.4 — BehaviorSplitPolicyV1 and neutral batches.

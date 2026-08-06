@@ -1336,3 +1336,15 @@
 - The plugin remains stateless; JAX still derives vocabulary range from the
   materialized embedding shape, while configuration supplies only context
   capacity. The frozen 16x4 Phase 4 boundary remains unchanged.
+## 2026-08-06 — P5.3 Contract v6 Behavioral Authority Projection
+
+- Student now pins Contract `a33a0a0d90a57e5cd67155c01f054d3e7a04dc0d`
+  (v0.8.3) and projects only strict `native_v3_student_v6` authority through
+  public Contract APIs.  The projection preserves the Contract language digest,
+  EOS/PAD aliases, complete verified multipart component identities/read-only
+  values, verified JSON authorities, and fully verified JSONL/M7 records
+  without retaining locators or transport paths.  No split, batch, objective,
+  optimizer, pass, checkpoint, or evaluation behavior is added.
+- P5.3 closes exactly the seven admitted behavioral-authority roles before
+  projection and rejects missing, added, duplicate, or substituted resources;
+  the delivery receipt stays non-authority provenance.

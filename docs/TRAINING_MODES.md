@@ -5,6 +5,7 @@ not yet load payload bytes or execute a training mode. Corridor and exemplar
 remain distinct declared surfaces: future P5 passes must execute corridor,
 checkpoint, exemplar, checkpoint, without borrowing behavior from qrwkv-xla.
 
-P5.2 decodes only Contract-verified declared resources into immutable payload
-views. It still makes no dense-target, NumPy-smoke, objective, batching, or
-loss claim; P5.3 owns materialization and later checkpoints own execution.
+P5.2 decodes legacy Contract v4 declared resources into immutable payload
+views. P5.3 separately admits strict Contract v6 authority and projects its
+complete public language, multipart, JSONL, and M7 semantics without a batch,
+objective, or loss claim; later checkpoints own materialization and execution.

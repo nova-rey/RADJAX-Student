@@ -158,6 +158,8 @@ Start here for Phase 0 foundation context.
   non-claims.
 - [Phase 5 Execution Ledger](PHASE_5_EXECUTION_LEDGER.md): append-only Phase 5
   checkpoint record.
+- [P5.3 Contract v6 Behavioral Authority Projection](P5_3_V6_BEHAVIORAL_AUTHORITY_PROJECTION.md):
+  strict archive-safe language and behavioral-resource projection boundary.
 - [P3.5.2 Forward-Result Objective Contract](P3_5_2_FORWARD_RESULT_OBJECTIVE_CONTRACT.md)
 - [P3.5.3 JAX-Native Learning](P3_5_3_JAX_NATIVE_LEARNING.md)
 - [P3.5.4 Architecture Namespace Consolidation](P3_5_4_ARCHITECTURE_NAMESPACE_CONSOLIDATION.md)
