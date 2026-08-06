@@ -161,6 +161,8 @@ Start here for Phase 0 foundation context.
   record.
 - [P5.8 Held-out Evaluation](P5_8_HELD_OUT_EVALUATION.md): deterministic,
   leakage-free held-out behavioral evidence.
+- [P5.9 HF-shaped Proof Package](P5_9_HF_SHAPED_PROOF_PACKAGE.md): canonical,
+  identity-bound Phase 5 proof bytes and explicit nonclaims.
 - [P5.4 Neutral Behavioral Batches](P5_4_NEUTRAL_BEHAVIORAL_BATCHES.md):
   immutable split policy and architecture-neutral materialization boundary.
 - [P5.3 Contract v6 Behavioral Authority Projection](P5_3_V6_BEHAVIORAL_AUTHORITY_PROJECTION.md):

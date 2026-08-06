@@ -1493,3 +1493,26 @@
 
 - Applied the repository Ruff formatter to the P5.6 adversarial authority test;
   this is a formatting-only repair with no behavioral or evidence change.
+
+## 2026-08-06 — P5.9 deterministic HF-shaped proof package
+
+- Added a modular evidence-only package boundary that emits canonical JSON
+  files for the selected neutral architecture configuration, projected HF
+  language identities, complete P5.3–P5.8 provenance and checkpoint lineage,
+  optimizer identity, and held-out evaluation report.
+- The builder requires the strict P5.3 factory attestation and every upstream
+  identity to agree. Sorted file hashes and sizes form the package identity;
+  exact replay and expected-identity loading reject altered bytes or mismatched
+  lineage without retaining locators, temporary paths, archive members, or
+  delivery paths.
+- This remains a deliberately narrow HF-shaped proof, not general HF export,
+  pretrained loading, Phase 6, artifact transport, or quality evidence.
+
+### P5.9 inventory and lineage-evidence repair
+
+- The P5.9 proof tests now pin the exact nine-file inventory and the schema
+  keys for every emitted JSON surface. They mutate every major serialized
+  provenance, checkpoint, split, optimizer, evaluation, policy, and identity
+  field, proving expected-identity loading rejects altered bytes and build-time
+  lineage validation rejects altered P5.8 authority. Package semantics and
+  scope remain unchanged.

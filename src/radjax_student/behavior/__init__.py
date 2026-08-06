@@ -60,6 +60,16 @@ from radjax_student.behavior.policies import (
     BehaviorSplitError,
     BehaviorSplitPolicyV1,
 )
+from radjax_student.behavior.proof_package import (
+    HF_SHAPED_PROOF_PACKAGE_V1,
+    HfShapedProofPackageError,
+    HfShapedProofPackageV1,
+    architecture_config_identity_v1,
+    build_hf_shaped_proof_package_v1,
+    hf_language_projection_identity_v1,
+    load_hf_shaped_proof_package_v1,
+    replay_hf_shaped_proof_package_v1,
+)
 
 __all__ = [
     "BEHAVIOR_SPLIT_POLICY_V1",
@@ -108,4 +118,12 @@ __all__ = [
     "HeldOutEvaluationReportV1",
     "evaluate_held_out_behavior_v1",
     "replay_held_out_evaluation_v1",
+    "HF_SHAPED_PROOF_PACKAGE_V1",
+    "HfShapedProofPackageError",
+    "HfShapedProofPackageV1",
+    "architecture_config_identity_v1",
+    "hf_language_projection_identity_v1",
+    "build_hf_shaped_proof_package_v1",
+    "replay_hf_shaped_proof_package_v1",
+    "load_hf_shaped_proof_package_v1",
 ]

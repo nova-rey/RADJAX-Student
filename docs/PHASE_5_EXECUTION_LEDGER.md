@@ -226,3 +226,28 @@ own scope and verification but never its own commit SHA.
   reconstruction, or `dataclasses.replace` cannot substitute content-equivalent
   projection values as an authority root. The attestation is process-local and
   retains no archive, locator, or delivery-path data.
+
+## P5.9 — Deterministic HF-shaped Proof Package
+
+- **Status:** complete.
+- **Changed-file summary:** a narrow canonical proof-package boundary,
+  deterministic package/replay/load tests, P5.9 documentation, index, this
+  ledger, and `bible.md`.
+- **Tests and verification performed:** factory-attested P5.3 through P5.8
+  lineage binding; deterministic bytes and inventory hashes; exact replay and
+  load; altered-byte, altered-lineage, and reconstructed-projection rejection.
+- **Generic-change decision:** none. This produces evidence-only JSON from
+  existing immutable values; it changes no artifact admission, model,
+  tokenizer, optimizer, training, evaluation, HF export, or loading behavior.
+- **Unresolved non-blocking risks:** the package is not a general HF export or
+  pretrained loader, and does not claim quality, generalization, or Phase 6.
+- **Next checkpoint:** none authorized by P5.9.
+
+### P5.9 inventory and lineage-evidence repair
+
+- The focused P5.9 tests now assert the literal nine-file inventory and every
+  emitted JSON schema key. They independently mutate each major serialized
+  provenance, identity, checkpoint, split, optimizer, evaluation, and policy
+  field, requiring expected-identity loading or build-time lineage validation
+  to fail. This is test-only evidence strengthening; package scope and bytes
+  on ordinary input are unchanged.
