@@ -20,6 +20,7 @@ from radjax_student.behavior.exemplar_pass import (
     EXEMPLAR_PASS_ID_V1,
     ExemplarCheckpointV1,
 )
+from radjax_student.behavior.jax_pass_adapter import materialize_behavior_jax_inputs_v1
 from radjax_student.behavior.models import (
     BehavioralBatchesV1,
     CorridorBatchV1,
@@ -174,8 +175,6 @@ def evaluate_held_out_behavior_v1(
         corridor_checkpoint,
         final_checkpoint,
     )
-    import jax.numpy as jnp
-
     coordinates = _held_out_coordinates(held_out_corridor)
     passports = _held_out_passports(held_out_exemplars)
     if (
@@ -190,21 +189,19 @@ def evaluate_held_out_behavior_v1(
             "held-out exemplar evidence is incomplete or substituted"
         )
     final_identity = final_checkpoint.identity
-    corridor_logits = forward(
-        final_checkpoint.parameters,
-        jnp.asarray(held_out_corridor.input_ids),
-        jnp.asarray(held_out_corridor.attention_mask),
+    corridor_inputs = materialize_behavior_jax_inputs_v1(
+        held_out_corridor.input_ids, held_out_corridor.attention_mask
     )
+    corridor_logits = forward(final_checkpoint.parameters, *corridor_inputs)
     _, corridor_metrics = corridor_objective_v1(
         corridor_logits,
         held_out_corridor,
         policy=DEFAULT_BEHAVIORAL_OBJECTIVE_POLICY_V1,
     )
-    exemplar_logits = forward(
-        final_checkpoint.parameters,
-        jnp.asarray(held_out_exemplars.input_ids),
-        jnp.asarray(held_out_exemplars.attention_mask),
+    exemplar_inputs = materialize_behavior_jax_inputs_v1(
+        held_out_exemplars.input_ids, held_out_exemplars.attention_mask
     )
+    exemplar_logits = forward(final_checkpoint.parameters, *exemplar_inputs)
     _, exemplar_metrics = exemplar_coarse_cross_entropy_v1(
         exemplar_logits, held_out_exemplars
     )

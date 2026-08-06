@@ -42,6 +42,7 @@ def test_base_package_imports_are_pure_in_fresh_subprocesses():
     for module in (
         "radjax_student",
         "radjax_student.architecture",
+        "radjax_student.behavior",
         "radjax_student.learning",
     ):
         assert _fresh_import(module).isdisjoint(FORBIDDEN), module

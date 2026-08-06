@@ -20,6 +20,11 @@ from radjax_student.artifacts.native_v3_v6 import (
     NativeV3V6ProjectionError,
     _require_admitted_native_v3_v6_projection,
 )
+from radjax_student.behavior.jax_pass_adapter import (
+    execute_behavior_jax_pass_v1,
+    jax_tree_digest_payload_v1,
+    jax_tree_leaves_v1,
+)
 from radjax_student.behavior.models import BehavioralBatchesV1, CorridorBatchV1
 from radjax_student.behavior.objectives import (
     BEHAVIOR_OBJECTIVE_REDUCTION_V1,
@@ -215,9 +220,6 @@ def run_corridor_pass_v1(
             "corridor optimizer state does not match supplied optimizer"
         ) from exc
 
-    import jax
-    import jax.numpy as jnp
-
     ordered = _ordered_batch(batch)
     coordinates = tuple(
         (ordered.example_ids[int(row)], int(position), int(mode))
@@ -226,18 +228,19 @@ def run_corridor_pass_v1(
         )
     )
 
-    def loss_fn(candidate: Any) -> Any:
-        logits = forward(
-            candidate,
-            jnp.asarray(ordered.input_ids),
-            jnp.asarray(ordered.attention_mask),
-        )
+    def objective(logits: Any) -> Any:
         return corridor_objective_v1(logits, ordered, policy=policy)[0]
 
-    loss, gradients = jax.value_and_grad(loss_fn)(parameters)
-    loss_value = float(loss)
-    leaves = jax.tree_util.tree_leaves(gradients)
-    gradient_norm = float(jnp.sqrt(sum(jnp.sum(leaf**2) for leaf in leaves)))
+    computation = execute_behavior_jax_pass_v1(
+        parameters=parameters,
+        input_ids=ordered.input_ids,
+        attention_mask=ordered.attention_mask,
+        forward=forward,
+        objective=objective,
+    )
+    loss_value = float(computation.loss)
+    gradients = computation.gradients
+    gradient_norm = computation.gradient_norm
     if (
         not np.isfinite(loss_value)
         or not np.isfinite(gradient_norm)
@@ -259,7 +262,7 @@ def run_corridor_pass_v1(
         path
         for path, leaf in zip(
             parameter_layout.logical_paths,
-            jax.tree_util.tree_leaves(changed),
+            jax_tree_leaves_v1(changed),
             strict=True,
         )
         if bool(leaf)
@@ -400,11 +403,4 @@ def _digest(value: object) -> str:
 
 
 def _tree_digest(value: Any) -> str:
-    import jax
-
-    leaves, structure = jax.tree_util.tree_flatten(value)
-    payload = {
-        "structure": str(structure),
-        "leaves": [np.asarray(leaf).tolist() for leaf in leaves],
-    }
-    return _digest(payload)
+    return _digest(jax_tree_digest_payload_v1(value))

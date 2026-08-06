@@ -1516,3 +1516,17 @@
   field, proving expected-identity loading rejects altered bytes and build-time
   lineage validation rejects altered P5.8 authority. Package semantics and
   scope remain unchanged.
+
+## 2026-08-06 — P6.1 Baseline Scale Characterization and JAX Ownership
+
+- The Phase 6 baseline separates a polluted installed-Contract fixture from
+  the actual category-A ownership defect: three behavior policy modules had
+  direct JAX imports. `BehaviorJaxPassAdapterV1` now provides the narrow lazy
+  execution mechanics required by existing P5 corridor, exemplar, and held-out
+  paths, without artifacts, checkpoints, optimizer policy, or architecture
+  identity. The P3.5 audit and dependent receipts were regenerated.
+- The CPU raw baseline records configured direct-forward probes, compile/first/
+  steady timing, B=2 rejection, and fresh-subprocess materialization residency.
+  The generic lifecycle remains unqualified and configurable V/T lifecycle
+  layout incompatibility is deferred to P6.3; no scale, accelerator, batching,
+  or equation-generalization claim is added.

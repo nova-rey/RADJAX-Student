@@ -16,6 +16,11 @@ from typing import Any
 import numpy as np
 
 from radjax_student.behavior.corridor_pass import CorridorCheckpointV1
+from radjax_student.behavior.jax_pass_adapter import (
+    execute_behavior_jax_pass_v1,
+    jax_tree_digest_payload_v1,
+    jax_tree_leaves_v1,
+)
 from radjax_student.behavior.models import ExemplarBatchV1
 from radjax_student.behavior.objectives import exemplar_coarse_cross_entropy_v1
 from radjax_student.contracts import ParameterTreeLayout
@@ -196,19 +201,16 @@ def run_exemplar_pass_v1(
         ) from exc
 
     ordered_keys = _validate_canonical_passports(batch)
-    import jax
-    import jax.numpy as jnp
-
-    def loss_fn(candidate: Any) -> Any:
-        logits = forward(
-            candidate, jnp.asarray(batch.input_ids), jnp.asarray(batch.attention_mask)
-        )
-        return exemplar_coarse_cross_entropy_v1(logits, batch)[0]
-
-    loss, gradients = jax.value_and_grad(loss_fn)(predecessor.parameters)
-    loss_value = float(loss)
-    leaves = jax.tree_util.tree_leaves(gradients)
-    gradient_norm = float(jnp.sqrt(sum(jnp.sum(leaf**2) for leaf in leaves)))
+    computation = execute_behavior_jax_pass_v1(
+        parameters=predecessor.parameters,
+        input_ids=batch.input_ids,
+        attention_mask=batch.attention_mask,
+        forward=forward,
+        objective=lambda logits: exemplar_coarse_cross_entropy_v1(logits, batch)[0],
+    )
+    loss_value = float(computation.loss)
+    gradients = computation.gradients
+    gradient_norm = computation.gradient_norm
     if (
         not np.isfinite(loss_value)
         or not np.isfinite(gradient_norm)
@@ -230,7 +232,7 @@ def run_exemplar_pass_v1(
         path
         for path, leaf in zip(
             parameter_layout.logical_paths,
-            jax.tree_util.tree_leaves(changed),
+            jax_tree_leaves_v1(changed),
             strict=True,
         )
         if bool(leaf)
@@ -346,12 +348,4 @@ def _digest(value: object) -> str:
 
 
 def _tree_digest(value: Any) -> str:
-    import jax
-
-    leaves, structure = jax.tree_util.tree_flatten(value)
-    return _digest(
-        {
-            "structure": str(structure),
-            "leaves": [np.asarray(leaf).tolist() for leaf in leaves],
-        }
-    )
+    return _digest(jax_tree_digest_payload_v1(value))
