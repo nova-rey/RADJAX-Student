@@ -1,5 +1,16 @@
 """Neutral behavioral split and batch materialization boundary (P5.4)."""
 
+from radjax_student.behavior.corridor_pass import (
+    CORRIDOR_BATCHING_POLICY_V1,
+    CORRIDOR_ORDERING_POLICY_V1,
+    CORRIDOR_PASS_ID_V1,
+    CorridorCheckpointV1,
+    CorridorPassError,
+    CorridorPassResultV1,
+    CorridorRunBindingV1,
+    replay_corridor_pass_v1,
+    run_corridor_pass_v1,
+)
 from radjax_student.behavior.materialize import (
     BehavioralMaterializationError,
     materialize_behavioral_batches_v1,
@@ -50,4 +61,13 @@ __all__ = [
     "materialize_behavioral_batches_v1",
     "corridor_objective_v1",
     "exemplar_coarse_cross_entropy_v1",
+    "CORRIDOR_BATCHING_POLICY_V1",
+    "CORRIDOR_ORDERING_POLICY_V1",
+    "CORRIDOR_PASS_ID_V1",
+    "CorridorCheckpointV1",
+    "CorridorPassError",
+    "CorridorPassResultV1",
+    "CorridorRunBindingV1",
+    "replay_corridor_pass_v1",
+    "run_corridor_pass_v1",
 ]

@@ -123,3 +123,23 @@ own scope and verification but never its own commit SHA.
 - **Unresolved non-blocking risks:** P5.6 alone owns the training-partition
   corridor pass and its checkpoint. P5.5 makes no pass or quality claim.
 - **Next checkpoint:** P5.6 — Corridor Training Pass and Checkpoint.
+
+## P5.6 — Corridor Training Pass and Checkpoint
+
+- **Status:** complete.
+- **Changed-file summary:** architecture-neutral training-only corridor pass,
+  identity-bound resumable checkpoint, focused adversarial/replay evidence,
+  P5.6 boundary documentation, and this ledger.
+- **Tests and verification performed:** JAX-enabled P5.4–P5.6 focused suite;
+  corridor finite-loss/nonzero-gradient/parameter-update proof; canonical
+  traversal and exact replay; held-out, changed-binding, and foreign optimizer
+  state rejection. The checkpoint binds the validated optimizer envelope and
+  JAX descriptor identity as well as Contract/Tome/receipt, language/HF,
+  behavioral, architecture, split, ordering, batching, policy/reduction, and
+  pass cursor identities.
+- **Generic-change decision:** none. The pass takes a neutral batch and a
+  caller-owned forward function; it has no artifact transport, tokenizer,
+  passport, or architecture-specific behavior.
+- **Unresolved non-blocking risks:** P5.7 alone owns exemplar continuation.
+  P5.6 makes no exemplar, evaluation, package, quality, or readiness claim.
+- **Next checkpoint:** P5.7 — Sequential Exemplar Pass and Final Checkpoint.

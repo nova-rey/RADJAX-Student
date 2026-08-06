@@ -1383,3 +1383,25 @@
   objective families. A verified update gate rejects NaN/Inf before parameter
   or optimizer state leaves the execution boundary. This adds no architecture specialization, training pass,
   behavioral checkpoint, evaluation, or package claim.
+
+## 2026-08-06 — P5.6 Deterministic Corridor Pass
+
+- The architecture-neutral corridor pass consumes only a training-partition
+  `CorridorBatchV1` through a caller-provided forward function and the
+  production-qualified JAX SGD boundary. It canonicalizes traversal by UTF-8
+  example ID, position, and mode, rejects held-out batches, and proves finite
+  loss, finite nonzero gradients, and an actual scoped parameter update.
+- Its replayable continuation checkpoint binds the approved Contract/Tome
+  revisions and receipt, language/HF and behavioral identities, architecture,
+  split, ordering, batching, objective/reduction, optimizer state, and the
+  `corridor_v1` epoch/cursor. It makes no exemplar-pass, evaluation, package,
+  quality, or architecture-specific claim.
+
+## 2026-08-06 — P5.6 Optimizer Identity Audit Repair
+
+- The P5.6 execution boundary now validates the supplied JAX optimizer state
+  envelope and descriptor against the actual SGD backend before numerical
+  updates. The corridor checkpoint identity explicitly includes that optimizer
+  identity and descriptor, and adversarial evidence rejects a state created by
+  another backend identity. The Phase 5 ledger now records P5.6 completion and
+  authorizes P5.7 as the next checkpoint.
