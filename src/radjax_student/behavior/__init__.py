@@ -13,6 +13,15 @@ from radjax_student.behavior.models import (
     ModeStatisticBoundsV1,
     SparseTargetV1,
 )
+from radjax_student.behavior.objectives import (
+    BEHAVIOR_OBJECTIVE_POLICY_V1,
+    BEHAVIOR_OBJECTIVE_REDUCTION_V1,
+    DEFAULT_BEHAVIORAL_OBJECTIVE_POLICY_V1,
+    BehavioralObjectiveError,
+    BehavioralObjectivePolicyV1,
+    corridor_objective_v1,
+    exemplar_coarse_cross_entropy_v1,
+)
 from radjax_student.behavior.policies import (
     BEHAVIOR_SPLIT_POLICY_V1,
     BEHAVIOR_SPLIT_RULE_VERSION_V1,
@@ -23,6 +32,11 @@ from radjax_student.behavior.policies import (
 __all__ = [
     "BEHAVIOR_SPLIT_POLICY_V1",
     "BEHAVIOR_SPLIT_RULE_VERSION_V1",
+    "BEHAVIOR_OBJECTIVE_POLICY_V1",
+    "BEHAVIOR_OBJECTIVE_REDUCTION_V1",
+    "DEFAULT_BEHAVIORAL_OBJECTIVE_POLICY_V1",
+    "BehavioralObjectiveError",
+    "BehavioralObjectivePolicyV1",
     "BehaviorSplitError",
     "BehaviorSplitPolicyV1",
     "BehaviorSplitV1",
@@ -34,4 +48,6 @@ __all__ = [
     "ModeStatisticBoundsV1",
     "SparseTargetV1",
     "materialize_behavioral_batches_v1",
+    "corridor_objective_v1",
+    "exemplar_coarse_cross_entropy_v1",
 ]

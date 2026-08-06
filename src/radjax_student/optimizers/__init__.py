@@ -1,4 +1,4 @@
-"""Architecture-independent optimizer contracts and a test-only SGD backend."""
+"""Architecture-independent optimizer contracts and scoped SGD backend."""
 
 from radjax_student.optimizers.errors import (
     OPTIMIZER_ERROR_CODES,
@@ -9,6 +9,7 @@ from radjax_student.optimizers.errors import (
 from radjax_student.optimizers.jax import (
     JaxOptimizerState,
     advanced_jax_optimizer_state,
+    apply_verified_jax_updates,
     require_finite_jax_gradients,
     validate_jax_optimizer_state,
 )
@@ -68,6 +69,7 @@ __all__ = [
     "ParameterUpdate",
     "SgdOptimizer",
     "advanced_jax_optimizer_state",
+    "apply_verified_jax_updates",
     "canonical_optimizer_json",
     "require_finite_jax_gradients",
     "validate_jax_optimizer_state",

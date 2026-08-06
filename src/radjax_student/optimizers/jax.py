@@ -122,6 +122,36 @@ def require_finite_jax_gradients(metrics: Mapping[str, Any]) -> None:
         )
 
 
+def apply_verified_jax_updates(
+    *,
+    optimizer: JaxOptimizerBackend,
+    parameters: Any,
+    gradients: Any,
+    optimizer_array_state: Any,
+    update_mask: Any,
+    config: Any,
+    schedule_values: dict[str, Any],
+) -> tuple[Any, Any, Any, dict[str, Any]]:
+    """Run SGD's numerical update only through the finite-result admission gate.
+
+    The optimizer's pure JAX function may calculate candidate leaves, but they
+    never cross this public execution boundary when gradients or the schedule
+    are invalid.  Callers therefore cannot advance parameter or optimizer
+    state from NaN/Inf behavioral gradients.
+    """
+
+    result = optimizer.apply_jax_updates(
+        parameters=parameters,
+        gradients=gradients,
+        optimizer_array_state=optimizer_array_state,
+        update_mask=update_mask,
+        config=config,
+        schedule_values=schedule_values,
+    )
+    require_finite_jax_gradients(result[3])
+    return result
+
+
 def _mapping_leaves(
     value: Any, prefix: tuple[str, ...] = ()
 ) -> dict[tuple[str, ...], Any]:
@@ -145,6 +175,7 @@ def _mapping_leaves(
 
 __all__ = [
     "JaxOptimizerState",
+    "apply_verified_jax_updates",
     "advanced_jax_optimizer_state",
     "require_finite_jax_gradients",
     "validate_jax_optimizer_state",

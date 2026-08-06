@@ -1,7 +1,7 @@
 # P3.12A Objective Identity Contract
 
 Current P3.12A evidence digest:
-`65c54af44a962361acab76428d542527aa82969f38ed0face13cb92124bf5c49`.
+`726964910aece18cd476a1fd8184467d48c1c6ff2abe34f23451d4511c53aeab`.
 
 P3.12A closes the hole where a caller could historically pair an arbitrary
 objective implementation with a free-standing objective string. The canonical
@@ -36,7 +36,7 @@ consumption, distillation, Hugging Face export, model quality, multi-device or
 accelerator-scale training, performance, or Phase 4 implementation.
 
 The current executed evidence digest is
-`65c54af44a962361acab76428d542527aa82969f38ed0face13cb92124bf5c49`.
+`726964910aece18cd476a1fd8184467d48c1c6ff2abe34f23451d4511c53aeab`.
 
 ## P3.12A.1 Authority Closure
 
@@ -77,4 +77,4 @@ Phase 4 local acceptance does not claim remote CI success
 > architecture-plugin ingestion is locally accepted.
 
 Current P3.12A receipt evidence digest:
-`65c54af44a962361acab76428d542527aa82969f38ed0face13cb92124bf5c49`.
+`726964910aece18cd476a1fd8184467d48c1c6ff2abe34f23451d4511c53aeab`.

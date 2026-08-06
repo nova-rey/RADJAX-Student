@@ -101,3 +101,25 @@ own scope and verification but never its own commit SHA.
   objective/SGD behavior. These batches make no learning-quality claim.
 - **Next checkpoint:** P5.5 — independent objective gradients and SGD
   qualification.
+
+## P5.5 — Student Objectives and SGD Qualification
+
+- **Status:** complete.
+- **Changed-file summary:** neutral behavioral objective policy and JAX loss
+  functions; production qualification of the existing `sgd.v1` identity;
+  independent objective/optimizer evidence; checkpoint documentation; and
+  this ledger.
+- **Tests and verification performed:** JIT and autodiff execution of corridor
+  statistics and coarse sparse-tail cross entropy; exact aggregate-tail
+  log-sum-exp proof; malformed declared-outcome rejection; independent
+  corridor and exemplar qualification runs each proving scoped JAX updates,
+  schedule use, NaN/Inf rejection before a candidate state escapes,
+  state-envelope serialization, continuation-checkpoint replay, and
+  deterministic gradients; existing optimizer regression coverage.
+- **Generic-change decision:** none. The objective seam takes only P5.4 neutral
+  values and logits. Existing SGD was qualified in place; no second optimizer,
+  architecture assumption, training pass, checkpoint production, or evaluator
+  was introduced.
+- **Unresolved non-blocking risks:** P5.6 alone owns the training-partition
+  corridor pass and its checkpoint. P5.5 makes no pass or quality claim.
+- **Next checkpoint:** P5.6 — Corridor Training Pass and Checkpoint.

@@ -1,4 +1,4 @@
-"""Pure-Python SGD test backend; it is not a learning loop."""
+"""Scoped SGD backend with pure-Python and JAX execution paths."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from radjax_student.contracts import (
     MetricRecord,
     ParameterTreeLayout,
 )
-from radjax_student.optimizers.errors import OptimizerContractError, OptimizerIssue
+from radjax_student.optimizers.errors import OptimizerContractError
 from radjax_student.optimizers.models import (
     OptimizerCapabilityProfile,
     OptimizerConfig,
@@ -38,7 +38,7 @@ SGD_CAPABILITIES: tuple[str, ...] = (
 
 @dataclass(frozen=True)
 class SgdOptimizer:
-    """Scalar-mapping test backend proving update mechanics and scope masking."""
+    """Minimal production-qualified SGD for declared scoped JAX updates."""
 
     optimizer_id: str = SGD_OPTIMIZER_ID
     optimizer_version: int = 1
@@ -48,7 +48,7 @@ class SgdOptimizer:
             self.optimizer_id,
             self.optimizer_version,
             SGD_CAPABILITIES,
-            metadata={"test_backend": True},
+            metadata={"production_qualified": "p5.5"},
         )
 
     def validate_config(self, config: OptimizerConfig) -> None:
@@ -64,7 +64,7 @@ class SgdOptimizer:
         if config.momentum not in (None, 0.0):
             raise OptimizerContractError(
                 "optimizer_capability_missing",
-                "SGD test backend does not implement momentum",
+                "SGD does not implement momentum",
             )
         if (
             config.gradient_clip_mode != "disabled"
@@ -72,7 +72,7 @@ class SgdOptimizer:
         ):
             raise OptimizerContractError(
                 "optimizer_capability_missing",
-                "SGD test backend declares clipping and weight decay as unavailable",
+                "SGD declares clipping and weight decay as unavailable",
             )
 
     def initialize_state(self, request: OptimizerInitRequest) -> OptimizerInitResult:
@@ -86,7 +86,7 @@ class SgdOptimizer:
                 "step_counter": "integer",
             },
             backend_state={"per_parameter_steps": {path: 0 for path in paths}},
-            metadata={"test_backend": True},
+            metadata={"production_qualified": "p5.5"},
         )
         return OptimizerInitResult(
             state,
@@ -95,12 +95,7 @@ class SgdOptimizer:
                     request.resolved_update_selection.selected_parameter_paths
                 )
             },
-            warnings=(
-                OptimizerIssue(
-                    "optimizer_test_backend",
-                    "SGD is a scalar-mapping test backend, not a training proof.",
-                ),
-            ),
+            warnings=(),
         )
 
     def apply_updates(self, request: OptimizerUpdateRequest) -> OptimizerUpdateResult:
@@ -189,12 +184,7 @@ class SgdOptimizer:
             metrics=(
                 MetricRecord("optimizer.learning_rate", learning_rate, state.step),
             ),
-            warnings=(
-                OptimizerIssue(
-                    "optimizer_partial_update_not_training_proof",
-                    "Scoped SGD update proves masking mechanics only.",
-                ),
-            ),
+            warnings=(),
         )
 
     def describe_state(self, state: OptimizerState) -> OptimizerStateDescriptor:
@@ -208,7 +198,7 @@ class SgdOptimizer:
             state.parameter_paths,
             ("step_counter",),
             len(state.parameter_paths),
-            metadata={"test_backend": True},
+            metadata={"production_qualified": "p5.5"},
         )
 
     def jax_state_descriptor(

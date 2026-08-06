@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "5cff27555b7e90c7f54de2bedd8f2370ba546709",
+  "accepted_commit": "cbc85f03c47686955eacf1f692b7ef942f2ea640",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -217,6 +217,10 @@
     },
     {
       "source": "radjax_student.behavior",
+      "target": "radjax_student.behavior.objectives"
+    },
+    {
+      "source": "radjax_student.behavior",
       "target": "radjax_student.behavior.policies"
     },
     {
@@ -230,6 +234,10 @@
     {
       "source": "radjax_student.behavior.materialize",
       "target": "radjax_student.behavior.policies"
+    },
+    {
+      "source": "radjax_student.behavior.objectives",
+      "target": "radjax_student.behavior.models"
     },
     {
       "source": "radjax_student.behavior.policies",
@@ -1973,7 +1981,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 196,
+  "module_count": 197,
   "modules": [
     {
       "classification": "core",
@@ -2838,17 +2846,21 @@
       "imports": [
         "radjax_student.behavior.materialize",
         "radjax_student.behavior.models",
+        "radjax_student.behavior.objectives",
         "radjax_student.behavior.policies"
       ],
       "internal_edges": [
         "radjax_student.behavior.materialize",
         "radjax_student.behavior.models",
+        "radjax_student.behavior.objectives",
         "radjax_student.behavior.policies"
       ],
       "module": "radjax_student.behavior",
       "owner": "package_boundary",
       "path": "src/radjax_student/behavior/__init__.py",
       "public_exports": [
+        "BEHAVIOR_OBJECTIVE_POLICY_V1",
+        "BEHAVIOR_OBJECTIVE_REDUCTION_V1",
         "BEHAVIOR_SPLIT_POLICY_V1",
         "BEHAVIOR_SPLIT_RULE_VERSION_V1",
         "BehaviorSplitError",
@@ -2856,11 +2868,16 @@
         "BehaviorSplitV1",
         "BehavioralBatchesV1",
         "BehavioralMaterializationError",
+        "BehavioralObjectiveError",
+        "BehavioralObjectivePolicyV1",
         "CorridorBatchV1",
+        "DEFAULT_BEHAVIORAL_OBJECTIVE_POLICY_V1",
         "ExemplarBatchV1",
         "ModeBoundsV1",
         "ModeStatisticBoundsV1",
         "SparseTargetV1",
+        "corridor_objective_v1",
+        "exemplar_coarse_cross_entropy_v1",
         "materialize_behavioral_batches_v1"
       ]
     },
@@ -2919,6 +2936,41 @@
       "owner": "package_boundary",
       "path": "src/radjax_student/behavior/models.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "BehavioralObjectiveError",
+        "BehavioralObjectivePolicyV1"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "importlib",
+        "numpy",
+        "radjax_student.behavior.models",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.behavior.models"
+      ],
+      "module": "radjax_student.behavior.objectives",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/behavior/objectives.py",
+      "public_exports": [
+        "BEHAVIOR_OBJECTIVE_POLICY_V1",
+        "BEHAVIOR_OBJECTIVE_REDUCTION_V1",
+        "BehavioralObjectiveError",
+        "BehavioralObjectivePolicyV1",
+        "DEFAULT_BEHAVIORAL_OBJECTIVE_POLICY_V1",
+        "corridor_objective_v1",
+        "exemplar_coarse_cross_entropy_v1"
+      ]
     },
     {
       "classification": "core",
@@ -5007,6 +5059,7 @@
         "SgdOptimizer",
         "WEIGHT_DECAY_MODES",
         "advanced_jax_optimizer_state",
+        "apply_verified_jax_updates",
         "canonical_optimizer_json",
         "require_finite_jax_gradients",
         "validate_jax_optimizer_state"
@@ -5089,6 +5142,7 @@
       "public_exports": [
         "JaxOptimizerState",
         "advanced_jax_optimizer_state",
+        "apply_verified_jax_updates",
         "require_finite_jax_gradients",
         "validate_jax_optimizer_state"
       ]

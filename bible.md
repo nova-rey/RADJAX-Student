@@ -1368,3 +1368,18 @@
   `65c54af44a962361acab76428d542527aa82969f38ed0face13cb92124bf5c49`.
   The configurable RWKV proof module is marked JAX-only and imports its JAX
   batch surface only inside its JAX test, preserving non-JAX collection.
+
+## 2026-08-06 — P5.5 Behavioral Objectives and Scoped SGD Qualification
+
+- P5.5 adds a delivery-free objective seam over immutable P5.4 batches:
+  Contract-declared corridor statistics use inclusive interval squared outside
+  distance with Student-owned versioned weighting, while sparse exemplars use
+  declared singleton outcomes plus a stable log-sum-exp aggregate tail. No
+  bucket mass is used numerically and no unseen teacher distribution is
+  inferred.
+- The existing `sgd.v1` backend is now production-qualified in place for JAX
+  execution, scoped updates, finite-gradient rejection, schedule values,
+  serializable state envelopes, replay, and deterministic execution on both
+  objective families. A verified update gate rejects NaN/Inf before parameter
+  or optimizer state leaves the execution boundary. This adds no architecture specialization, training pass,
+  behavioral checkpoint, evaluation, or package claim.

@@ -73,7 +73,14 @@ assert main(("inspect", "--tome", str(production_tome_fixture_path()))) == 1
         cwd=REPO_ROOT,
         capture_output=True,
         text=True,
-        env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "src")},
+        env={
+            **os.environ,
+            "PYTHONPATH": os.pathsep.join(
+                entry
+                for entry in (os.environ.get("PYTHONPATH", ""), str(REPO_ROOT / "src"))
+                if entry
+            ),
+        },
         check=False,
     )
 

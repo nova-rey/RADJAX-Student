@@ -732,7 +732,7 @@ def _check_import_purity(root: Path) -> GateCheck:
         result = subprocess.run(
             [sys.executable, "-c", script],
             cwd=root,
-            env={**os.environ, "PYTHONPATH": str(root / "src")},
+            env={**os.environ, "PYTHONPATH": _pythonpath_with_source(root)},
             capture_output=True,
             text=True,
             check=False,
@@ -748,6 +748,14 @@ def _check_import_purity(root: Path) -> GateCheck:
     return _check_success(
         modules=("radjax_student", "architecture", "learning", "steps")
     )
+
+
+def _pythonpath_with_source(root: Path) -> str:
+    """Retain an authoritative caller source prefix for child Python checks."""
+
+    inherited = os.environ.get("PYTHONPATH", "")
+    entries = [entry for entry in (inherited, str(root / "src")) if entry]
+    return os.pathsep.join(entries)
 
 
 @dataclass(frozen=True)
