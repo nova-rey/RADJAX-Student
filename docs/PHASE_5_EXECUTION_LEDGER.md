@@ -143,3 +143,21 @@ own scope and verification but never its own commit SHA.
 - **Unresolved non-blocking risks:** P5.7 alone owns exemplar continuation.
   P5.6 makes no exemplar, evaluation, package, quality, or readiness claim.
 - **Next checkpoint:** P5.7 — Sequential Exemplar Pass and Final Checkpoint.
+
+## P5.7 — Sequential Exemplar Pass and Final Checkpoint
+
+- **Status:** complete.
+- **Changed-file summary:** architecture-neutral exemplar-only continuation,
+  final identity-bound checkpoint, adversarial/replay evidence, P5.7 boundary
+  documentation, and this ledger.
+- **Tests and verification performed:** JAX-enabled P5.6-to-P5.7 sequential
+  execution; finite loss/nonzero gradient/parameter update; exact model,
+  optimizer, and checkpoint replay; wrong predecessor, changed authority or
+  architecture, held-out batch, reordered passports, and mixed objective
+  rejection.
+- **Generic-change decision:** none. The pass consumes a neutral batch plus a
+  caller-owned forward function and P5.6 state; it has no archive, locator,
+  tokenizer, or architecture-specific behavior.
+- **Unresolved non-blocking risks:** P5.8 alone owns held-out evaluation. P5.7
+  makes no evaluation, package, quality, or readiness claim.
+- **Next checkpoint:** P5.8 — Held-out Evaluation.

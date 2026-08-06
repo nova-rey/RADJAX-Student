@@ -1405,3 +1405,21 @@
   identity and descriptor, and adversarial evidence rejects a state created by
   another backend identity. The Phase 5 ledger now records P5.6 completion and
   authorizes P5.7 as the next checkpoint.
+
+## 2026-08-06 — P5.7 Sequential Exemplar Pass and Final Checkpoint
+
+- The architecture-neutral exemplar pass now resumes only the exact accepted
+  P5.6 corridor checkpoint. Its final `exemplar_v1` checkpoint binds the
+  predecessor identity, independent cursor, full continued authority/split/
+  source/policy/architecture identities, optimizer state, and model state.
+- It rejects wrong predecessors, continuity changes, held-out batches,
+  reordered passports, and mixed objectives. Exact replay proves the same
+  parameters, optimizer state, and checkpoint identity without introducing
+  archive, locator, tokenizer, or architecture-specific behavior.
+
+### P5.7 acceptance repair
+
+- The exemplar-pass public boundary now explicitly rejects every non-
+  `ExemplarBatchV1` input, including a `CorridorBatchV1`, before accessing
+  batch fields. Focused regression evidence requires `ExemplarPassError` for
+  that mixed-surface submission.

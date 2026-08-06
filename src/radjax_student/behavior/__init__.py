@@ -11,6 +11,18 @@ from radjax_student.behavior.corridor_pass import (
     replay_corridor_pass_v1,
     run_corridor_pass_v1,
 )
+from radjax_student.behavior.exemplar_pass import (
+    EXEMPLAR_BATCHING_POLICY_V1,
+    EXEMPLAR_OBJECTIVE_POLICY_V1,
+    EXEMPLAR_ORDERING_POLICY_V1,
+    EXEMPLAR_PASS_ID_V1,
+    ExemplarCheckpointV1,
+    ExemplarPassError,
+    ExemplarPassResultV1,
+    ExemplarRunBindingV1,
+    replay_exemplar_pass_v1,
+    run_exemplar_pass_v1,
+)
 from radjax_student.behavior.materialize import (
     BehavioralMaterializationError,
     materialize_behavioral_batches_v1,
@@ -70,4 +82,14 @@ __all__ = [
     "CorridorRunBindingV1",
     "replay_corridor_pass_v1",
     "run_corridor_pass_v1",
+    "EXEMPLAR_BATCHING_POLICY_V1",
+    "EXEMPLAR_OBJECTIVE_POLICY_V1",
+    "EXEMPLAR_ORDERING_POLICY_V1",
+    "EXEMPLAR_PASS_ID_V1",
+    "ExemplarCheckpointV1",
+    "ExemplarPassError",
+    "ExemplarPassResultV1",
+    "ExemplarRunBindingV1",
+    "replay_exemplar_pass_v1",
+    "run_exemplar_pass_v1",
 ]
