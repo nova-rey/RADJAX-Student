@@ -1348,3 +1348,23 @@
 - P5.3 closes exactly the seven admitted behavioral-authority roles before
   projection and rejects missing, added, duplicate, or substituted resources;
   the delivery receipt stays non-authority provenance.
+
+## 2026-08-06 — P5.4 Neutral Behavioral Batch Materialization
+
+- `BehaviorSplitPolicyV1` now partitions only stable example IDs, binds its
+  complete UTF-8-ordered mapping to the P5.3 behavioral-source identity, and
+  rejects insufficient exemplar coverage. The refreshed fixture maps
+  `corpus_000000001` and `corpus_000000002` to training and
+  `corpus_000000003` and `corpus_000000004` to held-out evaluation.
+- The new `radjax_student.behavior` boundary consumes immutable P5.3 values
+  and emits read-only neutral corridor/exemplar tensors, coordinates,
+  complete validated Contract mode/statistic bounds, weights, sparse target
+  distributions, and passports. It retains no artifact or physical-delivery
+  information and adds no objective,
+  optimizer, pass, checkpoint, architecture, or evaluation behavior.
+- P5.4's same-checkpoint evidence amendment regenerated the source-inventory
+  dependent P3.5, P3.11.10, and P3.12A-D receipts after the new behavior
+  package landed. P3.12A's documented receipt digest is now
+  `65c54af44a962361acab76428d542527aa82969f38ed0face13cb92124bf5c49`.
+  The configurable RWKV proof module is marked JAX-only and imports its JAX
+  batch surface only inside its JAX test, preserving non-JAX collection.

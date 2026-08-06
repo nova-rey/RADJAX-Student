@@ -20,7 +20,8 @@ from radjax_student.contracts import (
     ObjectiveScope,
     hf_digest,
 )
-from radjax_student.learning.jax_core import JaxBatch
+
+pytestmark = pytest.mark.jax
 
 
 def _config() -> ArchitectureConfig:
@@ -47,10 +48,11 @@ def _config() -> ArchitectureConfig:
     )
 
 
-@pytest.mark.jax
 def test_configurable_64_by_5_initializes_and_executes_without_plugin_state() -> None:
     import jax
     import jax.numpy as jnp
+
+    from radjax_student.learning.jax_core import JaxBatch
 
     config = _config()
     plugin = RWKV7ReferencePlugin()

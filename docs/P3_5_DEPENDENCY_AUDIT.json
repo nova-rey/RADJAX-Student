@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "6bedfee9be513e70284e1d5fdcb158d4055d404e",
+  "accepted_commit": "5cff27555b7e90c7f54de2bedd8f2370ba546709",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -78,6 +78,10 @@
     {
       "source": "radjax_student.architecture.rwkv7_reference.config",
       "target": "radjax_student.architecture.models"
+    },
+    {
+      "source": "radjax_student.architecture.rwkv7_reference.config",
+      "target": "radjax_student.contracts"
     },
     {
       "source": "radjax_student.architecture.rwkv7_reference.plugin",
@@ -172,6 +176,14 @@
       "target": "radjax_student.artifacts.default_models"
     },
     {
+      "source": "radjax_student.artifacts.native_v3_payloads",
+      "target": "radjax_student.artifacts.native_v3"
+    },
+    {
+      "source": "radjax_student.artifacts.native_v3_v6",
+      "target": "radjax_student.hf.language_projection"
+    },
+    {
       "source": "radjax_student.artifacts.profile_registry",
       "target": "radjax_student.artifacts.compatibility"
     },
@@ -194,6 +206,34 @@
     {
       "source": "radjax_student.artifacts.view",
       "target": "radjax_student.artifacts.models"
+    },
+    {
+      "source": "radjax_student.behavior",
+      "target": "radjax_student.behavior.materialize"
+    },
+    {
+      "source": "radjax_student.behavior",
+      "target": "radjax_student.behavior.models"
+    },
+    {
+      "source": "radjax_student.behavior",
+      "target": "radjax_student.behavior.policies"
+    },
+    {
+      "source": "radjax_student.behavior.materialize",
+      "target": "radjax_student.artifacts.native_v3_v6"
+    },
+    {
+      "source": "radjax_student.behavior.materialize",
+      "target": "radjax_student.behavior.models"
+    },
+    {
+      "source": "radjax_student.behavior.materialize",
+      "target": "radjax_student.behavior.policies"
+    },
+    {
+      "source": "radjax_student.behavior.policies",
+      "target": "radjax_student.behavior.models"
     },
     {
       "source": "radjax_student.checkpoints",
@@ -372,7 +412,15 @@
       "target": "radjax_student.hf.contracts"
     },
     {
+      "source": "radjax_student.hf",
+      "target": "radjax_student.hf.language_projection"
+    },
+    {
       "source": "radjax_student.hf.contracts",
+      "target": "radjax_student.contracts.hf"
+    },
+    {
+      "source": "radjax_student.hf.language_projection",
       "target": "radjax_student.contracts.hf"
     },
     {
@@ -1925,7 +1973,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 188,
+  "module_count": 196,
   "modules": [
     {
       "classification": "core",
@@ -2164,14 +2212,18 @@
         "RWKV7_REFERENCE_ARCHITECTURE_VERSION",
         "architecture_metadata",
         "carry_descriptor",
+        "configurable_architecture_config",
         "hf_descriptor",
         "initialization_parameter_slots",
+        "language_identities",
         "parameter_catalog",
         "parameter_layout",
+        "parameter_layout_for_vocabulary",
         "pinned_numpy_parameter_order",
         "reference_architecture_config",
         "register_rwkv7_reference",
-        "validate_reference_config"
+        "validate_reference_config",
+        "validate_rwkv7_config"
       ]
     },
     {
@@ -2185,13 +2237,16 @@
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
+        "collections.abc",
         "dataclasses",
         "radjax_student.architecture.errors",
-        "radjax_student.architecture.models"
+        "radjax_student.architecture.models",
+        "radjax_student.contracts"
       ],
       "internal_edges": [
         "radjax_student.architecture.errors",
-        "radjax_student.architecture.models"
+        "radjax_student.architecture.models",
+        "radjax_student.contracts"
       ],
       "module": "radjax_student.architecture.rwkv7_reference.config",
       "owner": "architecture_plugin",
@@ -2212,9 +2267,12 @@
         "RWKV7_REFERENCE_TIME_GATE_RANK",
         "RWKV7_REFERENCE_TIME_VALUE_RANK",
         "RWKV7_REFERENCE_VOCABULARY_SIZE",
+        "configurable_architecture_config",
+        "language_identities",
         "reference_architecture_config",
         "reference_config",
-        "validate_reference_config"
+        "validate_reference_config",
+        "validate_rwkv7_config"
       ]
     },
     {
@@ -2347,6 +2405,7 @@
         "initialization_parameter_slots",
         "parameter_catalog",
         "parameter_layout",
+        "parameter_layout_for_vocabulary",
         "pinned_numpy_parameter_order"
       ]
     },
@@ -2387,8 +2446,9 @@
       "concrete_plugin_rejected_jax_imports": [],
       "defined_classes": [],
       "forbidden_imports": [],
-      "has_dynamic_exports": false,
+      "has_dynamic_exports": true,
       "imports": [
+        "importlib",
         "radjax_student.artifacts.loaders",
         "radjax_student.artifacts.models",
         "radjax_student.artifacts.view"
@@ -2402,6 +2462,22 @@
       "owner": "artifact_consumption",
       "path": "src/radjax_student/artifacts/__init__.py",
       "public_exports": [
+        "NATIVE_V3_STUDENT_PROFILE",
+        "NATIVE_V3_STUDENT_V6_PROFILE",
+        "NativeV3ContractAssets",
+        "NativeV3CorridorAssignments",
+        "NativeV3ObservedCorridorStatistics",
+        "NativeV3PayloadError",
+        "NativeV3StudentConsumptionError",
+        "NativeV3StudentConsumptionView",
+        "NativeV3StudentPayloadView",
+        "NativeV3TargetShard",
+        "NativeV3V6BehavioralProjection",
+        "NativeV3V6Component",
+        "NativeV3V6JsonResource",
+        "NativeV3V6MultipartResource",
+        "NativeV3V6ProjectionError",
+        "NativeV3VerifiedPayloadResource",
         "TomeArtifactError",
         "TomeArtifactIdentity",
         "TomeArtifactProvenance",
@@ -2413,6 +2489,10 @@
         "TomeInferredDefaults",
         "TomePayloadSummary",
         "inspect_teacher_tome",
+        "load_native_v3_contract_assets",
+        "load_native_v3_student_payloads",
+        "open_native_v3_student_consumption",
+        "open_native_v3_v6_behavioral_projection",
         "open_tome_artifact"
       ]
     },
@@ -2560,6 +2640,100 @@
       "classification": "core",
       "concrete_plugin_lazy_jax_imports": [],
       "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "NativeV3ContractAssets",
+        "NativeV3StudentConsumptionError",
+        "NativeV3StudentConsumptionView"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "pathlib",
+        "radjax_contract.tome",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.artifacts.native_v3",
+      "owner": "artifact_consumption",
+      "path": "src/radjax_student/artifacts/native_v3.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "NativeV3CorridorAssignments",
+        "NativeV3ObservedCorridorStatistics",
+        "NativeV3PayloadError",
+        "NativeV3StudentPayloadView",
+        "NativeV3TargetShard",
+        "NativeV3VerifiedPayloadResource"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "io",
+        "json",
+        "numpy",
+        "radjax_contract.tome",
+        "radjax_student.artifacts.native_v3",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.artifacts.native_v3"
+      ],
+      "module": "radjax_student.artifacts.native_v3_payloads",
+      "owner": "artifact_consumption",
+      "path": "src/radjax_student/artifacts/native_v3_payloads.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "NativeV3V6BehavioralProjection",
+        "NativeV3V6Component",
+        "NativeV3V6JsonResource",
+        "NativeV3V6MultipartResource",
+        "NativeV3V6ProjectionError"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "json",
+        "numpy",
+        "radjax_contract.tome",
+        "radjax_student.hf.language_projection",
+        "types",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.hf.language_projection"
+      ],
+      "module": "radjax_student.artifacts.native_v3_v6",
+      "owner": "artifact_consumption",
+      "path": "src/radjax_student/artifacts/native_v3_v6.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
       "defined_classes": [],
       "forbidden_imports": [],
       "has_dynamic_exports": false,
@@ -2652,6 +2826,125 @@
       "module": "radjax_student.artifacts.view",
       "owner": "artifact_consumption",
       "path": "src/radjax_student/artifacts/view.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "radjax_student.behavior.materialize",
+        "radjax_student.behavior.models",
+        "radjax_student.behavior.policies"
+      ],
+      "internal_edges": [
+        "radjax_student.behavior.materialize",
+        "radjax_student.behavior.models",
+        "radjax_student.behavior.policies"
+      ],
+      "module": "radjax_student.behavior",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/behavior/__init__.py",
+      "public_exports": [
+        "BEHAVIOR_SPLIT_POLICY_V1",
+        "BEHAVIOR_SPLIT_RULE_VERSION_V1",
+        "BehaviorSplitError",
+        "BehaviorSplitPolicyV1",
+        "BehaviorSplitV1",
+        "BehavioralBatchesV1",
+        "BehavioralMaterializationError",
+        "CorridorBatchV1",
+        "ExemplarBatchV1",
+        "ModeBoundsV1",
+        "ModeStatisticBoundsV1",
+        "SparseTargetV1",
+        "materialize_behavioral_batches_v1"
+      ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "BehavioralMaterializationError"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "numpy",
+        "radjax_student.artifacts.native_v3_v6",
+        "radjax_student.behavior.models",
+        "radjax_student.behavior.policies",
+        "types"
+      ],
+      "internal_edges": [
+        "radjax_student.artifacts.native_v3_v6",
+        "radjax_student.behavior.models",
+        "radjax_student.behavior.policies"
+      ],
+      "module": "radjax_student.behavior.materialize",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/behavior/materialize.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "BehaviorSplitV1",
+        "BehavioralBatchesV1",
+        "CorridorBatchV1",
+        "ExemplarBatchV1",
+        "ModeBoundsV1",
+        "ModeStatisticBoundsV1",
+        "SparseTargetV1"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "numpy",
+        "types"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.behavior.models",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/behavior/models.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "BehaviorSplitError",
+        "BehaviorSplitPolicyV1"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "hashlib",
+        "json",
+        "radjax_student.behavior.models",
+        "re",
+        "types"
+      ],
+      "internal_edges": [
+        "radjax_student.behavior.models"
+      ],
+      "module": "radjax_student.behavior.policies",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/behavior/policies.py",
       "public_exports": []
     },
     {
@@ -3388,10 +3681,12 @@
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
-        "radjax_student.hf.contracts"
+        "radjax_student.hf.contracts",
+        "radjax_student.hf.language_projection"
       ],
       "internal_edges": [
-        "radjax_student.hf.contracts"
+        "radjax_student.hf.contracts",
+        "radjax_student.hf.language_projection"
       ],
       "module": "radjax_student.hf",
       "owner": "hugging_face_integration",
@@ -3400,12 +3695,15 @@
         "HFArchitectureProjection",
         "HFCompatibilityDescriptor",
         "HFCompatibilityError",
+        "HFLanguageProjectionV1",
         "HFParameterMapping",
         "HFParameterProjection",
         "HFPreservationReference",
         "HFSpecialTokenIdentity",
         "HFTokenizerIdentity",
-        "HFVocabularyIdentity"
+        "HFVocabularyIdentity",
+        "HF_LANGUAGE_PROJECTION_V1",
+        "project_hf_language_binding"
       ]
     },
     {
@@ -3436,6 +3734,29 @@
         "HFTokenizerIdentity",
         "HFVocabularyIdentity"
       ]
+    },
+    {
+      "classification": "optional_integration",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "HFLanguageProjectionV1"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "dataclasses",
+        "radjax_student.contracts.hf",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts.hf"
+      ],
+      "module": "radjax_student.hf.language_projection",
+      "owner": "hugging_face_integration",
+      "path": "src/radjax_student/hf/language_projection.py",
+      "public_exports": []
     },
     {
       "classification": "core",

@@ -81,3 +81,23 @@ own scope and verification but never its own commit SHA.
 - **Unresolved non-blocking risks:** P5.4 owns split policy and neutral batch
   materialization. P5.3 creates neither.
 - **Next checkpoint:** P5.4 — BehaviorSplitPolicyV1 and neutral batches.
+
+## P5.4 — Freeze Split Policy and Materialize Neutral Batches
+
+- **Status:** complete.
+- **Changed-file summary:** cohesive immutable `behavior` models, versioned
+  split policy, P5.3-projection materializer, adversarial unit evidence,
+  checkpoint documentation, and this ledger.
+- **Tests and verification performed:** literal four-example split proof;
+  UTF-8 ordering and split-identity checks; duplicate/insufficient exemplar,
+  malformed behavioral-source digest, incomplete join, invalid-coordinate,
+  and invalid mode-statistic-interval rejection; committed directory/archive
+  P5.3 projection integration that checks every corridor coordinate, passport,
+  and selected payload remains leakage-free; lint and formatting checks.
+- **Generic-change decision:** none. The materializer terminates the existing
+  P5.3 public projection into architecture-neutral values and owns no Contract
+  transport, objective, optimizer, learning pass, checkpoint, or evaluation.
+- **Unresolved non-blocking risks:** P5.5 must separately define and qualify
+  objective/SGD behavior. These batches make no learning-quality claim.
+- **Next checkpoint:** P5.5 — independent objective gradients and SGD
+  qualification.
