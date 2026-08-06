@@ -53,6 +53,8 @@ class ExemplarRunBindingV1:
     behavioral_authority_digest: str
     architecture_config_identity: str
     split_identity: str
+    materialization_identity: str
+    canonical_passport_registry_identity: str
     corridor_objective_policy_id: str
     reduction_id: str
     corridor_ordering_policy_id: str
@@ -91,6 +93,10 @@ class ExemplarRunBindingV1:
             behavioral_authority_digest=binding.behavioral_authority_digest,
             architecture_config_identity=binding.architecture_config_identity,
             split_identity=binding.split_identity,
+            materialization_identity=checkpoint.materialization_identity,
+            canonical_passport_registry_identity=(
+                checkpoint.canonical_passport_registry_identity
+            ),
             corridor_objective_policy_id=binding.corridor_objective_policy_id,
             reduction_id=binding.reduction_id,
             corridor_ordering_policy_id=binding.ordering_policy_id,
@@ -280,6 +286,10 @@ def _validate_predecessor(
             predecessor.binding.architecture_config_identity
         ),
         "split_identity": predecessor.binding.split_identity,
+        "materialization_identity": predecessor.materialization_identity,
+        "canonical_passport_registry_identity": (
+            predecessor.canonical_passport_registry_identity
+        ),
         "corridor_objective_policy_id": (
             predecessor.binding.corridor_objective_policy_id
         ),

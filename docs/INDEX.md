@@ -157,7 +157,10 @@ Start here for Phase 0 foundation context.
   Contract v0.6.0-native-v3 v4 admission ownership, evidence, interfaces, and
   non-claims.
 - [Phase 5 Execution Ledger](PHASE_5_EXECUTION_LEDGER.md): append-only Phase 5
-  checkpoint record.
+  checkpoint status, verification, evidence, generic-change, risk, and next-step
+  record.
+- [P5.8 Held-out Evaluation](P5_8_HELD_OUT_EVALUATION.md): deterministic,
+  leakage-free held-out behavioral evidence.
 - [P5.4 Neutral Behavioral Batches](P5_4_NEUTRAL_BEHAVIORAL_BATCHES.md):
   immutable split policy and architecture-neutral materialization boundary.
 - [P5.3 Contract v6 Behavioral Authority Projection](P5_3_V6_BEHAVIORAL_AUTHORITY_PROJECTION.md):

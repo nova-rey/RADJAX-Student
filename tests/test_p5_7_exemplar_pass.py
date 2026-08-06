@@ -27,13 +27,14 @@ from radjax_student.optimizers import (  # noqa: E402
     SgdOptimizer,
 )
 from tests.test_p5_4_behavior_materialization import _projection  # noqa: E402
-from tests.test_p5_6_corridor_pass import _binding  # noqa: E402
+from tests.test_p5_6_corridor_pass import _admitted_projection, _binding  # noqa: E402
 
 pytestmark = pytest.mark.jax
 
 
 def _setup():
-    batches = materialize_behavioral_batches_v1(_projection())
+    projection = _admitted_projection()
+    batches = materialize_behavioral_batches_v1(projection)
     layout = ParameterTreeLayout(
         "neutral.proof",
         (
@@ -59,7 +60,15 @@ def _setup():
 
     corridor = run_corridor_pass_v1(
         batch=batches.training_corridor,
-        binding=_binding(),
+        materialization=batches,
+        projection=projection,
+        binding=_binding().__class__(
+            **{
+                **_binding().to_dict(),
+                "behavioral_source_identity": batches.split.behavioral_source_identity,
+                "split_identity": batches.split.split_identity,
+            }
+        ),
         parameters=parameters,
         parameter_layout=layout,
         optimizer=optimizer,

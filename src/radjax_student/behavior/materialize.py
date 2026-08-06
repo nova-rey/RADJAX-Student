@@ -15,6 +15,7 @@ from radjax_student.behavior.models import (
     ModeBoundsV1,
     ModeStatisticBoundsV1,
     SparseTargetV1,
+    _behavioral_materialization_descriptor_v1,
     frozen_mapping,
 )
 from radjax_student.behavior.policies import BehaviorSplitError, BehaviorSplitPolicyV1
@@ -51,43 +52,62 @@ def materialize_behavioral_batches_v1(
     except BehaviorSplitError as exc:
         raise BehavioralMaterializationError("behavioral split is invalid") from exc
     bounds = _mode_bounds(projection.corridor_mode_table.content, assignments[2])
+    training_corridor = _corridor_batch(
+        "training",
+        split.assignments,
+        example_ids,
+        target_ids,
+        target_mask,
+        assignments,
+        bounds,
+    )
+    held_out_corridor = _corridor_batch(
+        "held_out",
+        split.assignments,
+        example_ids,
+        target_ids,
+        target_mask,
+        assignments,
+        bounds,
+    )
+    training_exemplars = _exemplar_batch(
+        "training",
+        split.assignments,
+        example_ids,
+        target_ids,
+        target_mask,
+        passports,
+        payloads,
+    )
+    held_out_exemplars = _exemplar_batch(
+        "held_out",
+        split.assignments,
+        example_ids,
+        target_ids,
+        target_mask,
+        passports,
+        payloads,
+    )
     return BehavioralBatchesV1(
         split=split,
-        training_corridor=_corridor_batch(
-            "training",
-            split.assignments,
-            example_ids,
-            target_ids,
-            target_mask,
-            assignments,
-            bounds,
-        ),
-        held_out_corridor=_corridor_batch(
-            "held_out",
-            split.assignments,
-            example_ids,
-            target_ids,
-            target_mask,
-            assignments,
-            bounds,
-        ),
-        training_exemplars=_exemplar_batch(
-            "training",
-            split.assignments,
-            example_ids,
-            target_ids,
-            target_mask,
-            passports,
-            payloads,
-        ),
-        held_out_exemplars=_exemplar_batch(
-            "held_out",
-            split.assignments,
-            example_ids,
-            target_ids,
-            target_mask,
-            passports,
-            payloads,
+        training_corridor=training_corridor,
+        held_out_corridor=held_out_corridor,
+        training_exemplars=training_exemplars,
+        held_out_exemplars=held_out_exemplars,
+        descriptor=_behavioral_materialization_descriptor_v1(
+            split=split,
+            training_corridor=training_corridor,
+            held_out_corridor=held_out_corridor,
+            training_exemplars=training_exemplars,
+            held_out_exemplars=held_out_exemplars,
+            authoritative_exemplar_passport_keys=tuple(
+                (
+                    str(passport["selected_example_id"]),
+                    passport["selected_position"],
+                    str(passport["corridor_fingerprint_id"]),
+                )
+                for passport in passports
+            ),
         ),
     )
 

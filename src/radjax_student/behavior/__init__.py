@@ -11,6 +11,14 @@ from radjax_student.behavior.corridor_pass import (
     replay_corridor_pass_v1,
     run_corridor_pass_v1,
 )
+from radjax_student.behavior.evaluation import (
+    HELD_OUT_EVALUATION_ID_V1,
+    HeldOutEvaluationBindingV1,
+    HeldOutEvaluationError,
+    HeldOutEvaluationReportV1,
+    evaluate_held_out_behavior_v1,
+    replay_held_out_evaluation_v1,
+)
 from radjax_student.behavior.exemplar_pass import (
     EXEMPLAR_BATCHING_POLICY_V1,
     EXEMPLAR_OBJECTIVE_POLICY_V1,
@@ -29,6 +37,7 @@ from radjax_student.behavior.materialize import (
 )
 from radjax_student.behavior.models import (
     BehavioralBatchesV1,
+    BehavioralMaterializationDescriptorV1,
     BehaviorSplitV1,
     CorridorBatchV1,
     ExemplarBatchV1,
@@ -64,6 +73,7 @@ __all__ = [
     "BehaviorSplitPolicyV1",
     "BehaviorSplitV1",
     "BehavioralBatchesV1",
+    "BehavioralMaterializationDescriptorV1",
     "BehavioralMaterializationError",
     "CorridorBatchV1",
     "ExemplarBatchV1",
@@ -92,4 +102,10 @@ __all__ = [
     "ExemplarRunBindingV1",
     "replay_exemplar_pass_v1",
     "run_exemplar_pass_v1",
+    "HELD_OUT_EVALUATION_ID_V1",
+    "HeldOutEvaluationBindingV1",
+    "HeldOutEvaluationError",
+    "HeldOutEvaluationReportV1",
+    "evaluate_held_out_behavior_v1",
+    "replay_held_out_evaluation_v1",
 ]

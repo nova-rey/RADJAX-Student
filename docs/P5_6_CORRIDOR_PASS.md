@@ -2,7 +2,11 @@
 
 `radjax_student.behavior.corridor_pass` executes the first behavioral learning
 pass only over a P5.4 `training` `CorridorBatchV1`.  It has no artifact,
-locator, archive, tokenizer, passport, or architecture-plugin dependency.
+ archive, tokenizer, locator, or architecture-plugin dependency. Its public
+ entry separately receives the admitted P5.3 behavioral projection and derives
+ the complete canonical selected-passport registry from it before any JAX work.
+ The P5.4 descriptor and both submitted exemplar partitions must exactly match
+ that independent registry; the descriptor is never a sole trust root.
 
 The continuation checkpoint binds Contract and Tome revisions, accepted receipt,
 language/HF projection, behavioral authority, architecture configuration, split,

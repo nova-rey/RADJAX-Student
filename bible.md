@@ -1423,3 +1423,73 @@
   `ExemplarBatchV1` input, including a `CorridorBatchV1`, before accessing
   batch fields. Focused regression evidence requires `ExemplarPassError` for
   that mixed-surface submission.
+
+## 2026-08-06 — P5.8 Held-out Evaluation
+
+- Added an architecture-neutral held-out evaluator that binds the exact final
+  P5.7 checkpoint and its P5.6 predecessor before evaluating neutral held-out
+  corridor and exemplar batches through a caller-owned forward function. It
+  rejects any held-out identity in either training surface, incomplete training
+  cursors, continuity changes, and duplicate held-out evidence.
+- The report lists every held-out coordinate and exemplar passport exactly once
+  in canonical order and separately records finite deterministic corridor and
+  exemplar metrics. It accepts no optimizer and leaves the final model and
+  optimizer state untouched; this is evidence only, not a quality or
+  generalization claim.
+
+### P5.8 acceptance repair
+
+- P5.8 now binds the complete P5.4 materialization's split/source and canonical
+  held-out coordinate/passport-set identities. The evaluator rejects partial,
+  substituted, or duplicate held-out evidence before forward evaluation, so a
+  unique subset cannot be reported as complete held-out coverage.
+
+### P5.8 materialization-authority repair
+
+- Completeness authority now belongs to the P5.4 neutral materialization:
+  `BehavioralMaterializationDescriptorV1` canonically binds split policy/source,
+  the full stable-example assignment mapping, and all four partition surfaces.
+  `BehavioralBatchesV1` validates that descriptor at construction, so a partial
+  held-out replacement fails before P5.8 binding or forward evaluation.
+
+### P5.8 sealed-corridor-authority repair
+
+- P5.4 now proves exact policy-selected exemplar passport coverage for both
+  partitions, not merely membership. P5.6 accepts the sealed complete P5.4
+  materialization object and its exact training corridor, validates source/split
+  continuity, and checkpoints its verified descriptor identity. P5.7 and P5.8
+  consume only that verified lineage, never a caller-provided identity string.
+
+### P5.8 authoritative-passport repair
+
+- P5.4 now seals the complete P5.3-selected passport registry into its
+  descriptor and derives expected train/held-out exemplar sets from that source
+  plus split assignments, never from submitted partition batches.
+
+### P5.8 sealed-passport-input repair
+
+- Raw authoritative passport tuples are no longer accepted by any public
+  descriptor or materializer API. The internal P5.4 materializer derives the
+  sealed registry only from its admitted P5.3 projection.
+
+### P5.8 independent P5.3 passport-authority repair
+
+- P5.6 now receives the admitted P5.3 behavioral projection as an independent
+  authority input and derives its canonical selected-passport registry identity
+  and set before JAX execution. A forged P5.4 descriptor and partial held-out
+  passport surface therefore fail at P5.6, rather than redefining the authority
+  used by P5.7/P5.8. The verified registry identity is carried and checked in
+  both downstream checkpoint/evaluation lineage bindings.
+
+### P5.8 P5.3 admission-attestation repair
+
+- Native P5.3 projections are now attested only by the strict verified-admission
+  factory, using a module-private opaque registry that contains no artifact
+  delivery information. P5.6 rejects direct constructor/rebuilt/replaced values
+  before JAX, even when their contents and source identity match a genuine
+  projection; P5.7/P5.8 retain only the resulting neutral registry identity.
+
+### P5.8 formatter repair
+
+- Applied the repository Ruff formatter to the P5.6 adversarial authority test;
+  this is a formatting-only repair with no behavioral or evidence change.

@@ -39,6 +39,7 @@ _AUTHORITY_RESOURCE_IDS = {
     "selected_passport_index": "selected_passport_index/default",
     "target_shard": "target_shard/default",
 }
+_ADMITTED_PROJECTIONS: dict[int, tuple[NativeV3V6BehavioralProjection, object]] = {}
 
 
 class NativeV3V6ProjectionError(ValueError):
@@ -128,7 +129,7 @@ def open_native_v3_v6_behavioral_projection(
         != descriptor.language_binding_digest
     ):
         raise NativeV3V6ProjectionError("v6 language binding digest mismatch")
-    return NativeV3V6BehavioralProjection(
+    projection = NativeV3V6BehavioralProjection(
         language=_language_projection(language_descriptor),
         behavioral_source_identity=descriptor.behavioral_source_identity,
         behavioral_authority_digest=descriptor.behavioral_authority_digest,
@@ -150,6 +151,18 @@ def open_native_v3_v6_behavioral_projection(
             artifact, "selected_exemplar_payload/default"
         ),
     )
+    _ADMITTED_PROJECTIONS[id(projection)] = (projection, object())
+    return projection
+
+
+def _require_admitted_native_v3_v6_projection(
+    projection: NativeV3V6BehavioralProjection,
+) -> None:
+    """Reject values not minted by this module's verified-admission factory."""
+
+    admitted = _ADMITTED_PROJECTIONS.get(id(projection))
+    if admitted is None or admitted[0] is not projection:
+        raise NativeV3V6ProjectionError("v6 projection lacks admission attestation")
 
 
 def _admission_message(result: Any) -> str:

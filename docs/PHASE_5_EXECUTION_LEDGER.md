@@ -161,3 +161,68 @@ own scope and verification but never its own commit SHA.
 - **Unresolved non-blocking risks:** P5.8 alone owns held-out evaluation. P5.7
   makes no evaluation, package, quality, or readiness claim.
 - **Next checkpoint:** P5.8 — Held-out Evaluation.
+
+## P5.8 — Held-out Evaluation
+
+- **Status:** complete.
+- **Changed-file summary:** architecture-neutral held-out evaluator and replayable
+  report; adversarial JAX evidence; P5.8 boundary documentation, index, this
+  ledger, and `bible.md`.
+- **Tests and verification performed:** JAX-enabled P5.6-to-P5.8 execution;
+  every held-out corridor coordinate and exemplar passport exactly once;
+  separate finite deterministic metric reports; immutable final model and
+  optimizer state; exact report replay; final/predecessor continuity, training
+  leakage, incomplete cursor, and duplicate held-out evidence rejection.
+- **Generic-change decision:** none. Evaluation consumes neutral batches, two
+  immutable checkpoints, and a caller-owned forward function. It owns no
+  optimizer, model update, artifact transport, tokenizer, locator, or
+  architecture-specific behavior.
+- **Unresolved non-blocking risks:** P5.8 is finite held-out behavioral
+  evidence only; it makes no quality, generalization, package, or readiness
+  claim.
+- **Next checkpoint:** P5.9 — deterministic HF-shaped proof.
+
+### P5.8 acceptance repair
+
+- The evaluator now requires complete P5.4 `BehavioralBatchesV1` authority and
+  binds its split/source plus exact held-out corridor-coordinate and exemplar-
+  passport set identities. Partial, substituted, or duplicate held-out inputs
+  fail closed before evaluation; focused JAX evidence covers partial corridor
+  and exemplar submissions.
+
+### P5.8 materialization-authority repair
+
+- Completeness now originates at P5.4, not in caller-supplied P5.8 expected
+  batches. `BehavioralMaterializationDescriptorV1` binds the policy/source,
+  full split mapping, and all partition coordinate/passport sets; immutable
+  `BehavioralBatchesV1` rejects a surface that no longer matches its descriptor.
+  P5.8 records that descriptor identity before it accepts held-out evidence.
+
+### P5.8 sealed-corridor-authority repair
+
+- P5.4 now requires exact policy-selected exemplar passport sets in both
+  partitions. P5.6 requires the sealed P5.4 materialization object at its
+  public entry, validates its complete source/split authority and exact training
+  corridor, then checkpoints the verified descriptor identity. P5.7/P5.8 only
+  propagate that verified identity; free-form materialization strings are not
+  accepted.
+
+### P5.8 independent P5.3 passport-authority repair
+
+- P5.6 now receives the admitted P5.3 behavioral projection alongside the P5.4
+  materialization and derives the canonical selected-passport registry identity
+  and set at that boundary. It rejects descriptor or submitted-partition
+  disagreement before importing JAX. P5.7 and P5.8 bind and verify that registry
+  identity through the checkpoint lineage. Focused adversarial evidence uses
+  `dataclasses.replace` to forge a descriptor and held-out passport subset; the
+  P5.6 public entry rejects it before execution while the ordinary P5.4–P5.8
+  path remains covered.
+
+### P5.8 P5.3 admission-attestation repair
+
+- The native P5.3 factory now mints a module-private admission attestation for
+  each projection only after strict Contract v6 admission and resource opening.
+  P5.6 requires that exact minted instance, so direct construction,
+  reconstruction, or `dataclasses.replace` cannot substitute content-equivalent
+  projection values as an authority root. The attestation is process-local and
+  retains no archive, locator, or delivery-path data.

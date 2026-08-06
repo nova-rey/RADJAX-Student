@@ -1,8 +1,8 @@
 """Deterministic, architecture-neutral corridor learning pass (P5.6).
 
-This boundary consumes only a neutral ``CorridorBatchV1`` and a caller-owned
-forward function.  It deliberately contains no artifact, archive, tokenizer,
-or architecture-plugin knowledge.
+This boundary consumes neutral batches, the admitted P5.3 behavioral authority,
+and a caller-owned forward function.  It deliberately contains no archive,
+tokenizer, or architecture-plugin knowledge.
 """
 
 from __future__ import annotations
@@ -15,7 +15,12 @@ from typing import Any
 
 import numpy as np
 
-from radjax_student.behavior.models import CorridorBatchV1
+from radjax_student.artifacts.native_v3_v6 import (
+    NativeV3V6BehavioralProjection,
+    NativeV3V6ProjectionError,
+    _require_admitted_native_v3_v6_projection,
+)
+from radjax_student.behavior.models import BehavioralBatchesV1, CorridorBatchV1
 from radjax_student.behavior.objectives import (
     BEHAVIOR_OBJECTIVE_REDUCTION_V1,
     DEFAULT_BEHAVIORAL_OBJECTIVE_POLICY_V1,
@@ -95,10 +100,18 @@ class CorridorCheckpointV1:
     parameters: Any
     epoch: int
     cursor: int
+    materialization_identity: str
+    canonical_passport_registry_identity: str
     pass_id: str = CORRIDOR_PASS_ID_V1
 
     def __post_init__(self) -> None:
-        if self.pass_id != CORRIDOR_PASS_ID_V1 or self.epoch < 0 or self.cursor < 0:
+        if (
+            self.pass_id != CORRIDOR_PASS_ID_V1
+            or self.epoch < 0
+            or self.cursor < 0
+            or not self.materialization_identity
+            or not self.canonical_passport_registry_identity
+        ):
             raise CorridorPassError("corridor checkpoint cursor is invalid")
         if (
             self.optimizer_state.envelope.parameter_paths
@@ -120,6 +133,10 @@ class CorridorCheckpointV1:
                 "pass_id": self.pass_id,
                 "epoch": self.epoch,
                 "cursor": self.cursor,
+                "materialization_identity": self.materialization_identity,
+                "canonical_passport_registry_identity": (
+                    self.canonical_passport_registry_identity
+                ),
             }
         )
 
@@ -138,6 +155,8 @@ class CorridorPassResultV1:
 def run_corridor_pass_v1(
     *,
     batch: CorridorBatchV1,
+    materialization: BehavioralBatchesV1,
+    projection: NativeV3V6BehavioralProjection,
     binding: CorridorRunBindingV1,
     parameters: Any,
     parameter_layout: ParameterTreeLayout,
@@ -155,6 +174,27 @@ def run_corridor_pass_v1(
         raise CorridorPassError("corridor pass refuses held-out batches")
     if binding.split_identity == "":  # keeps the partition contract explicit
         raise CorridorPassError("corridor split identity is required")
+    if not isinstance(materialization, BehavioralBatchesV1):
+        raise CorridorPassError("corridor pass requires sealed P5.4 materialization")
+    registry, registry_identity = _canonical_passport_registry(projection)
+    if batch is not materialization.training_corridor:
+        raise CorridorPassError("corridor batch is not the sealed training partition")
+    if (
+        materialization.split.split_identity != binding.split_identity
+        or materialization.split.behavioral_source_identity
+        != binding.behavioral_source_identity
+    ):
+        raise CorridorPassError("corridor materialization continuity mismatch")
+    projection_matches_source = (
+        projection.behavioral_source_identity
+        == materialization.split.behavioral_source_identity
+        == binding.behavioral_source_identity
+    )
+    if not projection_matches_source or (
+        materialization.descriptor.authoritative_exemplar_passport_keys != registry
+        or _materialized_passport_registry(materialization) != registry
+    ):
+        raise CorridorPassError("corridor materialization passport authority mismatch")
     if optimizer.optimizer_id != optimizer_config.optimizer_id:
         raise CorridorPassError("corridor optimizer configuration mismatch")
     if (
@@ -233,6 +273,8 @@ def run_corridor_pass_v1(
         parameters=updated,
         epoch=epoch,
         cursor=cursor + len(coordinates),
+        materialization_identity=materialization.descriptor.identity,
+        canonical_passport_registry_identity=registry_identity,
     )
     return CorridorPassResultV1(
         checkpoint, loss_value, gradient_norm, changed_paths, coordinates
@@ -274,6 +316,77 @@ def _ordered_batch(batch: CorridorBatchV1) -> CorridorBatchV1:
         positions=batch.positions[order],
         mode_ids=batch.mode_ids[order],
         assignment_weights=batch.assignment_weights[order],
+    )
+
+
+def _canonical_passport_registry(
+    projection: NativeV3V6BehavioralProjection,
+) -> tuple[tuple[tuple[str, int, str], ...], str]:
+    """Derive P5.3's complete selected-passport registry at the public entry."""
+
+    if not isinstance(projection, NativeV3V6BehavioralProjection):
+        raise CorridorPassError("corridor pass requires admitted P5.3 projection")
+    try:
+        _require_admitted_native_v3_v6_projection(projection)
+    except NativeV3V6ProjectionError as exc:
+        raise CorridorPassError(
+            "corridor pass requires admitted P5.3 projection"
+        ) from exc
+    try:
+        values = tuple(
+            (
+                str(passport["selected_example_id"]),
+                passport["selected_position"],
+                str(passport["corridor_fingerprint_id"]),
+            )
+            for passport in projection.selected_passports
+        )
+    except (KeyError, TypeError) as exc:
+        raise CorridorPassError("P5.3 passport registry is incomplete") from exc
+    if not values or any(type(value[1]) is not int for value in values):
+        raise CorridorPassError("P5.3 passport registry is invalid")
+    canonical = tuple(
+        sorted(
+            values,
+            key=lambda value: (
+                value[0].encode("utf-8"),
+                value[1],
+                value[2].encode("utf-8"),
+            ),
+        )
+    )
+    if len(set(canonical)) != len(canonical):
+        raise CorridorPassError("P5.3 passport registry is not unique")
+    return canonical, _digest({"passports": canonical})
+
+
+def _materialized_passport_registry(
+    materialization: BehavioralBatchesV1,
+) -> tuple[tuple[str, int, str], ...]:
+    try:
+        values = tuple(
+            (
+                str(passport["selected_example_id"]),
+                passport["selected_position"],
+                str(passport["corridor_fingerprint_id"]),
+            )
+            for batch in (
+                materialization.training_exemplars,
+                materialization.held_out_exemplars,
+            )
+            for passport in batch.passports
+        )
+    except (KeyError, TypeError) as exc:
+        raise CorridorPassError("materialized passport registry is incomplete") from exc
+    return tuple(
+        sorted(
+            values,
+            key=lambda value: (
+                value[0].encode("utf-8"),
+                value[1],
+                value[2].encode("utf-8"),
+            ),
+        )
     )
 
 
