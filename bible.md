@@ -1530,3 +1530,18 @@
   The generic lifecycle remains unqualified and configurable V/T lifecycle
   layout incompatibility is deferred to P6.3; no scale, accelerator, batching,
   or equation-generalization claim is added.
+
+## 2026-08-08 — P6.U1 deterministic reduced-burn Student evidence
+
+- Student now consumes the published RADJAX-Tome producer at
+  `6a6c65378cfd86a190e44e861ed9323927c2acc8` with Contract 0.9.0 commit
+  `1fa43e1aea2e198511db86dafb0aeefa525d48c7`. Fresh ordinary production from
+  the committed reduced-burn inputs produced the Student fixture and receipt;
+  no fixture-side normalization or hand editing was used.
+- Two fresh builds had byte-identical normalized declared inputs, native M7
+  payloads, Student directories, and Student archives. The committed evidence
+  records strict v6 admission, governed directory/archive identity equivalence,
+  64 stable examples, 4,096 valid tokens, 60 selected IDs, source-passport
+  linkage, selected coordinates/scores/top-token data, and leakage-free
+  Student-profile resources. This is reproducibility and behavioral-source
+  evidence only, not a training, accelerator, or model-quality claim.
