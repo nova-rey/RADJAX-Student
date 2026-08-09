@@ -1663,3 +1663,5 @@
 - Regenerated the deterministic P3.5 architecture audit after adding the
   checkpoint-neutral carry descriptor module; the clean inventory now records
   all 207 source modules and remains passing.
+- The recorded authority is the exact committed source tip used to generate
+  the artifact, so fresh CI checkouts compare the same tree.
