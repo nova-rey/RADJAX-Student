@@ -97,8 +97,14 @@ class FakeArchitecturePlugin:
                 },
             )
 
-    def describe_parameters(self, parameters: object | None = None) -> ParameterCatalog:
+    def describe_parameters(
+        self,
+        parameters: object | None = None,
+        architecture_config: ArchitectureConfig | None = None,
+    ) -> ParameterCatalog:
         del parameters
+        if architecture_config is not None:
+            self.validate_config(architecture_config)
         return ParameterCatalog(
             architecture_id=self.architecture_id,
             parameters=(

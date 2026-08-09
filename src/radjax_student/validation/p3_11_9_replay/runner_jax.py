@@ -129,8 +129,12 @@ class StatefulLinearJaxArchitecture(FakeArchitecturePlugin):
             (*FAKE_ARCHITECTURE_CAPABILITIES, "architecture.jax_execution_v1"),
         )
 
-    def describe_parameters(self, parameters=None) -> ParameterCatalog:
+    def describe_parameters(
+        self, parameters=None, architecture_config=None
+    ) -> ParameterCatalog:
         del parameters
+        if architecture_config is not None:
+            self.validate_config(architecture_config)
         return ParameterCatalog(
             self.architecture_id,
             (

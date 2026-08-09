@@ -1633,3 +1633,13 @@
   real checkpoint-v3 continuation envelope roundtrip. This adds no allocator,
   memory, device, batching, or model-policy change; P6.5 owns pinned Linux/T4
   resource behavior.
+
+## 2026-08-09 — CI config-aware architecture compatibility
+
+- Validation-only and synthetic architecture implementations now accept the
+  protocol-owned `architecture_config` during parameter description and
+  validate it when supplied. The generic JAX planner preserves the authoritative
+  config while remaining compatible with older complete test doubles.
+- RWKV architecture carry descriptors are computed locally from JAX values,
+  keeping architecture code independent of checkpoint implementation modules;
+  no behavioral policy, checkpoint schema, or allocator behavior changed.

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 
@@ -45,6 +47,33 @@ from radjax_student.contracts import (
     ResolvedUpdateSelection,
     UpdateScope,
 )
+
+
+def _carry_descriptor(carry: Mapping[str, object]) -> dict[str, object]:
+    """Describe carry leaves without coupling architecture code to checkpoints."""
+    leaves: list[dict[str, object]] = []
+
+    def visit(value: object, path: tuple[str, ...]) -> None:
+        if isinstance(value, Mapping):
+            for key in sorted(value):
+                visit(value[key], (*path, str(key)))
+            return
+        array = value
+        leaves.append(
+            {
+                "keypath": list(path),
+                "shape": list(getattr(array, "shape", ())),
+                "dtype": str(getattr(array, "dtype", type(array).__name__)),
+            }
+        )
+
+    visit(carry, ())
+    return {"schema_version": "architecture_carry_descriptor.v1", "leaves": leaves}
+
+
+def _carry_descriptor_digest(descriptor: Mapping[str, object]) -> str:
+    payload = json.dumps(descriptor, sort_keys=True, separators=(",", ":")).encode()
+    return hashlib.sha256(payload).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -107,11 +136,6 @@ class RWKV7ReferencePlugin:
         try:
             import jax
             import jax.numpy as jnp
-
-            from radjax_student.checkpoints.npz_codec import (
-                describe_mapping_pytree,
-                descriptor_digest,
-            )
         except Exception as exc:
             raise ArchitectureContractError(
                 "architecture_initialization_failed",
@@ -171,8 +195,8 @@ class RWKV7ReferencePlugin:
             architecture_carry_descriptor={
                 "schema_version": "architecture_carry.v1",
                 "state_id": state_id,
-                "pytree_descriptor_digest": descriptor_digest(
-                    describe_mapping_pytree(carry)
+                "pytree_descriptor_digest": _carry_descriptor_digest(
+                    _carry_descriptor(carry)
                 ),
             },
             parameter_layout=layout,

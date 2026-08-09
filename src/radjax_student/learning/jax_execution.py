@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from dataclasses import dataclass
 from typing import Any
 
@@ -56,13 +57,16 @@ def prepare_jax_execution_plan(
             "architecture_parameter_catalog_invalid",
             "parameter layout does not belong to the architecture plugin",
         )
-    catalog = (
-        architecture.describe_parameters(parameters)
-        if architecture_config is None
-        else architecture.describe_parameters(
-            parameters, architecture_config=architecture_config
-        )
-    )
+    if architecture_config is None:
+        catalog = architecture.describe_parameters(parameters)
+    else:
+        # Keep older complete plugins usable while preferring the authoritative
+        # config-aware protocol whenever the implementation exposes it.
+        describe = architecture.describe_parameters
+        if "architecture_config" in inspect.signature(describe).parameters:
+            catalog = describe(parameters, architecture_config=architecture_config)
+        else:
+            catalog = describe(parameters)
     if catalog.architecture_id != architecture.architecture_id:
         raise ArchitectureContractError(
             "architecture_parameter_catalog_invalid",

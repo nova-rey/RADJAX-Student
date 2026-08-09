@@ -224,8 +224,10 @@ class _GoldenArchitecture:
         if config.architecture_id != self.architecture_id:
             raise ValueError("architecture configuration mismatch")
 
-    def describe_parameters(self, parameters=None):
+    def describe_parameters(self, parameters=None, architecture_config=None):
         del parameters
+        if architecture_config is not None:
+            self.validate_config(architecture_config)
         return ParameterCatalog(
             self.architecture_id,
             (
