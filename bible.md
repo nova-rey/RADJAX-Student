@@ -1626,9 +1626,10 @@
   reject altered authorities, schedule prefixes, missing/extra/tampered files,
   and model identity drift before restore; the generic runner advances only
   after successful source execution and resumes from the last durable boundary.
-- P6.4 evidence records the 64-epoch corridor/exemplar policy, eight-step
-  checkpoint cadence, stable eager noncompiled generic callable, and
-  uninterrupted-versus-resumed byte-equal representative proof. This is a
-  continuation correctness result only; it adds no allocator, memory, device,
-  batching, or model-policy change. P6.5 must revisit resource behavior on
-  the pinned Linux/T4 environment.
+- P6.4 evidence records the complete 64-epoch corridor (32 source units) and
+  exemplar (33 source units) schedules, eight-step checkpoint cadence, and
+  byte-equal uninterrupted-versus-resumed final ledgers after a nonterminal
+  stop. A genuine corridor source unit reaches the generic JAX lifecycle and
+  real checkpoint-v3 continuation envelope roundtrip. This adds no allocator,
+  memory, device, batching, or model-policy change; P6.5 owns pinned Linux/T4
+  resource behavior.

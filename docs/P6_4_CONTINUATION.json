@@ -5,6 +5,19 @@
     "fixture": "tests/fixtures/native_v3_student_v6_reduced_burn/student",
     "tome_commit": "6a6c65378cfd86a190e44e861ed9323927c2acc8"
   },
+  "genuine_lifecycle_smokes": [
+    {
+      "checkpoint_restore_config_digest": "d517f1467adbd5c17811bb5f10ec6fd7419cc5926c5673dea82664361ed57c34",
+      "compiled": false,
+      "continuation_envelope_roundtrip": true,
+      "generic_step_status": "pass",
+      "model_checkpoint_schema": "learning_checkpoint.v3",
+      "prepared_execution_digest": "15995d297f7c3c0b6501aaa6d8b3773dd31b7cc363ddf9f8c89f443d7ffc0140",
+      "runtime_callable": "radjax.learning.generic_jax_step",
+      "runtime_mode": "eager",
+      "surface": "corridor"
+    }
+  ],
   "identity_continuity": {
     "architecture_config_digest": "8ec539859805a1fe7a6579d46b918febba6e8730c7e031a1ba512569d1cd85b6",
     "compiled": false,
@@ -12,7 +25,7 @@
     "runtime_callable": "radjax.learning.generic_jax_step",
     "runtime_mode": "eager"
   },
-  "measurement_identity": "sha256:2820aaf0f02288bf0e9e5f45eb97f4d975f3830b0917270385456dfc8304f4e7",
+  "measurement_identity": "sha256:8ea467cc62645a423bbde4551b080da663c7ab7e01275895892adceca4e59351",
   "nonclaims": [
     "this is a source-progress and checkpoint-envelope proof",
     "no accelerator or Linux/T4 resource-envelope claim",
@@ -20,46 +33,42 @@
   ],
   "passes": [
     {
-      "byte_equal_resume_sample": true,
-      "checkpoint_count": 1,
+      "byte_equal_final_state": true,
+      "checkpoint_count": 12,
       "checkpoint_interval_steps": 8,
       "compilation_seconds": 0.0,
       "compiled": false,
       "epochs": 64,
-      "executed_source_units_per_epoch": 32,
-      "interrupted_cursor": 8,
+      "interrupted_cursor": 100,
       "interrupted_status": "stopped_at_boundary",
       "pass_id": "corridor.v1",
-      "resume_sample_final_digest": "sha256:ba17da124a77733faec5b819220e95ab7ffe894fe33b738963915addd54a0867",
-      "resume_sample_uninterrupted_digest": "sha256:ba17da124a77733faec5b819220e95ab7ffe894fe33b738963915addd54a0867",
       "resume_status": "complete",
+      "resumed_final_digest": "sha256:996e2fc91cb2b8d5d36fd081de66ac5bd6c57b515bf83f9edb98e877f2b5b713",
       "runtime_mode": "eager",
       "scheduled_items": 2048,
-      "source_ledger_identity": "sha256:16dd46b5f390419ddee740cadf4dcd440bf996e1d9792a046f16aa5304bda8b0",
-      "source_units_per_epoch": 2048,
+      "source_ledger_identity": "sha256:542781149ec741a9a51a357956b59c30a9b04373ccd0191392345d36bddb4a82",
+      "source_units_per_epoch": 32,
       "stable_runtime_callable": "radjax.learning.generic_jax_step",
-      "uninterrupted_final_digest": "sha256:701894f51120b803ce4850d96d4a76d980c4ea69719059134a1530389eb64c0c"
+      "uninterrupted_final_digest": "sha256:996e2fc91cb2b8d5d36fd081de66ac5bd6c57b515bf83f9edb98e877f2b5b713"
     },
     {
-      "byte_equal_resume_sample": true,
-      "checkpoint_count": 1,
+      "byte_equal_final_state": true,
+      "checkpoint_count": 12,
       "checkpoint_interval_steps": 8,
       "compilation_seconds": 0.0,
       "compiled": false,
       "epochs": 64,
-      "executed_source_units_per_epoch": 32,
-      "interrupted_cursor": 8,
+      "interrupted_cursor": 100,
       "interrupted_status": "stopped_at_boundary",
       "pass_id": "exemplar.v1",
-      "resume_sample_final_digest": "sha256:db757e60185bbb448dde4c35e9883b57907514962ae466ebc1a64196a572b4fc",
-      "resume_sample_uninterrupted_digest": "sha256:db757e60185bbb448dde4c35e9883b57907514962ae466ebc1a64196a572b4fc",
       "resume_status": "complete",
+      "resumed_final_digest": "sha256:93bca9dafc17e37343559d92fe371e2a8d9ead3efb3c1a0b3b564625b3abdc93",
       "runtime_mode": "eager",
-      "scheduled_items": 2048,
-      "source_ledger_identity": "sha256:3fd2fb5b2767ff7d26762c94d186808515496d613c3b87fd567180f2ca330171",
+      "scheduled_items": 2112,
+      "source_ledger_identity": "sha256:3e9a1def87685bea013ca67414e688b5f2dd4d7b44fd5b2222921fff7d716892",
       "source_units_per_epoch": 33,
       "stable_runtime_callable": "radjax.learning.generic_jax_step",
-      "uninterrupted_final_digest": "sha256:23eb9cb18f280f70ab43b53d97e37b461049f23c92ac4f72084a60cc869b762b"
+      "uninterrupted_final_digest": "sha256:93bca9dafc17e37343559d92fe371e2a8d9ead3efb3c1a0b3b564625b3abdc93"
     }
   ],
   "policy": {

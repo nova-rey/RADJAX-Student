@@ -99,6 +99,9 @@ def test_envelope_writer_is_atomic_and_reader_rejects_tampering(
     def fake_save(checkpoint, directory, *, optimizer):
         directory.mkdir(parents=True)
         (directory / "parameters.npz").write_bytes(b"model")
+        (directory / "manifest.json").write_text(
+            json.dumps({"integrity": {"manifest_digest": "1" * 64}})
+        )
         return SimpleNamespace(
             schema_version="learning_checkpoint.v3",
             integrity={"manifest_digest": "1" * 64},
@@ -200,3 +203,58 @@ def test_callback_runner_stops_at_boundary_and_resumes_without_replay() -> None:
     assert resumed.status == "complete"
     assert seen == [f"sha256:{c}" for c in "abcde"]
     assert len(set(seen)) == 5
+
+
+def test_full_reduced_burn_schedule_uses_linear_ledger_and_resumes() -> None:
+    """The accepted 64-epoch source schedule must not copy a growing ledger.
+
+    The reduced-burn corridor has 32 source units (2048 occurrences over 64
+    epochs); this test uses the complete corridor-plus-exemplar-sized schedule
+    and exercises a durable checkpoint/resume boundary without relying on a
+    model backend.
+    """
+    corridor = tuple(f"sha256:c{i:04d}" for i in range(32))
+    exemplar = tuple(f"sha256:e{i:04d}" for i in range(33))
+    schedule = (corridor * 64) + (exemplar * 64)
+    state = BehaviorRunStateV1(
+        run_id="full-reduced-burn",
+        pass_id="corridor-exemplar.v1",
+        epoch=0,
+        next_item_index=0,
+        total_items=len(schedule),
+        source_batch_size=1,
+        checkpoint_interval_steps=8,
+        optimizer_step=0,
+        global_step=0,
+        retry_count=0,
+        authority={"contract": "sha256:contract", "source": "sha256:source"},
+        scheduled_source_unit_identities=schedule,
+    )
+    durable: list[BehaviorRunStateV1] = []
+
+    uninterrupted = run_behavior_continuation_v1(
+        state,
+        step=lambda _identity: None,
+    )
+    interrupted = run_behavior_continuation_v1(
+        state,
+        step=lambda _identity: None,
+        checkpoint=lambda current, _outcome: (
+            durable.append(current) or f"sha256:{current.next_item_index:064x}"
+        ),
+        stop_after_steps=100,
+    )
+    assert interrupted.status == "stopped_at_boundary"
+    assert interrupted.state.next_item_index == 100
+    assert durable[-1].next_item_index == 96
+
+    resumed = run_behavior_continuation_v1(
+        durable[-1],
+        step=lambda _identity: None,
+    )
+    assert resumed.status == "complete"
+    assert resumed.state.next_item_index == len(schedule)
+    assert resumed.state.completed_source_unit_identities == schedule
+    # The final state from a checkpoint resume is exactly the uninterrupted
+    # source ledger and counters, despite the durable stop occurring earlier.
+    assert resumed.state.to_dict() == uninterrupted.state.to_dict()

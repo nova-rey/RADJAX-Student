@@ -9,6 +9,7 @@ authority without inventing a second model serialization format.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import os
 import re
@@ -35,6 +36,47 @@ _SHA256_IDENTITY = re.compile(r"sha256:[0-9a-f]{64}\Z")
 
 class BehaviorContinuationError(ValueError):
     """A malformed, stale, or non-atomic continuation envelope."""
+
+
+class _CompletedPrefix(Sequence[str]):
+    """O(1) view of the completed prefix of a canonical schedule.
+
+    A run state only needs the prefix length to prove exactly-once progress;
+    retaining a second tuple of all identities at every checkpoint caused
+    quadratic copying over a long schedule.  The public serialization still
+    expands this view to the historical identity list.
+    """
+
+    __slots__ = ("_schedule", "_length")
+
+    def __init__(self, schedule: tuple[str, ...], length: int) -> None:
+        self._schedule = schedule
+        self._length = length
+
+    def __len__(self) -> int:
+        return self._length
+
+    def __getitem__(self, index: int | slice) -> str | tuple[str, ...]:
+        if isinstance(index, slice):
+            return tuple(itertools.islice(self._schedule, self._length))[index]
+        if index < 0:
+            index += self._length
+        if index < 0 or index >= self._length:
+            raise IndexError(index)
+        return self._schedule[index]
+
+    def __iter__(self):
+        return itertools.islice(self._schedule, self._length)
+
+    def __eq__(self, other: object) -> bool:
+        if isinstance(other, _CompletedPrefix):
+            return tuple(self) == tuple(other)
+        if isinstance(other, (tuple, list)):
+            return tuple(self) == tuple(other)
+        return NotImplemented
+
+    def __hash__(self) -> int:
+        return hash(tuple(self))
 
 
 def _digest(value: Any) -> str:
@@ -106,7 +148,14 @@ class BehaviorRunStateV1:
         ):
             raise BehaviorContinuationError("authority identities must be nonempty")
         scheduled = tuple(self.scheduled_source_unit_identities)
-        completed = tuple(self.completed_source_unit_identities)
+        if isinstance(self.completed_source_unit_identities, _CompletedPrefix):
+            if self.completed_source_unit_identities._schedule != scheduled:
+                raise BehaviorContinuationError(
+                    "completed ledger schedule does not match canonical schedule"
+                )
+            completed: Sequence[str] = self.completed_source_unit_identities
+        else:
+            completed = tuple(self.completed_source_unit_identities)
         if len(scheduled) != self.total_items:
             raise BehaviorContinuationError(
                 "total_items does not match canonical schedule"
@@ -118,11 +167,17 @@ class BehaviorRunStateV1:
             raise BehaviorContinuationError(
                 "next item index does not match completed ledger"
             )
-        if any(not isinstance(v, str) or not v for v in scheduled + completed):
+        if any(
+            not isinstance(v, str) or not v
+            for v in itertools.chain(scheduled, completed)
+        ):
             raise BehaviorContinuationError(
                 "source identities must be nonempty strings"
             )
-        if scheduled[: len(completed)] != completed:
+        if (
+            not isinstance(completed, _CompletedPrefix)
+            and scheduled[: len(completed)] != completed
+        ):
             raise BehaviorContinuationError("completed ledger is not a schedule prefix")
         # The same source unit legitimately occurs once per explicit epoch;
         # exactly-once applies to each scheduled occurrence, not to the
@@ -251,9 +306,8 @@ class BehaviorRunStateV1:
 
         return replace(
             self,
-            completed_source_unit_identities=(
-                *self.completed_source_unit_identities,
-                source_unit_identity,
+            completed_source_unit_identities=_CompletedPrefix(
+                self.scheduled_source_unit_identities, self.next_item_index + 1
             ),
             next_item_index=self.next_item_index + 1,
             epoch=self.epoch if epoch is None else epoch,
@@ -415,11 +469,16 @@ def run_behavior_continuation_v1(
     ):
         raise BehaviorContinuationError("stop_after_steps must be a positive integer")
     current = state
+    # Keep the source ledger in an append-only list while a segment is being
+    # executed.  Materialising ``tuple(consumed)`` for every B=1 callback made
+    # a long (64 epoch) schedule quadratic in both time and allocations.  A
+    # durable run state is still materialised at checkpoint/stop/terminal
+    # boundaries, preserving the public tuple representation and its exact
+    # prefix validation.
     consumed: list[str] = list(state.completed_source_unit_identities)
     checkpoints: list[str] = []
     segment_steps = 0
     next_item_index = state.next_item_index
-    fast_ledger = execute_with_state is None
     while next_item_index < state.total_items:
         source_identity = state.scheduled_source_unit_identities[next_item_index]
         outcome = (
@@ -437,8 +496,7 @@ def run_behavior_continuation_v1(
         terminal = next_item_index == state.total_items
         due = default_step % state.checkpoint_interval_steps == 0
         materialize = (
-            (not fast_ledger)
-            or due
+            due
             or terminal
             or (stop_after_steps is not None and segment_steps >= stop_after_steps)
         )
@@ -456,7 +514,9 @@ def run_behavior_continuation_v1(
                 retry_count=int(metrics.get("retry_count", state.retry_count)),
                 authority=state.authority,
                 scheduled_source_unit_identities=state.scheduled_source_unit_identities,
-                completed_source_unit_identities=tuple(consumed),
+                completed_source_unit_identities=_CompletedPrefix(
+                    state.scheduled_source_unit_identities, next_item_index
+                ),
                 carry_policy_id=state.carry_policy_id,
                 final_partial_batch_policy_id=state.final_partial_batch_policy_id,
             )
@@ -493,7 +553,9 @@ def run_behavior_continuation_v1(
             retry_count=state.retry_count,
             authority=state.authority,
             scheduled_source_unit_identities=state.scheduled_source_unit_identities,
-            completed_source_unit_identities=tuple(consumed),
+            completed_source_unit_identities=_CompletedPrefix(
+                state.scheduled_source_unit_identities, next_item_index
+            ),
             carry_policy_id=state.carry_policy_id,
             final_partial_batch_policy_id=state.final_partial_batch_policy_id,
         )
@@ -655,7 +717,13 @@ def load_behavior_continuation_checkpoint_v1(
         raise BehaviorContinuationError(
             "model checkpoint v3 failed caller-bound restore"
         ) from exc
-    raw_observed = restored.integrity.get("manifest_digest")
+    try:
+        model_manifest = json.loads((model_dir / "manifest.json").read_text())
+        raw_observed = model_manifest["integrity"]["manifest_digest"]
+    except (OSError, KeyError, TypeError, json.JSONDecodeError) as exc:
+        raise BehaviorContinuationError(
+            "model checkpoint v3 manifest integrity is invalid"
+        ) from exc
     observed = None if raw_observed is None else _SHA256_PREFIX + raw_observed
     if observed != checkpoint.model_checkpoint_identity:
         raise BehaviorContinuationError("restored model identity differs from envelope")

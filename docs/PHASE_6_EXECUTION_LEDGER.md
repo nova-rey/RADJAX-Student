@@ -140,10 +140,10 @@ bounded evidence. It does not expand Phase 5 claims or authorize future work.
   no-skip/no-replay scheduling, atomic destination behavior, tamper rejection,
   and uninterrupted-versus-resumed deterministic final state.
 - Evidence in [P6_4_CONTINUATION.json](P6_4_CONTINUATION.json) records the
-  accepted reduced-burn authorities, 64 corridor and exemplar epoch policy,
-  stable generic callable/eager noncompiled facts, checkpoint cadence, and
-  byte-equal interruption/resume digests on a bounded representative source
-  sample. It is a continuation-envelope proof, not an accelerator or memory
-  envelope claim; the complete source occurrence schedule remains governed by
-  the canonical identity ledger and is exercised by the adversarial runner
-  tests.
+  accepted reduced-burn authorities, the complete 64-epoch corridor schedule
+  (32 source units, 2,048 occurrences) and exemplar schedule (33 source units,
+  2,112 occurrences), checkpoint cadence, and byte-equal uninterrupted versus
+  resumed final states after a forced stop at item 100. A genuine corridor
+  source unit also reaches the production generic JAX lifecycle and real v3
+  atomic envelope roundtrip. This is not an accelerator or memory-envelope
+  claim; P6.5 owns those measurements.

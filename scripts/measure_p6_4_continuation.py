@@ -1,9 +1,10 @@
 """Run the deterministic P6.4 source-ledger interruption proof.
 
-The model payload remains owned by checkpoint-v3.  This harness exercises the
-neutral continuation envelope over the accepted reduced-burn source schedule;
-the callback is deliberately a stand-in for the already-qualified generic
-single-step seam and performs no model or allocator mutation.
+The model payload remains owned by checkpoint-v3. This harness exercises the
+neutral continuation envelope over the complete accepted reduced-burn source
+schedule and separately records a genuine production generic-JAX/v3 smoke;
+the source ledger itself remains architecture-neutral and performs no model or
+allocator mutation.
 """
 
 from __future__ import annotations
@@ -11,16 +12,20 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import tempfile
 from pathlib import Path
 
 from radjax_student.artifacts.native_v3_v6 import (
     open_native_v3_v6_behavioral_projection,
 )
 from radjax_student.behavior import (
+    BehaviorContinuationCheckpointV1,
     BehaviorRunStateV1,
     exemplar_source_unit_learning_batch_v1,
+    load_behavior_continuation_checkpoint_v1,
     materialize_behavioral_batches_v1,
     run_behavior_continuation_v1,
+    save_behavior_continuation_checkpoint_v1,
 )
 from radjax_student.behavior.learning_batch import (
     _int_row,
@@ -38,10 +43,91 @@ def _digest(value: object) -> str:
     )
 
 
+def _genuine_lifecycle_smoke(artifact: Path, surface: str) -> dict[str, object]:
+    """Exercise the accepted generic JAX seam and a real v3 envelope once."""
+
+    import sys
+
+    sys.path.insert(0, str(Path(__file__).parent))
+    from measure_p6_2_lifecycle import _current_rss_bytes, _run
+
+    sample, assembled = _run(
+        artifact,
+        surface=surface,
+        assembled=None,
+        pre_cycle_rss=_current_rss_bytes(),
+        checkpoint_restore=True,
+    )
+    lifecycle = assembled.loop_executor.lifecycle
+    with tempfile.TemporaryDirectory(prefix="radjax-p6-4-smoke-") as temporary:
+        root = Path(temporary)
+        model_dir = root / "model"
+        from radjax_student.checkpoints import save_learning_checkpoint_v3
+
+        model = save_learning_checkpoint_v3(
+            lifecycle.checkpoint(), model_dir, optimizer=lifecycle.optimizer
+        )
+        model_identity = "sha256:" + model.integrity["manifest_digest"]
+        state = BehaviorRunStateV1(
+            run_id=f"p6-4-smoke-{surface}",
+            pass_id=f"{surface}.v1",
+            epoch=0,
+            next_item_index=1,
+            total_items=1,
+            source_batch_size=1,
+            checkpoint_interval_steps=8,
+            optimizer_step=1,
+            global_step=1,
+            retry_count=0,
+            authority={
+                "architecture_config": sample["architecture_config_digest"],
+                "parameter_layout": sample["parameter_layout_digest"],
+                "runtime_callable": sample["runtime_callable"],
+                "behavioral_source": sample["behavioral_source_identity"],
+                "split": sample["split_identity"],
+            },
+            scheduled_source_unit_identities=(sample["source_unit_identity"],),
+            completed_source_unit_identities=(sample["source_unit_identity"],),
+        )
+        envelope = BehaviorContinuationCheckpointV1(
+            run_state=state, model_checkpoint_identity=model_identity
+        )
+        destination = root / "continuation"
+        save_behavior_continuation_checkpoint_v1(
+            envelope,
+            destination,
+            model_checkpoint=model,
+            optimizer=lifecycle.optimizer,
+        )
+        loaded, _ = load_behavior_continuation_checkpoint_v1(
+            destination,
+            restore_model=lambda path: lifecycle.restore_from_checkpoint(
+                path
+            ).checkpoint(),
+        )
+    return {
+        "surface": surface,
+        "generic_step_status": "pass",
+        "runtime_callable": sample["runtime_callable"],
+        "runtime_mode": sample["runtime_event"]["mode"],
+        "compiled": sample["runtime_event"]["compiled"],
+        "prepared_execution_digest": sample["runtime_event"][
+            "prepared_execution_digest"
+        ],
+        "checkpoint_restore_config_digest": sample["checkpoint_restore_config_digest"],
+        "continuation_envelope_roundtrip": loaded.identity == envelope.identity,
+        "model_checkpoint_schema": loaded.model_checkpoint_schema,
+    }
+
+
 def _source_units(batches) -> tuple[tuple[str, ...], tuple[str, ...]]:
     corridor = batches.training_corridor
     rows = sorted(
-        range(len(corridor.positions)),
+        {
+            row
+            for row in range(len(corridor.positions))
+            if int(corridor.positions[row]) == 0
+        },
         key=lambda row: (
             str(corridor.example_ids[row // corridor.input_ids.shape[1]]),
             int(corridor.positions[row]),
@@ -101,11 +187,7 @@ def _run_pass(
     epochs: int,
     declared_source_count: int,
 ) -> dict:
-    # Keep the local CPU evidence bounded while retaining the authoritative
-    # full source-unit count in the record.  The continuation API itself is
-    # covered with arbitrary schedules by adversarial tests.
-    executed_source_ids = source_ids[: min(len(source_ids), 32)]
-    scheduled = executed_source_ids * epochs
+    scheduled = source_ids * epochs
     state = BehaviorRunStateV1(
         run_id=f"p6-4-{pass_id}",
         pass_id=pass_id,
@@ -138,38 +220,19 @@ def _run_pass(
         return identity
 
     uninterrupted = run_behavior_continuation_v1(state, step=execute)
-    # The complete uninterrupted ledger is the scale proof.  The crash/resume
-    # comparison uses one canonical source occurrence to keep this CPU-only
-    # evidence bounded; the adversarial tests exercise arbitrary schedules.
-    sample_state = BehaviorRunStateV1(
-        run_id=f"p6-4-{pass_id}-sample",
-        pass_id=pass_id,
-        epoch=0,
-        next_item_index=0,
-        total_items=epochs,
-        source_batch_size=1,
-        checkpoint_interval_steps=8,
-        optimizer_step=0,
-        global_step=0,
-        retry_count=0,
-        authority=state.authority,
-        scheduled_source_unit_identities=(source_ids[0],) * epochs,
-    )
     durable: list[BehaviorRunStateV1] = []
-    sample_uninterrupted = run_behavior_continuation_v1(sample_state, step=execute)
     interrupted = run_behavior_continuation_v1(
-        sample_state,
+        state,
         step=execute,
         checkpoint=lambda current, _outcome: (
             durable.append(current) or _digest(current.to_dict())
         ),
-        stop_after_steps=8,
+        stop_after_steps=100,
     )
     resumed = run_behavior_continuation_v1(durable[-1], step=execute)
     return {
         "pass_id": pass_id,
         "source_units_per_epoch": declared_source_count,
-        "executed_source_units_per_epoch": len(executed_source_ids),
         "epochs": epochs,
         "scheduled_items": len(scheduled),
         "checkpoint_interval_steps": 8,
@@ -177,15 +240,12 @@ def _run_pass(
         "interrupted_cursor": interrupted.state.next_item_index,
         "resume_status": resumed.status,
         "uninterrupted_final_digest": _digest(uninterrupted.state.to_dict()),
-        "resume_sample_uninterrupted_digest": _digest(
-            sample_uninterrupted.state.to_dict()
-        ),
-        "resume_sample_final_digest": _digest(resumed.state.to_dict()),
+        "resumed_final_digest": _digest(resumed.state.to_dict()),
         "source_ledger_identity": _digest(
             uninterrupted.consumed_source_unit_identities
         ),
-        "byte_equal_resume_sample": (
-            sample_uninterrupted.state.to_dict() == resumed.state.to_dict()
+        "byte_equal_final_state": (
+            uninterrupted.state.to_dict() == resumed.state.to_dict()
         ),
         "checkpoint_count": len(durable),
         "stable_runtime_callable": "radjax.learning.generic_jax_step",
@@ -234,6 +294,9 @@ def main() -> None:
             "runtime_mode": "eager",
             "compiled": False,
         },
+        "genuine_lifecycle_smokes": [
+            _genuine_lifecycle_smoke(args.artifact, "corridor"),
+        ],
         "passes": [
             _run_pass(
                 corridor_ids,
