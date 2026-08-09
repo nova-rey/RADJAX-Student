@@ -19,16 +19,10 @@ from radjax_student.architecture.rwkv7_reference.config import (
     RWKV7_REFERENCE_ARCHITECTURE_ID,
     RWKV7_REFERENCE_ARCHITECTURE_VERSION,
     RWKV7_REFERENCE_DTYPE,
-    RWKV7_REFERENCE_FFN_WIDTH,
-    RWKV7_REFERENCE_HEAD_COUNT,
-    RWKV7_REFERENCE_HEAD_SIZE,
     RWKV7_REFERENCE_HIDDEN_SIZE,
     RWKV7_REFERENCE_LAYER_COUNT,
-    RWKV7_REFERENCE_TIME_AAA_RANK,
-    RWKV7_REFERENCE_TIME_DECAY_RANK,
-    RWKV7_REFERENCE_TIME_GATE_RANK,
-    RWKV7_REFERENCE_TIME_VALUE_RANK,
     RWKV7_REFERENCE_VOCABULARY_SIZE,
+    equation_shape,
     language_identities,
     reference_architecture_config,
     validate_rwkv7_config,
@@ -106,9 +100,9 @@ def parameter_catalog(config: ArchitectureConfig | None = None) -> ParameterCata
     if config is None:
         config = reference_architecture_config()
     validate_rwkv7_config(config)
-    vocabulary_size = config.vocab_size
-    assert vocabulary_size is not None
-    hidden = RWKV7_REFERENCE_HIDDEN_SIZE
+    shape = equation_shape(config)
+    vocabulary_size = shape.vocabulary_size
+    hidden = shape.hidden_size
     parameters = [
         _parameter(
             "emb.weight",
@@ -119,7 +113,7 @@ def parameter_catalog(config: ArchitectureConfig | None = None) -> ParameterCata
         _parameter("blocks.0.ln0.weight", (hidden,), "normalization", ("block_0",)),
         _parameter("blocks.0.ln0.bias", (hidden,), "normalization", ("block_0",)),
     ]
-    for block in range(RWKV7_REFERENCE_LAYER_COUNT):
+    for block in range(shape.layer_count):
         region = (f"block_{block}",)
         prefix = f"blocks.{block}"
         for norm in ("ln1", "ln2"):
@@ -142,26 +136,26 @@ def parameter_catalog(config: ArchitectureConfig | None = None) -> ParameterCata
                 _parameter(f"{prefix}.att.w0", (hidden,), "attention_block", region),
                 _parameter(
                     f"{prefix}.att.w1",
-                    (hidden, RWKV7_REFERENCE_TIME_DECAY_RANK),
+                    (hidden, shape.time_decay_rank),
                     "attention_block",
                     region,
                 ),
                 _parameter(
                     f"{prefix}.att.w2",
-                    (RWKV7_REFERENCE_TIME_DECAY_RANK, hidden),
+                    (shape.time_decay_rank, hidden),
                     "attention_block",
                     region,
                 ),
                 _parameter(f"{prefix}.att.a0", (hidden,), "attention_block", region),
                 _parameter(
                     f"{prefix}.att.a1",
-                    (hidden, RWKV7_REFERENCE_TIME_AAA_RANK),
+                    (hidden, shape.time_aaa_rank),
                     "attention_block",
                     region,
                 ),
                 _parameter(
                     f"{prefix}.att.a2",
-                    (RWKV7_REFERENCE_TIME_AAA_RANK, hidden),
+                    (shape.time_aaa_rank, hidden),
                     "attention_block",
                     region,
                 ),
@@ -175,13 +169,13 @@ def parameter_catalog(config: ArchitectureConfig | None = None) -> ParameterCata
                     ),
                     _parameter(
                         f"{prefix}.att.v1",
-                        (hidden, RWKV7_REFERENCE_TIME_VALUE_RANK),
+                        (hidden, shape.time_value_rank),
                         "attention_block",
                         region,
                     ),
                     _parameter(
                         f"{prefix}.att.v2",
-                        (RWKV7_REFERENCE_TIME_VALUE_RANK, hidden),
+                        (shape.time_value_rank, hidden),
                         "attention_block",
                         region,
                     ),
@@ -191,13 +185,13 @@ def parameter_catalog(config: ArchitectureConfig | None = None) -> ParameterCata
             (
                 _parameter(
                     f"{prefix}.att.g1",
-                    (hidden, RWKV7_REFERENCE_TIME_GATE_RANK),
+                    (hidden, shape.time_gate_rank),
                     "attention_block",
                     region,
                 ),
                 _parameter(
                     f"{prefix}.att.g2",
-                    (RWKV7_REFERENCE_TIME_GATE_RANK, hidden),
+                    (shape.time_gate_rank, hidden),
                     "attention_block",
                     region,
                 ),
@@ -205,7 +199,7 @@ def parameter_catalog(config: ArchitectureConfig | None = None) -> ParameterCata
                 _parameter(f"{prefix}.att.k_a", (hidden,), "attention_block", region),
                 _parameter(
                     f"{prefix}.att.r_k",
-                    (RWKV7_REFERENCE_HEAD_COUNT, RWKV7_REFERENCE_HEAD_SIZE),
+                    (shape.head_count, shape.head_size),
                     "attention_block",
                     region,
                 ),
@@ -245,13 +239,13 @@ def parameter_catalog(config: ArchitectureConfig | None = None) -> ParameterCata
                 _parameter(f"{prefix}.ffn.x_k", (hidden,), "channel_mixer", region),
                 _parameter(
                     f"{prefix}.ffn.key.weight",
-                    (RWKV7_REFERENCE_FFN_WIDTH, hidden),
+                    (shape.ffn_width, hidden),
                     "channel_mixer",
                     region,
                 ),
                 _parameter(
                     f"{prefix}.ffn.value.weight",
-                    (hidden, RWKV7_REFERENCE_FFN_WIDTH),
+                    (hidden, shape.ffn_width),
                     "channel_mixer",
                     region,
                 ),
@@ -279,7 +273,9 @@ def parameter_catalog(config: ArchitectureConfig | None = None) -> ParameterCata
     )
 
 
-def pinned_numpy_parameter_order() -> dict[str, tuple[str, ...]]:
+def pinned_numpy_parameter_order(
+    config: ArchitectureConfig | None = None,
+) -> dict[str, tuple[str, ...]]:
     """Return the reviewed source-prefix order consumed by the pinned NumPy code."""
 
     time_mix_prefix = (
@@ -313,7 +309,8 @@ def pinned_numpy_parameter_order() -> dict[str, tuple[str, ...]]:
         "emb": ("emb.weight",),
         "blocks.0.ln0": ("blocks.0.ln0.weight", "blocks.0.ln0.bias"),
     }
-    for block in range(RWKV7_REFERENCE_LAYER_COUNT):
+    shape = equation_shape(config or reference_architecture_config())
+    for block in range(shape.layer_count):
         prefix = f"blocks.{block}"
         order[f"{prefix}.ln1"] = (
             f"{prefix}.ln1.weight",
@@ -426,27 +423,28 @@ def initialization_parameter_slots(
     return parameter_catalog(config).paths
 
 
-def carry_descriptor() -> dict[str, object]:
+def carry_descriptor(config: ArchitectureConfig | None = None) -> dict[str, object]:
     """Describe persistent recurrence state without materializing it in P4.2."""
 
+    shape = equation_shape(config or reference_architecture_config())
     return {
         "schema_version": "radjax.rwkv7_reference_carry.v1",
         "persistent_leaves": {
             "last_x_time": {
                 "dtype": RWKV7_REFERENCE_DTYPE,
-                "shape": [RWKV7_REFERENCE_LAYER_COUNT, RWKV7_REFERENCE_HIDDEN_SIZE],
+                "shape": [shape.layer_count, shape.hidden_size],
             },
             "last_x_channel": {
                 "dtype": RWKV7_REFERENCE_DTYPE,
-                "shape": [RWKV7_REFERENCE_LAYER_COUNT, RWKV7_REFERENCE_HIDDEN_SIZE],
+                "shape": [shape.layer_count, shape.hidden_size],
             },
             "time_state_matrix": {
                 "dtype": RWKV7_REFERENCE_DTYPE,
                 "shape": [
-                    RWKV7_REFERENCE_LAYER_COUNT,
-                    RWKV7_REFERENCE_HEAD_COUNT,
-                    RWKV7_REFERENCE_HEAD_SIZE,
-                    RWKV7_REFERENCE_HEAD_SIZE,
+                    shape.layer_count,
+                    shape.head_count,
+                    shape.head_size,
+                    shape.head_size,
                 ],
             },
         },
@@ -520,6 +518,7 @@ def hf_descriptor(config: ArchitectureConfig) -> HFCompatibilityDescriptor:
     """Project static architecture identity without claiming HF conversion."""
 
     validate_rwkv7_config(config)
+    shape = equation_shape(config)
     catalog = parameter_catalog(config)
     layout = parameter_layout(config)
     identities = language_identities(config)
@@ -534,8 +533,8 @@ def hf_descriptor(config: ArchitectureConfig) -> HFCompatibilityDescriptor:
             "synthetic",
         )
         vocabulary = HFVocabularyIdentity(
-            RWKV7_REFERENCE_VOCABULARY_SIZE,
-            _digest({"fixture_vocabulary_size": RWKV7_REFERENCE_VOCABULARY_SIZE}),
+            shape.vocabulary_size,
+            _digest({"fixture_vocabulary_size": shape.vocabulary_size}),
             _digest({"fixture_token_mapping": "not_claimed"}),
             _digest({"added_tokens": []}),
             None,
@@ -571,8 +570,8 @@ def hf_descriptor(config: ArchitectureConfig) -> HFCompatibilityDescriptor:
         architecture_projection=HFArchitectureProjection(
             "rwkv7_reference_config",
             "rwkv7_reference",
-            RWKV7_REFERENCE_HIDDEN_SIZE,
-            RWKV7_REFERENCE_LAYER_COUNT,
+            shape.hidden_size,
+            shape.layer_count,
             vocabulary.vocabulary_size,
             config.sequence_length,
             dict(config.model_config),

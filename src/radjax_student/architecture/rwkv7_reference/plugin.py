@@ -30,7 +30,6 @@ from radjax_student.architecture.rwkv7_reference.config import (
     validate_rwkv7_config,
 )
 from radjax_student.architecture.rwkv7_reference.schema import (
-    CARRY_PYTREE_DESCRIPTOR_DIGEST,
     architecture_metadata,
     capability_profile,
     carry_descriptor,
@@ -108,6 +107,11 @@ class RWKV7ReferencePlugin:
         try:
             import jax
             import jax.numpy as jnp
+
+            from radjax_student.checkpoints.npz_codec import (
+                describe_mapping_pytree,
+                descriptor_digest,
+            )
         except Exception as exc:
             raise ArchitectureContractError(
                 "architecture_initialization_failed",
@@ -153,8 +157,8 @@ class RWKV7ReferencePlugin:
                 "architecture_initialization_failed",
                 "RWKV-7 initialization did not satisfy its parameter layout",
             ) from exc
-        carry = self._zeroed_carry(jnp)
-        descriptor = carry_descriptor()
+        carry = self._zeroed_carry(jnp, request.config)
+        descriptor = carry_descriptor(request.config)
         state_id = "rwkv7_reference_state.v1"
         return ArchitectureInitResult(
             parameter_catalog=catalog,
@@ -167,7 +171,9 @@ class RWKV7ReferencePlugin:
             architecture_carry_descriptor={
                 "schema_version": "architecture_carry.v1",
                 "state_id": state_id,
-                "pytree_descriptor_digest": CARRY_PYTREE_DESCRIPTOR_DIGEST,
+                "pytree_descriptor_digest": descriptor_digest(
+                    describe_mapping_pytree(carry)
+                ),
             },
             parameter_layout=layout,
             hf_descriptor=hf_descriptor(request.config),
@@ -182,8 +188,8 @@ class RWKV7ReferencePlugin:
         )
 
     @staticmethod
-    def _zeroed_carry(jnp: object) -> dict[str, object]:
-        descriptor = carry_descriptor()["persistent_leaves"]
+    def _zeroed_carry(jnp: object, config: ArchitectureConfig) -> dict[str, object]:
+        descriptor = carry_descriptor(config)["persistent_leaves"]
         if not isinstance(descriptor, Mapping):
             raise ArchitectureContractError(
                 "architecture_internal_error", "RWKV-7 carry descriptor is invalid"
@@ -284,10 +290,10 @@ class RWKV7ReferencePlugin:
         try:
             layout = parameter_layout(config)
             layout.validate_materialized_parameters(parameters)
-            self._validate_carry(architecture_state)
+            self._validate_carry(architecture_state, config)
             token_ids = self._validate_jax_tokens(
                 batch,
-                vocabulary_size=self._materialized_vocabulary_size(parameters),
+                vocabulary_size=config.vocab_size,
                 context_length=config.sequence_length,
                 frozen=config == reference_architecture_config(),
             )
@@ -315,8 +321,8 @@ class RWKV7ReferencePlugin:
         )
 
     @staticmethod
-    def _validate_carry(carry: object) -> None:
-        descriptor = carry_descriptor()["persistent_leaves"]
+    def _validate_carry(carry: object, config: ArchitectureConfig) -> None:
+        descriptor = carry_descriptor(config)["persistent_leaves"]
         if not isinstance(carry, Mapping) or set(carry) != set(descriptor):
             raise ArchitectureContractError(
                 "architecture_forward_failed",

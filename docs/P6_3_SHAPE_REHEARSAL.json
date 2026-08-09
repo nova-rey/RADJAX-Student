@@ -1,0 +1,163 @@
+{
+  "authority": {
+    "equation_source": "BlinkDL/RWKV-LM@442120a5b40f7d764328bebde94324bc8790806f",
+    "phase4_frozen_shape": {
+      "context_length": 4,
+      "ffn_width": 16,
+      "head_count": 2,
+      "head_size": 4,
+      "hidden_size": 8,
+      "layer_count": 2,
+      "vocabulary_size": 16
+    }
+  },
+  "measurement_identity": "sha256:d1eea1cfe375ed2c93ed6fb399452ed4e239f8e4b78aacd87db5160c516d6373",
+  "rehearsals": [
+    {
+      "architecture_config_digest": "ea92decba6cf16fcddebe190d80589928660e837629440bd92e4d14ec6348c57",
+      "assembly_seconds": 0.5397718100000475,
+      "changed_parameter_count": 24,
+      "checkpoint": {
+        "bytes": 184642,
+        "integrity": {
+          "algorithm": "sha256",
+          "manifest_digest": "e4f28da98d02b9e41755567f0e60943638f5638b13569ee57d95966ae44b3f2c"
+        },
+        "seconds": 0.0558667829998285
+      },
+      "eager_runtime": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "compilation_seconds": 0.0,
+        "compiled": false,
+        "mode": "eager",
+        "prepared_execution_digest": "8afbf27822856ad58f3a04f236445d79bf3e023982b50aa3b73f59ce7d3b0052"
+      },
+      "execution_seconds": 2.538138823000054,
+      "host_peak_rss_bytes": 348377088,
+      "jit_runtime": {
+        "agreement": true,
+        "first_seconds": 0.13594722399989223,
+        "recompiled": false,
+        "steady_seconds": 0.00017834499999480613
+      },
+      "parameter_bytes": 52512,
+      "parameter_count": 69,
+      "parameter_layout_digest": "c19bb368b8b9f7538d4575a5d62b2ce980c7fd76b3c7a6c0d9024128de2c5fbc",
+      "shape": {
+        "context_length": 8,
+        "vocabulary_size": 512
+      }
+    },
+    {
+      "architecture_config_digest": "2af6338c559bb4655d422b930f1f7de3980ed3bac709addec279af126059be34",
+      "assembly_seconds": 0.07934883699999773,
+      "changed_parameter_count": 24,
+      "checkpoint": {
+        "bytes": 282957,
+        "integrity": {
+          "algorithm": "sha256",
+          "manifest_digest": "c2ac14a50879cc0922e8ea643881a9cdb58130df4b209d8796949214b78d3b29"
+        },
+        "seconds": 0.05606071599981988
+      },
+      "eager_runtime": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "compilation_seconds": 0.0,
+        "compiled": false,
+        "mode": "eager",
+        "prepared_execution_digest": "6def20fdb730eaeba399aff5ebf4ad8ec96a190e89074557f25172165dea6bd9"
+      },
+      "execution_seconds": 1.7588116229999287,
+      "host_peak_rss_bytes": 454283264,
+      "jit_runtime": {
+        "agreement": true,
+        "first_seconds": 0.1300765149999279,
+        "recompiled": false,
+        "steady_seconds": 0.0002229990000159887
+      },
+      "parameter_bytes": 150816,
+      "parameter_count": 69,
+      "parameter_layout_digest": "521235d66b3067ae16bb9e43b9c48ad67cfe5547b5f5713c03426cc2bb2880d5",
+      "shape": {
+        "context_length": 32,
+        "vocabulary_size": 2048
+      }
+    },
+    {
+      "architecture_config_digest": "09ff845074792c31358af2581c759a7bc5a198d36a28eded272a9d1ad9e9d317",
+      "assembly_seconds": 0.07753930700005185,
+      "changed_parameter_count": 25,
+      "checkpoint": {
+        "bytes": 414029,
+        "integrity": {
+          "algorithm": "sha256",
+          "manifest_digest": "db1153156a476119c30e263b84b0ba13d6c584335adeb4a4c71188dc4edff2df"
+        },
+        "seconds": 0.05756174400016789
+      },
+      "eager_runtime": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "compilation_seconds": 0.0,
+        "compiled": false,
+        "mode": "eager",
+        "prepared_execution_digest": "c2c3b1f9cf96285865e411bb0c1a30ee9e41829f5b2c18d0bb1598f104155afb"
+      },
+      "execution_seconds": 1.7683724829998937,
+      "host_peak_rss_bytes": 547540992,
+      "jit_runtime": {
+        "agreement": true,
+        "first_seconds": 0.28223365000008016,
+        "recompiled": false,
+        "steady_seconds": 0.00028268100004424923
+      },
+      "parameter_bytes": 281888,
+      "parameter_count": 69,
+      "parameter_layout_digest": "5660638e2dcfd3a8661389a59ea728859d5b0505fe223965a8292c86a4c5c912",
+      "shape": {
+        "context_length": 64,
+        "vocabulary_size": 4096
+      }
+    },
+    {
+      "architecture_config_digest": "03f9593434259bf70f90dac0d8d8b905c95c6a3a4b6fca91fbdf49b84692c94f",
+      "assembly_seconds": 0.42567100200017194,
+      "changed_parameter_count": 37,
+      "checkpoint": {
+        "bytes": 525781,
+        "integrity": {
+          "algorithm": "sha256",
+          "manifest_digest": "49dc2f8b1ef33ff1693c96a3edff5f19bbd361d33677bb66f421bd4dc84e1ebc"
+        },
+        "seconds": 0.07691970999985642
+      },
+      "eager_runtime": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "compilation_seconds": 0.0,
+        "compiled": false,
+        "mode": "eager",
+        "prepared_execution_digest": "013f7565f70ad0c001a5cf0bf9b5ad7ad62922d862a4946d30d648cbef61a947"
+      },
+      "execution_seconds": 2.887080782999874,
+      "host_peak_rss_bytes": 741703680,
+      "jit_runtime": {
+        "agreement": true,
+        "first_seconds": 0.1822837580000396,
+        "recompiled": false,
+        "steady_seconds": 0.0003156689999741502
+      },
+      "parameter_bytes": 335616,
+      "parameter_count": 102,
+      "parameter_layout_digest": "7256e6c5a380d5f4112ede381d4251a5eca7f198d624f2016ff156bdd77abdae",
+      "shape": {
+        "context_length": 32,
+        "ffn_width": 32,
+        "head_count": 4,
+        "head_size": 4,
+        "hidden_size": 16,
+        "layer_count": 3,
+        "vocabulary_size": 2048
+      }
+    }
+  ],
+  "schema_version": "radjax.phase6.p6_3_shape_rehearsal.v1"
+}

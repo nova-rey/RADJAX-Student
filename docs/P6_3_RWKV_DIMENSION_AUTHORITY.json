@@ -1,0 +1,95 @@
+{
+  "schema_version": "radjax.phase6.p6_3_rwkv_dimension_authority.v1",
+  "equation_authority": {
+    "source": "BlinkDL/RWKV-LM@442120a5b40f7d764328bebde94324bc8790806f",
+    "student_translation": "src/radjax_student/architecture/rwkv7_reference/kernels.py",
+    "parity_scope": "frozen Phase 4 16x4 float32 fixture only; no new numerical-parity claim"
+  },
+  "dimensions": {
+    "vocabulary_size": {
+      "status": "free",
+      "constraints": [
+        "positive integer",
+        "matches ArchitectureConfig.vocab_size",
+        "emb.weight and head.weight first axis",
+        "logits final axis",
+        "token IDs are in [0, vocabulary_size)"
+      ],
+      "affected": ["embedding", "output_head", "token_range", "logits"]
+    },
+    "context_length": {
+      "status": "free_capacity",
+      "constraints": ["positive integer", "host sequence length is 1..context_length"],
+      "affected": ["batch_validation", "token_validation"]
+    },
+    "hidden_size": {
+      "status": "equation_authorized",
+      "constraints": ["positive integer", "hidden_size == head_count * head_size"],
+      "affected": [
+        "embedding vectors",
+        "all x time-mix vectors",
+        "receptance/key/value/output contractions",
+        "low-rank projection outer dimensions",
+        "layer norms",
+        "channel-mix projections",
+        "residual vectors",
+        "last_x carry leaves",
+        "embedding and output-head second axis"
+      ]
+    },
+    "layer_count": {
+      "status": "equation_authorized",
+      "constraints": ["positive integer", "one parameter block and carry slice per layer"],
+      "affected": ["parameter block loop", "carry leading axis", "residual recurrence"]
+    },
+    "head_count": {
+      "status": "equation_authorized",
+      "constraints": ["positive integer", "hidden_size == head_count * head_size"],
+      "affected": ["r_k", "time-state carry", "head reshape", "group normalization"]
+    },
+    "head_size": {
+      "status": "equation_authorized",
+      "constraints": ["positive integer", "hidden_size == head_count * head_size"],
+      "affected": ["r_k", "time-state carry", "head reshape", "group normalization"]
+    },
+    "ffn_width": {
+      "status": "equation_authorized",
+      "constraints": ["positive integer"],
+      "affected": ["channel-mix key contraction", "squared-ReLU value contraction"]
+    },
+    "time_decay_rank": {
+      "status": "pinned_constant",
+      "constraints": ["positive integer", "kept at the reviewed value 32"],
+      "affected": ["w1", "w2", "time-decay contraction"]
+    },
+    "time_aaa_rank": {
+      "status": "pinned_constant",
+      "constraints": ["positive integer", "kept at the reviewed value 32"],
+      "affected": ["a1", "a2", "aaa contraction"]
+    },
+    "time_value_rank": {
+      "status": "pinned_constant",
+      "constraints": ["positive integer", "kept at the reviewed value 32"],
+      "affected": ["v1", "v2", "value interpolation contraction"]
+    },
+    "time_gate_rank": {
+      "status": "pinned_constant",
+      "constraints": ["positive integer", "kept at the reviewed value 32"],
+      "affected": ["g1", "g2", "gate contraction"]
+    }
+  },
+  "invariants": [
+    "float32 remains the only accepted equation dtype",
+    "v0 remains token-local and is not added to persistent carry",
+    "block zero omits v0/v1/v2 parameters exactly as in the authority source",
+    "all parameter layouts and carry descriptors are derived from the accepted configuration",
+    "frozen Phase 4 16x4 configuration, layout, carry, and equations remain unchanged"
+  ],
+  "non_authorized": [
+    "rank generalization",
+    "precision changes",
+    "new numerical parity domain",
+    "batching or multi-device execution",
+    "activation checkpointing or allocator controls"
+  ]
+}

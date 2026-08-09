@@ -98,3 +98,23 @@ bounded evidence. It does not expand Phase 5 claims or authorize future work.
   envelope is prevented, and Class A only if a Student-owned retaining mechanism
   is demonstrated. P6.2 is not reopened solely because RSS does not return to
   the initial process baseline.
+
+## P6.3 — Larger language and equation-authorized RWKV shapes
+
+- The equation-authority map is recorded in
+  [P6_3_RWKV_DIMENSION_AUTHORITY.json](P6_3_RWKV_DIMENSION_AUTHORITY.json).
+  Vocabulary/context remain configurable capacities. Hidden size, layer count,
+  head count, head size, and FFN width are generalized only through the
+  reviewed RWKV-7 contractions, reshapes, residuals, and carry axes, with
+  `hidden_size == head_count * head_size`. The four low-rank dimensions remain
+  pinned at 32 because no new rank authority was accepted.
+- The shape rehearsal in [P6_3_SHAPE_REHEARSAL.json](P6_3_SHAPE_REHEARSAL.json)
+  covers V=512/T=8, V=2048/T=32, V=4096/T=64, and an equation-authorized
+  structural rung (V=2048/T=32, hidden=16, layers=3, heads=4, head-size=4,
+  FFN=32). All candidates derive parameter layouts and carry descriptors from
+  the accepted configuration, reach the generic RWKV lifecycle, and agree
+  between eager and JIT forward execution.
+- The frozen Phase 4 16x4 configuration remains unchanged. Structural shape
+  evidence makes no new numerical-parity claim, adds no batching or
+  multi-device claim, and does not generalize ranks, precision, or allocator
+  policy.

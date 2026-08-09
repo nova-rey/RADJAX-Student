@@ -28,6 +28,110 @@ RWKV7_REFERENCE_TIME_AAA_RANK = 32
 RWKV7_REFERENCE_TIME_VALUE_RANK = 32
 RWKV7_REFERENCE_TIME_GATE_RANK = 32
 
+_STRUCTURAL_KEYS = (
+    "ffn_width",
+    "head_count",
+    "head_size",
+    "hidden_size",
+    "layer_count",
+    "time_aaa_rank",
+    "time_decay_rank",
+    "time_gate_rank",
+    "time_value_rank",
+    "vocabulary_size",
+)
+
+
+@dataclass(frozen=True)
+class RWKV7EquationShape:
+    """Dimensions authorized by the pinned RWKV-7 equation contractions."""
+
+    vocabulary_size: int
+    context_length: int
+    hidden_size: int
+    layer_count: int
+    head_size: int
+    head_count: int
+    ffn_width: int
+    time_decay_rank: int
+    time_aaa_rank: int
+    time_value_rank: int
+    time_gate_rank: int
+    dtype: str = RWKV7_REFERENCE_DTYPE
+
+    def __post_init__(self) -> None:
+        values = (
+            self.vocabulary_size,
+            self.context_length,
+            self.hidden_size,
+            self.layer_count,
+            self.head_size,
+            self.head_count,
+            self.ffn_width,
+            self.time_decay_rank,
+            self.time_aaa_rank,
+            self.time_value_rank,
+            self.time_gate_rank,
+        )
+        if any(
+            not isinstance(value, int) or isinstance(value, bool) or value <= 0
+            for value in values
+        ):
+            raise ValueError("RWKV-7 equation dimensions must be positive integers")
+        if self.hidden_size != self.head_count * self.head_size:
+            raise ValueError("hidden_size must equal head_count * head_size")
+        if self.dtype != RWKV7_REFERENCE_DTYPE:
+            raise ValueError("RWKV-7 equation shape requires float32")
+
+    def model_config(self) -> dict[str, int]:
+        return {
+            "ffn_width": self.ffn_width,
+            "head_count": self.head_count,
+            "head_size": self.head_size,
+            "hidden_size": self.hidden_size,
+            "layer_count": self.layer_count,
+            "time_aaa_rank": self.time_aaa_rank,
+            "time_decay_rank": self.time_decay_rank,
+            "time_gate_rank": self.time_gate_rank,
+            "time_value_rank": self.time_value_rank,
+            "vocabulary_size": self.vocabulary_size,
+        }
+
+
+def equation_shape(config: ArchitectureConfig) -> RWKV7EquationShape:
+    """Validate and project every dimension used by the pinned equations."""
+
+    if not isinstance(config, ArchitectureConfig):
+        raise ArchitectureContractError(
+            "architecture_config_invalid", "configuration must be ArchitectureConfig"
+        )
+    try:
+        model = dict(config.model_config)
+        if set(model) != set(_STRUCTURAL_KEYS):
+            raise ValueError("configuration must declare every equation dimension")
+        if config.vocab_size != model["vocabulary_size"]:
+            raise ValueError("vocabulary_size must match ArchitectureConfig.vocab_size")
+        shape = RWKV7EquationShape(
+            vocabulary_size=config.vocab_size,
+            context_length=config.sequence_length,
+            hidden_size=model["hidden_size"],
+            layer_count=model["layer_count"],
+            head_size=model["head_size"],
+            head_count=model["head_count"],
+            ffn_width=model["ffn_width"],
+            time_decay_rank=model["time_decay_rank"],
+            time_aaa_rank=model["time_aaa_rank"],
+            time_value_rank=model["time_value_rank"],
+            time_gate_rank=model["time_gate_rank"],
+            dtype=config.dtype_intent,
+        )
+    except (TypeError, ValueError, KeyError) as exc:
+        raise ArchitectureContractError(
+            "architecture_config_invalid",
+            "configuration does not satisfy the RWKV-7 equation dimension map",
+        ) from exc
+    return shape
+
 
 @dataclass(frozen=True)
 class RWKV7ReferenceConfig:
@@ -116,6 +220,15 @@ def configurable_architecture_config(
     tokenizer: HFTokenizerIdentity,
     vocabulary: HFVocabularyIdentity,
     special_tokens: HFSpecialTokenIdentity,
+    hidden_size: int = RWKV7_REFERENCE_HIDDEN_SIZE,
+    layer_count: int = RWKV7_REFERENCE_LAYER_COUNT,
+    head_size: int = RWKV7_REFERENCE_HEAD_SIZE,
+    head_count: int = RWKV7_REFERENCE_HEAD_COUNT,
+    ffn_width: int = RWKV7_REFERENCE_FFN_WIDTH,
+    time_decay_rank: int = RWKV7_REFERENCE_TIME_DECAY_RANK,
+    time_aaa_rank: int = RWKV7_REFERENCE_TIME_AAA_RANK,
+    time_value_rank: int = RWKV7_REFERENCE_TIME_VALUE_RANK,
+    time_gate_rank: int = RWKV7_REFERENCE_TIME_GATE_RANK,
 ) -> ArchitectureConfig:
     """Build a stateless configurable RWKV-7 architecture projection.
 
@@ -145,23 +258,25 @@ def configurable_architecture_config(
     if vocabulary.vocabulary_size != vocabulary_size:
         raise ValueError("vocabulary identity size must match vocabulary_size")
     special_tokens.validate_for_vocabulary(vocabulary)
+    shape = RWKV7EquationShape(
+        vocabulary_size=vocabulary_size,
+        context_length=context_length,
+        hidden_size=hidden_size,
+        layer_count=layer_count,
+        head_size=head_size,
+        head_count=head_count,
+        ffn_width=ffn_width,
+        time_decay_rank=time_decay_rank,
+        time_aaa_rank=time_aaa_rank,
+        time_value_rank=time_value_rank,
+        time_gate_rank=time_gate_rank,
+    )
     return ArchitectureConfig(
         architecture_id=RWKV7_REFERENCE_ARCHITECTURE_ID,
         vocab_size=vocabulary_size,
         sequence_length=context_length,
         dtype_intent=RWKV7_REFERENCE_DTYPE,
-        model_config={
-            "ffn_width": RWKV7_REFERENCE_FFN_WIDTH,
-            "head_count": RWKV7_REFERENCE_HEAD_COUNT,
-            "head_size": RWKV7_REFERENCE_HEAD_SIZE,
-            "hidden_size": RWKV7_REFERENCE_HIDDEN_SIZE,
-            "layer_count": RWKV7_REFERENCE_LAYER_COUNT,
-            "time_aaa_rank": RWKV7_REFERENCE_TIME_AAA_RANK,
-            "time_decay_rank": RWKV7_REFERENCE_TIME_DECAY_RANK,
-            "time_gate_rank": RWKV7_REFERENCE_TIME_GATE_RANK,
-            "time_value_rank": RWKV7_REFERENCE_TIME_VALUE_RANK,
-            "vocabulary_size": vocabulary_size,
-        },
+        model_config=shape.model_config(),
         metadata={
             "hf_language_identities": {
                 "tokenizer": tokenizer.to_dict(),
@@ -199,8 +314,8 @@ def language_identities(
         )
     if config == reference_architecture_config():
         return None
-    expected_model = dict(reference_architecture_config().model_config)
-    expected_model["vocabulary_size"] = config.vocab_size
+    shape = equation_shape(config)
+    expected_model = shape.model_config()
     identities = config.metadata.get("hf_language_identities")
     try:
         if (
@@ -231,8 +346,9 @@ def language_identities(
 
 
 def validate_rwkv7_config(config: ArchitectureConfig) -> None:
-    """Accept the frozen P4 projection or a complete P5.0A projection."""
+    """Accept the frozen projection or a complete equation-authorized shape."""
 
+    equation_shape(config)
     if config == reference_architecture_config():
         return
     language_identities(config)
@@ -253,6 +369,8 @@ __all__ = [
     "RWKV7_REFERENCE_TIME_GATE_RANK",
     "RWKV7_REFERENCE_TIME_VALUE_RANK",
     "RWKV7_REFERENCE_VOCABULARY_SIZE",
+    "RWKV7EquationShape",
+    "equation_shape",
     "RWKV7ReferenceConfig",
     "configurable_architecture_config",
     "language_identities",

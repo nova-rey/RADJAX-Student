@@ -1603,3 +1603,14 @@
 - P6.5 must revisit this on pinned Linux/T4 with separate host/device
   measurements and eager/JIT diagnostics. Do not reopen P6.2 merely because RSS
   does not return to the initial process baseline.
+
+## 2026-08-08 — P6.3 equation-authorized RWKV shape rehearsal
+
+- P6.3 now records a complete dimension authority map for vocabulary/context,
+  hidden size, layers, head geometry, FFN width, and the pinned low-rank
+  dimensions. Structural parameters are validated by the equation constraints,
+  especially `hidden_size == head_count * head_size`; ranks remain fixed at 32.
+- V=512/T=8, V=2048/T=32, V=4096/T=64, and a hidden=16/layers=3/heads=4/
+  head-size=4/FFN=32 rung reached configuration-derived layouts, genuine
+  generic RWKV execution, checkpoint creation, and eager/JIT agreement. Frozen
+  Phase 4 16x4 behavior remains unchanged and no new parity claim is made.
