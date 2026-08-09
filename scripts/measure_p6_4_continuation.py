@@ -296,6 +296,7 @@ def main() -> None:
         },
         "genuine_lifecycle_smokes": [
             _genuine_lifecycle_smoke(args.artifact, "corridor"),
+            _genuine_lifecycle_smoke(args.artifact, "exemplar"),
         ],
         "passes": [
             _run_pass(

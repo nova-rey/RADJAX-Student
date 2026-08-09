@@ -16,6 +16,17 @@
       "runtime_callable": "radjax.learning.generic_jax_step",
       "runtime_mode": "eager",
       "surface": "corridor"
+    },
+    {
+      "checkpoint_restore_config_digest": "d517f1467adbd5c17811bb5f10ec6fd7419cc5926c5673dea82664361ed57c34",
+      "compiled": false,
+      "continuation_envelope_roundtrip": true,
+      "generic_step_status": "pass",
+      "model_checkpoint_schema": "learning_checkpoint.v3",
+      "prepared_execution_digest": "5c01adae1aa6fbd432c2a5af266f86c9d987b141a83a2288398f78a6c03fa9b6",
+      "runtime_callable": "radjax.learning.generic_jax_step",
+      "runtime_mode": "eager",
+      "surface": "exemplar"
     }
   ],
   "identity_continuity": {
@@ -25,7 +36,7 @@
     "runtime_callable": "radjax.learning.generic_jax_step",
     "runtime_mode": "eager"
   },
-  "measurement_identity": "sha256:8ea467cc62645a423bbde4551b080da663c7ab7e01275895892adceca4e59351",
+  "measurement_identity": "sha256:0c571a80962962d3070c2e147768699253823bb97c6a30d5cc9ba7300f5abb5b",
   "nonclaims": [
     "this is a source-progress and checkpoint-envelope proof",
     "no accelerator or Linux/T4 resource-envelope claim",
