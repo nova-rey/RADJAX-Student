@@ -1657,3 +1657,9 @@
   deterministic NPZ descriptor shape and digest while living outside the
   checkpoint implementation namespace. RWKV initialization and v3 restore
   retain their accepted carry identity and lifecycle behavior.
+
+## 2026-08-09 — P3.5 audit inventory refresh
+
+- Regenerated the deterministic P3.5 architecture audit after adding the
+  checkpoint-neutral carry descriptor module; the clean inventory now records
+  all 207 source modules and remains passing.

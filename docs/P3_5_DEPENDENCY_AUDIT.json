@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "b24565d1830dbab0525b4eccaf308503ab49aceb",
+  "accepted_commit": "367f9fb00b6467cacf7d9e85e05fee6de7c53075",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -82,6 +82,10 @@
     {
       "source": "radjax_student.architecture.rwkv7_reference.config",
       "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.architecture.rwkv7_reference.plugin",
+      "target": "radjax_student.architecture.carry_descriptor"
     },
     {
       "source": "radjax_student.architecture.rwkv7_reference.plugin",
@@ -209,6 +213,10 @@
     },
     {
       "source": "radjax_student.behavior",
+      "target": "radjax_student.behavior.continuation"
+    },
+    {
+      "source": "radjax_student.behavior",
       "target": "radjax_student.behavior.corridor_pass"
     },
     {
@@ -218,6 +226,14 @@
     {
       "source": "radjax_student.behavior",
       "target": "radjax_student.behavior.exemplar_pass"
+    },
+    {
+      "source": "radjax_student.behavior",
+      "target": "radjax_student.behavior.jax_materializer"
+    },
+    {
+      "source": "radjax_student.behavior",
+      "target": "radjax_student.behavior.learning_batch"
     },
     {
       "source": "radjax_student.behavior",
@@ -238,6 +254,18 @@
     {
       "source": "radjax_student.behavior",
       "target": "radjax_student.behavior.proof_package"
+    },
+    {
+      "source": "radjax_student.behavior.continuation",
+      "target": "radjax_student.checkpoints.v3"
+    },
+    {
+      "source": "radjax_student.behavior.continuation",
+      "target": "radjax_student.contracts.hf"
+    },
+    {
+      "source": "radjax_student.behavior.continuation",
+      "target": "radjax_student.optimizers.protocols"
     },
     {
       "source": "radjax_student.behavior.corridor_pass",
@@ -314,6 +342,30 @@
     {
       "source": "radjax_student.behavior.exemplar_pass",
       "target": "radjax_student.optimizers.errors"
+    },
+    {
+      "source": "radjax_student.behavior.jax_materializer",
+      "target": "radjax_student.behavior.learning_batch"
+    },
+    {
+      "source": "radjax_student.behavior.jax_materializer",
+      "target": "radjax_student.learning"
+    },
+    {
+      "source": "radjax_student.behavior.jax_materializer",
+      "target": "radjax_student.learning.jax_batch"
+    },
+    {
+      "source": "radjax_student.behavior.learning_batch",
+      "target": "radjax_student.behavior.models"
+    },
+    {
+      "source": "radjax_student.behavior.learning_batch",
+      "target": "radjax_student.contracts._json"
+    },
+    {
+      "source": "radjax_student.behavior.learning_batch",
+      "target": "radjax_student.learning"
     },
     {
       "source": "radjax_student.behavior.materialize",
@@ -934,6 +986,14 @@
     {
       "source": "radjax_student.objectives",
       "target": "radjax_student.objectives.registry"
+    },
+    {
+      "source": "radjax_student.objectives.behavioral",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.objectives.builtin",
+      "target": "radjax_student.objectives.behavioral"
     },
     {
       "source": "radjax_student.objectives.builtin",
@@ -2101,7 +2161,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 202,
+  "module_count": 207,
   "modules": [
     {
       "classification": "core",
@@ -2189,6 +2249,29 @@
       "owner": "architecture_plugin",
       "path": "src/radjax_student/architecture/_json.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "hashlib",
+        "json",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.architecture.carry_descriptor",
+      "owner": "architecture_plugin",
+      "path": "src/radjax_student/architecture/carry_descriptor.py",
+      "public_exports": [
+        "carry_descriptor_digest",
+        "describe_mapping_carry"
+      ]
     },
     {
       "classification": "core",
@@ -2334,6 +2417,7 @@
       "owner": "architecture_plugin",
       "path": "src/radjax_student/architecture/rwkv7_reference/__init__.py",
       "public_exports": [
+        "RWKV7EquationShape",
         "RWKV7ReferenceConfig",
         "RWKV7ReferencePlugin",
         "RWKV7_REFERENCE_ARCHITECTURE_ID",
@@ -2341,6 +2425,7 @@
         "architecture_metadata",
         "carry_descriptor",
         "configurable_architecture_config",
+        "equation_shape",
         "hf_descriptor",
         "initialization_parameter_slots",
         "language_identities",
@@ -2359,6 +2444,7 @@
       "concrete_plugin_lazy_jax_imports": [],
       "concrete_plugin_rejected_jax_imports": [],
       "defined_classes": [
+        "RWKV7EquationShape",
         "RWKV7ReferenceConfig"
       ],
       "forbidden_imports": [],
@@ -2380,6 +2466,7 @@
       "owner": "architecture_plugin",
       "path": "src/radjax_student/architecture/rwkv7_reference/config.py",
       "public_exports": [
+        "RWKV7EquationShape",
         "RWKV7ReferenceConfig",
         "RWKV7_REFERENCE_ARCHITECTURE_ID",
         "RWKV7_REFERENCE_ARCHITECTURE_VERSION",
@@ -2396,6 +2483,7 @@
         "RWKV7_REFERENCE_TIME_VALUE_RANK",
         "RWKV7_REFERENCE_VOCABULARY_SIZE",
         "configurable_architecture_config",
+        "equation_shape",
         "language_identities",
         "reference_architecture_config",
         "reference_config",
@@ -2452,6 +2540,7 @@
         "dataclasses",
         "jax",
         "jax.numpy",
+        "radjax_student.architecture.carry_descriptor",
         "radjax_student.architecture.errors",
         "radjax_student.architecture.models",
         "radjax_student.architecture.rwkv7_reference.config",
@@ -2460,6 +2549,7 @@
         "radjax_student.contracts"
       ],
       "internal_edges": [
+        "radjax_student.architecture.carry_descriptor",
         "radjax_student.architecture.errors",
         "radjax_student.architecture.models",
         "radjax_student.architecture.rwkv7_reference.config",
@@ -2964,9 +3054,12 @@
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
+        "radjax_student.behavior.continuation",
         "radjax_student.behavior.corridor_pass",
         "radjax_student.behavior.evaluation",
         "radjax_student.behavior.exemplar_pass",
+        "radjax_student.behavior.jax_materializer",
+        "radjax_student.behavior.learning_batch",
         "radjax_student.behavior.materialize",
         "radjax_student.behavior.models",
         "radjax_student.behavior.objectives",
@@ -2974,9 +3067,12 @@
         "radjax_student.behavior.proof_package"
       ],
       "internal_edges": [
+        "radjax_student.behavior.continuation",
         "radjax_student.behavior.corridor_pass",
         "radjax_student.behavior.evaluation",
         "radjax_student.behavior.exemplar_pass",
+        "radjax_student.behavior.jax_materializer",
+        "radjax_student.behavior.learning_batch",
         "radjax_student.behavior.materialize",
         "radjax_student.behavior.models",
         "radjax_student.behavior.objectives",
@@ -2987,21 +3083,33 @@
       "owner": "package_boundary",
       "path": "src/radjax_student/behavior/__init__.py",
       "public_exports": [
+        "BEHAVIOR_CONTINUATION_CHECKPOINT_V1",
         "BEHAVIOR_OBJECTIVE_POLICY_V1",
         "BEHAVIOR_OBJECTIVE_REDUCTION_V1",
+        "BEHAVIOR_RUN_STATE_V1",
+        "BEHAVIOR_SOURCE_UNIT_SCHEMA_V1",
         "BEHAVIOR_SPLIT_POLICY_V1",
         "BEHAVIOR_SPLIT_RULE_VERSION_V1",
+        "BehaviorContinuationCheckpointV1",
+        "BehaviorContinuationError",
+        "BehaviorContinuationResultV1",
+        "BehaviorJaxBatchMaterializerV1",
+        "BehaviorRunStateV1",
         "BehaviorSplitError",
         "BehaviorSplitPolicyV1",
         "BehaviorSplitV1",
         "BehavioralBatchesV1",
+        "BehavioralJaxBatchMaterializer",
+        "BehavioralLearningBatchError",
         "BehavioralMaterializationDescriptorV1",
         "BehavioralMaterializationError",
         "BehavioralObjectiveError",
         "BehavioralObjectivePolicyV1",
+        "BehavioralSourceUnitV1",
         "CORRIDOR_BATCHING_POLICY_V1",
         "CORRIDOR_ORDERING_POLICY_V1",
         "CORRIDOR_PASS_ID_V1",
+        "CORRIDOR_SOURCE_UNIT_KIND_V1",
         "CorridorBatchV1",
         "CorridorCheckpointV1",
         "CorridorPassError",
@@ -3012,6 +3120,7 @@
         "EXEMPLAR_OBJECTIVE_POLICY_V1",
         "EXEMPLAR_ORDERING_POLICY_V1",
         "EXEMPLAR_PASS_ID_V1",
+        "EXEMPLAR_SOURCE_UNIT_KIND_V1",
         "ExemplarBatchV1",
         "ExemplarCheckpointV1",
         "ExemplarPassError",
@@ -3030,18 +3139,65 @@
         "architecture_config_identity_v1",
         "build_hf_shaped_proof_package_v1",
         "corridor_objective_v1",
+        "corridor_source_unit_learning_batch_v1",
         "evaluate_held_out_behavior_v1",
         "exemplar_coarse_cross_entropy_v1",
+        "exemplar_source_unit_learning_batch_v1",
         "hf_language_projection_identity_v1",
+        "load_behavior_continuation_checkpoint_v1",
         "load_hf_shaped_proof_package_v1",
         "materialize_behavioral_batches_v1",
         "replay_corridor_pass_v1",
         "replay_exemplar_pass_v1",
         "replay_held_out_evaluation_v1",
         "replay_hf_shaped_proof_package_v1",
+        "restore_behavior_continuation_with_lifecycle",
+        "run_behavior_continuation_v1",
         "run_corridor_pass_v1",
-        "run_exemplar_pass_v1"
+        "run_exemplar_pass_v1",
+        "save_behavior_continuation_checkpoint_v1",
+        "validate_behavioral_source_unit_learning_batch_v1"
       ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "BehaviorContinuationCheckpointV1",
+        "BehaviorContinuationError",
+        "BehaviorContinuationResultV1",
+        "BehaviorRunStateV1",
+        "_CompletedPrefix"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "itertools",
+        "json",
+        "os",
+        "pathlib",
+        "radjax_student.checkpoints.v3",
+        "radjax_student.contracts.hf",
+        "radjax_student.optimizers.protocols",
+        "re",
+        "shutil",
+        "tempfile",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.checkpoints.v3",
+        "radjax_student.contracts.hf",
+        "radjax_student.optimizers.protocols"
+      ],
+      "module": "radjax_student.behavior.continuation",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/behavior/continuation.py",
+      "public_exports": []
     },
     {
       "classification": "core",
@@ -3169,6 +3325,38 @@
       "concrete_plugin_lazy_jax_imports": [],
       "concrete_plugin_rejected_jax_imports": [],
       "defined_classes": [
+        "BehaviorJaxBatchMaterializerV1"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "importlib",
+        "radjax_student.behavior.learning_batch",
+        "radjax_student.learning",
+        "radjax_student.learning.jax_batch",
+        "radjax_student.learning.jax_core",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.behavior.learning_batch",
+        "radjax_student.learning",
+        "radjax_student.learning.jax_batch"
+      ],
+      "module": "radjax_student.behavior.jax_materializer",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/behavior/jax_materializer.py",
+      "public_exports": [
+        "BehaviorJaxBatchMaterializerV1",
+        "BehavioralJaxBatchMaterializer"
+      ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
         "BehaviorJaxPassComputationV1"
       ],
       "forbidden_imports": [],
@@ -3186,6 +3374,48 @@
       "owner": "package_boundary",
       "path": "src/radjax_student/behavior/jax_pass_adapter.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "BehavioralLearningBatchError",
+        "BehavioralSourceUnitV1"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "hashlib",
+        "json",
+        "numpy",
+        "radjax_student.behavior.models",
+        "radjax_student.contracts._json",
+        "radjax_student.learning",
+        "re",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.behavior.models",
+        "radjax_student.contracts._json",
+        "radjax_student.learning"
+      ],
+      "module": "radjax_student.behavior.learning_batch",
+      "owner": "package_boundary",
+      "path": "src/radjax_student/behavior/learning_batch.py",
+      "public_exports": [
+        "BEHAVIOR_SOURCE_UNIT_SCHEMA_V1",
+        "BehavioralLearningBatchError",
+        "BehavioralSourceUnitV1",
+        "CORRIDOR_SOURCE_UNIT_KIND_V1",
+        "EXEMPLAR_SOURCE_UNIT_KIND_V1",
+        "corridor_source_unit_learning_batch_v1",
+        "exemplar_source_unit_learning_batch_v1",
+        "validate_behavioral_source_unit_learning_batch_v1"
+      ]
     },
     {
       "classification": "core",
@@ -4501,6 +4731,7 @@
       "imports": [
         "__future__",
         "dataclasses",
+        "inspect",
         "radjax_student.architecture",
         "radjax_student.contracts",
         "typing"
@@ -5210,15 +5441,53 @@
       "classification": "core",
       "concrete_plugin_lazy_jax_imports": [],
       "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "BehavioralCorridorObjective",
+        "BehavioralExemplarObjective",
+        "_BehavioralObjectiveBase"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "importlib",
+        "radjax_student.contracts",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.contracts"
+      ],
+      "module": "radjax_student.objectives.behavioral",
+      "owner": "objective_contracts",
+      "path": "src/radjax_student/objectives/behavioral.py",
+      "public_exports": [
+        "BEHAVIORAL_CORRIDOR_METRIC_SCHEMA_ID",
+        "BEHAVIORAL_CORRIDOR_OBJECTIVE_IDENTITY",
+        "BEHAVIORAL_EXEMPLAR_METRIC_SCHEMA_ID",
+        "BEHAVIORAL_EXEMPLAR_OBJECTIVE_IDENTITY",
+        "BEHAVIORAL_OBJECTIVE_CONFIG",
+        "BehavioralCorridorObjective",
+        "BehavioralExemplarObjective",
+        "behavioral_corridor_loss_v1",
+        "behavioral_exemplar_loss_v1"
+      ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
       "defined_classes": [],
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
+        "radjax_student.objectives.behavioral",
         "radjax_student.objectives.jax",
         "radjax_student.objectives.registry"
       ],
       "internal_edges": [
+        "radjax_student.objectives.behavioral",
         "radjax_student.objectives.jax",
         "radjax_student.objectives.registry"
       ],
