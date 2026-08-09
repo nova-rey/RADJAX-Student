@@ -181,8 +181,11 @@ def _run(
     assembled: Any | None,
     pre_cycle_rss: int,
     checkpoint_restore: bool,
-    platform_preference: str,
-    compilation_policy: str,
+    platform_preference: str = "cpu",
+    compilation_policy: str = "eager",
+    source_unit_override: Any | None = None,
+    projection_override: Any | None = None,
+    batches_override: Any | None = None,
 ) -> tuple[dict[str, object], Any]:
     from radjax_student.architecture.rwkv7_reference import (
         RWKV7_REFERENCE_ARCHITECTURE_ID,
@@ -216,8 +219,10 @@ def _run(
     phase_device_memory = {"pre_cycle": _device_memory_stats()}
     admitted_at = time.perf_counter()
     phase_rss["admission_start"] = _current_rss_bytes()
-    projection = open_native_v3_v6_behavioral_projection(artifact)
-    batches = materialize_behavioral_batches_v1(projection)
+    projection = projection_override or open_native_v3_v6_behavioral_projection(
+        artifact
+    )
+    batches = batches_override or materialize_behavioral_batches_v1(projection)
     phase_rss["admission_materialization_end"] = _current_rss_bytes()
     if surface == "corridor":
         source_unit = corridor_source_unit_learning_batch_v1(
@@ -240,6 +245,8 @@ def _run(
         objective_identity = BEHAVIORAL_EXEMPLAR_OBJECTIVE_IDENTITY
     else:  # pragma: no cover - argparse supplies the closed surface set.
         raise ValueError("surface must be corridor or exemplar")
+    if source_unit_override is not None:
+        source_unit = source_unit_override
     admission_materialization_seconds = time.perf_counter() - admitted_at
     language = projection.language
     config = configurable_architecture_config(

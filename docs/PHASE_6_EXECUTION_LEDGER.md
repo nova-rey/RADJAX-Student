@@ -187,3 +187,32 @@ bounded evidence. It does not expand Phase 5 claims or authorize future work.
   this receipt when selecting its minimum burn; a Class B blocker is warranted
   only if that envelope is prevented, and a Class A defect only if a
   Student-owned retaining mechanism is demonstrated.
+
+## P6.6 — Reduced ordinary-production burn
+
+- The execution-aware runner in
+  [measure_p6_6_reduced_burn.py](../scripts/measure_p6_6_reduced_burn.py)
+  invoked the generic JAX lifecycle for singleton source units, using the
+  accepted 32-unit corridor schedule (64 epochs, 2,048 occurrences), eager
+  execution, carry reset per independent example, and checkpoint/restore every
+  eight steps. This is distinct from the P6.4 no-op source-ledger proof.
+- The pinned T4 run completed 354 genuine corridor occurrences in 4,557.16
+  seconds with 44 successful checkpoint boundaries, zero eager compilation
+  events, stable `radjax.learning.generic_jax_step` and prepared execution
+  identity, and throughput `0.07767993657324289` source units/second. Device
+  peak pool remained exactly the JAX-reported `11,727,028,224` byte limit and
+  peak bytes in use were `1,574,400`.
+- Host RSS crossed the frozen P6.5 candidate ceiling at cursor 354:
+  `23,290,171,392` bytes versus the `23,284,565,606` byte ceiling. The runner
+  stopped at that exact boundary with `resource_envelope_exceeded`; the
+  corridor schedule was not completed and the exemplar schedule was not
+  started. Raw per-occurrence records and the generated summary are in
+  [P6_6_REDUCED_BURN_EVIDENCE.json](P6_6_REDUCED_BURN_EVIDENCE.json) and
+  `P6_6_RAW/`.
+- This is a concrete Class-B minimum-burn envelope blocker, not a correctness
+  failure and not evidence of a Student-owned leak. P6.5's execution-retention
+  and repeated-JIT-compilation findings remain active limitations. No allocator,
+  cache, teardown, or other memory-management production repair was attempted;
+  human authorization is required before any owner-specific repair or envelope
+  change. P6.7 cannot begin until the reduced burn is requalified or separately
+  dispositioned.

@@ -1691,3 +1691,20 @@
   the classification `execution_retention_observed`, `owner_unresolved`,
   `scale_impact_pending_external_envelope`; P6.6 must revisit the finding on
   its minimum burn envelope.
+
+## 2026-08-09 — P6.6 reduced burn stopped at frozen host envelope
+
+- The genuine generic-JAX reduced-burn runner executed the accepted singleton
+  corridor schedule on the pinned T4 with checkpoint/restore every eight
+  occurrences. It completed 354 of 2,048 corridor occurrences, 44 checkpoint
+  boundaries, and 4,557.16 seconds of eager execution before the frozen host
+  ceiling was crossed.
+- Host RSS reached `23,290,171,392` bytes against the frozen
+  `23,284,565,606` byte ceiling at cursor 354. Device peak pool remained at
+  the reported `11,727,028,224` byte limit, eager compilation events were zero,
+  and the generic callable/prepared identity remained stable. The exemplar
+  pass was not started because the corridor minimum burn was already blocked.
+- P6.6 is therefore a concrete Class-B resource-envelope blocker. P6.5's
+  execution-retention and repeated-JIT findings remain active limitations; no
+  allocator, cache, teardown, or speculative memory-management repair was
+  added. Human disposition is required before requalification or any repair.

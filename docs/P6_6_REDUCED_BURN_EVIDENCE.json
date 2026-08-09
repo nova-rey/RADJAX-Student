@@ -1,0 +1,63 @@
+{
+  "active_p6_5_findings": [
+    "execution_retention_observed",
+    "repeated_jit_compilation_observed",
+    "owner_unresolved"
+  ],
+  "authority": {
+    "artifact": "tests/fixtures/native_v3_student_v6_reduced_burn/student",
+    "contract_commit": "1fa43e1aea2e198511db86dafb0aeefa525d48c7",
+    "contract_release": "0.9.0",
+    "student_commit": "6c0d99435f5a8b4a38212d7050a73ec60bd6509a",
+    "tome_commit": "6a6c65378cfd86a190e44e861ed9323927c2acc8"
+  },
+  "blocked": {
+    "cursor": 354,
+    "failure": "frozen P6.5 host/device envelope exceeded",
+    "failure_type": "resource_envelope_exceeded",
+    "scheduled_items": 2048,
+    "surface": "corridor"
+  },
+  "classification": "resource_envelope_blocked",
+  "compilation_policy": "eager",
+  "evidence_identity": "sha256:8d9d2fc4516a970f277068fcfe20746af8ca5d2449912c316b1e41da74dd55fe",
+  "limitations": [
+    "corridor_envelope_blocked_before_exemplar_pass",
+    "no_student_owned_memory_management_change",
+    "p6_5_jit_finding_carried_forward_from_pinned_t4_receipt"
+  ],
+  "passes": [
+    {
+      "checkpoint_count": 44,
+      "compilation_seconds": 0.0,
+      "compile_events": 0,
+      "completed_items": 354,
+      "completion_seconds": 4557.160773523,
+      "declared_scheduled_items": 2048,
+      "device_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1574400,
+      "device_peak_pool_bytes": 11727028224,
+      "host_rss_first_bytes": 1331580928,
+      "host_rss_peak_bytes": 23290171392,
+      "prepared_execution_digests": [
+        "ba65816bf6d681267ee72069d64de21a444c87882a00d5672e855b1804d5e409"
+      ],
+      "runtime_callable": "radjax.learning.generic_jax_step",
+      "surface": "corridor",
+      "throughput_source_units_per_second": 0.07767993657324289
+    }
+  ],
+  "platform_preference": "gpu",
+  "policy": {
+    "carry_policy": "reset_each_independent_example.v1",
+    "checkpoint_interval_steps": 8,
+    "corridor_epochs": 64,
+    "device_limit_bytes": 11727028224,
+    "exemplar_epochs": 64,
+    "host_ceiling_bytes": 23284565606,
+    "source_batch_size": 1
+  },
+  "raw_digest": "sha256:e312f1b035eb68d57906788604231ef9b637bb6835354b53cf1c219f8fe9694a",
+  "raw_path": "docs/P6_6_RAW/p66-corridor-eager.json",
+  "schema_version": "radjax.student.p6_6_reduced_burn_evidence.v1"
+}
