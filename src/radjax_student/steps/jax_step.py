@@ -344,6 +344,7 @@ def execute_jax_learning_step(
         architecture=architecture,
         parameters=parameters,
         parameter_layout=parameter_layout,
+        architecture_config=architecture_config,
         objective_scope=learning_state.active_objective_scope,
         update_scope=learning_state.active_update_scope,
     )

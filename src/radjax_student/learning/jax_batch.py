@@ -18,6 +18,8 @@ class JaxBatchMaterializer(Protocol):
 class FiniteJsonJaxBatchMaterializer:
     """Test-only finite-JSON conversion, deliberately not a Tome payload bridge."""
 
+    materializer_id = "finite_json.v1"
+
     def materialize(self, batch: LearningBatch) -> Any:
         if not isinstance(batch, LearningBatch):
             raise TypeError("batch must be LearningBatch")

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from radjax_student.architecture import (
+    ArchitectureConfig,
     ArchitectureContractError,
     JaxArchitecturePlugin,
 )
@@ -33,6 +34,7 @@ def prepare_jax_execution_plan(
     architecture: JaxArchitecturePlugin,
     parameters: Any,
     parameter_layout: ParameterTreeLayout,
+    architecture_config: ArchitectureConfig | None = None,
     objective_scope: ObjectiveScope,
     update_scope: UpdateScope,
 ) -> JaxExecutionPlan:
@@ -40,12 +42,27 @@ def prepare_jax_execution_plan(
 
     if not isinstance(architecture, JaxArchitecturePlugin):
         raise TypeError("JAX execution requires a complete JaxArchitecturePlugin")
+    if architecture_config is not None:
+        if not isinstance(architecture_config, ArchitectureConfig):
+            raise TypeError("architecture_config must be ArchitectureConfig")
+        if architecture_config.architecture_id != architecture.architecture_id:
+            raise ArchitectureContractError(
+                "architecture_config_invalid",
+                "configuration does not belong to the architecture plugin",
+            )
+        architecture.validate_config(architecture_config)
     if parameter_layout.architecture_id != architecture.architecture_id:
         raise ArchitectureContractError(
             "architecture_parameter_catalog_invalid",
             "parameter layout does not belong to the architecture plugin",
         )
-    catalog = architecture.describe_parameters(parameters)
+    catalog = (
+        architecture.describe_parameters(parameters)
+        if architecture_config is None
+        else architecture.describe_parameters(
+            parameters, architecture_config=architecture_config
+        )
+    )
     if catalog.architecture_id != architecture.architecture_id:
         raise ArchitectureContractError(
             "architecture_parameter_catalog_invalid",
@@ -60,7 +77,13 @@ def prepare_jax_execution_plan(
                 "layout_paths": list(parameter_layout.logical_paths),
             },
         )
-    parameter_layout.validate_materialized_parameters(parameters)
+    try:
+        parameter_layout.validate_materialized_parameters(parameters)
+    except (TypeError, ValueError) as exc:
+        raise ArchitectureContractError(
+            "architecture_parameter_catalog_invalid",
+            "materialized parameters do not match the declared parameter layout",
+        ) from exc
     for entry in parameter_layout.entries:
         descriptor = catalog.get(entry.logical_path)
         if (

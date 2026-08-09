@@ -1,0 +1,75 @@
+{
+  "schema_version": "radjax.phase6.p6_2_isolated_phase_measurement.v1",
+  "authority": {
+    "contract_commit": "a33a0a0d90a57e5cd67155c01f054d3e7a04dc0d",
+    "tome_fixture": "native_v3_student_v6_smoke",
+    "vocabulary_size": 512,
+    "sequence_length": 8,
+    "batch_size": 1
+  },
+  "command": "PYTHONPATH=src .venv/bin/python scripts/measure_p6_2_lifecycle.py --artifact <ordinary_v6_fixture>/student --surface <corridor|exemplar> --repetitions 1 --output <fresh_process_output>",
+  "fresh_processes": {
+    "corridor": {
+      "objective_identity": "radjax.objective.behavioral_corridor@1",
+      "behavioral_source_identity": "sha256:b5525f5983c9b12f37e24c830b9d72e767607ef40294e82599c58723bc86f091",
+      "source_unit_identity": "sha256:3b29d88b7af82a94b90da8bb14f560ae5f21b02bccc0acff89826865cc33f51d",
+      "prepared_execution_digest": "0764ae81bfaae5d7dc2e8bd4c175f7f416035f8bb481084b7b5890a759f0f0b7",
+      "phase_rss_bytes": {
+        "pre_cycle": 16494592,
+        "admission_start": 99110912,
+        "admission_materialization_end": 99811328,
+        "assembly_start": 99733504,
+        "assembly_end": 153088000,
+        "execution_start": 153018368,
+        "execution_end": 440844288,
+        "checkpoint_restore_start": 465620992,
+        "checkpoint_restore_end": 466219008,
+        "post_release_gc": 453558272
+      },
+      "runtime": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "eager",
+        "compiled": false,
+        "compilation_seconds": 0.0
+      }
+    },
+    "exemplar": {
+      "objective_identity": "radjax.objective.behavioral_exemplar@1",
+      "behavioral_source_identity": "sha256:b5525f5983c9b12f37e24c830b9d72e767607ef40294e82599c58723bc86f091",
+      "source_unit_identity": "sha256:bfac6553fc7cb874d6207194e9419140251c03489aba01994b39a2b42b89f947",
+      "prepared_execution_digest": "6ea6393a6ee611008f323e6b173740e740491e9855ca8676e79784581c18dbd4",
+      "phase_rss_bytes": {
+        "pre_cycle": 16449536,
+        "admission_start": 98967552,
+        "admission_materialization_end": 99766272,
+        "assembly_start": 99688448,
+        "assembly_end": 153219072,
+        "execution_start": 153149440,
+        "execution_end": 435458048,
+        "checkpoint_restore_start": 459173888,
+        "checkpoint_restore_end": 459767808,
+        "post_release_gc": 447315968
+      },
+      "runtime": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "eager",
+        "compiled": false,
+        "compilation_seconds": 0.0
+      }
+    }
+  },
+  "interpretation": {
+    "admission_materialization": "bounded_before_execution",
+    "assembly": "bounded_before_execution",
+    "execution": "material_rss_increase",
+    "checkpoint_restore": "transient_increment_only",
+    "compilation": "no_runtime_jit_event_under_accepted_eager_configuration",
+    "fresh_process_full_cycle": "both_surfaces_reach_generic_lifecycle_and_restore"
+  },
+  "nonclaims": [
+    "no_memory_fix_implemented",
+    "no_allocator_baseline_return_claim",
+    "no_accelerator_measurement",
+    "no_structural_rwkv_generalization"
+  ]
+}

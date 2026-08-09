@@ -1531,6 +1531,30 @@
   layout incompatibility is deferred to P6.3; no scale, accelerator, batching,
   or equation-generalization claim is added.
 
+## 2026-08-06 — P6.2 Genuine Behavioral Lifecycle and Config Continuity
+
+- Generic JAX execution planning now carries the already accepted neutral
+  `ArchitectureConfig` to the selected architecture catalog. This corrects the
+  V=512/T=8 layout failure without making a generic owner RWKV-aware, preserves
+  the frozen V=16/T=4 path, and causes a config/layout disagreement to fail
+  closed before execution.
+- `BehaviorJaxBatchMaterializerV1` makes one sealed P5.4 behavior source unit
+  into neutral JAX values, while registered corridor/exemplar objective plugins
+  consume only logits, targets, and weights. The ordinary v6 directory and
+  archive both reached the actual RWKV generic lifecycle and checkpoint-v3
+  restore with identity continuity. Full materialization residency and B=1 are
+  recorded limitations, not authorization for batching or streaming work.
+
+### P6.2 retention measurement stop
+
+- Reusing the same generic V=512/T=8 corridor lifecycle for five released
+  admissions preserved all source/configuration identities but increased
+  post-GC host RSS from 451,833,856 to 738,779,136 bytes. The 1,584-byte P5
+  materialization is not the observed retained domain. No generic retention
+  repair is authorized without a P6.5 frozen external envelope, so P6.2 stops
+  with its working evidence uncommitted rather than relabeling this as a benign
+  source-materialization result.
+
 ## 2026-08-08 — P6.U1 deterministic reduced-burn Student evidence
 
 - Student now consumes the published RADJAX-Tome producer at
@@ -1545,3 +1569,37 @@
   linkage, selected coordinates/scores/top-token data, and leakage-free
   Student-profile resources. This is reproducibility and behavioral-source
   evidence only, not a training, accelerator, or model-quality claim.
+
+## 2026-08-08 — P6.2 bounded execution-retention characterization
+
+- The accepted V=512/T=8, B=1 corridor and exemplar cycles were repeated 20
+  times through the same neutral generic lifecycle. Architecture, parameter
+  layout, behavioral-source, split, callable, and prepared-execution identities
+  remained stable; the accepted eager runtime reported no JIT compilation
+  event (`compiled=false`, `compilation_seconds=0`).
+- Post-GC RSS continued materially increasing after execution stabilized: the
+  corridor run reached 1,230,221,312 bytes at cycle 20 and the exemplar run
+  reached a 1,304,309,760-byte high-water mark before allocator-pressure
+  decline. A 10-cycle execution-only diagnostic still grew to 1,059,016,704
+  bytes without checkpoint/restore, isolating retention downstream of generic
+  execution/JAX runtime or allocator state rather than source materialization
+  or checkpoint serialization.
+- No memory-management repair is applied. This is an identified generic
+  execution-retention defect requiring a frozen external resource envelope and
+  owner-specific authorization before any production change; P6.3 remains
+  blocked by the P6.2 gate.
+
+### P6.2 retention disposition — human-accepted closure
+
+- Human disposition accepts the complete corridor, exemplar, execution-only,
+  and isolated-phase evidence with classification
+  `execution_retention_observed`, `owner_unresolved`, and
+  `scale_impact_pending_external_envelope`.
+- Admission/materialization and assembly are bounded; execution is the material
+  retention source; checkpoint/restore adds only transient pressure. The Mac CPU
+  result is a resource-envelope limitation, not a correctness failure. The
+  evidence proves neither a Python-object leak nor that JAX/XLA allocator
+  behavior is harmless, and no memory-management production code is added.
+- P6.5 must revisit this on pinned Linux/T4 with separate host/device
+  measurements and eager/JIT diagnostics. Do not reopen P6.2 merely because RSS
+  does not return to the initial process baseline.

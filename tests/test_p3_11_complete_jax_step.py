@@ -74,8 +74,13 @@ class LinearPlugin(FakeArchitecturePlugin):
             (*FAKE_ARCHITECTURE_CAPABILITIES, "architecture.jax_execution_v1"),
         )
 
-    def describe_parameters(self, parameters: object | None = None) -> ParameterCatalog:
-        del parameters
+    def describe_parameters(
+        self,
+        parameters: object | None = None,
+        *,
+        architecture_config: ArchitectureConfig | None = None,
+    ) -> ParameterCatalog:
+        del parameters, architecture_config
         return ParameterCatalog(
             self.architecture_id,
             (

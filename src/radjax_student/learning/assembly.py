@@ -27,6 +27,7 @@ from radjax_student.learning.composition import (
 )
 from radjax_student.learning.jax_batch import (
     FiniteJsonJaxBatchMaterializer,
+    JaxBatchMaterializer,
 )
 from radjax_student.learning.models import LearningState
 from radjax_student.objectives import ObjectiveRegistry
@@ -296,6 +297,11 @@ class JaxLearningAssemblyRegistries:
     objective_registry: ObjectiveRegistry
     optimizer_registry: OptimizerRegistry
     runtime_registry: RuntimeBackendRegistry
+    batch_materializers: Mapping[str, JaxBatchMaterializer] = field(
+        default_factory=lambda: MappingProxyType(
+            {"finite_json.v1": FiniteJsonJaxBatchMaterializer()}
+        )
+    )
 
     def __post_init__(self) -> None:
         if not isinstance(self.architecture_registry, ArchitectureRegistry):
@@ -318,6 +324,24 @@ class JaxLearningAssemblyRegistries:
                 "assembly_request_invalid",
                 "runtime_registry must be RuntimeBackendRegistry",
             )
+        if not isinstance(self.batch_materializers, Mapping):
+            raise LearningAssemblyError(
+                "assembly_request_invalid",
+                "batch_materializers must be a mapping",
+            )
+        materializers = dict(self.batch_materializers)
+        if not materializers or any(
+            not isinstance(identifier, str)
+            or not identifier
+            or not isinstance(materializer, JaxBatchMaterializer)
+            or getattr(materializer, "materializer_id", None) != identifier
+            for identifier, materializer in materializers.items()
+        ):
+            raise LearningAssemblyError(
+                "assembly_request_invalid",
+                "batch materializers must have matching stable identities",
+            )
+        object.__setattr__(self, "batch_materializers", MappingProxyType(materializers))
 
     @classmethod
     def defaults(
@@ -358,9 +382,7 @@ class JaxLearningAssemblyResult:
             raise LearningAssemblyError(
                 "assembly_identity_mismatch", "executor must bind the result lifecycle"
             )
-        if not isinstance(
-            self.loop_executor.batch_materializer, FiniteJsonJaxBatchMaterializer
-        ):
+        if not isinstance(self.loop_executor.batch_materializer, JaxBatchMaterializer):
             raise LearningAssemblyError(
                 "assembly_identity_mismatch",
                 "executor materializer must be the selected production materializer",
@@ -501,7 +523,8 @@ class JaxLearningAssemblyResult:
         if (
             self.loop_executor.precision_policy != summary["precision_policy"]
             or self.loop_executor.rng_slot != summary["rng_slot"]
-            or summary["batch_materializer_identity"] != "finite_json.v1"
+            or summary["batch_materializer_identity"]
+            != getattr(self.loop_executor.batch_materializer, "materializer_id", None)
             or summary["execution_factory_identity"] != "generic.v1"
         ):
             raise LearningAssemblyError(
@@ -786,10 +809,16 @@ def assemble_jax_learning_lifecycle(
         raise LearningAssemblyError(
             "assembly_lifecycle_invalid", "lifecycle construction failed", cause=exc
         ) from exc
-    if request.batch_materializer_id != "finite_json.v1":
+    try:
+        batch_materializer = registries.batch_materializers[
+            request.batch_materializer_id
+        ]
+    except KeyError as exc:
         raise LearningAssemblyError(
-            "assembly_batch_materializer_unknown", "unknown batch materializer"
-        )
+            "assembly_batch_materializer_unknown",
+            "unknown batch materializer",
+            cause=exc,
+        ) from exc
     if request.execution_request_factory_id != "generic.v1":
         raise LearningAssemblyError(
             "assembly_execution_factory_unknown", "unknown execution request factory"
@@ -800,7 +829,7 @@ def assemble_jax_learning_lifecycle(
         )
         executor = JaxLoopExecutor(
             lifecycle,
-            FiniteJsonJaxBatchMaterializer(),
+            batch_materializer,
             _factory(
                 request.runtime_config.compilation_policy,
                 callable_binding.reference,

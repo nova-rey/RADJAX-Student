@@ -1,0 +1,131 @@
+{
+  "authority": {
+    "contract_commit": "a33a0a0d90a57e5cd67155c01f054d3e7a04dc0d",
+    "student_prechange_commit": "e141ac634732602c46cf6fb36d6511b5aa0a66f4",
+    "tome_commit": "b78821c6aec17335125df2e7f5823dce285735cf"
+  },
+  "classification": {
+    "accepted_v512_t8_configuration_lost_in_generic_plan": "A_repaired",
+    "configuration_layout_disagreement": "A_fails_closed",
+    "finite_json_materializer_on_production_path": "A_repaired",
+    "full_p5_materialization_residency": "acceptable_limitation_measured_no_minimum_envelope_failure",
+    "repeated_generic_lifecycle_post_gc_rss_growth": "execution_retention_observed",
+    "retention_owner": "owner_unresolved",
+    "retention_scale_impact": "scale_impact_pending_external_envelope",
+    "rwkv_batch_size_one": "acceptable_limitation",
+    "rwkv_structural_dimensions": "future_work_P6_3",
+    "t4_accelerator_rehearsal": "future_work_P6_5",
+    "upstream_reduced_burn_artifact": "external_prerequisite_P6_U1_stopped_on_broader_producer_defect",
+    "mac_cpu_resource_envelope": "resource_envelope_limitation_not_correctness_failure"
+  },
+  "commands": [
+    "PYTHONPATH=src python -m pytest -q tests/test_p6_2_behavior_jax_materialization.py tests/test_p6_2_registered_behavioral_objectives.py tests/test_p6_2_config_threading.py tests/test_p3_11_parameter_layout_and_scopes.py tests/test_p3_11_complete_jax_step.py tests/test_p5_0a_configurable_rwkv7.py",
+    "historical single-cycle v1 directory/archive reports are retained by the two P6_2_*_RAW.json digests below",
+    "PYTHONPATH=src python scripts/measure_p6_2_lifecycle.py --artifact <ordinary_v6_fixture>/student --surface corridor --repetitions 5 --output <raw_log>"
+  ],
+  "identity_continuity": {
+    "architecture_config_digest": "8ec539859805a1fe7a6579d46b918febba6e8730c7e031a1ba512569d1cd85b6",
+    "behavioral_source_identity": "sha256:b5525f5983c9b12f37e24c830b9d72e767607ef40294e82599c58723bc86f091",
+    "checkpoint_manifest_digest": "d8791fa73eedab1499a0dd9fb043b105dc1427ada2213e41c52b699f2e6f5173",
+    "checkpoint_restore_config_digest": "8ec539859805a1fe7a6579d46b918febba6e8730c7e031a1ba512569d1cd85b6",
+    "parameter_layout_digest": "c19bb368b8b9f7538d4575a5d62b2ce980c7fd76b3c7a6c0d9024128de2c5fbc",
+    "runtime_callable": "radjax.learning.generic_jax_step",
+    "source_unit_identity": "sha256:3b29d88b7af82a94b90da8bb14f560ae5f21b02bccc0acff89826865cc33f51d",
+    "split_identity": "sha256:4cf616a35fe3af7e6fcb46975853a439b80f89bfc53991663cfd11d3264f8dad"
+  },
+  "post_change_workload": {
+    "artifact_transports": ["directory", "archive"],
+    "batch_size": 1,
+    "changed_parameter_count": 21,
+    "objective": "radjax.objective.behavioral_corridor@1",
+    "production_materializer": "behavior_jax_batch_materializer.v1",
+    "result": "pass",
+    "rwkv_vocabulary_size": 512,
+    "sequence_length": 8
+  },
+  "raw_measurements": {
+    "archive": {
+      "digest": "sha256:fbbf49eb9f62c58c70d534307a60174200176bcf1431e1d348c88930646dbf43",
+      "file": "P6_2_ARCHIVE_RAW.json"
+    },
+    "directory": {
+      "digest": "sha256:964b2d8d5ad1b14188412538f015ae3cb9144dd158a6f3364a4ad686e63180d9",
+      "file": "P6_2_DIRECTORY_RAW.json"
+    }
+  },
+  "retention_probe": {
+    "command": "PYTHONPATH=src python scripts/measure_p6_2_lifecycle.py --artifact <ordinary_v6_fixture>/student --surface corridor --repetitions 5 --output <raw_log>",
+    "generic_lifecycle_seconds": [9.682568117976189, 6.593133692047559, 6.4592991709942, 6.627191915002186, 6.655661823984701],
+    "post_gc_rss_bytes": [451833856, 530649088, 602771456, 668454912, 738779136],
+    "result": "identity-stable repeated V512/T8 corridor execution retains approximately 287 MB additional RSS across five cycles; source materialization itself retains 1,584 bytes and consumes 2,414 public resource bytes",
+    "scope_disposition": "No retention repair is authorized: the observed growth is outside the bounded ArchitectureConfig threading defect, is not shown to be behavior-source residency, and no P6.5 frozen external envelope exists to authorize a Class-B generic execution change."
+  },
+  "extended_retention_characterization": {
+    "measurement_harness": "scripts/measure_p6_2_lifecycle.py",
+    "full_cycle_command": "PYTHONPATH=src .venv/bin/python scripts/measure_p6_2_lifecycle.py --artifact <ordinary_v6_fixture>/student --surface <corridor|exemplar> --repetitions 20 --output <raw_log>",
+    "corridor": {
+      "raw_file": "docs/P6_2_RETENTION_CORRIDOR.json",
+      "raw_sha256": "sha256:c1f763d86876b326f17443cdd70d68ecf6773f97a0308bb74d5da0dbb4b74417",
+      "measurement_identity": "sha256:39dc56f25b1125fb9c23c0f8d04c46c0cfa2c2cf9fb8512ba402b1a5481b28d6",
+      "repetitions": 20,
+      "post_gc_rss_first_bytes": 452730880,
+      "post_gc_rss_last_bytes": 1230221312,
+      "post_gc_rss_last_recorded_bytes": 1230221312,
+      "peak_current_rss_last_bytes": 1236594688,
+      "runtime_compiled": false,
+      "runtime_compilation_seconds": 0.0,
+      "prepared_execution_identity_stable": true,
+      "result": "continued material growth after the eager generic lifecycle stabilized; no plateau by cycle 20"
+    },
+    "exemplar": {
+      "raw_file": "docs/P6_2_RETENTION_EXEMPLAR.json",
+      "raw_sha256": "sha256:5868326abe31e4742a21e0e0fde6ccff05f691e03da4d85228395faef7c19984",
+      "measurement_identity": "sha256:7c2506eeb87951947e2b8c64a707b1cc7d5a9e0441d8523ec5d666eed4e62d70",
+      "repetitions": 20,
+      "post_gc_rss_first_bytes": 446156800,
+      "post_gc_rss_high_water_bytes": 1304309760,
+      "post_gc_rss_last_bytes": 1225121792,
+      "runtime_compiled": false,
+      "runtime_compilation_seconds": 0.0,
+      "prepared_execution_identity_stable": true,
+      "result": "material growth through cycle 15 followed by allocator pressure and a high-water decline; no return to baseline or bounded low plateau"
+    },
+    "execution_only_diagnostic": {
+      "raw_file": "docs/P6_2_RETENTION_EXECUTION_ONLY.json",
+      "raw_sha256": "sha256:e96e0e2dff60c87fee50a7c6837239f3ce9370dade9158d5170e7b474141eb25",
+      "measurement_identity": "sha256:1ec044761a2c96564abe2582a539a7ec48ae523c0e2cd8f39cb5b439ef49c543",
+      "repetitions": 10,
+      "checkpoint_restore_performed": false,
+      "post_gc_rss_first_bytes": 452083712,
+      "post_gc_rss_last_bytes": 1059016704,
+      "result": "retention persists without checkpoint/restore, isolating the retaining owner to generic execution/JAX runtime or allocator state rather than checkpoint serialization"
+    },
+    "isolated_process_evidence": {
+      "raw_file": "docs/P6_2_ISOLATED_PHASES.json",
+      "raw_sha256": "sha256:c145d16213a41edc89933d2ed80a2aaec2b695876685388ddd782d590c90371a",
+      "result": "fresh corridor and exemplar processes show bounded admission/materialization and assembly RSS, execution-phase increase, stable prepared/runtime identities, and only transient checkpoint/restore increments"
+    },
+    "owner_assessment": "Evidence localizes retention downstream of generic execution, consistent with JAX runtime or allocator state, but does not identify a Student-owned retaining object or production owner. It is not source-unit materialization or checkpoint restore.",
+    "phase_assessment": {
+      "admission_materialization": "bounded",
+      "assembly": "bounded",
+      "execution": "material_retention_source",
+      "checkpoint_restore": "transient_pressure_only",
+      "python_object_leak": "not_proven",
+      "jax_xla_allocator_harmlessness": "not_proven",
+      "mac_cpu_result": "resource_envelope_limitation_not_correctness_failure"
+    },
+    "disposition": [
+      "execution_retention_observed",
+      "owner_unresolved",
+      "scale_impact_pending_external_envelope"
+    ],
+    "p6_5_revisit": "Run equivalent repeated-cycle tests on pinned Linux/T4 with separate host RSS and accelerator allocation/peak, eager/JIT comparison, and official JAX diagnostics only as diagnostic experiments. Promote to Class B only if the minimum P6.6 envelope is prevented; promote to Class A only if a Student-owned retaining mechanism is demonstrated."
+  },
+  "schema_version": "radjax.phase6.p6_2_materialization.v1",
+  "scope": {
+    "config_threading": "ArchitectureConfig is validated and carried through neutral execution planning; generic owners do not import or branch on RWKV.",
+    "neutrality": "The materializer accepts sealed neutral behavior source units; registered objectives receive only logits, targets, and weights.",
+    "preserved": ["frozen_phase4_v16_t4", "p5_0a_vocabulary_context_configuration"]
+  }
+}

@@ -62,9 +62,27 @@ class RWKV7ReferencePlugin:
         validate_rwkv7_config(config)
 
     def describe_parameters(
-        self, parameters: object | None = None, config: ArchitectureConfig | None = None
+        self,
+        parameters: object | None = None,
+        *,
+        architecture_config: ArchitectureConfig | None = None,
+        config: ArchitectureConfig | None = None,
     ) -> ParameterCatalog:
-        layout = parameter_layout(config)
+        """Describe the parameter catalog for the accepted architecture config.
+
+        ``config`` remains a compatibility alias for the pre-P6 catalog query;
+        generic execution now uses the protocol-owned ``architecture_config``
+        name so the selected configuration is not lost before layout validation.
+        """
+
+        if config is not None:
+            if architecture_config is not None and architecture_config != config:
+                raise ArchitectureContractError(
+                    "architecture_config_invalid",
+                    "conflicting architecture configuration arguments",
+                )
+            architecture_config = config
+        layout = parameter_layout(architecture_config)
         if parameters is not None:
             try:
                 layout.validate_materialized_parameters(parameters)
@@ -73,7 +91,7 @@ class RWKV7ReferencePlugin:
                     "architecture_parameter_catalog_invalid",
                     "materialized parameters do not match the RWKV-7 layout",
                 ) from exc
-        return parameter_catalog(config)
+        return parameter_catalog(architecture_config)
 
     def architecture_metadata(self) -> ArchitectureMetadata:
         return architecture_metadata()

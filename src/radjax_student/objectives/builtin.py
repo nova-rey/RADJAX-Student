@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from radjax_student.objectives.behavioral import (
+    BehavioralCorridorObjective,
+    BehavioralExemplarObjective,
+)
 from radjax_student.objectives.jax import (
     MeanSquaredErrorObjective,
     SparseCategoricalCrossEntropyObjective,
@@ -13,6 +17,8 @@ def build_default_objective_registry() -> ObjectiveRegistry:
     registry = ObjectiveRegistry()
     registry.register(MeanSquaredErrorObjective())
     registry.register(SparseCategoricalCrossEntropyObjective())
+    registry.register(BehavioralCorridorObjective())
+    registry.register(BehavioralExemplarObjective())
     return registry
 
 

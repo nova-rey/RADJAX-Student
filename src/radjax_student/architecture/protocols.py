@@ -41,7 +41,10 @@ class ArchitecturePlugin(Protocol):
     ) -> ArchitectureInitResult: ...
 
     def describe_parameters(
-        self, parameters: object | None = None
+        self,
+        parameters: object | None = None,
+        *,
+        architecture_config: ArchitectureConfig | None = None,
     ) -> ParameterCatalog: ...
 
     def architecture_metadata(self) -> ArchitectureMetadata: ...
