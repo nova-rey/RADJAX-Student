@@ -5,13 +5,13 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from radjax_student.architecture.errors import (
-    ArchitectureContractError,
-    ArchitectureIssue,
-)
 from radjax_student.architecture.carry_descriptor import (
     carry_descriptor_digest,
     describe_mapping_carry,
+)
+from radjax_student.architecture.errors import (
+    ArchitectureContractError,
+    ArchitectureIssue,
 )
 from radjax_student.architecture.models import (
     ArchitectureCapabilityProfile,

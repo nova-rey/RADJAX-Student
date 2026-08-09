@@ -1665,3 +1665,9 @@
   all 207 source modules and remains passing.
 - The recorded authority is the exact committed source tip used to generate
   the artifact, so fresh CI checkouts compare the same tree.
+
+## 2026-08-09 — CI receipt regeneration
+
+- Regenerated the P3.11.10 and P3.12A receipts through their normal execution
+  writers and updated the linked P3.5/P3.12A evidence digests. No verifier or
+  behavioral semantics were weakened.

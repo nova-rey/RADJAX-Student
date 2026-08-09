@@ -9,9 +9,11 @@ from typing import Any
 
 
 def _encode_keypath(keypath: tuple[str, ...]) -> str:
-    return "k_" + "_".join(
-        f"{len(part.encode()):08x}{part.encode().hex()}" for part in keypath
-    ) + ".npy"
+    return (
+        "k_"
+        + "_".join(f"{len(part.encode()):08x}{part.encode().hex()}" for part in keypath)
+        + ".npy"
+    )
 
 
 def describe_mapping_carry(tree: Mapping[str, Any]) -> dict[str, Any]:
