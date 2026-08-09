@@ -1650,3 +1650,10 @@
   development dependencies because P6.2/P6.3 modules import JAX at collection
   time. This changes CI environment provisioning only; production dependencies
   and test marker semantics remain unchanged.
+
+## 2026-08-09 — CI RWKV carry identity preservation
+
+- The architecture-owned carry descriptor preserves the established
+  deterministic NPZ descriptor shape and digest while living outside the
+  checkpoint implementation namespace. RWKV initialization and v3 restore
+  retain their accepted carry identity and lifecycle behavior.
