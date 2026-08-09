@@ -1643,3 +1643,10 @@
 - RWKV architecture carry descriptors are computed locally from JAX values,
   keeping architecture code independent of checkpoint implementation modules;
   no behavioral policy, checkpoint schema, or allocator behavior changed.
+
+## 2026-08-09 — CI matrix dependency alignment
+
+- The Python 3.11/3.12 validation jobs install the JAX test extra alongside
+  development dependencies because P6.2/P6.3 modules import JAX at collection
+  time. This changes CI environment provisioning only; production dependencies
+  and test marker semantics remain unchanged.

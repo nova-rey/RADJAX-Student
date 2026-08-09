@@ -28,7 +28,10 @@ jobs:
       - name: Install package
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev]"
+          # P6.2/P6.3 tests import JAX during collection even when the
+          # non-JAX marker expression is selected; install the optional runtime
+          # so collection remains complete in both matrix jobs.
+          python -m pip install -e ".[dev,test-jax]"
 
       - name: Compile Python files
         run: python -m compileall src scripts tests
