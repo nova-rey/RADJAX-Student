@@ -115,6 +115,65 @@ def _current_rss_bytes() -> int:
     return int(result.stdout.strip()) * 1024
 
 
+def _device_memory_stats() -> dict[str, int] | None:
+    """Read official JAX device allocation counters when available."""
+
+    try:
+        import jax
+
+        devices = jax.devices()
+        if len(devices) != 1:
+            return None
+        stats = devices[0].memory_stats()
+    except (ImportError, AttributeError, RuntimeError):
+        return None
+    if not stats:
+        return None
+    return {
+        str(key): int(value)
+        for key, value in stats.items()
+        if isinstance(value, (int, float))
+    }
+
+
+def _device_memory_summary(samples: list[dict[str, object]]) -> dict[str, object]:
+    """Summarize official device allocation counters observed at each phase."""
+
+    observations: list[dict[str, int]] = []
+    for sample in samples:
+        residency = sample.get("residency", {})
+        if not isinstance(residency, dict):
+            continue
+        phases = residency.get("phase_device_memory_stats", {})
+        if not isinstance(phases, dict):
+            continue
+        for value in phases.values():
+            if isinstance(value, dict):
+                observations.append(
+                    {
+                        str(key): int(number)
+                        for key, number in value.items()
+                        if isinstance(number, (int, float))
+                    }
+                )
+    if not observations:
+        return {"available": False, "observation_count": 0}
+    maxima = {
+        key: max(row.get(key, 0) for row in observations)
+        for key in {key for row in observations for key in row}
+    }
+    return {
+        "available": True,
+        "observation_count": len(observations),
+        "bytes_limit": max(row.get("bytes_limit", 0) for row in observations),
+        "observed_peak_bytes_in_use": maxima.get("peak_bytes_in_use", 0),
+        "observed_peak_bytes_reserved": maxima.get("peak_bytes_reserved", 0),
+        "observed_peak_pool_bytes": maxima.get("peak_pool_bytes", 0),
+        "maximum_bytes_in_use": maxima.get("bytes_in_use", 0),
+        "maximum_pool_bytes": maxima.get("pool_bytes", 0),
+    }
+
+
 def _run(
     artifact: Path,
     *,
@@ -122,6 +181,8 @@ def _run(
     assembled: Any | None,
     pre_cycle_rss: int,
     checkpoint_restore: bool,
+    platform_preference: str,
+    compilation_policy: str,
 ) -> tuple[dict[str, object], Any]:
     from radjax_student.architecture.rwkv7_reference import (
         RWKV7_REFERENCE_ARCHITECTURE_ID,
@@ -152,6 +213,7 @@ def _run(
     from radjax_student.runtime import RuntimeConfig
 
     phase_rss: dict[str, int] = {"pre_cycle": pre_cycle_rss}
+    phase_device_memory = {"pre_cycle": _device_memory_stats()}
     admitted_at = time.perf_counter()
     phase_rss["admission_start"] = _current_rss_bytes()
     projection = open_native_v3_v6_behavioral_projection(artifact)
@@ -206,10 +268,10 @@ def _run(
                 runtime_implementation_version="p2.9",
                 runtime_config=RuntimeConfig(
                     backend_id="jax",
-                    platform_preference="cpu",
+                    platform_preference=platform_preference,
                     precision_policy="float32",
                     placement_policy="single_device",
-                    compilation_policy="eager",
+                    compilation_policy=compilation_policy,
                     distributed_policy="disabled",
                     fallback_policy="disallowed",
                     seed=62,
@@ -271,6 +333,7 @@ def _run(
     )
     execution_seconds = time.perf_counter() - executed_at
     phase_rss["execution_end"] = _current_rss_bytes()
+    phase_device_memory["execution_end"] = _device_memory_stats()
     allocation_after = tracemalloc.take_snapshot()
     _, traced_peak = tracemalloc.get_traced_memory()
     tracemalloc.stop()
@@ -292,6 +355,7 @@ def _run(
         checkpoint_identity = None
         checkpoint_restore_config_digest = after.config_digest
     phase_rss["checkpoint_restore_end"] = _current_rss_bytes()
+    phase_device_memory["checkpoint_restore_end"] = _device_memory_stats()
     if execution.runtime_result.status != "pass" or execution.result.loss is None:
         raise RuntimeError("P6.2 lifecycle did not report a successful loss")
     if not execution.result.changed_parameter_paths:
@@ -333,6 +397,7 @@ def _run(
                 max(stat.count_diff, 0)
                 for stat in allocation_after.compare_to(allocation_before, "lineno")
             ),
+            "phase_device_memory_stats": phase_device_memory,
         },
         "runtime_event": {
             "mode": execution.runtime_result.mode,
@@ -365,6 +430,12 @@ def main() -> int:
     parser.add_argument("--surface", choices=("corridor", "exemplar"), required=True)
     parser.add_argument("--repetitions", type=int, default=3)
     parser.add_argument(
+        "--platform-preference", choices=("cpu", "gpu", "tpu"), default="cpu"
+    )
+    parser.add_argument(
+        "--compilation-policy", choices=("eager", "jit"), default="eager"
+    )
+    parser.add_argument(
         "--skip-checkpoint-restore",
         action="store_true",
         help="diagnostic execution-only run; not the accepted full-cycle workload",
@@ -385,6 +456,8 @@ def main() -> int:
             assembled=assembled,
             pre_cycle_rss=pre_cycle_rss,
             checkpoint_restore=not args.skip_checkpoint_restore,
+            platform_preference=args.platform_preference,
+            compilation_policy=args.compilation_policy,
         )
         samples.append(sample)
         gc.collect()
@@ -414,6 +487,8 @@ def main() -> int:
         "surface": args.surface,
         "checkpoint_restore_performed": not args.skip_checkpoint_restore,
         "repetitions": args.repetitions,
+        "platform_preference": args.platform_preference,
+        "compilation_policy": args.compilation_policy,
         "release_rss_bytes_after_gc": release_rss_bytes,
         "rss_summary": {
             "pre_cycle_bytes": [
@@ -425,6 +500,7 @@ def main() -> int:
             ],
             "post_release_gc_bytes": release_rss_bytes,
         },
+        "device_memory_summary": _device_memory_summary(samples),
         "identity_continuity": {
             field: samples[0][field] for field in continuity_fields
         },

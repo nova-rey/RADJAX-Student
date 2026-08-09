@@ -1,0 +1,23 @@
+{
+  "host": {
+    "platform": "Linux-6.8.0-1061-aws-x86_64-with-glibc2.39",
+    "kernel": "6.8.0-1061-aws",
+    "memory_total_bytes": 33263665152,
+    "memory_available_bytes_before_candidate": 30346584064,
+    "cgroup_memory_max": "max"
+  },
+  "accelerator": {
+    "name": "Tesla T4",
+    "memory_total_bytes": 16106127360,
+    "driver": "580.173.02",
+    "jax_reported_bytes_limit": 11727028224,
+    "device_count": 1
+  },
+  "software": {
+    "student_commit": "6c0d99435f5a8b4a38212d7050a73ec60bd6509a",
+    "jax": "0.4.38",
+    "jaxlib": "0.4.38",
+    "backend": "gpu",
+    "python": "3.12.3"
+  }
+}

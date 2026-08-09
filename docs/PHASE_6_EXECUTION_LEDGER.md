@@ -147,3 +147,43 @@ bounded evidence. It does not expand Phase 5 claims or authorize future work.
   source unit also reaches the production generic JAX lifecycle and real v3
   atomic envelope roundtrip. This is not an accelerator or memory-envelope
   claim; P6.5 owns those measurements.
+
+## P6.5 — Pinned Linux/T4 retention and envelope rehearsal
+
+- The pinned Lightning `dream-stream` Linux host ran the exact reduced-burn
+  Student artifact at commit `6c0d99435f5a8b4a38212d7050a73ec60bd6509a` with
+  one Tesla T4, JAX/JAXLIB 0.4.38, and the generic RWKV lifecycle. Complete
+  raw runs and their generated receipt are in
+  [P6_5_T4_ENVELOPE.json](P6_5_T4_ENVELOPE.json) and `P6_5_RAW/`.
+- Fresh-process eager corridor and exemplar runs completed 20 cycles each;
+  an eager execution-only corridor run completed 10 cycles. Host RSS grew
+  materially on every identical cycle (corridor 1.32 GB to 2.55 GB;
+  exemplar 1.31 GB to 2.54 GB), while official JAX device counters stayed
+  within the reported 11.727 GB allocation limit and the generic callable and
+  prepared identities stayed stable. One-cycle fresh-process records isolate
+  admission/materialization, assembly, execution, and checkpoint/restore
+  phase measurements.
+- JIT corridor and exemplar runs completed 10 cycles each in fresh processes.
+  Their callable/prepared identities were stable, but each cycle reported a
+  compilation event (about 12–14 seconds); this is retained as an observed
+  runtime fact, not normalized away or repaired. Eager runs reported no
+  compilation events. A separate `XLA_PYTHON_CLIENT_PREALLOCATE=false` run is
+  diagnostic only and is not a production allocator default.
+- A CPU comparison on the same declared artifact had maximum loss absolute
+  delta `3.814697265625e-06` against the T4 eager corridor, within the declared
+  float32 diagnostic tolerance `1e-4`. The CPU run is a numerical comparison,
+  not a substitute for T4 qualification.
+- `BurnEnvelopePolicyV1` is frozen from the observed host/T4 capacities before
+  the candidate. The candidate completed without OOM or retry and stayed under
+  the recorded host ceiling and JAX-reported device capacity. The 70 percent,
+  10-minute, and 25 percent values remain provisional dashboard signals, not
+  correctness gates; no allocator policy or memory-management production code
+  was added.
+- P6.5 records `execution_retention_observed`, `owner_unresolved`, and
+  `scale_impact_pending_external_envelope` for the repeated host retention and
+  repeated JIT compilation. The evidence does not prove a Python-object leak,
+  does not prove JAX/XLA allocator behavior is harmless, and does not authorize
+  speculative teardown, cache flushing, or allocator controls. P6.6 must use
+  this receipt when selecting its minimum burn; a Class B blocker is warranted
+  only if that envelope is prevented, and a Class A defect only if a
+  Student-owned retaining mechanism is demonstrated.

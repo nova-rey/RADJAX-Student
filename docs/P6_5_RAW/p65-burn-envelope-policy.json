@@ -1,0 +1,23 @@
+{
+  "schema_version": "BurnEnvelopePolicyV1",
+  "frozen_before_candidate": true,
+  "basis": "observed pinned Linux/T4 capacities immediately before the candidate",
+  "host_capacity_bytes": 33263665152,
+  "host_candidate_ceiling_bytes": 23284565606,
+  "accelerator_capacity_bytes": 11727028224,
+  "candidate_requirements": {
+    "no_oom_or_retry": true,
+    "host_peak_within_ceiling": true,
+    "accelerator_peak_within_capacity": true
+  },
+  "dashboard_signals_not_correctness_gates": {
+    "host_or_device_fraction_target": 0.7,
+    "compile_seconds_target": 600,
+    "compile_share_target": 0.25
+  },
+  "notes": [
+    "The 70 percent, 10 minute, and 25 percent values are provisional dashboard signals only.",
+    "No allocator policy or production default was changed to satisfy this policy.",
+    "The JIT run reports repeated compilation; this is retained as evidence and not silently treated as stable compilation."
+  ]
+}

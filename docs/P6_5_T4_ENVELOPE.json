@@ -1,0 +1,657 @@
+{
+  "burn_envelope_policy": {
+    "accelerator_capacity_bytes": 11727028224,
+    "basis": "observed pinned Linux/T4 capacities immediately before the candidate",
+    "candidate_requirements": {
+      "accelerator_peak_within_capacity": true,
+      "host_peak_within_ceiling": true,
+      "no_oom_or_retry": true
+    },
+    "dashboard_signals_not_correctness_gates": {
+      "compile_seconds_target": 600,
+      "compile_share_target": 0.25,
+      "host_or_device_fraction_target": 0.7
+    },
+    "frozen_before_candidate": true,
+    "host_candidate_ceiling_bytes": 23284565606,
+    "host_capacity_bytes": 33263665152,
+    "notes": [
+      "The 70 percent, 10 minute, and 25 percent values are provisional dashboard signals only.",
+      "No allocator policy or production default was changed to satisfy this policy.",
+      "The JIT run reports repeated compilation; this is retained as evidence and not silently treated as stable compilation."
+    ],
+    "schema_version": "BurnEnvelopePolicyV1"
+  },
+  "classification": {
+    "owner": "owner_unresolved",
+    "retention": "execution_retention_observed",
+    "scale_impact": "scale_impact_pending_external_envelope"
+  },
+  "commands": [
+    "remote Linux T4: p65 corridor eager repetitions=20",
+    "remote Linux T4: p65 exemplar eager repetitions=20",
+    "remote Linux T4: p65 corridor jit repetitions=10",
+    "remote Linux T4: p65 exemplar jit repetitions=10",
+    "remote Linux T4: p65 corridor eager execution-only repetitions=10",
+    "fresh-process one-cycle corridor and exemplar eager isolation",
+    "local macOS CPU comparison only; not T4 qualification",
+    "diagnostic only: XLA_PYTHON_CLIENT_PREALLOCATE=false corridor eager repetitions=3"
+  ],
+  "diagnostic_runs": [
+    {
+      "compilation_policy": "eager",
+      "compilation_seconds": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compiled_events": [
+        false,
+        false,
+        false
+      ],
+      "device_memory_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1375232,
+      "device_peak_pool_bytes": 2097152,
+      "fresh_process": true,
+      "host_rss_first_bytes": 952586240,
+      "host_rss_last_bytes": 1091584000,
+      "host_rss_peak_bytes": 1091584000,
+      "host_rss_post_release_gc_bytes": [
+        952586240,
+        1026469888,
+        1091584000
+      ],
+      "losses": [
+        39.79918670654297,
+        39.7991828918457,
+        39.7991828918457
+      ],
+      "measurement_identity": "sha256:208b2db4c1e881eb83b625ce3c853552861f0129a27a485947cb8f09dbdab2e6",
+      "platform_preference": "gpu",
+      "raw_digest": "sha256:b68ae53b9664b59fdf79d65e2fa60bfc66e9403e90b87f12c9e8fd850ca8ae7e",
+      "raw_path": "docs/P6_5_RAW/p65-diagnostic.json",
+      "repetitions": 3,
+      "runtime_event_continuity": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "eager",
+        "prepared_execution_digest": "ba65816bf6d681267ee72069d64de21a444c87882a00d5672e855b1804d5e409"
+      },
+      "surface": "corridor"
+    }
+  ],
+  "environment": {
+    "accelerator": {
+      "device_count": 1,
+      "driver": "580.173.02",
+      "jax_reported_bytes_limit": 11727028224,
+      "memory_total_bytes": 16106127360,
+      "name": "Tesla T4"
+    },
+    "host": {
+      "cgroup_memory_max": "max",
+      "kernel": "6.8.0-1061-aws",
+      "memory_available_bytes_before_candidate": 30346584064,
+      "memory_total_bytes": 33263665152,
+      "platform": "Linux-6.8.0-1061-aws-x86_64-with-glibc2.39"
+    },
+    "software": {
+      "backend": "gpu",
+      "jax": "0.4.38",
+      "jaxlib": "0.4.38",
+      "python": "3.12.3",
+      "student_commit": "6c0d99435f5a8b4a38212d7050a73ec60bd6509a"
+    }
+  },
+  "nonclaims": [
+    "no_student_owned_retaining_object_demonstrated",
+    "jax_allocator_diagnostics_are_not_production_defaults",
+    "no_frozen_p6_6_capacity_envelope_was_available",
+    "cpu_substitution_is_not_a_t4_qualification"
+  ],
+  "numerical_comparison": {
+    "cpu_run": "docs/P6_5_RAW/p65-cpu-compare.json",
+    "declared_float32_tolerance": 0.0001,
+    "gpu_run": "docs/P6_5_RAW/p65-corridor.json",
+    "loss_abs_delta_max": 3.814697265625e-06,
+    "note": "CPU comparison is a numerical diagnostic; it is not a T4 qualification.",
+    "within_declared_tolerance": true
+  },
+  "receipt_identity": "sha256:2befde79a6e097c99c51b2c6ab427d7990fb1d83501537473bda00d46b90614d",
+  "runs": [
+    {
+      "compilation_policy": "eager",
+      "compilation_seconds": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compiled_events": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "device_memory_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1473024,
+      "device_peak_pool_bytes": 11727028224,
+      "fresh_process": true,
+      "host_rss_first_bytes": 1316519936,
+      "host_rss_last_bytes": 2549633024,
+      "host_rss_peak_bytes": 2549633024,
+      "host_rss_post_release_gc_bytes": [
+        1316519936,
+        1392328704,
+        1457332224,
+        1521856512,
+        1578545152,
+        1650950144,
+        1714429952,
+        1779429376,
+        1843474432,
+        1899847680,
+        1971859456,
+        2036006912,
+        2100273152,
+        2165526528,
+        2228555776,
+        2292965376,
+        2349203456,
+        2421178368,
+        2477477888,
+        2549633024
+      ],
+      "losses": [
+        39.79918670654297,
+        39.7991828918457,
+        39.7991828918457,
+        39.79917526245117,
+        39.799171447753906,
+        39.799171447753906,
+        39.799171447753906,
+        39.799171447753906,
+        39.79916763305664,
+        39.79917526245117,
+        39.79916763305664,
+        39.79916763305664,
+        39.799163818359375,
+        39.799163818359375,
+        39.799171447753906,
+        39.799163818359375,
+        39.79915237426758,
+        39.79915237426758,
+        39.79916000366211,
+        39.79916763305664
+      ],
+      "measurement_identity": "sha256:babea1ae5c2a87b42eff0cfc02f39bdc3f3be2da714f931e39f10e2717847286",
+      "platform_preference": "gpu",
+      "raw_digest": "sha256:b760d0a8581b192ffb6a614af18dcb91444d1d485fd6403b663335f722972147",
+      "raw_path": "docs/P6_5_RAW/p65-corridor.json",
+      "repetitions": 20,
+      "runtime_event_continuity": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "eager",
+        "prepared_execution_digest": "ba65816bf6d681267ee72069d64de21a444c87882a00d5672e855b1804d5e409"
+      },
+      "surface": "corridor"
+    },
+    {
+      "compilation_policy": "eager",
+      "compilation_seconds": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compiled_events": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "device_memory_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1450240,
+      "device_peak_pool_bytes": 11727028224,
+      "fresh_process": true,
+      "host_rss_first_bytes": 1308315648,
+      "host_rss_last_bytes": 2541105152,
+      "host_rss_peak_bytes": 2541105152,
+      "host_rss_post_release_gc_bytes": [
+        1308315648,
+        1382887424,
+        1447944192,
+        1512583168,
+        1576669184,
+        1640914944,
+        1704497152,
+        1769926656,
+        1834397696,
+        1898733568,
+        1963524096,
+        2027335680,
+        2091720704,
+        2156564480,
+        2220208128,
+        2284474368,
+        2349064192,
+        2412814336,
+        2476457984,
+        2541105152
+      ],
+      "losses": [
+        1.4847712516784668,
+        1.4847710132598877,
+        1.4847707748413086,
+        1.4847705364227295,
+        1.48477041721344,
+        1.4847701787948608,
+        1.4847700595855713,
+        1.4847697019577026,
+        1.4847694635391235,
+        1.4847697019577026,
+        1.4847694635391235,
+        1.4847692251205444,
+        1.4847689867019653,
+        1.4847687482833862,
+        1.4847685098648071,
+        1.484768271446228,
+        1.4847681522369385,
+        1.484768271446228,
+        1.4847679138183594,
+        1.4847679138183594
+      ],
+      "measurement_identity": "sha256:82e2e9a56252976bd094ee00c6ee84d1ef344c4eb87b43a5030d3180e534a6f4",
+      "platform_preference": "gpu",
+      "raw_digest": "sha256:3d4ae304c376f19b2a9c792a0d4267f2a588b95b7ce9d6be0bf357ad836719f7",
+      "raw_path": "docs/P6_5_RAW/p65-exemplar-eager.json",
+      "repetitions": 20,
+      "runtime_event_continuity": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "eager",
+        "prepared_execution_digest": "24f4258010c4f3e641209b4acaa281cf3093fa5144964ca6b006cc27b0c0a44d"
+      },
+      "surface": "exemplar"
+    },
+    {
+      "compilation_policy": "jit",
+      "compilation_seconds": [
+        14.002254268000002,
+        13.494711023000036,
+        13.499837748000004,
+        13.632729993000112,
+        13.634997859000123,
+        13.534796880000158,
+        13.56706125400001,
+        13.605659762999949,
+        13.411367298999949,
+        13.462072153000008
+      ],
+      "compiled_events": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "device_memory_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1231872,
+      "device_peak_pool_bytes": 11727028224,
+      "fresh_process": true,
+      "host_rss_first_bytes": 1152835584,
+      "host_rss_last_bytes": 1887338496,
+      "host_rss_peak_bytes": 1887338496,
+      "host_rss_post_release_gc_bytes": [
+        1152835584,
+        1267765248,
+        1343688704,
+        1421643776,
+        1500643328,
+        1578315776,
+        1654386688,
+        1733644288,
+        1811914752,
+        1887338496
+      ],
+      "losses": [
+        39.79918670654297,
+        39.7991828918457,
+        39.7991828918457,
+        39.79917526245117,
+        39.799171447753906,
+        39.799171447753906,
+        39.799171447753906,
+        39.799171447753906,
+        39.79916763305664,
+        39.79917526245117
+      ],
+      "measurement_identity": "sha256:6e49fcea540265e590576fa5f0ceefcdae8845b33ac122c88e7a6b0d3917f4ec",
+      "platform_preference": "gpu",
+      "raw_digest": "sha256:dde2dc3ae8416e2c062f56b26532db7ef952ad344110d8fc39597924c112cf04",
+      "raw_path": "docs/P6_5_RAW/p65-corridor-jit.json",
+      "repetitions": 10,
+      "runtime_event_continuity": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "jit",
+        "prepared_execution_digest": "04849fa4cf8de623a86b561064d9d9676d46d538a68cfc0091563943658a3056"
+      },
+      "surface": "corridor"
+    },
+    {
+      "compilation_policy": "jit",
+      "compilation_seconds": [
+        13.444793618999938,
+        12.877943531000028,
+        13.161896623000075,
+        13.495089294000081,
+        13.37332335400015,
+        13.283411865000062,
+        13.12674260599988,
+        13.076585617000092,
+        12.79562407000003,
+        11.93726522199995
+      ],
+      "compiled_events": [
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true
+      ],
+      "device_memory_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1221120,
+      "device_peak_pool_bytes": 11727028224,
+      "fresh_process": true,
+      "host_rss_first_bytes": 1151365120,
+      "host_rss_last_bytes": 1860784128,
+      "host_rss_peak_bytes": 1860784128,
+      "host_rss_post_release_gc_bytes": [
+        1151365120,
+        1251258368,
+        1328275456,
+        1405083648,
+        1479643136,
+        1556250624,
+        1634684928,
+        1708748800,
+        1784709120,
+        1860784128
+      ],
+      "losses": [
+        1.4847712516784668,
+        1.4847710132598877,
+        1.4847707748413086,
+        1.4847705364227295,
+        1.48477041721344,
+        1.4847701787948608,
+        1.4847700595855713,
+        1.4847697019577026,
+        1.4847694635391235,
+        1.4847697019577026
+      ],
+      "measurement_identity": "sha256:19a44f904f4477b6bf18e0c6a41d46cef928d7a99e09b8aea125517cf444a482",
+      "platform_preference": "gpu",
+      "raw_digest": "sha256:5cd26e7a31ceb8c0fd858d4d5283a4bc50bd4800748445d41ef1ba7e51f359b9",
+      "raw_path": "docs/P6_5_RAW/p65-exemplar-jit.json",
+      "repetitions": 10,
+      "runtime_event_continuity": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "jit",
+        "prepared_execution_digest": "1189787d7c2f5d2c5ff0a0d17f1637ef04fa2c980380101ce26963f5d74d3b05"
+      },
+      "surface": "exemplar"
+    },
+    {
+      "compilation_policy": "eager",
+      "compilation_seconds": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compiled_events": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+      ],
+      "device_memory_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1412608,
+      "device_peak_pool_bytes": 11727028224,
+      "fresh_process": true,
+      "host_rss_first_bytes": 1316397056,
+      "host_rss_last_bytes": 1907318784,
+      "host_rss_peak_bytes": 1907318784,
+      "host_rss_post_release_gc_bytes": [
+        1316397056,
+        1391509504,
+        1457098752,
+        1521795072,
+        1585852416,
+        1649942528,
+        1714028544,
+        1778057216,
+        1842835456,
+        1907318784
+      ],
+      "losses": [
+        39.79918670654297,
+        39.7991828918457,
+        39.7991828918457,
+        39.79917526245117,
+        39.799171447753906,
+        39.799171447753906,
+        39.799171447753906,
+        39.799171447753906,
+        39.79916763305664,
+        39.79917526245117
+      ],
+      "measurement_identity": "sha256:5d0fcc6b5f945aa53d48e8b4a02a6c01d8a7cd9b0cc88281cf37306c457c442c",
+      "platform_preference": "gpu",
+      "raw_digest": "sha256:5913fceb6ac57d65caea172928ed60304eed10b63fb61a4772dda938fea5bfcf",
+      "raw_path": "docs/P6_5_RAW/p65-corridor-exec-only.json",
+      "repetitions": 10,
+      "runtime_event_continuity": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "eager",
+        "prepared_execution_digest": "ba65816bf6d681267ee72069d64de21a444c87882a00d5672e855b1804d5e409"
+      },
+      "surface": "corridor"
+    },
+    {
+      "compilation_policy": "eager",
+      "compilation_seconds": [
+        0.0
+      ],
+      "compiled_events": [
+        false
+      ],
+      "device_memory_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1157120,
+      "device_peak_pool_bytes": 11727028224,
+      "fresh_process": true,
+      "host_rss_first_bytes": 1317683200,
+      "host_rss_last_bytes": 1317683200,
+      "host_rss_peak_bytes": 1317683200,
+      "host_rss_post_release_gc_bytes": [
+        1317683200
+      ],
+      "losses": [
+        39.79918670654297
+      ],
+      "measurement_identity": "sha256:785356b48b5aa2b8a658480feb4a31e0d85f9d789a08c7362a5d5d6fcc0191a3",
+      "platform_preference": "gpu",
+      "raw_digest": "sha256:d355d76f07793e1866dba23471cecedf5e7702cdb1fca06225f22681b19d5a94",
+      "raw_path": "docs/P6_5_RAW/p65-corridor-isolated.json",
+      "repetitions": 1,
+      "runtime_event_continuity": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "eager",
+        "prepared_execution_digest": "ba65816bf6d681267ee72069d64de21a444c87882a00d5672e855b1804d5e409"
+      },
+      "surface": "corridor"
+    },
+    {
+      "compilation_policy": "eager",
+      "compilation_seconds": [
+        0.0
+      ],
+      "compiled_events": [
+        false
+      ],
+      "device_memory_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1148160,
+      "device_peak_pool_bytes": 3312058368,
+      "fresh_process": true,
+      "host_rss_first_bytes": 1046196224,
+      "host_rss_last_bytes": 1046196224,
+      "host_rss_peak_bytes": 1046196224,
+      "host_rss_post_release_gc_bytes": [
+        1046196224
+      ],
+      "losses": [
+        1.4847712516784668
+      ],
+      "measurement_identity": "sha256:061e7fe1cbe829b95e71c90ef88a553e60ba7da0d2a252304ae216d867560b69",
+      "platform_preference": "gpu",
+      "raw_digest": "sha256:7b27022f76b2e4e7bbd5e241f6e525e80b326c445d15eb5651cf11ab121cf9e6",
+      "raw_path": "docs/P6_5_RAW/p65-exemplar-isolated.json",
+      "repetitions": 1,
+      "runtime_event_continuity": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "eager",
+        "prepared_execution_digest": "24f4258010c4f3e641209b4acaa281cf3093fa5144964ca6b006cc27b0c0a44d"
+      },
+      "surface": "exemplar"
+    },
+    {
+      "compilation_policy": "eager",
+      "compilation_seconds": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "compiled_events": [
+        false,
+        false,
+        false
+      ],
+      "device_memory_limit_bytes": 0,
+      "device_peak_bytes_in_use": 0,
+      "device_peak_pool_bytes": 0,
+      "fresh_process": true,
+      "host_rss_first_bytes": 450711552,
+      "host_rss_last_bytes": 465739776,
+      "host_rss_peak_bytes": 497606656,
+      "host_rss_post_release_gc_bytes": [
+        450711552,
+        497606656,
+        465739776
+      ],
+      "losses": [
+        39.799190521240234,
+        39.7991828918457,
+        39.79918670654297
+      ],
+      "measurement_identity": "sha256:cb8631fd2c031ab9472b5294cfd8cb063cdf68864eb9df7e83293752a243c21b",
+      "platform_preference": "cpu",
+      "raw_digest": "sha256:47ee76c273b6bcaf86579934ead2f9ab359785b462b573bbc6f60ec25c29cb76",
+      "raw_path": "docs/P6_5_RAW/p65-cpu-compare.json",
+      "repetitions": 3,
+      "runtime_event_continuity": {
+        "callable_id": "radjax.learning.generic_jax_step",
+        "mode": "eager",
+        "prepared_execution_digest": "15995d297f7c3c0b6501aaa6d8b3773dd31b7cc363ddf9f8c89f443d7ffc0140"
+      },
+      "surface": "corridor"
+    }
+  ],
+  "schema_version": "radjax.phase6.p6_5_t4_envelope.v1",
+  "source_commit": "6c0d99435f5a8b4a38212d7050a73ec60bd6509a"
+}

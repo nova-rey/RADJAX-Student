@@ -1671,3 +1671,23 @@
 - Regenerated the P3.11.10 and P3.12A receipts through their normal execution
   writers and updated the linked P3.5/P3.12A evidence digests. No verifier or
   behavioral semantics were weakened.
+
+## 2026-08-09 — P6.5 pinned Linux/T4 envelope characterization
+
+- P6.5 ran fresh ordinary-production reduced-burn corridor and exemplar cycles
+  on the pinned Lightning Linux/T4 environment. Eager 20-cycle curves,
+  execution-only 10-cycle evidence, fresh one-cycle phase isolation, JIT
+  comparisons, device allocation counters, and the diagnostic
+  `XLA_PYTHON_CLIENT_PREALLOCATE=false` run are preserved in
+  `docs/P6_5_T4_ENVELOPE.json` and `docs/P6_5_RAW/`.
+- Host RSS retention is material and execution-associated; official JAX device
+  allocation stayed within the reported T4 limit. JIT reported repeated
+  compilation despite stable callable/prepared identities. No Student-owned
+  retaining object was identified, and no allocator, cache, teardown, or
+  memory-management production code was added.
+- The frozen `BurnEnvelopePolicyV1` records observed host/T4 capacities before
+  the candidate. The 70 percent, 10-minute, and 25 percent values remain
+  provisional dashboard signals rather than correctness gates. P6.5 retains
+  the classification `execution_retention_observed`, `owner_unresolved`,
+  `scale_impact_pending_external_envelope`; P6.6 must revisit the finding on
+  its minimum burn envelope.
