@@ -1,5 +1,17 @@
 """Neutral behavioral split and batch materialization boundary (P5.4)."""
 
+from radjax_student.behavior.continuation import (
+    BEHAVIOR_CONTINUATION_CHECKPOINT_V1,
+    BEHAVIOR_RUN_STATE_V1,
+    BehaviorContinuationCheckpointV1,
+    BehaviorContinuationError,
+    BehaviorContinuationResultV1,
+    BehaviorRunStateV1,
+    load_behavior_continuation_checkpoint_v1,
+    restore_behavior_continuation_with_lifecycle,
+    run_behavior_continuation_v1,
+    save_behavior_continuation_checkpoint_v1,
+)
 from radjax_student.behavior.corridor_pass import (
     CORRIDOR_BATCHING_POLICY_V1,
     CORRIDOR_ORDERING_POLICY_V1,
@@ -87,6 +99,16 @@ from radjax_student.behavior.proof_package import (
 
 __all__ = [
     "BEHAVIOR_SPLIT_POLICY_V1",
+    "BEHAVIOR_CONTINUATION_CHECKPOINT_V1",
+    "BEHAVIOR_RUN_STATE_V1",
+    "BehaviorContinuationCheckpointV1",
+    "BehaviorContinuationError",
+    "BehaviorContinuationResultV1",
+    "BehaviorRunStateV1",
+    "load_behavior_continuation_checkpoint_v1",
+    "restore_behavior_continuation_with_lifecycle",
+    "run_behavior_continuation_v1",
+    "save_behavior_continuation_checkpoint_v1",
     "BEHAVIOR_SPLIT_RULE_VERSION_V1",
     "BEHAVIOR_OBJECTIVE_POLICY_V1",
     "BEHAVIOR_OBJECTIVE_REDUCTION_V1",

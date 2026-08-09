@@ -1,0 +1,74 @@
+{
+  "authority": {
+    "contract_commit": "1fa43e1aea2e198511db86dafb0aeefa525d48c7",
+    "contract_release": "0.9.0",
+    "fixture": "tests/fixtures/native_v3_student_v6_reduced_burn/student",
+    "tome_commit": "6a6c65378cfd86a190e44e861ed9323927c2acc8"
+  },
+  "identity_continuity": {
+    "architecture_config_digest": "8ec539859805a1fe7a6579d46b918febba6e8730c7e031a1ba512569d1cd85b6",
+    "compiled": false,
+    "parameter_layout_digest": "c19bb368b8b9f7538d4575a5d62b2ce980c7fd76b3c7a6c0d9024128de2c5fbc",
+    "runtime_callable": "radjax.learning.generic_jax_step",
+    "runtime_mode": "eager"
+  },
+  "measurement_identity": "sha256:2820aaf0f02288bf0e9e5f45eb97f4d975f3830b0917270385456dfc8304f4e7",
+  "nonclaims": [
+    "this is a source-progress and checkpoint-envelope proof",
+    "no accelerator or Linux/T4 resource-envelope claim",
+    "no allocator or memory-management change"
+  ],
+  "passes": [
+    {
+      "byte_equal_resume_sample": true,
+      "checkpoint_count": 1,
+      "checkpoint_interval_steps": 8,
+      "compilation_seconds": 0.0,
+      "compiled": false,
+      "epochs": 64,
+      "executed_source_units_per_epoch": 32,
+      "interrupted_cursor": 8,
+      "interrupted_status": "stopped_at_boundary",
+      "pass_id": "corridor.v1",
+      "resume_sample_final_digest": "sha256:ba17da124a77733faec5b819220e95ab7ffe894fe33b738963915addd54a0867",
+      "resume_sample_uninterrupted_digest": "sha256:ba17da124a77733faec5b819220e95ab7ffe894fe33b738963915addd54a0867",
+      "resume_status": "complete",
+      "runtime_mode": "eager",
+      "scheduled_items": 2048,
+      "source_ledger_identity": "sha256:16dd46b5f390419ddee740cadf4dcd440bf996e1d9792a046f16aa5304bda8b0",
+      "source_units_per_epoch": 2048,
+      "stable_runtime_callable": "radjax.learning.generic_jax_step",
+      "uninterrupted_final_digest": "sha256:701894f51120b803ce4850d96d4a76d980c4ea69719059134a1530389eb64c0c"
+    },
+    {
+      "byte_equal_resume_sample": true,
+      "checkpoint_count": 1,
+      "checkpoint_interval_steps": 8,
+      "compilation_seconds": 0.0,
+      "compiled": false,
+      "epochs": 64,
+      "executed_source_units_per_epoch": 32,
+      "interrupted_cursor": 8,
+      "interrupted_status": "stopped_at_boundary",
+      "pass_id": "exemplar.v1",
+      "resume_sample_final_digest": "sha256:db757e60185bbb448dde4c35e9883b57907514962ae466ebc1a64196a572b4fc",
+      "resume_sample_uninterrupted_digest": "sha256:db757e60185bbb448dde4c35e9883b57907514962ae466ebc1a64196a572b4fc",
+      "resume_status": "complete",
+      "runtime_mode": "eager",
+      "scheduled_items": 2048,
+      "source_ledger_identity": "sha256:3fd2fb5b2767ff7d26762c94d186808515496d613c3b87fd567180f2ca330171",
+      "source_units_per_epoch": 33,
+      "stable_runtime_callable": "radjax.learning.generic_jax_step",
+      "uninterrupted_final_digest": "sha256:23eb9cb18f280f70ab43b53d97e37b461049f23c92ac4f72084a60cc869b762b"
+    }
+  ],
+  "policy": {
+    "carry_policy": "reset_each_independent_example.v1",
+    "checkpoint_every_n_steps": 8,
+    "corridor_epochs": 64,
+    "exemplar_epochs": 64,
+    "final_partial_batch_policy": "deterministic_singleton.v1",
+    "source_batch_size": 1
+  },
+  "schema_version": "radjax.student.p6_4_continuation_evidence.v1"
+}

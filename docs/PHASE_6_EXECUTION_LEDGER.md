@@ -118,3 +118,32 @@ bounded evidence. It does not expand Phase 5 claims or authorize future work.
   evidence makes no new numerical-parity claim, adds no batching or
   multi-device claim, and does not generalize ranks, precision, or allocator
   policy.
+
+## P6.4 — Durable interruption and exact continuation
+
+- `BehaviorRunStateV1` is the architecture-neutral source-progress envelope:
+  it binds the Contract/source/split/HF/runtime authorities, canonical source
+  occurrence order, pass/epoch/cursor, optimizer/global steps, retry count,
+  batch-size-one policy, carry-reset policy, and deterministic final-batch
+  policy. Repeated source identities are allowed only as distinct scheduled
+  epoch occurrences; skip/replay/order/authority mutations fail closed.
+- `BehaviorContinuationCheckpointV1` atomically places that envelope beside
+  the existing caller-bound `learning_checkpoint.v3` payload. The writer
+  fsyncs and renames a temporary sibling only after v3 validation; the reader
+  inventories and hashes every envelope/model file before caller-bound restore.
+  Existing destinations, missing/extra files, altered metadata, and model
+  identity drift are rejected without mutation.
+- The callback-neutral continuation runner advances a source occurrence only
+  after its step succeeds, checkpoints every eight optimizer steps, honors a
+  graceful nonterminal stop at a batch boundary, and resumes from the last
+  durable cursor. Focused adversarial tests prove exact prefix advancement,
+  no-skip/no-replay scheduling, atomic destination behavior, tamper rejection,
+  and uninterrupted-versus-resumed deterministic final state.
+- Evidence in [P6_4_CONTINUATION.json](P6_4_CONTINUATION.json) records the
+  accepted reduced-burn authorities, 64 corridor and exemplar epoch policy,
+  stable generic callable/eager noncompiled facts, checkpoint cadence, and
+  byte-equal interruption/resume digests on a bounded representative source
+  sample. It is a continuation-envelope proof, not an accelerator or memory
+  envelope claim; the complete source occurrence schedule remains governed by
+  the canonical identity ledger and is exercised by the adversarial runner
+  tests.

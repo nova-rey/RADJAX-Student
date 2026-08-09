@@ -1614,3 +1614,21 @@
   head-size=4/FFN=32 rung reached configuration-derived layouts, genuine
   generic RWKV execution, checkpoint creation, and eager/JIT agreement. Frozen
   Phase 4 16x4 behavior remains unchanged and no new parity claim is made.
+
+## 2026-08-09 — P6.4 durable interruption and exact continuation
+
+- `BehaviorRunStateV1` binds canonical source occurrence order, cursor,
+  pass/epoch, optimizer/global steps, authority identities, batch-size-one,
+  source-reset carry, and deterministic partial-batch policy without
+  importing an architecture or duplicating the model checkpoint format.
+- `BehaviorContinuationCheckpointV1` wraps the existing caller-bound
+  `learning_checkpoint.v3` payload with an fsynced atomic envelope. Readers
+  reject altered authorities, schedule prefixes, missing/extra/tampered files,
+  and model identity drift before restore; the generic runner advances only
+  after successful source execution and resumes from the last durable boundary.
+- P6.4 evidence records the 64-epoch corridor/exemplar policy, eight-step
+  checkpoint cadence, stable eager noncompiled generic callable, and
+  uninterrupted-versus-resumed byte-equal representative proof. This is a
+  continuation correctness result only; it adds no allocator, memory, device,
+  batching, or model-policy change. P6.5 must revisit resource behavior on
+  the pinned Linux/T4 environment.
