@@ -140,6 +140,99 @@ def test_static_value_change_gets_distinct_prepared_specialization() -> None:
     assert len(cache) == 2
 
 
+def test_execution_policy_changes_get_distinct_specializations() -> None:
+    backend = _FakeExecutionBackend()
+    request, binding = _generic_request()
+    cache = PreparedExecutionReuseCache()
+    args = (lambda value: value, np.zeros((2,), dtype=np.float32))
+
+    _, base = execute_function(
+        context=_context(),
+        callable_binding=binding,
+        request=request,
+        backend=backend,
+        args=args,
+        reuse_cache=cache,
+    )
+    donation = replace(
+        request,
+        request_id="request-donation",
+        compilation_options=replace(
+            request.compilation_options, donate_arg_positions=(1,)
+        ),
+    )
+    placement = replace(request, request_id="request-placement", placement_plan_id="p2")
+    options = replace(
+        request,
+        request_id="request-options",
+        compilation_options=replace(
+            request.compilation_options, metadata={"compiler_option": "v2"}
+        ),
+    )
+    receipts = [
+        execute_function(
+            context=_context(),
+            callable_binding=binding,
+            request=value,
+            backend=backend,
+            args=args,
+            reuse_cache=cache,
+        )[1]
+        for value in (donation, placement, options)
+    ]
+
+    assert all(item.status == "pass" for item in receipts)
+    assert (
+        len(
+            {
+                base.prepared_execution_digest,
+                *(item.prepared_execution_digest for item in receipts),
+            }
+        )
+        == 4
+    )
+    assert backend.compile_calls == 4
+
+
+def test_new_cache_rebuilds_compiled_handle_from_same_identity() -> None:
+    backend = _FakeExecutionBackend()
+    request, binding = _generic_request()
+    args = (lambda value: value, np.zeros((2,), dtype=np.float32))
+    first, first_receipt = execute_function(
+        context=_context(),
+        callable_binding=binding,
+        request=request,
+        backend=backend,
+        args=args,
+        reuse_cache=PreparedExecutionReuseCache(),
+    )
+    second, second_receipt = execute_function(
+        context=_context(),
+        callable_binding=binding,
+        request=replace(request, request_id="request-restored"),
+        backend=backend,
+        args=args,
+        reuse_cache=PreparedExecutionReuseCache(),
+    )
+
+    assert np.array_equal(first, second)
+    assert (
+        first_receipt.prepared_execution_digest
+        == second_receipt.prepared_execution_digest
+    )
+    assert backend.compile_calls == 2
+
+
+def test_reuse_seam_is_architecture_neutral() -> None:
+    import inspect
+
+    from radjax_student.runtime import execution as generic_runtime
+
+    source = inspect.getsource(generic_runtime.execute_function).lower()
+    assert "rwkv" not in source
+    assert "architecture" not in source
+
+
 def test_real_rwkv_jit_reuses_compiled_execution_and_preserves_numerics() -> None:
     compiled = assembled("jit")
     first = execute(compiled, batch())

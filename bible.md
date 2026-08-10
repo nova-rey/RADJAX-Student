@@ -1734,3 +1734,14 @@
   limitations for P6.7/future optimization. No global cache clearing,
   allocator control, process restart, eager burn, precision change, or
   architecture-specific runtime branch was used.
+
+## 2026-08-10 — P6.R2 audit-proof completion
+
+- The bounded verification repair adds direct tests for policy/static
+  specialization changes, fresh-cache checkpoint-style executable rebuild,
+  and the architecture-neutral generic seam. These tests strengthen the
+  existing shape/static and RWKV numerical proofs without changing runtime
+  behavior or policy.
+- The T4 raw receipts intentionally identify the production implementation
+  commit `54dbb10e7f14863ee5752ff2ee3e8dc17b86f7b8`; evidence packaging is the
+  subsequent `5a362c3` tip. `uv.lock` remains untracked and unstaged.

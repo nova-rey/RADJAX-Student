@@ -17,7 +17,9 @@ spurious specializations.
 
 Focused evidence covers fake-backend compile-once/recompile-on-specialization
 cases and a real RWKV lifecycle numerical comparison between eager and stable
-JIT execution. The exact final-source T4 requalification is recorded in
+JIT execution. The exact production-source T4 requalification (runtime source
+commit `54dbb10e7f14863ee5752ff2ee3e8dc17b86f7b8`, recorded by evidence tip
+`5a362c3`) is recorded in
 [P6_R2_T4_REQUALIFICATION.json](P6_R2_T4_REQUALIFICATION.json) and the two
 normal-writer raw receipts beneath `docs/P6_R2_RAW/`: corridor 2,048/2,048 and
 exemplar 2,112/2,112, each with 256/264 checkpoints and one compilation event.
