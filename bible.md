@@ -1745,3 +1745,11 @@
 - The T4 raw receipts intentionally identify the production implementation
   commit `54dbb10e7f14863ee5752ff2ee3e8dc17b86f7b8`; evidence packaging is the
   subsequent `5a362c3` tip. `uv.lock` remains untracked and unstaged.
+
+## 2026-08-10 — P6.R2 unbound-call compatibility correction
+
+- CI exposed a pre-existing generic lifecycle path that intentionally has no
+  runtime callable reference. The reuse cache now activates only when the
+  authoritative callable reference is present; unbound legacy-compatible
+  dispatch remains unchanged and no longer attempts prepared-identity
+  finalization. Stateful P3.11 JAX regressions and all P6.R2 reuse tests pass.

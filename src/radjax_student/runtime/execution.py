@@ -964,6 +964,7 @@ def execute_function(
         reuse_cache is not None
         and prepared.mode == "jit"
         and request.compilation_options.cache_policy == "reuse"
+        and request.callable_reference is not None
     )
     identity = None
     if cacheable:
