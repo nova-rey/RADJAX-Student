@@ -1,0 +1,84 @@
+{
+  "active_p6_5_findings": [
+    "execution_retention_observed",
+    "repeated_jit_compilation_observed",
+    "owner_unresolved_before_p6_r2"
+  ],
+  "authority": {
+    "artifact": "tests/fixtures/native_v3_student_v6_reduced_burn/student",
+    "contract_commit": "1fa43e1aea2e198511db86dafb0aeefa525d48c7",
+    "contract_release": "0.9.0",
+    "student_commit": "54dbb10e7f14863ee5752ff2ee3e8dc17b86f7b8",
+    "tome_commit": "6a6c65378cfd86a190e44e861ed9323927c2acc8"
+  },
+  "compilation_policy": "jit",
+  "evidence_identity": "sha256:3e2845e31f83f7a8053b317d0cba02969e68186f5b13b114d0dc8f22485ba44c",
+  "limitations": [
+    "p6_5_findings_remain_active_for_future_optimization",
+    "no_allocator_policy_change",
+    "no_student_policy_or_artifact_change"
+  ],
+  "passes": [
+    {
+      "checkpoint_count": 256,
+      "compilation_seconds": 14.346596212991699,
+      "compile_events": 1,
+      "completed_items": 2048,
+      "completion_seconds": 3009.1604735900005,
+      "device_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1275392,
+      "device_peak_pool_bytes": 11727028224,
+      "host_rss_first_bytes": 1165152256,
+      "host_rss_peak_bytes": 17263288320,
+      "prepared_execution_digests": [
+        "a1d2669b41292bd43d5fc71dc1bba5fb11b0dce571b53ea673b4b7a7024ff658"
+      ],
+      "raw_digest": "sha256:e11546d0b72771e70adfce1747ade52ffda748865dbe78a92131787c68c9f1e8",
+      "raw_path": "docs/P6_R2_RAW/p6r2-corridor.json",
+      "runtime_callable": "radjax.learning.generic_jax_step",
+      "surface": "corridor",
+      "throughput_source_units_per_second": 0.6805876827241378
+    },
+    {
+      "checkpoint_count": 264,
+      "compilation_seconds": 13.844184071032942,
+      "compile_events": 1,
+      "completed_items": 2112,
+      "completion_seconds": 3103.386164017,
+      "device_limit_bytes": 11727028224,
+      "device_peak_bytes_in_use": 1258240,
+      "device_peak_pool_bytes": 11727028224,
+      "host_rss_first_bytes": 1165479936,
+      "host_rss_peak_bytes": 17694294016,
+      "prepared_execution_digests": [
+        "64960cccec01eab960c51ffaeb78ee1c08695f7bff74dff71ea97f29de583b2f"
+      ],
+      "raw_digest": "sha256:913c50badf4a0125001e72a4127eb2ee1f4eb4a7aa0777367ccc58a224de481c",
+      "raw_path": "docs/P6_R2_RAW/p6r2-exemplar.json",
+      "runtime_callable": "radjax.learning.generic_jax_step",
+      "surface": "exemplar",
+      "throughput_source_units_per_second": 0.6805461985264397
+    }
+  ],
+  "platform_preference": "gpu",
+  "policy": {
+    "carry_policy": "reset_each_independent_example.v1",
+    "checkpoint_interval_steps": 8,
+    "corridor_epochs": 64,
+    "device_limit_bytes": 11727028224,
+    "exemplar_epochs": 64,
+    "host_ceiling_bytes": 23284565606,
+    "source_batch_size": 1
+  },
+  "requirements": {
+    "checkpoint_cadence_preserved": true,
+    "corridor_complete": true,
+    "device_envelope_preserved": true,
+    "exemplar_complete": true,
+    "finite_compilation_specializations": true,
+    "held_out_evaluation_and_replay": "covered_by_existing_p5_public_contract_tests",
+    "host_ceiling_preserved": true,
+    "no_retries": true
+  },
+  "schema_version": "radjax.student.p6_r2_t4_requalification.v1"
+}

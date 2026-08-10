@@ -163,9 +163,7 @@ def main() -> int:
                 "checkpoint_restore_performed": sample["checkpoint_restore_performed"],
                 "checkpoint_identity": sample["checkpoint_identity"],
                 "runtime_event": sample["runtime_event"],
-                "compilation_event": sample["runtime_event"][
-                    "compilation_seconds"
-                ]
+                "compilation_event": sample["runtime_event"]["compilation_seconds"]
                 > COMPILATION_EVENT_THRESHOLD_SECONDS,
                 "throughput": sample["throughput"],
                 "timing_seconds": sample["timing_seconds"],

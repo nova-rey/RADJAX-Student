@@ -1721,7 +1721,16 @@
   comparison prove compile-once reuse and distinct compilation for meaningful
   shape/static changes. Checkpoint state remains serializable model state only;
   compiled handles remain runtime-owned and are rebuilt by identity on restore.
-- T4 P6.6 requalification remains in progress under the unchanged frozen
-  workload and resource envelope. No global cache clearing, allocator control,
-  process restart, eager burn, precision change, or architecture-specific
-  runtime branch is authorized by this checkpoint.
+- Exact final-source T4 requalification completed under the unchanged frozen
+  workload and envelope: corridor 2,048/2,048 and exemplar 2,112/2,112
+  occurrences, with checkpoint cadence 8 preserved. Each surface compiled one
+  finite specialization and reused it for all later steps. Host peaks were
+  17,263,288,320 and 17,694,294,016 bytes, below the frozen
+  23,284,565,606-byte ceiling; device peaks remained 1,275,392 and 1,258,240
+  bytes against the 11,727,028,224-byte limit. Full raw receipts and the
+  canonical summary are in `docs/P6_R2_RAW/` and
+  `docs/P6_R2_T4_REQUALIFICATION.json`.
+- P6.5's execution-retention and repeated-JIT findings remain explicit active
+  limitations for P6.7/future optimization. No global cache clearing,
+  allocator control, process restart, eager burn, precision change, or
+  architecture-specific runtime branch was used.
