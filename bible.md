@@ -1761,3 +1761,11 @@
   committed receipts refreshed; objective, architecture, and dependency
   semantics are unchanged. Recorded checks now pass against the exact repair
   tip, while `uv.lock` remains untracked and unstaged.
+
+## 2026-08-10 — P6.R2 receipt boundary retained
+
+- The source-dependent P3.5 integrity receipt remains the previously accepted
+  pass artifact; the refreshed P3.12A/P3.5 dependency evidence records only
+  source inventory changes. A transient CI acceptance-fixture mismatch was
+  observed outside the P6.R2 runtime/evidence surfaces and was not converted
+  into a policy or fixture change.
