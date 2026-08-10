@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Mapping
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Any
 
@@ -45,11 +45,13 @@ from radjax_student.optimizers import (
 from radjax_student.runtime import (
     ExecutionBackend,
     ExecutionContext,
+    PreparedExecutionReuseCache,
     RuntimeCallableBinding,
     RuntimeKeyStream,
 )
 from radjax_student.steps.jax_step import (
     JaxLearningStepExecution,
+    build_jax_learning_step_kernel,
     execute_jax_learning_step,
 )
 
@@ -329,6 +331,11 @@ class JaxLoopExecutor:
     schedule_values: Mapping[str, Any] | None = None
     rng_slot: str = "dropout"
     runtime_callable_binding: RuntimeCallableBinding | None = None
+    prepared_execution_cache: PreparedExecutionReuseCache = field(
+        default_factory=PreparedExecutionReuseCache, repr=False
+    )
+    _step_kernel: Any = field(init=False, default=None, repr=False)
+    _step_kernel_scopes: Any = field(init=False, default=None, repr=False)
 
     def __post_init__(self) -> None:
         if not isinstance(self.batch_materializer, JaxBatchMaterializer):
@@ -341,6 +348,10 @@ class JaxLoopExecutor:
             self.runtime_callable_binding, RuntimeCallableBinding
         ):
             raise TypeError("runtime_callable_binding must be RuntimeCallableBinding")
+        if not isinstance(self.prepared_execution_cache, PreparedExecutionReuseCache):
+            raise TypeError(
+                "prepared_execution_cache must be PreparedExecutionReuseCache"
+            )
         self.schedule_values = MappingProxyType(dict(self.schedule_values or {}))
 
     def __call__(self, **kwargs: Any) -> JaxLearningStepExecution:
@@ -363,6 +374,27 @@ class JaxLoopExecutor:
         batch = kwargs["batch"]
         if not isinstance(batch, LearningBatch):
             raise TypeError("loop batch must be LearningBatch")
+        scopes = (
+            lifecycle.learning_state.active_objective_scope,
+            lifecycle.learning_state.active_update_scope,
+        )
+        if self._step_kernel is None or self._step_kernel_scopes != scopes:
+            self._step_kernel = build_jax_learning_step_kernel(
+                architecture=lifecycle.architecture,
+                objective_selection=lifecycle.objective_selection,
+                objective_config=lifecycle.objective_config,
+                objective_descriptor=lifecycle.objective_descriptor,
+                resolved_objective_selection=lifecycle.resolved_objective_selection,
+                optimizer=lifecycle.optimizer,
+                optimizer_config=lifecycle.optimizer_config,
+                parameters=lifecycle.parameters,
+                parameter_layout=lifecycle.parameter_layout,
+                architecture_config=lifecycle.architecture_config,
+                objective_scope=scopes[0],
+                update_scope=scopes[1],
+                schedule_values=self.schedule_values,
+            )
+            self._step_kernel_scopes = scopes
         execution = execute_jax_learning_step(
             architecture=lifecycle.architecture,
             architecture_config=lifecycle.architecture_config,
@@ -388,6 +420,8 @@ class JaxLoopExecutor:
             precision_policy=self.precision_policy,
             schedule_values=self.schedule_values,
             runtime_callable_binding=self.runtime_callable_binding,
+            reuse_cache=self.prepared_execution_cache,
+            step_kernel=self._step_kernel,
         )
         return self.accept_execution(execution)
 

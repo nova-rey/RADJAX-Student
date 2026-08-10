@@ -45,6 +45,7 @@ from radjax_student.runtime import (
     ExecutionContext,
     ExecutionRequest,
     ExecutionResult,
+    PreparedExecutionReuseCache,
     RuntimeCallableBinding,
     execute_function,
 )
@@ -100,6 +101,95 @@ class JaxBatchBindingError(ValueError):
     """Stable public failure when a materialized batch is not its source batch."""
 
     code = "jax_batch_source_mismatch"
+
+
+def build_jax_learning_step_kernel(
+    *,
+    architecture: JaxArchitecturePlugin,
+    objective_selection: ObjectiveRegistrySelection,
+    objective_config: ObjectiveConfig,
+    objective_descriptor: ObjectiveExecutionDescriptor,
+    resolved_objective_selection: ResolvedObjectiveSelection,
+    optimizer: JaxOptimizerBackend,
+    optimizer_config: OptimizerConfig,
+    parameters: Any,
+    parameter_layout: ParameterTreeLayout,
+    architecture_config: ArchitectureConfig,
+    objective_scope: Any,
+    update_scope: Any,
+    schedule_values: Mapping[str, Any] | None = None,
+) -> Any:
+    """Build one stable architecture-neutral kernel for a lifecycle signature."""
+
+    plan = prepare_jax_execution_plan(
+        architecture=architecture,
+        parameters=parameters,
+        parameter_layout=parameter_layout,
+        architecture_config=architecture_config,
+        objective_scope=objective_scope,
+        update_scope=update_scope,
+    )
+    if plan.objective_selection != resolved_objective_selection:
+        raise ObjectiveContractError(
+            "objective_surface_identity_mismatch",
+            "architecture objective resolution differs from lifecycle selection",
+        )
+    value_and_grad = build_value_and_grad_fn(
+        build_registered_jax_loss_fn(
+            architecture=architecture,
+            objective_selection=objective_selection,
+            objective_config=objective_config,
+            objective_descriptor=objective_descriptor,
+            resolved_selection=resolved_objective_selection,
+            architecture_config=architecture_config,
+        )
+    )
+    values = {} if schedule_values is None else dict(schedule_values)
+
+    def complete_step(
+        current_parameters: Any,
+        current_carry: Any,
+        current_optimizer_arrays: Any,
+        current_batch: JaxBatch,
+        current_rng_key: Any | None,
+        global_step: Any,
+        micro_step: Any,
+        optimizer_step: Any,
+    ):
+        (loss_and_auxiliary, gradients) = value_and_grad(
+            current_parameters,
+            current_carry,
+            current_batch,
+            current_rng_key,
+        )
+        loss, auxiliary = loss_and_auxiliary
+        (
+            updated_parameters,
+            updated_optimizer_arrays,
+            changed_mask,
+            optimizer_metrics,
+        ) = optimizer.apply_jax_updates(
+            parameters=current_parameters,
+            gradients=gradients,
+            optimizer_array_state=current_optimizer_arrays,
+            update_mask=plan.update_mask,
+            config=optimizer_config,
+            schedule_values=values,
+        )
+        return (
+            loss,
+            auxiliary,
+            gradients,
+            updated_parameters,
+            updated_optimizer_arrays,
+            changed_mask,
+            optimizer_metrics,
+            global_step + 1,
+            micro_step * 0,
+            optimizer_step + 1,
+        )
+
+    return complete_step
 
 
 def validate_jax_update_evidence(
@@ -249,6 +339,8 @@ def execute_jax_learning_step(
     precision_policy: str | None = None,
     schedule_values: Mapping[str, Any] | None = None,
     runtime_callable_binding: RuntimeCallableBinding | None = None,
+    reuse_cache: PreparedExecutionReuseCache | None = None,
+    step_kernel: Any | None = None,
 ) -> JaxLearningStepExecution:
     """Run one full JAX update through runtime preparation, dispatch, and receipt."""
 
@@ -308,6 +400,7 @@ def execute_jax_learning_step(
         raise TypeError("batch_materializer must implement JaxBatchMaterializer")
     batch = batch_materializer.materialize(learning_batch)
     validate_jax_batch_binding(learning_batch, batch)
+    execution_batch = batch.execution_view()
     # Validate objective-owned target requirements before compiling the loss.
     # The objective remains surface-only inside the JAX graph.
     objective_selection.plugin.validate_targets(batch.targets)
@@ -381,61 +474,25 @@ def execute_jax_learning_step(
         parameters=parameters,
         architecture_carry=architecture_carry,
         optimizer_state=optimizer_state.arrays,
-        batch=batch,
+        batch=execution_batch,
         precision_policy=resolved_precision,
     )
-    value_and_grad = build_value_and_grad_fn(
-        build_registered_jax_loss_fn(
+    complete_step = step_kernel
+    if complete_step is None:
+        complete_step = build_jax_learning_step_kernel(
             architecture=architecture,
             objective_selection=objective_selection,
             objective_config=objective_config,
             objective_descriptor=objective_descriptor,
-            resolved_selection=resolved_objective_selection,
+            resolved_objective_selection=resolved_objective_selection,
+            optimizer=optimizer,
+            optimizer_config=optimizer_config,
+            parameters=parameters,
+            parameter_layout=parameter_layout,
             architecture_config=architecture_config,
-        )
-    )
-
-    def complete_step(
-        current_parameters: Any,
-        current_carry: Any,
-        current_optimizer_arrays: Any,
-        current_batch: JaxBatch,
-        current_rng_key: Any | None,
-        global_step: Any,
-        micro_step: Any,
-        optimizer_step: Any,
-    ):
-        (loss_and_auxiliary, gradients) = value_and_grad(
-            current_parameters,
-            current_carry,
-            current_batch,
-            current_rng_key,
-        )
-        loss, auxiliary = loss_and_auxiliary
-        (
-            updated_parameters,
-            updated_optimizer_arrays,
-            changed_mask,
-            optimizer_metrics,
-        ) = optimizer.apply_jax_updates(
-            parameters=current_parameters,
-            gradients=gradients,
-            optimizer_array_state=current_optimizer_arrays,
-            update_mask=plan.update_mask,
-            config=optimizer_config,
+            objective_scope=learning_state.active_objective_scope,
+            update_scope=learning_state.active_update_scope,
             schedule_values=values,
-        )
-        return (
-            loss,
-            auxiliary,
-            gradients,
-            updated_parameters,
-            updated_optimizer_arrays,
-            changed_mask,
-            optimizer_metrics,
-            global_step + 1,
-            micro_step * 0,
-            optimizer_step + 1,
         )
 
     step_arguments = (
@@ -467,6 +524,7 @@ def execute_jax_learning_step(
             import_module("jax").tree_util.Partial(complete_step),
             *step_arguments,
         )
+    execution_kwargs["reuse_cache"] = reuse_cache
     output, runtime_result = execute_function(**execution_kwargs)
     if runtime_result.status != "pass" or output is None:
         blocker = runtime_result.blockers[0] if runtime_result.blockers else None
@@ -594,6 +652,7 @@ def _paths_for_mask(
 
 __all__ = [
     "GENERIC_JAX_LEARNING_STEP_DECLARATION",
+    "build_jax_learning_step_kernel",
     "JaxLearningStepExecution",
     "JaxBatchBindingError",
     "JaxUpdateEvidenceError",

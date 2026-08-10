@@ -7,8 +7,9 @@ import hashlib
 import inspect
 import math
 import time
+from collections import OrderedDict
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from types import MappingProxyType
 from typing import Any, Literal, Protocol
 
@@ -181,6 +182,37 @@ class PreparedExecutionIdentityCache:
             self._identities[key] = identity
             return False
         return True
+
+
+class PreparedExecutionReuseCache:
+    """Bounded runtime-owned cache of prepared executable handles."""
+
+    def __init__(self, *, max_entries: int = 16) -> None:
+        if not isinstance(max_entries, int) or isinstance(max_entries, bool):
+            raise TypeError("max_entries must be an integer")
+        if max_entries < 1:
+            raise ValueError("max_entries must be positive")
+        self._max_entries = max_entries
+        self._entries: OrderedDict[str, PreparedExecution] = OrderedDict()
+
+    def get(self, identity_digest: str) -> PreparedExecution | None:
+        value = self._entries.get(identity_digest)
+        if value is not None:
+            self._entries.move_to_end(identity_digest)
+        return value
+
+    def put(self, identity_digest: str, prepared: PreparedExecution) -> None:
+        if not isinstance(identity_digest, str) or not identity_digest:
+            raise ValueError("identity_digest must be nonempty")
+        if not isinstance(prepared, PreparedExecution):
+            raise TypeError("prepared must be PreparedExecution")
+        self._entries[identity_digest] = prepared
+        self._entries.move_to_end(identity_digest)
+        while len(self._entries) > self._max_entries:
+            self._entries.popitem(last=False)
+
+    def __len__(self) -> int:
+        return len(self._entries)
 
 
 @dataclass(frozen=True)
@@ -660,6 +692,7 @@ def execute_prepared(
     *,
     context: ExecutionContext,
     prepared: PreparedExecution,
+    request: ExecutionRequest | None = None,
     args: tuple[Any, ...] = (),
     kwargs: Mapping[str, Any] | None = None,
 ) -> tuple[Any | None, ExecutionResult]:
@@ -667,11 +700,19 @@ def execute_prepared(
 
     arguments = tuple(args)
     keyword_arguments = {} if kwargs is None else dict(kwargs)
-    request = prepared._request
+    request_for_call = request or prepared._request
     backend = prepared._backend
-    if request is None or backend is None or context.backend_id != prepared.backend_id:
+    if (
+        request_for_call is None
+        or backend is None
+        or context.backend_id != prepared.backend_id
+    ):
         return None, _failure_result(
-            request_id=request.request_id if request is not None else "unknown-request",
+            request_id=(
+                request_for_call.request_id
+                if request_for_call is not None
+                else "unknown-request"
+            ),
             backend_id=prepared.backend_id,
             mode=prepared.mode,
             preparation_seconds=prepared.preparation_seconds,
@@ -685,6 +726,7 @@ def execute_prepared(
                 "prepared execution does not belong to the supplied runtime context",
             ),
         )
+    prepared = replace(prepared, _request=request_for_call)
     start_total = time.perf_counter()
     handle = prepared._handle
     compiled = prepared.compiled
@@ -696,14 +738,14 @@ def execute_prepared(
     synchronized = False
     try:
         prepared_identity = None
-        if request.callable_reference is not None:
+        if request_for_call.callable_reference is not None:
             try:
                 prepared_identity = _finalize_prepared_identity(
                     context, prepared, arguments, keyword_arguments
                 )
             except ExecutionBoundaryError as exc:
                 return None, _failure_result(
-                    request_id=request.request_id,
+                    request_id=request_for_call.request_id,
                     backend_id=prepared.backend_id,
                     mode=prepared.mode,
                     preparation_seconds=prepared.preparation_seconds,
@@ -716,7 +758,7 @@ def execute_prepared(
                 and prepared.prepared_identity != prepared_identity
             ):
                 return None, _failure_result(
-                    request_id=request.request_id,
+                    request_id=request_for_call.request_id,
                     backend_id=prepared.backend_id,
                     mode=prepared.mode,
                     preparation_seconds=prepared.preparation_seconds,
@@ -735,16 +777,16 @@ def execute_prepared(
         if prepared.mode == "jit":
             start = time.perf_counter()
             try:
-                handle, _compiled_now = backend.compile_runtime_execution(
+                handle, compiled_now = backend.compile_runtime_execution(
                     context,
                     handle,
                     arguments,
                     keyword_arguments,
                 )
-                compiled = True
+                compiled = compiled or compiled_now
             except Exception as exc:
                 return None, _failure_result(
-                    request_id=request.request_id,
+                    request_id=request_for_call.request_id,
                     backend_id=prepared.backend_id,
                     mode=prepared.mode,
                     preparation_seconds=prepared.preparation_seconds,
@@ -775,7 +817,7 @@ def execute_prepared(
             dispatched = True
         except Exception as exc:
             return None, _failure_result(
-                request_id=request.request_id,
+                request_id=request_for_call.request_id,
                 backend_id=prepared.backend_id,
                 mode=prepared.mode,
                 preparation_seconds=prepared.preparation_seconds,
@@ -796,14 +838,14 @@ def execute_prepared(
             )
         dispatch_seconds = time.perf_counter() - start
 
-        if request.compilation_options.synchronize_results:
+        if request_for_call.compilation_options.synchronize_results:
             start = time.perf_counter()
             try:
                 output = backend.synchronize_runtime_execution(context, output)
                 synchronized = True
             except Exception as exc:
                 return None, _failure_result(
-                    request_id=request.request_id,
+                    request_id=request_for_call.request_id,
                     backend_id=prepared.backend_id,
                     mode=prepared.mode,
                     preparation_seconds=prepared.preparation_seconds,
@@ -829,7 +871,7 @@ def execute_prepared(
             output_metadata = output_metadata_for(output)
         except Exception as exc:
             return None, _failure_result(
-                request_id=request.request_id,
+                request_id=request_for_call.request_id,
                 backend_id=prepared.backend_id,
                 mode=prepared.mode,
                 preparation_seconds=prepared.preparation_seconds,
@@ -851,7 +893,7 @@ def execute_prepared(
             )
         return output, ExecutionResult(
             status="pass",
-            request_id=request.request_id,
+            request_id=request_for_call.request_id,
             backend_id=prepared.backend_id,
             mode=prepared.mode,
             compiled=compiled,
@@ -874,7 +916,7 @@ def execute_prepared(
         )
     except Exception as exc:
         return None, _failure_result(
-            request_id=request.request_id,
+            request_id=request_for_call.request_id,
             backend_id=prepared.backend_id,
             mode=prepared.mode,
             preparation_seconds=prepared.preparation_seconds,
@@ -899,6 +941,7 @@ def execute_function(
     backend: ExecutionBackend,
     args: tuple[Any, ...] = (),
     kwargs: Mapping[str, Any] | None = None,
+    reuse_cache: PreparedExecutionReuseCache | None = None,
 ) -> tuple[Any | None, ExecutionResult]:
     """Convenience path that turns preparation failure into a structured report."""
 
@@ -917,12 +960,52 @@ def execute_function(
             mode=request.mode,
             blocker=exc.issue,
         )
-    return execute_prepared(
+    cacheable = (
+        reuse_cache is not None
+        and prepared.mode == "jit"
+        and request.compilation_options.cache_policy == "reuse"
+    )
+    identity = None
+    if cacheable:
+        try:
+            identity = _finalize_prepared_identity(
+                context, prepared, tuple(args), {} if kwargs is None else dict(kwargs)
+            )
+        except ExecutionBoundaryError as exc:
+            return None, _failure_result(
+                request_id=request.request_id,
+                backend_id=prepared.backend_id,
+                mode=prepared.mode,
+                preparation_seconds=prepared.preparation_seconds,
+                warnings=prepared.warnings,
+                blocker=exc.issue,
+                callable_reference=prepared.callable_reference,
+            )
+        cached = reuse_cache.get(identity.prepared_execution_digest)
+        if cached is not None:
+            prepared = replace(
+                cached,
+                _request=request,
+                prepared_identity=identity,
+            )
+    output, result = execute_prepared(
         context=context,
         prepared=prepared,
+        request=request,
         args=args,
         kwargs=kwargs,
     )
+    if cacheable and identity is not None and result.status == "pass":
+        reuse_cache.put(
+            identity.prepared_execution_digest,
+            replace(
+                prepared,
+                _request=request,
+                prepared_identity=identity,
+                compiled=True,
+            ),
+        )
+    return output, result
 
 
 def output_metadata_for(output: Any) -> dict[str, Any]:
@@ -1044,6 +1127,11 @@ def _finalize_prepared_identity(
         "names": list(options.donate_arg_names),
         "positions": list(options.donate_arg_positions),
     }
+    actual_input_signature = _runtime_argument_signature(args, kwargs)
+    invocation_input_signature = {
+        "declared": dict(request.input_signature),
+        "actual": actual_input_signature,
+    }
     version = getattr(prepared._backend, "implementation_version", None)
     if not isinstance(version, str) or not version:
         version = str(context.metadata.get("runtime_implementation_version", "unknown"))
@@ -1054,7 +1142,7 @@ def _finalize_prepared_identity(
         runtime_implementation_version=version,
         mode=prepared.mode,
         compilation_options=options.to_dict(),
-        input_signature=dict(request.input_signature),
+        input_signature=invocation_input_signature,
         static_contract=static_contract,
         static_values=static_values,
         donation_contract=donation,
@@ -1103,6 +1191,59 @@ def _validate_input_signature(
             "execution_input_signature_mismatch",
             "runtime invocation keyword names differ from input contract",
         )
+
+
+def _runtime_argument_signature(
+    args: tuple[Any, ...], kwargs: Mapping[str, Any]
+) -> dict[str, Any]:
+    """Describe invocation structure without incorporating runtime values."""
+
+    return {
+        "args": [_runtime_value_signature(value) for value in args],
+        "kwargs": {
+            name: _runtime_value_signature(kwargs[name]) for name in sorted(kwargs)
+        },
+    }
+
+
+def _runtime_value_signature(value: Any) -> Any:
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return {"kind": type(value).__name__}
+    if _is_jax_callable_partial(value):
+        return {"kind": "jax_tree_partial", "value": _canonical_static_value(value)}
+    if isinstance(value, Mapping):
+        return {
+            "kind": "mapping",
+            "type": f"{type(value).__module__}.{type(value).__qualname__}",
+            "items": {
+                str(key): _runtime_value_signature(value[key])
+                for key in sorted(value, key=str)
+            },
+        }
+    if isinstance(value, (tuple, list)):
+        return {
+            "kind": type(value).__name__,
+            "items": [_runtime_value_signature(item) for item in value],
+        }
+    if hasattr(value, "shape") and hasattr(value, "dtype"):
+        return {
+            "kind": "array",
+            "type": f"{type(value).__module__}.{type(value).__qualname__}",
+            "shape": [int(item) for item in value.shape],
+            "dtype": str(value.dtype),
+        }
+    if hasattr(value, "tree_flatten") and callable(value.tree_flatten):
+        children, auxiliary = value.tree_flatten()
+        return {
+            "kind": "pytree",
+            "type": f"{type(value).__module__}.{type(value).__qualname__}",
+            "auxiliary": _canonical_static_value(auxiliary),
+            "children": [_runtime_value_signature(item) for item in children],
+        }
+    return {
+        "kind": "typed",
+        "type": f"{type(value).__module__}.{type(value).__qualname__}",
+    }
 
 
 def _prepared_identity_mismatch_code(

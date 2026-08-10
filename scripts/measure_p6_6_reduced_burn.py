@@ -6,6 +6,7 @@ import argparse
 import gc
 import hashlib
 import json
+import subprocess
 import time
 from pathlib import Path
 
@@ -23,6 +24,7 @@ DEVICE_LIMIT = 11_727_028_224
 CORRIDOR_EPOCHS = 64
 EXEMPLAR_EPOCHS = 64
 CHECKPOINT_INTERVAL = 8
+COMPILATION_EVENT_THRESHOLD_SECONDS = 1e-3
 
 
 def _digest(value: object) -> str:
@@ -32,6 +34,19 @@ def _digest(value: object) -> str:
             (json.dumps(value, sort_keys=True, separators=(",", ":")) + "\n").encode()
         ).hexdigest()
     )
+
+
+def _student_commit() -> str:
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=Path(__file__).resolve().parents[1],
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return "unknown"
 
 
 def _source_units(batches, surface: str):
@@ -148,6 +163,10 @@ def main() -> int:
                 "checkpoint_restore_performed": sample["checkpoint_restore_performed"],
                 "checkpoint_identity": sample["checkpoint_identity"],
                 "runtime_event": sample["runtime_event"],
+                "compilation_event": sample["runtime_event"][
+                    "compilation_seconds"
+                ]
+                > COMPILATION_EVENT_THRESHOLD_SECONDS,
                 "throughput": sample["throughput"],
                 "timing_seconds": sample["timing_seconds"],
                 "residency": sample["residency"],
@@ -213,7 +232,7 @@ def main() -> int:
                     }
                 ),
                 "compile_events": sum(
-                    bool(record["runtime_event"]["compiled"]) for record in records
+                    bool(record["compilation_event"]) for record in records
                 ),
                 "compilation_seconds": sum(
                     record["runtime_event"]["compilation_seconds"] for record in records
@@ -228,7 +247,7 @@ def main() -> int:
     payload = {
         "schema_version": "radjax.student.p6_6_reduced_burn.v1",
         "authority": {
-            "student_commit": "6c0d99435f5a8b4a38212d7050a73ec60bd6509a",
+            "student_commit": _student_commit(),
             "tome_commit": "6a6c65378cfd86a190e44e861ed9323927c2acc8",
             "contract_release": "0.9.0",
             "contract_commit": "1fa43e1aea2e198511db86dafb0aeefa525d48c7",

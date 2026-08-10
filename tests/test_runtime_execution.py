@@ -297,13 +297,16 @@ class _FakeExecutionBackend:
         self.prepare_calls += 1
         if self.fail_phase == "prepare":
             raise RuntimeError("controlled preparation failure")
-        return {"function": function, "mode": mode}
+        return {"function": function, "mode": mode, "compiled": False}
 
     def compile_runtime_execution(self, context, handle, args, kwargs):
         del context, args, kwargs
         if handle["mode"] == "eager":
             return handle, False
+        if handle["compiled"]:
+            return handle, False
         self.compile_calls += 1
+        handle["compiled"] = True
         if self.fail_phase == "compile":
             raise RuntimeError("controlled compilation failure")
         return handle, True

@@ -33,6 +33,16 @@ class JaxBatch:
     weights: Any = None
     source_batch_digest: str | None = None
 
+    def execution_view(self) -> JaxBatch:
+        """Return the computation-only view used by compiled JAX execution.
+
+        Source provenance is validated at the learning boundary before this
+        view is created.  It is deliberately excluded from JAX pytree
+        auxiliary data because it is evidence metadata, not computation.
+        """
+
+        return JaxBatch(self.inputs, self.targets, self.weights)
+
     def tree_flatten(self):
         return (self.inputs, self.targets, self.weights), self.source_batch_digest
 

@@ -1708,3 +1708,20 @@
   execution-retention and repeated-JIT findings remain active limitations; no
   allocator, cache, teardown, or speculative memory-management repair was
   added. Human disposition is required before requalification or any repair.
+
+## 2026-08-10 — P6.R2 stable compiled execution reuse
+
+- P6.R2 implements the bounded generic runtime repair authorized after the
+  native JAX/XLA execution-retention blocker: one stable learning kernel and a
+  bounded prepared-executable cache are reused per authoritative prepared
+  execution specialization. Actual argument shape/dtype/pytree signatures
+  participate in the prepared identity, while validated batch provenance is
+  excluded from computation inputs.
+- Focused fake-backend specialization tests and a real RWKV eager/JIT numerical
+  comparison prove compile-once reuse and distinct compilation for meaningful
+  shape/static changes. Checkpoint state remains serializable model state only;
+  compiled handles remain runtime-owned and are rebuilt by identity on restore.
+- T4 P6.6 requalification remains in progress under the unchanged frozen
+  workload and resource envelope. No global cache clearing, allocator control,
+  process restart, eager burn, precision change, or architecture-specific
+  runtime branch is authorized by this checkpoint.
