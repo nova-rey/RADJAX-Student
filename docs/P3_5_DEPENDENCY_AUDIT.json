@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "77550849c1137afd0faf9d7dfb057fb23bcfa171",
+  "accepted_commit": "772a54a0cf9c3c542ec76358168c26c0d83fabb4",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -6092,6 +6092,7 @@
         "PrecisionPolicy",
         "PreparedExecution",
         "PreparedExecutionIdentityCache",
+        "PreparedExecutionReuseCache",
         "RUNTIME_CAPABILITY_VOCABULARY",
         "RUNTIME_ERROR_CODES",
         "RUNTIME_INSPECTION_CLAIMS_NOT_MADE",
@@ -6269,13 +6270,15 @@
         "ExecutionRequest",
         "ExecutionResult",
         "PreparedExecution",
-        "PreparedExecutionIdentityCache"
+        "PreparedExecutionIdentityCache",
+        "PreparedExecutionReuseCache"
       ],
       "forbidden_imports": [],
       "has_dynamic_exports": false,
       "imports": [
         "__future__",
         "ast",
+        "collections",
         "collections.abc",
         "dataclasses",
         "hashlib",
@@ -6901,6 +6904,7 @@
         "JaxBatchBindingError",
         "JaxLearningStepExecution",
         "JaxUpdateEvidenceError",
+        "build_jax_learning_step_kernel",
         "execute_jax_learning_step",
         "execute_jax_learning_step_kernel",
         "validate_jax_batch_binding",

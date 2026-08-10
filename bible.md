@@ -1753,3 +1753,11 @@
   authoritative callable reference is present; unbound legacy-compatible
   dispatch remains unchanged and no longer attempts prepared-identity
   finalization. Stateful P3.11 JAX regressions and all P6.R2 reuse tests pass.
+
+## 2026-08-10 — P6.R2 source-dependent receipt refresh
+
+- The generic runtime additions changed the source-dependent P3.5/P3.12A
+  evidence digests. Their normal audit/acceptance writers were rerun and the
+  committed receipts refreshed; objective, architecture, and dependency
+  semantics are unchanged. Recorded checks now pass against the exact repair
+  tip, while `uv.lock` remains untracked and unstaged.
