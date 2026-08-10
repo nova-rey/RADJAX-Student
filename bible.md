@@ -1776,3 +1776,10 @@
   refreshed after the generic runtime source update. These are evidence-only
   provenance updates; no production policy, fixture, or behavioral semantics
   changed. `uv.lock` remains preserved and unstaged.
+
+## 2026-08-10 — P3.5 CI receipt refresh
+
+- CI's JAX job reproduced the normal P3.5 acceptance digest
+  `eef8c475947096e6babd32e405bb0816b3961edb39eaf013582af904b6187e50`; the
+  committed source-dependent receipt was refreshed to that exact pass record.
+  No P6.R2 production code, policy, fixture, or identity semantics changed.
