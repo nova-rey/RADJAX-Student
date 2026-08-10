@@ -1769,3 +1769,10 @@
   source inventory changes. A transient CI acceptance-fixture mismatch was
   observed outside the P6.R2 runtime/evidence surfaces and was not converted
   into a policy or fixture change.
+
+## 2026-08-10 — P6.R2 final source-dependent gate receipts
+
+- The normal P3.11.10 gate writer and the P3.12A contract digest reference were
+  refreshed after the generic runtime source update. These are evidence-only
+  provenance updates; no production policy, fixture, or behavioral semantics
+  changed. `uv.lock` remains preserved and unstaged.
