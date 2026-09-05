@@ -1,5 +1,19 @@
 # RADJAX-Student Bible
 
+## 2026-09-05 — M2.2 static Mamba-2 schema and registration
+
+- Added the explicit, JAX-free Mamba-2 reference plugin identity with
+  configuration-derived parameter catalog/layout, separate convolution and SSM
+  persistent-state descriptors, neutral HF projection, and manual registry
+  registration.
+- Kept vocabulary size and input chunk capacity configurable while freezing the
+  small structural equation profile; encoded an unbounded dt limit with the
+  finite JSON marker `UNBOUNDED`.
+- M2.2 intentionally advertises inspection/validation only. Initialization and
+  JAX execution remain fail-closed until their accepted checkpoints.
+- Added static schema, configurable V512/T8, registry, carry, HF, and JAX-free
+  import tests.
+
 ## 2026-07-09 - Dense Tome targets and sparse top-k loss
 
 - Added a modular dense Tome target loader that validates Contract manifests,
