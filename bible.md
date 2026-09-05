@@ -1783,3 +1783,26 @@
   `eef8c475947096e6babd32e405bb0816b3961edb39eaf013582af904b6187e50`; the
   committed source-dependent receipt was refreshed to that exact pass record.
   No P6.R2 production code, policy, fixture, or identity semantics changed.
+## 2026-09-05 — M2.1 Mamba-2 oracle gate
+
+- The Phase 6 accepted tip `807dc66b749bf020ca7eed425a0ae7a64ffa94dc` is the
+  Student base for the Mamba branch. The first bounded Vast startup attempt
+  failed before container readiness and was destroyed; a second cheapest
+  practical Triton-capable RTX 3060 attempt completed and was destroyed
+  immediately after evidence capture. No active Vast instances remain.
+- Official state-spaces/mamba `v2.2.4` commit
+  `95d8aba8a8c75aedcaa6143713b11e745e7cd0d9` ran unchanged through the full
+  language-model token-step path. Installed source hashes for Mamba2, Block,
+  selective-state-update, softplus, SSD-combined, and normalization files
+  matched the pinned commit.
+- The frozen two-layer width-8, four-head/head-width/state-width-4,
+  convolution-width-4, float32, B=1, V=16/T=4 profile produced zero-state and
+  deliberately asymmetric nonzero-state cache witnesses, including both
+  convolution and SSM state families and an independent asymmetric SSD
+  recurrence cross-check. Two fresh processes produced identical witness
+  digest `b5105ee1d88eeaa3defbaf1821ad73818d36f18970b37ff0d682a610d7a80745`.
+  Evidence is in `evidence/mamba2_oracle/`.
+- This gate proves only bounded recurrent-equation reference behavior for the
+  frozen fixture. It does not claim optimized-kernel parity, pretrained or
+  PyTorch checkpoint compatibility, Transformers compatibility, training-recipe
+  parity, whole-sequence equivalence, or production performance.
