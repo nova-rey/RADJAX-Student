@@ -1,5 +1,19 @@
 # RADJAX-Student Bible
 
+## 2026-09-05 — M2.5 generic Student lifecycle integration
+
+- Added test-only Mamba-2 lifecycle fixtures using the existing explicit
+  ArchitectureRegistry, generic JAX assembly, objective/optimizer contracts,
+  runtime callable, and eager/JIT execution paths. The synthetic V512/T8
+  configuration preserves neutral tokenizer, vocabulary, and special-token
+  identities while accepting shorter valid chunks and rejecting over-capacity
+  input.
+- Proved one-step parameter/state advancement, stable compiled callable reuse,
+  two actual optimizer steps against an independently assembled reference, and
+  stop-gradient isolation across both convolution and SSM persistent state
+  families. No generic production branch or Mamba-specific runtime field was
+  added.
+
 ## 2026-09-05 — M2.4 pure-JAX Mamba-2 reference execution
 
 - Added the portable functional Mamba-2 token-step and `jax.lax.scan`
