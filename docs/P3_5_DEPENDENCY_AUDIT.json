@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "772a54a0cf9c3c542ec76358168c26c0d83fabb4",
+  "accepted_commit": "3ce41fd3a85eb4cea61c93cced8fe604f1bec623",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -22,6 +22,86 @@
     {
       "source": "radjax_student.architecture.errors",
       "target": "radjax_student.architecture._json"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference",
+      "target": "radjax_student.architecture.mamba2_reference.config"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference",
+      "target": "radjax_student.architecture.mamba2_reference.plugin"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference",
+      "target": "radjax_student.architecture.mamba2_reference.registration"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference",
+      "target": "radjax_student.architecture.mamba2_reference.schema"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.config",
+      "target": "radjax_student.architecture.errors"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.config",
+      "target": "radjax_student.architecture.models"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.config",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.plugin",
+      "target": "radjax_student.architecture.carry_descriptor"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.plugin",
+      "target": "radjax_student.architecture.errors"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.plugin",
+      "target": "radjax_student.architecture.mamba2_reference.config"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.plugin",
+      "target": "radjax_student.architecture.mamba2_reference.schema"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.plugin",
+      "target": "radjax_student.architecture.models"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.plugin",
+      "target": "radjax_student.contracts"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.registration",
+      "target": "radjax_student.architecture.mamba2_reference.plugin"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.registration",
+      "target": "radjax_student.architecture.registry"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.schema",
+      "target": "radjax_student.architecture.carry_descriptor"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.schema",
+      "target": "radjax_student.architecture.errors"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.schema",
+      "target": "radjax_student.architecture.mamba2_reference.config"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.schema",
+      "target": "radjax_student.architecture.models"
+    },
+    {
+      "source": "radjax_student.architecture.mamba2_reference.schema",
+      "target": "radjax_student.contracts"
     },
     {
       "source": "radjax_student.architecture.models",
@@ -2161,7 +2241,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 207,
+  "module_count": 212,
   "modules": [
     {
       "classification": "core",
@@ -2298,6 +2378,189 @@
       "owner": "architecture_plugin",
       "path": "src/radjax_student/architecture/errors.py",
       "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "radjax_student.architecture.mamba2_reference.config",
+        "radjax_student.architecture.mamba2_reference.plugin",
+        "radjax_student.architecture.mamba2_reference.registration",
+        "radjax_student.architecture.mamba2_reference.schema"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture.mamba2_reference.config",
+        "radjax_student.architecture.mamba2_reference.plugin",
+        "radjax_student.architecture.mamba2_reference.registration",
+        "radjax_student.architecture.mamba2_reference.schema"
+      ],
+      "module": "radjax_student.architecture.mamba2_reference",
+      "owner": "architecture_plugin",
+      "path": "src/radjax_student/architecture/mamba2_reference/__init__.py",
+      "public_exports": [
+        "MAMBA2_REFERENCE_ARCHITECTURE_ID",
+        "MAMBA2_REFERENCE_ARCHITECTURE_VERSION",
+        "Mamba2EquationShape",
+        "Mamba2ReferenceConfig",
+        "Mamba2ReferencePlugin",
+        "architecture_metadata",
+        "carry_descriptor",
+        "configurable_architecture_config",
+        "equation_shape",
+        "hf_descriptor",
+        "initialization_parameter_slots",
+        "language_identities",
+        "parameter_catalog",
+        "parameter_layout",
+        "parameter_layout_for_vocabulary",
+        "reference_architecture_config",
+        "reference_config",
+        "register_mamba2_reference",
+        "validate_mamba2_config",
+        "validate_reference_config"
+      ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "Mamba2EquationShape",
+        "Mamba2ReferenceConfig"
+      ],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "radjax_student.architecture.errors",
+        "radjax_student.architecture.models",
+        "radjax_student.contracts",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture.errors",
+        "radjax_student.architecture.models",
+        "radjax_student.contracts"
+      ],
+      "module": "radjax_student.architecture.mamba2_reference.config",
+      "owner": "architecture_plugin",
+      "path": "src/radjax_student/architecture/mamba2_reference/config.py",
+      "public_exports": []
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [
+        "jax",
+        "jax.numpy"
+      ],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [
+        "Mamba2ReferencePlugin"
+      ],
+      "forbidden_imports": [
+        "jax",
+        "jax.numpy"
+      ],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "collections.abc",
+        "dataclasses",
+        "jax",
+        "jax.numpy",
+        "radjax_student.architecture.carry_descriptor",
+        "radjax_student.architecture.errors",
+        "radjax_student.architecture.mamba2_reference.config",
+        "radjax_student.architecture.mamba2_reference.schema",
+        "radjax_student.architecture.models",
+        "radjax_student.contracts"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture.carry_descriptor",
+        "radjax_student.architecture.errors",
+        "radjax_student.architecture.mamba2_reference.config",
+        "radjax_student.architecture.mamba2_reference.schema",
+        "radjax_student.architecture.models",
+        "radjax_student.contracts"
+      ],
+      "module": "radjax_student.architecture.mamba2_reference.plugin",
+      "owner": "architecture_plugin",
+      "path": "src/radjax_student/architecture/mamba2_reference/plugin.py",
+      "public_exports": [
+        "Mamba2ReferencePlugin"
+      ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "radjax_student.architecture.mamba2_reference.plugin",
+        "radjax_student.architecture.registry"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture.mamba2_reference.plugin",
+        "radjax_student.architecture.registry"
+      ],
+      "module": "radjax_student.architecture.mamba2_reference.registration",
+      "owner": "architecture_plugin",
+      "path": "src/radjax_student/architecture/mamba2_reference/registration.py",
+      "public_exports": [
+        "register_mamba2_reference"
+      ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [],
+      "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "hashlib",
+        "json",
+        "radjax_student.architecture.carry_descriptor",
+        "radjax_student.architecture.errors",
+        "radjax_student.architecture.mamba2_reference.config",
+        "radjax_student.architecture.models",
+        "radjax_student.contracts",
+        "typing"
+      ],
+      "internal_edges": [
+        "radjax_student.architecture.carry_descriptor",
+        "radjax_student.architecture.errors",
+        "radjax_student.architecture.mamba2_reference.config",
+        "radjax_student.architecture.models",
+        "radjax_student.contracts"
+      ],
+      "module": "radjax_student.architecture.mamba2_reference.schema",
+      "owner": "architecture_plugin",
+      "path": "src/radjax_student/architecture/mamba2_reference/schema.py",
+      "public_exports": [
+        "EXECUTION_CAPABILITIES",
+        "INITIALIZATION_CAPABILITIES",
+        "STATIC_CAPABILITIES",
+        "architecture_metadata",
+        "capability_profile",
+        "carry_descriptor",
+        "carry_descriptor_digest_for_config",
+        "hf_descriptor",
+        "initialization_parameter_slots",
+        "parameter_catalog",
+        "parameter_layout",
+        "parameter_layout_for_vocabulary"
+      ]
     },
     {
       "classification": "core",

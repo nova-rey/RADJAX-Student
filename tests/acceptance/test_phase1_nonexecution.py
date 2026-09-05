@@ -30,6 +30,16 @@ _PHASE4_LOCAL_JAX_IMPORT_PATHS = {
 }
 
 
+def _is_architecture_local_execution_path(relative: str) -> bool:
+    """Allow lazy optional imports only in concrete architecture execution seams."""
+    parts = relative.split("/")
+    return (
+        len(parts) == 3
+        and parts[0] == "architecture"
+        and parts[2] in {"plugin.py", "kernels.py"}
+    )
+
+
 def test_default_source_has_no_optional_or_producer_imports() -> None:
     source_root = REPO_ROOT / "src" / "radjax_student"
     offenders: list[str] = []
@@ -43,7 +53,7 @@ def test_default_source_has_no_optional_or_producer_imports() -> None:
                 "validation/p3_11_9_replay/runner_jax.py",
             }
             | _PHASE4_LOCAL_JAX_IMPORT_PATHS
-        ):
+        ) or _is_architecture_local_execution_path(relative):
             continue
         source = path.read_text(encoding="utf-8")
         for dependency in FORBIDDEN_DEFAULT_IMPORTS:

@@ -1,5 +1,27 @@
 # RADJAX-Student Bible
 
+## 2026-09-05 — M2.3 deterministic Mamba-2 initialization
+
+- Added runtime-key-derived float32 initialization for every declared Mamba-2
+  parameter, preserving the embedding/output tie and explicit deterministic
+  constant roles for `A_log`, `D`, `dt_bias`, and convolution bias.
+- Added zeroed, separately described convolution-history and SSM persistent
+  carries to `ArchitectureInitResult`, with generic carry identity and HF
+  descriptor continuity.
+- Raised the plugin capability progression to initialization while continuing
+  to fail closed for JAX execution; V512/T8 initialization is covered alongside
+  the frozen V16/T4 profile.
+- Generalized the current isolation audit to enumerate explicit concrete plugin
+  packages and registrations, while retaining the historical RWKV-missing test
+  as a historical compatibility guard. The generic-change ledger records why
+  this validation-only extension is architecture-neutral.
+- Generalized the Phase 1 non-execution allowlist to recognize lazy optional
+  imports only in any concrete architecture's `plugin.py`/`kernels.py` seams;
+  this is recorded as a second validation-only generic ledger entry. The
+  source-dependent P3.11.10, P3.12A, and P3.5 receipts are regenerated through
+  their normal writers after this accepted source-set change; the maintained
+  P3.12A contract digest is updated to the regenerated receipt.
+
 ## 2026-09-05 — M2.2 static Mamba-2 schema and registration
 
 - Added the explicit, JAX-free Mamba-2 reference plugin identity with

@@ -6,9 +6,6 @@ import json
 import subprocess
 import sys
 
-import pytest
-
-from radjax_student.architecture.errors import ArchitectureContractError
 from radjax_student.architecture.mamba2_reference import (
     MAMBA2_REFERENCE_ARCHITECTURE_ID,
     Mamba2ReferencePlugin,
@@ -75,8 +72,7 @@ def test_language_dimensions_are_configurable_without_structural_scaling() -> No
     descriptor = hf_descriptor(config)
     assert descriptor.vocabulary.vocabulary_size == 512
     assert (
-        descriptor.special_tokens.eos_token_id
-        == descriptor.special_tokens.pad_token_id
+        descriptor.special_tokens.eos_token_id == descriptor.special_tokens.pad_token_id
     )
     json.dumps(descriptor.to_dict(), allow_nan=False)
 
@@ -115,10 +111,9 @@ def test_registration_is_explicit_and_static_only() -> None:
     assert isinstance(plugin, Mamba2ReferencePlugin)
     assert registry.list_plugins() == (MAMBA2_REFERENCE_ARCHITECTURE_ID,)
     profile = plugin.capability_profile()
-    assert "architecture.parameter_initialization_v1" not in profile.capabilities
+    assert "architecture.parameter_initialization_v1" in profile.capabilities
     assert "architecture.jax_execution_v1" not in profile.capabilities
-    with pytest.raises(ArchitectureContractError, match="before M2.3"):
-        plugin.initialize_parameters(None)  # type: ignore[arg-type]
+    assert plugin.capability_profile().metadata["phase"] == "M2.3"
 
 
 def test_static_plugin_batch_validation_accepts_short_configured_chunks() -> None:

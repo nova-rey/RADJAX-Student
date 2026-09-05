@@ -329,9 +329,11 @@ def language_identities(
         return None
     identities = config.metadata.get("hf_language_identities")
     try:
-        if set(config.metadata) != {"hf_language_identities"} or not isinstance(
-            identities, Mapping
-        ) or set(identities) != {"tokenizer", "vocabulary", "special_tokens"}:
+        if (
+            set(config.metadata) != {"hf_language_identities"}
+            or not isinstance(identities, Mapping)
+            or set(identities) != {"tokenizer", "vocabulary", "special_tokens"}
+        ):
             raise ValueError
         tokenizer = HFTokenizerIdentity.from_dict(identities["tokenizer"])
         vocabulary = HFVocabularyIdentity.from_dict(identities["vocabulary"])

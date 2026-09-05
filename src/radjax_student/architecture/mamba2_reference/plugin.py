@@ -8,8 +8,13 @@ capabilities instead of mistaking a partial plugin for an executable model.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
+from radjax_student.architecture.carry_descriptor import (
+    carry_descriptor_digest,
+    describe_mapping_carry,
+)
 from radjax_student.architecture.errors import (
     ArchitectureContractError,
     ArchitectureIssue,
@@ -23,6 +28,7 @@ from radjax_student.architecture.mamba2_reference.config import (
 from radjax_student.architecture.mamba2_reference.schema import (
     architecture_metadata,
     capability_profile,
+    carry_descriptor,
     hf_descriptor,
     parameter_catalog,
     parameter_layout,
@@ -33,6 +39,7 @@ from radjax_student.architecture.models import (
     ArchitectureInitRequest,
     ArchitectureInitResult,
     ArchitectureMetadata,
+    ArchitectureState,
     BatchValidationResult,
     ForwardRequest,
     ForwardResult,
@@ -56,7 +63,7 @@ class Mamba2ReferencePlugin:
     architecture_version: int = MAMBA2_REFERENCE_ARCHITECTURE_VERSION
 
     def capability_profile(self) -> ArchitectureCapabilityProfile:
-        return capability_profile()
+        return capability_profile("initialization")
 
     def validate_config(self, config: ArchitectureConfig) -> None:
         validate_mamba2_config(config)
@@ -85,16 +92,117 @@ class Mamba2ReferencePlugin:
         return catalog
 
     def architecture_metadata(self) -> ArchitectureMetadata:
-        return architecture_metadata()
+        return architecture_metadata(stage="initialization")
 
     def initialize_parameters(
         self, request: ArchitectureInitRequest
     ) -> ArchitectureInitResult:
-        del request
-        raise ArchitectureContractError(
-            "architecture_initialization_failed",
-            "Mamba-2 initialization is unavailable before M2.3",
+        self.validate_config(request.config)
+        if request.precision_policy != "float32":
+            raise ArchitectureContractError(
+                "architecture_initialization_failed",
+                "Mamba-2 reference initialization requires float32 precision",
+            )
+        initialization_key = request.runtime_initialization_material
+        if initialization_key is None:
+            raise ArchitectureContractError(
+                "architecture_initialization_failed",
+                "runtime-supplied initialization material is required",
+            )
+        try:
+            import jax
+            import jax.numpy as jnp
+        except Exception as exc:
+            raise ArchitectureContractError(
+                "architecture_initialization_failed",
+                "JAX initialization support is unavailable",
+            ) from exc
+        catalog = parameter_catalog(request.config)
+        layout = parameter_layout(request.config)
+        try:
+            keys = jax.random.split(initialization_key, len(catalog.paths))
+        except (TypeError, ValueError) as exc:
+            raise ArchitectureContractError(
+                "architecture_initialization_failed",
+                "runtime-supplied initialization material is invalid",
+            ) from exc
+        keys_by_path = dict(zip(catalog.paths, keys, strict=True))
+        parameters = layout.mapping_tree(
+            lambda entry: self._initialize_leaf(
+                jax, jnp, entry, keys_by_path[entry.logical_path]
+            )
         )
+        # The source model ties lm_head.weight to the token embedding.  Preserve
+        # that relation in the materialized tree, rather than merely recording a
+        # descriptive tied group in the static layout.
+        parameters["lm_head"]["weight"] = parameters["backbone"]["embedding"]["weight"]
+        try:
+            layout.validate_materialized_parameters(parameters)
+        except (TypeError, ValueError) as exc:
+            raise ArchitectureContractError(
+                "architecture_initialization_failed",
+                "Mamba-2 initialization did not satisfy its parameter layout",
+            ) from exc
+        carry = self._zeroed_carry(jnp, request.config)
+        descriptor = carry_descriptor(request.config)
+        state_id = "mamba2_reference_state.v1"
+        return ArchitectureInitResult(
+            parameter_catalog=catalog,
+            architecture_state=ArchitectureState(
+                state_id,
+                metadata={"carry_schema_version": descriptor["schema_version"]},
+            ),
+            parameters=parameters,
+            architecture_carry=carry,
+            architecture_carry_descriptor={
+                "schema_version": "architecture_carry.v1",
+                "state_id": state_id,
+                "pytree_descriptor_digest": carry_descriptor_digest(
+                    describe_mapping_carry(carry)
+                ),
+            },
+            parameter_layout=layout,
+            hf_descriptor=hf_descriptor(request.config),
+            claims_not_made=(
+                "initialization_parity_not_claimed",
+                "upstream_weight_loading_not_claimed",
+                "pretrained_model_equivalence_not_claimed",
+                "training_recipe_parity_not_claimed",
+                "optimized_kernel_compatibility_not_claimed",
+            ),
+        )
+
+    @staticmethod
+    def _initialize_leaf(
+        jax: object, jnp: object, entry: object, key: object
+    ) -> object:
+        """Deterministic float32 values; source-specific init parity is unclaimed."""
+
+        path = entry.logical_path
+        if path.endswith(".conv1d.bias"):
+            return jnp.zeros(entry.shape, dtype=jnp.float32)
+        if path.endswith(".mixer.D"):
+            return jnp.ones(entry.shape, dtype=jnp.float32)
+        if path.endswith(".mixer.A_log"):
+            return jnp.log(jnp.arange(1, entry.shape[0] + 1, dtype=jnp.float32))
+        if path.endswith(".mixer.dt_bias"):
+            return jnp.zeros(entry.shape, dtype=jnp.float32)
+        return jax.random.normal(key, entry.shape, dtype=jnp.float32) * jnp.asarray(
+            0.02, dtype=jnp.float32
+        )
+
+    @staticmethod
+    def _zeroed_carry(jnp: object, config: ArchitectureConfig) -> dict[str, object]:
+        persistent = carry_descriptor(config)["persistent_leaves"]
+        if not isinstance(persistent, Mapping):
+            raise ArchitectureContractError(
+                "architecture_internal_error", "Mamba-2 carry descriptor is invalid"
+            )
+        carry = {
+            name: jnp.zeros(tuple(spec["shape"]), dtype=jnp.float32)
+            for name, spec in persistent.items()
+        }
+        return carry
 
     def validate_batch(
         self, batch: LearningBatch, config: ArchitectureConfig

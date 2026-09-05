@@ -46,8 +46,14 @@ STATIC_CAPABILITIES = (
     "architecture.update_scope.parameter_paths_v1",
     "architecture.update_scope.whole_student_v1",
 )
-INITIALIZATION_CAPABILITIES: tuple[str, ...] = STATIC_CAPABILITIES
-EXECUTION_CAPABILITIES: tuple[str, ...] = STATIC_CAPABILITIES
+INITIALIZATION_CAPABILITIES: tuple[str, ...] = (
+    *STATIC_CAPABILITIES,
+    "architecture.parameter_initialization_v1",
+)
+EXECUTION_CAPABILITIES: tuple[str, ...] = (
+    *INITIALIZATION_CAPABILITIES,
+    "architecture.jax_execution_v1",
+)
 
 
 def _digest(value: object) -> str:
@@ -315,21 +321,34 @@ def carry_descriptor_digest_for_config(config: ArchitectureConfig | None = None)
     return carry_descriptor_digest(carry_descriptor(config))
 
 
-def capability_profile() -> ArchitectureCapabilityProfile:
+def capability_profile(stage: str = "static") -> ArchitectureCapabilityProfile:
+    if stage == "static":
+        capabilities = STATIC_CAPABILITIES
+        non_capabilities = (
+            "architecture.parameter_initialization_v1",
+            "architecture.jax_execution_v1",
+        )
+    elif stage == "initialization":
+        capabilities = INITIALIZATION_CAPABILITIES
+        non_capabilities = ("architecture.jax_execution_v1",)
+    elif stage == "execution":
+        capabilities = EXECUTION_CAPABILITIES
+        non_capabilities = ()
+    else:
+        raise ValueError("unsupported Mamba-2 capability stage")
     return ArchitectureCapabilityProfile(
         architecture_id=MAMBA2_REFERENCE_ARCHITECTURE_ID,
         version=MAMBA2_REFERENCE_ARCHITECTURE_VERSION,
-        capabilities=STATIC_CAPABILITIES,
-        non_capabilities=(
-            "architecture.parameter_initialization_v1",
-            "architecture.jax_execution_v1",
-        ),
-        metadata={"phase": "M2.2", "static_schema_only": True},
+        capabilities=capabilities,
+        non_capabilities=non_capabilities,
+        metadata={"phase": "M2.2" if stage == "static" else "M2.3"},
     )
 
 
 def architecture_metadata(
     config: ArchitectureConfig | None = None,
+    *,
+    stage: str = "static",
 ) -> ArchitectureMetadata:
     config = reference_architecture_config() if config is None else config
     validate_mamba2_config(config)
@@ -359,7 +378,7 @@ def architecture_metadata(
     return ArchitectureMetadata(
         architecture_id=MAMBA2_REFERENCE_ARCHITECTURE_ID,
         parameter_catalog=catalog,
-        capability_profile=capability_profile(),
+        capability_profile=capability_profile(stage),
         named_regions=tuple(regions),
         objective_surfaces=(
             IntermediateSurfaceDescriptor(

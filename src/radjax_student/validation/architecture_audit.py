@@ -67,6 +67,62 @@ _P4_APPROVED_GENERIC_CHANGES = (
         ),
     },
 )
+_CURRENT_AUDIT_SCOPE = "current_supported_concrete_plugins"
+_GENERIC_CHANGE_LEDGER = (
+    {
+        "change": (
+            "generalize architecture isolation audit from the historical RWKV "
+            "singleton to all explicit concrete plugin packages"
+        ),
+        "concrete_need": (
+            "Mamba-2 adds a second architecture package and must be checked for "
+            "the same import and registration isolation invariants"
+        ),
+        "why_not_architecture_specific": (
+            "the invariant is about plugin ownership and generic-owner dependency "
+            "direction, independent of model equations"
+        ),
+        "owner": "validation.architecture_audit",
+        "plausible_second_third_architecture_use": (
+            "every future explicit architecture package can be audited without "
+            "changing runtime or learning code"
+        ),
+        "existing_interface_insufficiency": (
+            "the Phase 4 helper hard-coded one RWKV directory and one registration path"
+        ),
+        "minimal_alternative_rejected": (
+            "adding another special-case path would preserve singleton assumptions "
+            "and fail closed on the next plugin"
+        ),
+    },
+    {
+        "change": (
+            "generalize the Phase 1 non-execution import allowlist to concrete "
+            "architecture plugin execution seams"
+        ),
+        "concrete_need": (
+            "Mamba-2 keeps JAX lazy, but its plugin and kernel modules necessarily "
+            "contain runtime-local optional imports"
+        ),
+        "why_not_architecture_specific": (
+            "the allowlist is a path-owned boundary for every architecture's lazy "
+            "execution implementation"
+        ),
+        "owner": "tests.acceptance.test_phase1_nonexecution",
+        "plausible_second_third_architecture_use": (
+            "future architecture plugins can add lazy execution modules without "
+            "editing a singleton RWKV path"
+        ),
+        "existing_interface_insufficiency": (
+            "the historical allowlist names only RWKV files and rejects a second "
+            "plugin's otherwise-correct lazy imports"
+        ),
+        "minimal_alternative_rejected": (
+            "adding Mamba file names would encode another architecture-specific "
+            "exception rather than the generic ownership rule"
+        ),
+    },
+)
 _COMPATIBILITY_MODULES = {
     "radjax_student.learning.p3_5_acceptance",
     "radjax_student.learning.p3_10_acceptance",
@@ -750,6 +806,27 @@ def _p4_generic_source_paths(source_root: Path) -> list[Path]:
     return sorted(paths)
 
 
+def _p4_concrete_plugin_roots(source_root: Path) -> list[Path]:
+    """Find explicit concrete plugin packages without discovery magic.
+
+    A package is concrete only when it owns the static schema/config, plugin,
+    and explicit registration seams.  This keeps the current audit generic
+    across the supported ecosystem while retaining the historical RWKV
+    prerequisite below.
+    """
+
+    architecture_root = source_root / "architecture"
+    return sorted(
+        path
+        for path in architecture_root.iterdir()
+        if path.is_dir()
+        and (path / "plugin.py").is_file()
+        and (path / "registration.py").is_file()
+        and (path / "schema.py").is_file()
+        and (path / "config.py").is_file()
+    )
+
+
 def find_phase4_ingestion_blockers(
     source_root: Path, *, require_plugin: bool = False
 ) -> list[dict[str, Any]]:
@@ -785,10 +862,21 @@ def find_phase4_ingestion_blockers(
         if _p4_mentions_rwkv(tree):
             add("generic_owner_mentions_rwkv", path, "generic owner branches on RWKV")
 
-    for path in sorted(plugin_root.rglob("*.py")):
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        if _p4_imports_validation(tree):
-            add("rwkv_plugin_imports_validation", path, "plugin imports validation")
+    plugin_roots = _p4_concrete_plugin_roots(source_root)
+    for concrete_root in plugin_roots:
+        for path in sorted(concrete_root.rglob("*.py")):
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            if _p4_imports_validation(tree):
+                code = (
+                    "rwkv_plugin_imports_validation"
+                    if concrete_root.name == _P4_PLUGIN_DIRECTORY
+                    else "concrete_plugin_imports_validation"
+                )
+                add(
+                    code,
+                    path,
+                    "concrete plugin imports validation",
+                )
 
     registration_paths = []
     for path in sorted((source_root / "architecture").rglob("*.py")):
@@ -800,11 +888,16 @@ def find_phase4_ingestion_blockers(
             and isinstance(node.func, ast.Attribute)
             and node.func.attr == "register"
         )
-    if registration_paths != [_P4_PLUGIN_REGISTRATION]:
+    expected_registration_paths = sorted(
+        str(path.joinpath("registration.py").relative_to(source_root))
+        for path in plugin_roots
+    )
+    if sorted(registration_paths) != expected_registration_paths:
         add(
             "unexpected_architecture_registration",
             source_root / "architecture",
-            "P4 has exactly one explicit RWKV reference registration",
+            "current ecosystem must have exactly one explicit registration per "
+            "concrete plugin",
         )
     return sorted(blockers, key=lambda item: (item["code"], item["path"]))
 
@@ -816,20 +909,21 @@ def build_phase4_architecture_ingestion_audit(
 
     root = Path(repo_root or Path.cwd()).resolve()
     source_root = root / "src" / "radjax_student"
-    plugin_root = source_root / "architecture" / _P4_PLUGIN_DIRECTORY
     reviewed_paths = _p4_generic_source_paths(source_root)
     reviewed_paths.extend((source_root / "architecture").rglob("*.py"))
-    if plugin_root.is_dir():
-        reviewed_paths.extend(plugin_root.rglob("*.py"))
+    for concrete_root in _p4_concrete_plugin_roots(source_root):
+        reviewed_paths.extend(concrete_root.rglob("*.py"))
     blockers = find_phase4_ingestion_blockers(source_root, require_plugin=True)
     return {
         "schema_version": P4_INGESTION_SCHEMA,
+        "audit_scope": _CURRENT_AUDIT_SCOPE,
         "reviewed_source_paths": sorted(
             {str(path.relative_to(root)) for path in reviewed_paths}
         ),
         "approved_generic_changes": [
             dict(item) for item in _P4_APPROVED_GENERIC_CHANGES
         ],
+        "generic_change_ledger": [dict(item) for item in _GENERIC_CHANGE_LEDGER],
         "blockers": blockers,
         "status": "pass" if not blockers else "blocked",
     }
