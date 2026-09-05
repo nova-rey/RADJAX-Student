@@ -25,13 +25,13 @@ all matched.
 
 ## Command and reproducibility
 
-The isolated guest ran:
+The isolated guest ran the historical zero-state witness command:
 
 ```text
 CUBLAS_WORKSPACE_CONFIG=:4096:8 python /workspace/m2oracle/oracle.py > /workspace/m2oracle/witness-zero.json
 ```
 
-The generator digest was
+The historical witness generator digest was
 `0b97510ebe7b34109edfcbbf87f4ac69c5b36e18a32e38d07bdac35dbc6e437e`.
 Two fresh processes produced the same witness digest:
 
@@ -42,7 +42,10 @@ b5105ee1d88eeaa3defbaf1821ad73818d36f18970b37ff0d682a610d7a80745
 The witness records TF32 settings, matmul precision, deterministic-operation
 settings, evaluation/inference mode, configuration, selected nonuniform
 parameters, tokens, per-token logits, initial/final convolution and SSM
-states, and the asymmetric SSD fixture/reference comparison.
+states, and the asymmetric SSD fixture/reference comparison. The historical
+`oracle.py` source is not part of this checkout; its digest above identifies
+the checked-in `witness.json` capture and is not reused as the full-fixture
+generator identity.
 
 ## Frozen profile and claim boundary
 
@@ -65,16 +68,32 @@ sequence equivalence. The sequence path remains an M2.4 Student test concern.
 by the M2.4 parity test. It was generated in the same isolated image and pinned
 package set on a cheapest practical RTX A4000 (compute capability 8.6); the
 temporary Vast instance was destroyed immediately after capture. This full
-language-model witness starts from the official zero cache. Deliberately
-nonuniform state coverage is provided separately by the checked-in
-`witness.json` asymmetric core case and exercised by the M2.4 test. The
-generator source is `generate_full_token_step_fixture.py` (SHA-256
-`a7ca2b83ee2c5675aed4c1ab03713535fb6156eaec80a09dacb3bcf3ed16c279`), and it
+language-model witness starts from deliberately asymmetric, deterministic
+nonzero convolution and SSM caches. The checked-in `witness.json` independently
+provides the complementary official zero-cache case and an asymmetric SSD-core
+cross-check. The checked-in reproduction generator is
+`generate_full_token_step_fixture.py`; its source/configuration/cache formula
+matches the checked-in fixture profile and it emits the same canonical payload
+schema (capture settings are recorded in this README rather than added to the
+fixture digest). Its current source SHA-256 is
+`ed93ee46cfb6a36b0aafd7bfdb76e7eeae596c26e2a2fd036236bfeebd5b6533`, and it
 records the seed, complete parameter set, four token logits, and both final
 state families. Its canonical fixture digest is
 `8a9d01647be20df2b1944be17e093cfbecb4996c738276c4448eb1f8cbdb3fab` and its
 checked-in file SHA-256 is
 `922aa0e6b445040fc865749ce39cd0157f8ebe2e6e2191586cea82f3631679d4`.
+
+The capture used TF32 disabled, highest float32 matmul precision, deterministic
+operations, evaluation mode, and `InferenceParams` token-step execution with
+preallocated caches. The cache initialization formula is recorded in the
+mapping document and in the generator source.
+
+The full fixture was captured in the pinned environment before this
+reproduction script was checked in. This checkpoint does not regenerate it;
+the existing bytes, source-file hashes, structural configuration, tied
+embedding setting, and deterministic asymmetric cache formula are the
+accepted witness. A future regeneration must use the command below and must
+reproduce the canonical digest before replacing the fixture.
 
 The pinned-environment regeneration command is:
 

@@ -152,14 +152,6 @@ def generate(output: Path) -> None:
             key: value.detach().cpu().tolist()
             for key, value in model.state_dict().items()
         },
-        "settings": {
-            "tf32": False,
-            "float32_matmul_precision": "highest",
-            "deterministic_algorithms": True,
-            "model_mode": "eval",
-            "inference_mode": "InferenceParams token-step with preallocated caches",
-            "cache_initialization": "deliberately asymmetric nonuniform values",
-        },
     }
     canonical = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
     payload["fixture_sha256"] = hashlib.sha256(canonical).hexdigest()

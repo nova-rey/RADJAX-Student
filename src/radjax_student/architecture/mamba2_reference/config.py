@@ -31,6 +31,9 @@ MAMBA2_REFERENCE_D_SSM = 16
 MAMBA2_REFERENCE_NHEADS = 4
 MAMBA2_REFERENCE_HEAD_DIM = 4
 MAMBA2_REFERENCE_D_STATE = 4
+# The accepted oracle uses the v2.2.4 MambaConfig profile with d_conv=4.
+# Earlier planning text that mentioned d_conv=3 was superseded by this
+# source-faithful configuration and is not an implementation constraint.
 MAMBA2_REFERENCE_D_CONV = 4
 MAMBA2_REFERENCE_NGROUPS = 1
 MAMBA2_REFERENCE_CHUNK_SIZE = 4
@@ -39,6 +42,10 @@ MAMBA2_REFERENCE_BATCH_SIZE = 1
 MAMBA2_REFERENCE_D_IN_PROJ = 44
 MAMBA2_REFERENCE_CONV_DIM = 24
 MAMBA2_REFERENCE_DT_LIMIT = {"min": 0.0, "max": "UNBOUNDED"}
+# The pinned upstream oracle sets tie_embeddings=True.  This is a logical
+# identity and does not claim PyTorch checkpoint or Transformers weight
+# compatibility.
+MAMBA2_REFERENCE_TIE_EMBEDDINGS = True
 
 _STRUCTURAL_KEYS = (
     "batch_size",

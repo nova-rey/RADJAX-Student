@@ -1909,3 +1909,21 @@
 - A cheapest practical Vast RTX 3060 retry was destroyed after its mutable
   PyTorch image resolved to a CUDA-incompatible build; no Vast instances remain
   active and no Vast dependency enters Student runtime or normal tests.
+
+## 2026-09-05 — M2 reconciliation: source profile, tying, and state provenance
+
+- Reconciled the accepted Mamba-2 tip against state-spaces/mamba `v2.2.4` at
+  `95d8aba8a8c75aedcaa6143713b11e745e7cd0d9`: the frozen source-faithful
+  profile is `d_conv=4` with `tie_embeddings=true`; the earlier `d_conv=3` and
+  untied planning prose are superseded. The finite JSON encoding for an
+  unbounded `dt_limit` remains canonical.
+- The full V16/T4 fixture is confirmed to start from deterministic asymmetric
+  nonzero convolution and SSM caches. The independent `witness.json` retains
+  the complementary zero-state and asymmetric SSD witnesses. No fixture was
+  regenerated and no new compute was rented.
+- The reproduction generator now emits the fixture's canonical payload schema
+  without an unrecorded settings field. Mamba-local schema/mapping/checkpoint
+  tests document tied initialization/layout and initialized-checkpoint
+  preservation; generic post-update optimizer tying remains explicitly
+  unclaimed. No generic runtime, learning, behavior, objective, optimizer,
+  checkpoint, Contract, Tome, or RWKV code changed.

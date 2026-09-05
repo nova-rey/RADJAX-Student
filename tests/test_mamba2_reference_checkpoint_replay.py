@@ -105,6 +105,15 @@ def test_generic_checkpoint_restores_mamba_state_and_replays(tmp_path) -> None:
     assert restored.learning_state == after.learning_state
     assert restored.optimizer_state.envelope == after.optimizer_state.envelope
     assert tree_allclose(restored.parameters, after.parameters)
+    assert (
+        restored.parameter_layout.entry_for_logical_path(
+            "backbone.embedding.weight"
+        ).tied_weight_group
+        == restored.parameter_layout.entry_for_logical_path(
+            "lm_head.weight"
+        ).tied_weight_group
+        == "token_embedding"
+    )
     assert tree_allclose(restored.architecture_carry, after.architecture_carry)
     assert tree_allclose(restored.optimizer_state.arrays, after.optimizer_state.arrays)
     assert tree_allclose(_forward(after).outputs, _forward(restored).outputs)
@@ -128,6 +137,29 @@ def test_generic_checkpoint_restores_mamba_state_and_replays(tmp_path) -> None:
     assert tree_allclose(
         source.loop_executor.lifecycle.architecture_carry,
         restored_assembly.loop_executor.lifecycle.architecture_carry,
+    )
+
+
+def test_initialized_checkpoint_preserves_tied_embedding_relation(tmp_path) -> None:
+    assembly = assembled()
+    lifecycle = assembly.lifecycle
+    directory = tmp_path / "mamba2-initialized-v3"
+    save_learning_checkpoint_v3(
+        lifecycle.checkpoint(), directory, optimizer=lifecycle.optimizer
+    )
+    restored = assembly.lifecycle.restore_from_checkpoint(directory)
+    assert jnp.array_equal(
+        restored.parameters["backbone"]["embedding"]["weight"],
+        restored.parameters["lm_head"]["weight"],
+    )
+    assert (
+        restored.parameter_layout.entry_for_logical_path(
+            "backbone.embedding.weight"
+        ).tied_weight_group
+        == restored.parameter_layout.entry_for_logical_path(
+            "lm_head.weight"
+        ).tied_weight_group
+        == "token_embedding"
     )
 
 

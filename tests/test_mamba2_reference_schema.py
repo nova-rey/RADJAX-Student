@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -48,14 +50,69 @@ def _identity(vocabulary_size: int):
     return tokenizer, vocabulary, special
 
 
+def _contains_nonzero(value):
+    if isinstance(value, list):
+        return any(_contains_nonzero(item) for item in value)
+    return value != 0.0
+
+
+def _contains_only_zero(value):
+    if isinstance(value, list):
+        return all(_contains_only_zero(item) for item in value)
+    return value == 0.0
+
+
+def _flatten(value):
+    if isinstance(value, list):
+        for item in value:
+            yield from _flatten(item)
+    else:
+        yield value
+
+
 def test_frozen_profile_is_static_and_json_finite() -> None:
     config = reference_architecture_config()
     assert config.vocab_size == 16
     assert config.sequence_length == 4
     assert config.model_config["d_model"] == 8
     assert config.model_config["dt_limit"]["max"] == "UNBOUNDED"
+    assert config.model_config["d_conv"] == 4
     encoded = json.dumps(config.to_dict(), allow_nan=False, sort_keys=True)
     assert "Infinity" not in encoded
+
+
+def test_oracle_profile_and_initial_state_provenance_are_unambiguous() -> None:
+    root = Path(__file__).parents[1]
+    evidence = root / "evidence/mamba2_oracle"
+    fixture_path = evidence / "full_token_step_fixture.json"
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    assert fixture["config"]["ssm_cfg"]["d_conv"] == 4
+    assert fixture["config"]["tie_embeddings"] is True
+    assert fixture["source"]["commit"] == "95d8aba8a8c75aedcaa6143713b11e745e7cd0d9"
+    for layer, states in fixture["state_initial"].items():
+        conv = list(_flatten(states[0]))
+        ssm = list(_flatten(states[1]))
+        layer_index = int(layer)
+        assert _contains_nonzero(states[0]) and _contains_nonzero(states[1])
+        assert conv[0] == pytest.approx(0.01 * (layer_index + 1), abs=1e-7)
+        assert conv[-1] == pytest.approx(
+            0.01 * (layer_index + 1) + 0.001 * (len(conv) - 1), abs=1e-7
+        )
+        assert ssm[0] == pytest.approx(0.02 * (layer_index + 1), abs=1e-7)
+        assert ssm[-1] == pytest.approx(
+            0.02 * (layer_index + 1) + 0.002 * (len(ssm) - 1), abs=1e-7
+        )
+    witness_path = evidence / "witness.json"
+    witness = json.loads(witness_path.read_text(encoding="utf-8"))
+    assert all(
+        _contains_only_zero(states["conv"]["values"])
+        and _contains_only_zero(states["ssm"]["values"])
+        for states in witness["zero_state_case"]["initial_state"].values()
+    )
+    readme = (evidence / "README.md").read_text(encoding="utf-8")
+    generator_path = evidence / "generate_full_token_step_fixture.py"
+    assert hashlib.sha256(generator_path.read_bytes()).hexdigest() in readme
+    assert hashlib.sha256(fixture_path.read_bytes()).hexdigest() in readme
 
 
 def test_language_dimensions_are_configurable_without_structural_scaling() -> None:
@@ -90,6 +147,7 @@ def test_catalog_and_layout_cover_tied_embedding_and_head() -> None:
     head = layout.entry_for_logical_path("lm_head.weight")
     assert embedding.tied_weight_group == head.tied_weight_group == "token_embedding"
     assert embedding.shape == head.shape == (16, 8)
+    assert catalog.metadata["upstream_tie_embeddings"] is True
     assert all(
         item.metadata["mapping_class"]
         in {"direct", "transformed but equation-preserving"}
