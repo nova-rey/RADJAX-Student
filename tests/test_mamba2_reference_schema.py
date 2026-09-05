@@ -6,6 +6,9 @@ import json
 import subprocess
 import sys
 
+import pytest
+
+from radjax_student.architecture.errors import ArchitectureContractError
 from radjax_student.architecture.mamba2_reference import (
     MAMBA2_REFERENCE_ARCHITECTURE_ID,
     Mamba2ReferencePlugin,
@@ -18,6 +21,7 @@ from radjax_student.architecture.mamba2_reference import (
     reference_architecture_config,
     register_mamba2_reference,
 )
+from radjax_student.architecture.models import ArchitectureConfig
 from radjax_student.architecture.registry import ArchitectureRegistry
 from radjax_student.contracts import (
     HFSpecialTokenIdentity,
@@ -112,8 +116,8 @@ def test_registration_is_explicit_and_static_only() -> None:
     assert registry.list_plugins() == (MAMBA2_REFERENCE_ARCHITECTURE_ID,)
     profile = plugin.capability_profile()
     assert "architecture.parameter_initialization_v1" in profile.capabilities
-    assert "architecture.jax_execution_v1" not in profile.capabilities
-    assert plugin.capability_profile().metadata["phase"] == "M2.3"
+    assert "architecture.jax_execution_v1" in profile.capabilities
+    assert plugin.capability_profile().metadata["phase"] == "M2.4"
 
 
 def test_static_plugin_batch_validation_accepts_short_configured_chunks() -> None:
@@ -152,3 +156,18 @@ def test_metadata_is_config_derived() -> None:
     metadata = architecture_metadata(config)
     assert metadata.parameter_catalog.get("backbone.embedding.weight").shape == (512, 8)
     assert metadata.region("block_1").parameter_paths
+
+
+def test_structural_scaling_is_rejected_but_language_dimensions_are_not() -> None:
+    base = reference_architecture_config()
+    model = dict(base.model_config)
+    model["d_model"] = 16
+    changed = ArchitectureConfig(
+        architecture_id=base.architecture_id,
+        model_config=model,
+        vocab_size=16,
+        sequence_length=4,
+        dtype_intent="float32",
+    )
+    with pytest.raises(ArchitectureContractError):
+        Mamba2ReferencePlugin().validate_config(changed)

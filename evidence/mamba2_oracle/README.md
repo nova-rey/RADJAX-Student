@@ -1,7 +1,7 @@
 # Mamba-2 v2.2.4 CUDA oracle witness
 
-This evidence was generated before any Mamba-2 Student implementation. It is
-an upstream reference witness only.
+This evidence is generated independently of the Mamba-2 Student implementation
+and is an upstream reference witness only.
 
 ## Authority and environment
 
@@ -59,3 +59,15 @@ pretrained-weight compatibility, PyTorch-checkpoint compatibility, training
 recipe parity, Transformers compatibility, production performance, or whole
 sequence equivalence. The sequence path remains an M2.4 Student test concern.
 
+## Complete token-step fixture
+
+`full_token_step_fixture.json` is the complete V16/T4 token-step witness used
+by the M2.4 parity test. It was generated in the same isolated image and pinned
+package set on a cheapest practical RTX A4000 (compute capability 8.6); the
+temporary Vast instance was destroyed immediately after capture. The generator
+used seed `20260905`, deliberately nonuniform convolution/SSM cache leaves, and
+recorded every model parameter, four token logits, and both final state families.
+Its canonical fixture digest is
+`7708ae2eacbbaa45d9060604a43528ff1bb2ebb5835b78de5bfa92a31b348806` and its
+checked-in file SHA-256 is
+`2389f47c71c60a3fcdd9122cd5efe89637895ea30bc8543b9409541e49b91682`.

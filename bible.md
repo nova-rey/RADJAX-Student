@@ -1,5 +1,25 @@
 # RADJAX-Student Bible
 
+## 2026-09-05 — M2.4 pure-JAX Mamba-2 reference execution
+
+- Added the portable functional Mamba-2 token-step and `jax.lax.scan`
+  sequence kernel. It owns convolution history and SSM state separately and
+  keeps JAX lazy; no optimized scan, CUDA, Triton, Pallas, or runtime-specific
+  lowering was added.
+- Added independent parity evidence against the pinned official v2.2.4
+  token-step model, including complete parameters, deliberately nonuniform
+  initial/final state leaves, four logits, source hashes, and environment
+  manifest. The canonical fixture digest is
+  `7708ae2eacbbaa45d9060604a43528ff1bb2ebb5835b78de5bfa92a31b348806`.
+- Proved fixed-weight step/sequence and 2+2 chunk continuation equality,
+  bounded malformed-input rejection, representative finite gradients, and
+  central-difference checks for convolution, projection, A/dt, normalization,
+  and output parameters. This checkpoint makes no pretrained-weight,
+  optimized-kernel, training-recipe, or cross-step-BPTT claim.
+- Source-dependent P3.5/P3.11/P3.12A receipts were regenerated after the
+  execution package expanded the audited source set; the maintained P3.12A
+  digest now names that regenerated receipt.
+
 ## 2026-09-05 — M2.3 deterministic Mamba-2 initialization
 
 - Added runtime-key-derived float32 initialization for every declared Mamba-2

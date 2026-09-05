@@ -341,7 +341,13 @@ def capability_profile(stage: str = "static") -> ArchitectureCapabilityProfile:
         version=MAMBA2_REFERENCE_ARCHITECTURE_VERSION,
         capabilities=capabilities,
         non_capabilities=non_capabilities,
-        metadata={"phase": "M2.2" if stage == "static" else "M2.3"},
+        metadata={
+            "phase": {
+                "static": "M2.2",
+                "initialization": "M2.3",
+                "execution": "M2.4",
+            }[stage]
+        },
     )
 
 

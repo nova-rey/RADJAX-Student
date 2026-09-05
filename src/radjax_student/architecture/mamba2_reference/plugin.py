@@ -1,4 +1,4 @@
-"""Static Mamba-2 reference plugin boundary (M2.2).
+"""Mamba-2 reference plugin boundary with lazy pure-JAX execution.
 
 The package intentionally advertises inspection and validation only until the
 initialization and pure-JAX execution checkpoints are accepted.  Keeping the
@@ -63,7 +63,7 @@ class Mamba2ReferencePlugin:
     architecture_version: int = MAMBA2_REFERENCE_ARCHITECTURE_VERSION
 
     def capability_profile(self) -> ArchitectureCapabilityProfile:
-        return capability_profile("initialization")
+        return capability_profile("execution")
 
     def validate_config(self, config: ArchitectureConfig) -> None:
         validate_mamba2_config(config)
@@ -92,7 +92,7 @@ class Mamba2ReferencePlugin:
         return catalog
 
     def architecture_metadata(self) -> ArchitectureMetadata:
-        return architecture_metadata(stage="initialization")
+        return architecture_metadata(stage="execution")
 
     def initialize_parameters(
         self, request: ArchitectureInitRequest
@@ -247,6 +247,119 @@ class Mamba2ReferencePlugin:
             "Mamba-2 JAX execution is unavailable before M2.4",
         )
 
+    def apply_jax(
+        self,
+        parameters: object,
+        architecture_state: object,
+        batch: object,
+        *,
+        architecture_config: ArchitectureConfig | None = None,
+        objective_scope: ObjectiveScope,
+        training: bool,
+        rng_key: object | None,
+    ) -> ForwardResult:
+        del training, rng_key
+        if objective_scope.kind != "final_output":
+            raise ArchitectureContractError(
+                "architecture_objective_scope_unsupported",
+                "Mamba-2 JAX execution exposes only the final logits surface",
+            )
+        config = (
+            reference_architecture_config()
+            if architecture_config is None
+            else architecture_config
+        )
+        self.validate_config(config)
+        try:
+            layout = parameter_layout(config)
+            layout.validate_materialized_parameters(parameters)
+            self._validate_carry(architecture_state, config)
+            token_ids = self._validate_jax_tokens(
+                batch,
+                vocabulary_size=config.vocab_size,
+                context_length=config.sequence_length,
+            )
+            from radjax_student.architecture.mamba2_reference.kernels import (
+                mamba2_sequence,
+            )
+
+            logits, carry = mamba2_sequence(
+                parameters, token_ids[0], architecture_state
+            )
+        except ArchitectureContractError:
+            raise
+        except (KeyError, TypeError, ValueError) as exc:
+            raise ArchitectureContractError(
+                "architecture_forward_failed",
+                "Mamba-2 JAX execution received invalid values",
+            ) from exc
+        return ForwardResult(
+            outputs=logits[None, :, :],
+            updated_architecture_carry=carry,
+            claims_not_made=(
+                "optimized_kernel_compatibility_not_claimed",
+                "pretrained_model_equivalence_not_claimed",
+                "training_recipe_parity_not_claimed",
+                "weight_file_compatibility_not_claimed",
+                "cross_step_bptt_not_claimed",
+            ),
+        )
+
+    @staticmethod
+    def _validate_carry(carry: object, config: ArchitectureConfig) -> None:
+        descriptor = carry_descriptor(config)["persistent_leaves"]
+        if not isinstance(carry, Mapping) or set(carry) != set(descriptor):
+            raise ArchitectureContractError(
+                "architecture_forward_failed",
+                "Mamba-2 carry does not match its persistent descriptor",
+            )
+        for name, specification in descriptor.items():
+            value = carry[name]
+            if (
+                tuple(getattr(value, "shape", ())) != tuple(specification["shape"])
+                or str(getattr(value, "dtype", "")) != specification["dtype"]
+            ):
+                raise ArchitectureContractError(
+                    "architecture_forward_failed",
+                    "Mamba-2 carry does not match its persistent descriptor",
+                )
+
+    @staticmethod
+    def _validate_jax_tokens(
+        batch: object,
+        *,
+        vocabulary_size: int,
+        context_length: int,
+    ) -> object:
+        try:
+            import jax
+            import jax.numpy as jnp
+        except Exception as exc:
+            raise ArchitectureContractError(
+                "architecture_forward_failed",
+                "JAX execution support is unavailable",
+            ) from exc
+        inputs = getattr(batch, "inputs", None)
+        token_ids = inputs.get("token_ids") if isinstance(inputs, Mapping) else None
+        if (
+            getattr(token_ids, "ndim", None) != 2
+            or token_ids.shape[0] != 1
+            or not 1 <= token_ids.shape[1] <= context_length
+            or not jnp.issubdtype(token_ids.dtype, jnp.integer)
+        ):
+            raise ArchitectureContractError(
+                "architecture_batch_incompatible",
+                "Mamba-2 requires one rank-2 integer token sequence",
+            )
+        if not isinstance(token_ids, jax.core.Tracer) and bool(
+            jnp.any((token_ids < 0) | (token_ids >= vocabulary_size))
+        ):
+            raise ArchitectureContractError(
+                "architecture_batch_incompatible",
+                "Mamba-2 token_ids are outside the configured vocabulary",
+            )
+        return token_ids
+
     def resolve_update_scope(
         self, scope: UpdateScope, parameter_catalog: ParameterCatalog
     ) -> ResolvedUpdateSelection:
@@ -295,7 +408,7 @@ class Mamba2ReferencePlugin:
                 path for path in parameter_catalog.paths if path not in selected
             ),
             capabilities=(f"architecture.update_scope.{scope.kind}_v1",),
-            metadata={"phase": "M2.2", "jax_execution_available": False},
+            metadata={"phase": "M2.4", "jax_execution_available": True},
         )
 
     def resolve_objective_scope(
@@ -314,7 +427,7 @@ class Mamba2ReferencePlugin:
             surface_id="final_output",
             surface_role="logits",
             required_capabilities=("architecture.objective.final_output_v1",),
-            metadata={"phase": "M2.2", "jax_execution_available": False},
+            metadata={"phase": "M2.4", "jax_execution_available": True},
         )
 
     def hf_compatibility_descriptor(

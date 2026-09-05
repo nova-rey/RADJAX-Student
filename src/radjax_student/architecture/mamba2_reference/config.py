@@ -350,7 +350,16 @@ def language_identities(
 
 
 def validate_mamba2_config(config: ArchitectureConfig) -> None:
-    equation_shape(config)
+    shape = equation_shape(config)
+    expected = Mamba2EquationShape(
+        shape.vocabulary_size,
+        shape.context_length,
+    ).model_config()
+    if dict(config.model_config) != expected:
+        raise ArchitectureContractError(
+            "architecture_config_invalid",
+            "Mamba-2 reference execution freezes the structural equation profile",
+        )
     if config == reference_architecture_config():
         return
     language_identities(config)

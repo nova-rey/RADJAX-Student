@@ -1,5 +1,5 @@
 {
-  "accepted_commit": "3ce41fd3a85eb4cea61c93cced8fe604f1bec623",
+  "accepted_commit": "223a024e51ebccb8c59eff3f10dfdaa9a2a12b10",
   "blockers": [],
   "cycles": [],
   "dependency_edges": [
@@ -2241,7 +2241,7 @@
     "torch",
     "transformers"
   ],
-  "module_count": 212,
+  "module_count": 213,
   "modules": [
     {
       "classification": "core",
@@ -2460,6 +2460,34 @@
         "jax.numpy"
       ],
       "concrete_plugin_rejected_jax_imports": [],
+      "defined_classes": [],
+      "forbidden_imports": [
+        "jax",
+        "jax.numpy"
+      ],
+      "has_dynamic_exports": false,
+      "imports": [
+        "__future__",
+        "jax",
+        "jax.numpy",
+        "typing"
+      ],
+      "internal_edges": [],
+      "module": "radjax_student.architecture.mamba2_reference.kernels",
+      "owner": "architecture_plugin",
+      "path": "src/radjax_student/architecture/mamba2_reference/kernels.py",
+      "public_exports": [
+        "mamba2_sequence",
+        "mamba2_step"
+      ]
+    },
+    {
+      "classification": "core",
+      "concrete_plugin_lazy_jax_imports": [
+        "jax",
+        "jax.numpy"
+      ],
+      "concrete_plugin_rejected_jax_imports": [],
       "defined_classes": [
         "Mamba2ReferencePlugin"
       ],
@@ -2477,6 +2505,7 @@
         "radjax_student.architecture.carry_descriptor",
         "radjax_student.architecture.errors",
         "radjax_student.architecture.mamba2_reference.config",
+        "radjax_student.architecture.mamba2_reference.kernels",
         "radjax_student.architecture.mamba2_reference.schema",
         "radjax_student.architecture.models",
         "radjax_student.contracts"
