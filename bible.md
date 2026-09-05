@@ -1,5 +1,17 @@
 # RADJAX-Student Bible
 
+## 2026-09-05 — M2.6 generic checkpoint, restore, replay, and HF continuity
+
+- Added Mamba-2 coverage over the existing generic checkpoint v3 writer and
+  owner-bound restore path. The tests preserve both convolution-history and
+  SSM state leaves, parameter layout/catalog identity, optimizer state, runtime
+  callable identity, architecture state ID, and architecture-owned HF
+  descriptor/reference continuity.
+- Verified post-step save/restore, forward continuation, replayed second-step
+  equality, and fail-closed architecture-config, layout, carry-descriptor, and
+  HF-identity mismatches. No Mamba-specific checkpoint field or persistence
+  branch was introduced.
+
 ## 2026-09-05 — M2.5 generic Student lifecycle integration
 
 - Added test-only Mamba-2 lifecycle fixtures using the existing explicit
