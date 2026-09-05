@@ -11,6 +11,7 @@ import scripts.audit_architecture as audit_writer
 from radjax_student.validation.architecture_audit import (
     SCHEMA,
     build_architecture_audit,
+    build_phase4_architecture_ingestion_audit,
     find_dependency_cycles,
 )
 
@@ -86,6 +87,23 @@ def test_p3_5_audit_records_current_architecture_blockers():
         "forward_result_discarded",
     }.isdisjoint(codes)
     assert "root_exports_transitional_students" not in codes
+
+
+def test_current_multi_plugin_audit_keeps_mamba2_inside_allowed_seams():
+    audit = build_architecture_audit(REPO_ROOT)
+    ingestion = build_phase4_architecture_ingestion_audit(REPO_ROOT)
+    assert audit["status"] == "pass"
+    assert ingestion["audit_scope"] == "current_supported_concrete_plugins"
+    assert any(
+        item["owner"] == "validation.architecture_audit"
+        and "all explicit concrete plugin packages" in item["change"]
+        for item in ingestion["generic_change_ledger"]
+    )
+    for module in audit["modules"]:
+        name = module["module"]
+        if name.startswith("radjax_student.architecture.mamba2_reference"):
+            continue
+        assert all("mamba2" not in imported for imported in module["imports"])
 
 
 def test_p3_5_audit_cycle_reporting_is_deterministic():

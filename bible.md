@@ -1,5 +1,15 @@
 # RADJAX-Student Bible
 
+## 2026-09-05 — M2.7 architecture-isolation audit
+
+- Extended bounded audit evidence to the current supported concrete-plugin
+  scope, preserving Phase 4 RWKV evidence as historical and regenerating only
+  source-dependent receipts through their normal writers.
+- Added a synthetic third-plugin audit fixture and a current-source assertion
+  that Mamba-2 imports remain inside the architecture package seams. The audit
+  records the generic-change ledger; it performs no discovery, runtime branch,
+  batch-field, checkpoint-format, or compilation-policy generalization.
+
 ## 2026-09-05 — M2.6 generic checkpoint, restore, replay, and HF continuity
 
 - Added Mamba-2 coverage over the existing generic checkpoint v3 writer and
