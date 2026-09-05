@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 from pathlib import Path
 
@@ -32,6 +33,11 @@ from radjax_student.runtime.jax_bridge import materialize_initialization_jax_key
 _ORACLE_FIXTURE = (
     Path(__file__).parents[1] / "evidence/mamba2_oracle/full_token_step_fixture.json"
 )
+_CORE_WITNESS = Path(__file__).parents[1] / "evidence/mamba2_oracle/witness.json"
+
+
+def _reject_nonfinite_json_constants(value: str):
+    raise ValueError(f"non-finite JSON constant is forbidden: {value}")
 
 
 def _initialized():
@@ -63,7 +69,23 @@ def _tree_from_dotted_state(state):
 
 @pytest.mark.jax
 def test_pinned_upstream_token_step_fixture_matches_logits_and_state():
-    fixture = json.loads(_ORACLE_FIXTURE.read_text(encoding="utf-8"))
+    fixture = json.loads(
+        _ORACLE_FIXTURE.read_text(encoding="utf-8"),
+        parse_constant=_reject_nonfinite_json_constants,
+    )
+    assert fixture["config"]["ssm_cfg"]["dt_limit"] == {
+        "min": 0.0,
+        "max": "UNBOUNDED",
+    }
+    recorded_digest = fixture["fixture_sha256"]
+    digest_payload = dict(fixture)
+    digest_payload.pop("fixture_sha256")
+    assert (
+        hashlib.sha256(
+            json.dumps(digest_payload, sort_keys=True, separators=(",", ":")).encode()
+        ).hexdigest()
+        == recorded_digest
+    )
     parameters = _tree_from_dotted_state(fixture["model_state_dict"])
     carry = {}
     for layer, values in fixture["state_initial"].items():
@@ -88,6 +110,37 @@ def test_pinned_upstream_token_step_fixture_matches_logits_and_state():
             atol=5e-6,
             rtol=5e-6,
         )
+
+
+@pytest.mark.jax
+def test_independent_asymmetric_state_witness_exercises_both_state_axes():
+    """The checked-in upstream core witness prevents zero-state-only coverage."""
+    witness = json.loads(_CORE_WITNESS.read_text(encoding="utf-8"))
+    case = witness["asymmetric_nonzero_state_case"]
+    initial = case["initial_state"]
+    assert any(value for layer in initial.values() for value in layer["conv"]["values"])
+    assert any(value for layer in initial.values() for value in layer["ssm"]["values"])
+    _, initialized = _initialized()
+    carry = {}
+    for layer, values in initial.items():
+        carry[f"layers.{layer}.conv_state"] = jnp.asarray(
+            values["conv"]["values"], dtype=jnp.float32
+        ).reshape(values["conv"]["shape"])
+        carry[f"layers.{layer}.ssm_state"] = jnp.asarray(
+            values["ssm"]["values"], dtype=jnp.float32
+        ).reshape(values["ssm"]["shape"])
+    token = jnp.asarray(int(case["tokens"][0][0]), dtype=jnp.int32)
+    asymmetric_logits, asymmetric_carry = mamba2_step(
+        initialized.parameters, token, carry
+    )
+    zero_logits, zero_carry = mamba2_step(
+        initialized.parameters, token, initialized.architecture_carry
+    )
+    assert not bool(jnp.allclose(asymmetric_logits, zero_logits))
+    assert any(
+        not bool(jnp.allclose(asymmetric_carry[name], zero_carry[name]))
+        for name in asymmetric_carry
+    )
 
 
 @pytest.mark.jax

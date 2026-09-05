@@ -80,23 +80,54 @@ def test_v512_t8_configuration_executes_through_eager_and_jit_lifecycles():
 
 def test_two_optimizer_steps_match_independently_built_reference_schedule():
     actual = assembled("eager")
-    reference = assembled("eager")
     first_batch = batch()
     second_batch = batch((5, 3, 7, 1))
+    initial_lifecycle = actual.loop_executor.lifecycle
+    initial_parameters = initial_lifecycle.parameters
+    initial_carry = initial_lifecycle.architecture_carry
     actual_first = execute(actual, first_batch)
     actual_second = execute(actual, second_batch)
-    reference_first = execute(reference, first_batch)
-    reference_second = execute(reference, second_batch)
+
+    # Independently construct the two-step reference: use the registered loss
+    # graph only for value/gradient evaluation, then apply the declared SGD
+    # schedule directly.  This deliberately bypasses JaxLoopExecutor and the
+    # production optimizer/update assembly so a shared loop bug cannot make
+    # both sides agree.
+    lifecycle = initial_lifecycle
+    loss_fn = build_registered_jax_loss_fn(
+        architecture=lifecycle.architecture,
+        objective_selection=lifecycle.objective_selection,
+        objective_config=lifecycle.objective_config,
+        objective_descriptor=lifecycle.objective_descriptor,
+        resolved_selection=lifecycle.resolved_objective_selection,
+        architecture_config=lifecycle.architecture_config,
+    )
+    value_and_grad = jax.value_and_grad(loss_fn, argnums=0, has_aux=True)
+    materializer = FiniteJsonJaxBatchMaterializer()
+    reference_parameters = initial_parameters
+    reference_carry = initial_carry
+    for learning_batch in (first_batch, second_batch):
+        materialized = materializer.materialize(learning_batch)
+        (_, auxiliary), gradients = value_and_grad(
+            reference_parameters, reference_carry, materialized, None
+        )
+        reference_parameters = jax.tree_util.tree_map(
+            lambda parameter, gradient: parameter - 0.05 * gradient,
+            reference_parameters,
+            gradients,
+        )
+        reference_carry = jax.tree_util.tree_map(
+            jax.lax.stop_gradient, auxiliary.updated_architecture_carry
+        )
 
     assert actual_first.result.status == actual_second.result.status == "pass"
-    assert reference_first.result.status == reference_second.result.status == "pass"
     assert tree_allclose(
         actual.loop_executor.lifecycle.parameters,
-        reference.loop_executor.lifecycle.parameters,
+        reference_parameters,
     )
     assert tree_allclose(
         actual.loop_executor.lifecycle.architecture_carry,
-        reference.loop_executor.lifecycle.architecture_carry,
+        reference_carry,
     )
     assert actual.loop_executor.lifecycle.learning_state.global_step == 2
     assert actual.loop_executor.lifecycle.optimizer_state.envelope.step == 2

@@ -1898,3 +1898,14 @@
   frozen fixture. It does not claim optimized-kernel parity, pretrained or
   PyTorch checkpoint compatibility, Transformers compatibility, training-recipe
   parity, whole-sequence equivalence, or production performance.
+
+## 2026-09-05 — M2.8 bounded repair evidence
+
+- The independent M2.8 verifier identified and required correction of a shared
+  two-step lifecycle comparison, non-finite JSON encoding, and zero-state-only
+  full-fixture coverage. The repair uses a separately authored differentiable
+  two-step SGD schedule, strict finite-JSON parsing with canonical digest
+  checking, and the independent asymmetric upstream state witness.
+- A cheapest practical Vast RTX 3060 retry was destroyed after its mutable
+  PyTorch image resolved to a CUDA-incompatible build; no Vast instances remain
+  active and no Vast dependency enters Student runtime or normal tests.

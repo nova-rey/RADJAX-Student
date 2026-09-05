@@ -15,10 +15,10 @@
       "d_ssm": 16,
       "d_state": 4,
       "dt_init_floor": 0.0001,
-      "dt_limit": [
-        0.0,
-        Infinity
-      ],
+      "dt_limit": {
+        "max": "UNBOUNDED",
+        "min": 0.0
+      },
       "dt_max": 0.1,
       "dt_min": 0.001,
       "expand": 2,
@@ -39,7 +39,7 @@
     "torch": "2.4.0",
     "triton": "3.0.0"
   },
-  "fixture_sha256": "7708ae2eacbbaa45d9060604a43528ff1bb2ebb5835b78de5bfa92a31b348806",
+  "fixture_sha256": "8a9d01647be20df2b1944be17e093cfbecb4996c738276c4448eb1f8cbdb3fab",
   "logits": [
     [
       0.05723998695611954,

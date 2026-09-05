@@ -64,10 +64,20 @@ sequence equivalence. The sequence path remains an M2.4 Student test concern.
 `full_token_step_fixture.json` is the complete V16/T4 token-step witness used
 by the M2.4 parity test. It was generated in the same isolated image and pinned
 package set on a cheapest practical RTX A4000 (compute capability 8.6); the
-temporary Vast instance was destroyed immediately after capture. The generator
-used seed `20260905`, deliberately nonuniform convolution/SSM cache leaves, and
-recorded every model parameter, four token logits, and both final state families.
-Its canonical fixture digest is
-`7708ae2eacbbaa45d9060604a43528ff1bb2ebb5835b78de5bfa92a31b348806` and its
+temporary Vast instance was destroyed immediately after capture. This full
+language-model witness starts from the official zero cache. Deliberately
+nonuniform state coverage is provided separately by the checked-in
+`witness.json` asymmetric core case and exercised by the M2.4 test. The
+generator source is `generate_full_token_step_fixture.py` (SHA-256
+`a7ca2b83ee2c5675aed4c1ab03713535fb6156eaec80a09dacb3bcf3ed16c279`), and it
+records the seed, complete parameter set, four token logits, and both final
+state families. Its canonical fixture digest is
+`8a9d01647be20df2b1944be17e093cfbecb4996c738276c4448eb1f8cbdb3fab` and its
 checked-in file SHA-256 is
-`2389f47c71c60a3fcdd9122cd5efe89637895ea30bc8543b9409541e49b91682`.
+`922aa0e6b445040fc865749ce39cd0157f8ebe2e6e2191586cea82f3631679d4`.
+
+The pinned-environment regeneration command is:
+
+```text
+CUBLAS_WORKSPACE_CONFIG=:4096:8 python /workspace/m2oracle/generate_full_token_step_fixture.py /workspace/m2oracle/full_token_step_fixture.json
+```
